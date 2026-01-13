@@ -1,6 +1,6 @@
 import React, { memo } from 'react';
 import { Handle, Position } from 'reactflow';
-import { FileText, User, Search, GitMerge } from 'lucide-react';
+import { FileText, User, Search, GitMerge, Terminal, MessageSquare } from 'lucide-react';
 import { Card } from '../ui/shared';
 
 const NodeWrapper = ({ children, title, icon: Icon, colorClass = "border-zinc-700", headerClass = "bg-zinc-900", selected }) => (
@@ -116,6 +116,50 @@ export const LogicNode = memo(({ data, selected }) => {
             {/* Two source handles for True/False */}
             <Handle type="source" position={Position.Bottom} id="true" style={{ left: '25%' }} className="!bg-emerald-500 !w-3 !h-3 !border-2 !border-black" />
             <Handle type="source" position={Position.Bottom} id="false" style={{ left: '75%' }} className="!bg-rose-500 !w-3 !h-3 !border-2 !border-black" />
+        </>
+    );
+});
+
+export const TerminalNode = memo(({ data, selected }) => {
+    const handleChange = (key, val) => {
+        data.onChange && data.onChange(data.id, { ...data, [key]: val });
+    };
+
+    return (
+        <>
+            <Handle type="target" position={Position.Top} className="!bg-zinc-500 !w-3 !h-3 !border-2 !border-black" />
+            <NodeWrapper title="Terminal Challenge" icon={Terminal} selected={selected} headerClass="bg-zinc-800 text-green-400" colorClass="border-green-900/30">
+                <div className="space-y-2 font-mono">
+                    <div>
+                        <p className="text-[10px] text-zinc-500 mb-1">Challenge Prompt</p>
+                        <TextArea placeholder="e.g. Find the IP in headers..." rows={2} value={data.prompt} onChange={(e) => handleChange('prompt', e.target.value)} />
+                    </div>
+                    <div>
+                        <p className="text-[10px] text-zinc-500 mb-1">Expected Command / Answer</p>
+                        <InputField className="text-green-400 bg-black/50" placeholder="grep '192' access.log" value={data.command} onChange={(e) => handleChange('command', e.target.value)} />
+                    </div>
+                </div>
+            </NodeWrapper>
+            <Handle type="source" position={Position.Bottom} className="!bg-green-500 !w-3 !h-3 !border-2 !border-black" />
+        </>
+    );
+});
+
+export const MessageNode = memo(({ data, selected }) => {
+    const handleChange = (key, val) => {
+        data.onChange && data.onChange(data.id, { ...data, [key]: val });
+    };
+
+    return (
+        <>
+            <Handle type="target" position={Position.Top} className="!bg-zinc-500 !w-3 !h-3 !border-2 !border-black" />
+            <NodeWrapper title="Secure Chat" icon={MessageSquare} selected={selected} headerClass="bg-violet-950/30 text-violet-200" colorClass="border-violet-900/30">
+                <div className="space-y-2">
+                    <InputField placeholder="Sender Name (e.g. Handler)" value={data.sender} onChange={(e) => handleChange('sender', e.target.value)} />
+                    <TextArea placeholder="Message content..." rows={3} value={data.message} onChange={(e) => handleChange('message', e.target.value)} />
+                </div>
+            </NodeWrapper>
+            <Handle type="source" position={Position.Bottom} className="!bg-violet-500 !w-3 !h-3 !border-2 !border-black" />
         </>
     );
 });

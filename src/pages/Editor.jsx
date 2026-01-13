@@ -11,8 +11,8 @@ import ReactFlow, {
 import 'reactflow/dist/style.css';
 import { useParams, useNavigate } from 'react-router-dom';
 import { Button } from '../components/ui/shared';
-import { Save, ArrowLeft, Download, FileText, User, Search, GitMerge } from 'lucide-react';
-import { StoryNode, SuspectNode, EvidenceNode, LogicNode } from '../components/nodes/CustomNodes';
+import { Save, ArrowLeft, Download, FileText, User, Search, GitMerge, Terminal, MessageSquare } from 'lucide-react';
+import { StoryNode, SuspectNode, EvidenceNode, LogicNode, TerminalNode, MessageNode } from '../components/nodes/CustomNodes';
 import JSZip from 'jszip';
 
 const Editor = () => {
@@ -27,7 +27,9 @@ const Editor = () => {
         story: StoryNode,
         suspect: SuspectNode,
         evidence: EvidenceNode,
-        logic: LogicNode
+        logic: LogicNode,
+        terminal: TerminalNode,
+        message: MessageNode
     }), []);
 
     // Initial Load
@@ -210,6 +212,14 @@ const Editor = () => {
                         <div onDragStart={(event) => onDragStart(event, 'logic')} draggable className="flex items-center gap-3 p-3 rounded bg-zinc-900 border border-zinc-800 cursor-grab hover:border-emerald-500/50 hover:bg-zinc-800 transition-all active:cursor-grabbing">
                             <GitMerge className="w-4 h-4 text-emerald-400" />
                             <span className="text-sm font-medium">Logic Branch</span>
+                        </div>
+                        <div onDragStart={(event) => onDragStart(event, 'terminal')} draggable className="flex items-center gap-3 p-3 rounded bg-zinc-900 border border-zinc-800 cursor-grab hover:border-green-500/50 hover:bg-zinc-800 transition-all active:cursor-grabbing">
+                            <Terminal className="w-4 h-4 text-green-400" />
+                            <span className="text-sm font-medium">Terminal Prompt</span>
+                        </div>
+                        <div onDragStart={(event) => onDragStart(event, 'message')} draggable className="flex items-center gap-3 p-3 rounded bg-zinc-900 border border-zinc-800 cursor-grab hover:border-violet-500/50 hover:bg-zinc-800 transition-all active:cursor-grabbing">
+                            <MessageSquare className="w-4 h-4 text-violet-400" />
+                            <span className="text-sm font-medium">Chat Message</span>
                         </div>
                     </div>
 
