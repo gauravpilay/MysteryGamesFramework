@@ -40,11 +40,14 @@ const Dashboard = () => {
     };
 
     const deleteProject = (e, id) => {
+        e.preventDefault();
         e.stopPropagation();
         if (!confirm("Delete this case file?")) return;
-        const updated = projects.filter(p => p.id !== id);
-        setProjects(updated);
-        localStorage.setItem('mystery_projects', JSON.stringify(updated));
+        setProjects(prev => {
+            const updated = prev.filter(p => p.id !== id);
+            localStorage.setItem('mystery_projects', JSON.stringify(updated));
+            return updated;
+        });
         localStorage.removeItem(`project_data_${id}`);
     };
 
@@ -114,7 +117,7 @@ const Dashboard = () => {
                                         </div>
                                         <div className="dropdown relative">
                                             <button
-                                                className="p-1 rounded-md hover:bg-zinc-800 text-zinc-500 hover:text-white"
+                                                className="p-1 rounded-md hover:bg-zinc-800 text-zinc-500 hover:text-white relative z-20"
                                                 onClick={(e) => deleteProject(e, project.id)}
                                             >
                                                 <Trash2 className="w-4 h-4" />
