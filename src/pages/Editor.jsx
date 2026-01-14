@@ -71,6 +71,9 @@ const Editor = () => {
         message: MessageNode
     }), []);
 
+    const [editingEdge, setEditingEdge] = useState(null); // { id: string, label: string }
+    const [tempLabel, setTempLabel] = useState(""); // For input
+
     // Update handler
     const onNodeUpdate = useCallback((id, newData) => {
         setNodes((nds) => nds.map((node) => {
@@ -81,7 +84,33 @@ const Editor = () => {
         }));
     }, [setNodes]);
 
-    const onConnect = useCallback((params) => setEdges((eds) => addEdge(params, eds)), [setEdges]);
+    const onConnect = useCallback((params) => {
+        // Create edge immediately without prompt
+        setEdges((eds) => addEdge({ ...params, type: 'default' }, eds));
+    }, [setEdges]);
+
+    const onEdgeClick = useCallback((event, edge) => {
+        event.stopPropagation();
+        setEditingEdge(edge);
+        setTempLabel(edge.label || "");
+    }, []);
+
+    const saveEdgeLabel = () => {
+        if (!editingEdge) return;
+        setEdges((eds) => eds.map((e) => {
+            if (e.id === editingEdge.id) {
+                return { ...e, label: tempLabel === "" ? undefined : tempLabel };
+            }
+            return e;
+        }));
+        setEditingEdge(null);
+    };
+
+    const deleteEdge = () => {
+        if (!editingEdge) return;
+        setEdges((eds) => eds.filter(e => e.id !== editingEdge.id));
+        setEditingEdge(null);
+    };
 
     const onDragOver = useCallback((event) => {
         event.preventDefault();
@@ -321,6 +350,7 @@ const Editor = () => {
                         onInit={setReactFlowInstance}
                         onDrop={onDrop}
                         onDragOver={onDragOver}
+                        onEdgeClick={onEdgeClick}
                         nodeTypes={nodeTypes}
                         deleteKeyCode={['Backspace', 'Delete']}
                         fitView
@@ -368,6 +398,45 @@ const Editor = () => {
                                 <Button onClick={() => setShowSettings(false)}>
                                     Save & Close
                                 </Button>
+                            </div>
+                        </div>
+                    </div>
+                )}
+
+                {/* Edge Editor Modal */}
+                {editingEdge && (
+                    <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/80 backdrop-blur-sm">
+                        <div className="bg-zinc-950 border border-zinc-800 p-6 rounded-xl max-w-sm w-full shadow-2xl">
+                            <h2 className="text-xl font-bold text-white mb-4 flex items-center gap-2">
+                                <GitMerge className="w-6 h-6 text-indigo-500" />
+                                Edit Connection
+                            </h2>
+                            <div className="space-y-4">
+                                <div>
+                                    <label className="block text-xs font-bold text-zinc-500 uppercase tracking-wider mb-2">Action Label</label>
+                                    <input
+                                        type="text"
+                                        placeholder="e.g. Interrogate, Unlock"
+                                        value={tempLabel}
+                                        onChange={(e) => setTempLabel(e.target.value)}
+                                        className="w-full bg-black border border-zinc-700 rounded px-3 py-2 text-white outline-none focus:border-indigo-500"
+                                        autoFocus
+                                    />
+                                    <span className="text-zinc-500 text-xs mt-1 block">Text shown on the line connecting nodes.</span>
+                                </div>
+                            </div>
+                            <div className="mt-8 flex justify-between">
+                                <Button variant="destructive" onClick={deleteEdge}>
+                                    Delete Link
+                                </Button>
+                                <div className="flex gap-2">
+                                    <Button variant="ghost" onClick={() => setEditingEdge(null)}>
+                                        Cancel
+                                    </Button>
+                                    <Button onClick={saveEdgeLabel}>
+                                        Save Label
+                                    </Button>
+                                </div>
                             </div>
                         </div>
                     </div>
