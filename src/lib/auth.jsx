@@ -1,6 +1,7 @@
 import React, { createContext, useContext, useState, useEffect } from 'react';
-import { auth, googleProvider } from './firebase';
+import { auth, googleProvider, db } from './firebase';
 import { signInWithPopup, signOut, onAuthStateChanged } from 'firebase/auth';
+import { doc, getDoc, setDoc } from 'firebase/firestore';
 
 const AuthContext = createContext({});
 
@@ -22,6 +23,7 @@ export const AuthProvider = ({ children }) => {
 
     const login = async () => {
         if (!auth) {
+            alert("Firebase configuration missing. Using Mock Login. To enable Google Sign-In, please fill in the .env file and restart the server.");
             // Mock Login
             setUser({
                 displayName: "Detective User",
@@ -32,7 +34,21 @@ export const AuthProvider = ({ children }) => {
             return;
         }
         try {
-            await signInWithPopup(auth, googleProvider);
+            const result = await signInWithPopup(auth, googleProvider);
+            const user = result.user;
+
+            if (db) {
+                const userRef = doc(db, "users", user.uid);
+                const userSnap = await getDoc(userRef);
+
+                if (!userSnap.exists()) {
+                    await setDoc(userRef, {
+                        email: user.email,
+                        role: "User",
+                        createdAt: new Date()
+                    });
+                }
+            }
         } catch (error) {
             console.error("Login failed", error);
             // Fallback for demo if popup fails (e.g. valid config but domain not allowed)
