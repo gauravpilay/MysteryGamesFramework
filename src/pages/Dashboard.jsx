@@ -20,93 +20,247 @@ const Dashboard = () => {
     useEffect(() => {
         // Load existing projects
         const saved = localStorage.getItem('mystery_projects');
-        let currentProjects = [];
+        let currentProjects = saved ? JSON.parse(saved) : [];
+        let modified = false;
 
-        if (saved) {
-            currentProjects = JSON.parse(saved);
-            setProjects(currentProjects);
-        }
-
-        // Check for tutorial project
+        // 1. Tutorial Project Check
         const tutorialId = 'tutorial-sample-story-v1';
         const isTutorialDismissed = localStorage.getItem('tutorial_dismissed') === 'true';
 
-        // Only recreate tutorial if it hasn't been explicitly dismissed
-        if (!isTutorialDismissed) {
-            const hasTutorial = currentProjects.some(p => p.id === tutorialId);
+        if (!isTutorialDismissed && !currentProjects.some(p => p.id === tutorialId)) {
+            const tutorialProject = {
+                id: tutorialId,
+                title: 'Tutorial: The Missing Architect',
+                description: 'A guided sample story demonstrating how to structure a mystery game.',
+                updatedAt: new Date().toISOString(),
+                nodeCount: 7
+            };
 
-            if (!hasTutorial) {
-                const tutorialProject = {
-                    id: tutorialId,
-                    title: 'Tutorial: The Missing Architect',
-                    description: 'A guided sample story demonstrating how to structure a mystery game.',
-                    updatedAt: new Date().toISOString(),
-                    nodeCount: 7
-                };
-
-                const tutorialData = {
-                    nodes: [
-                        {
-                            id: 'start-node',
-                            type: 'story',
-                            position: { x: 100, y: 100 },
-                            data: {
-                                label: 'The Beginning',
-                                content: 'Welcome to the Mystery Architect! This is a "Story Node". It sets the scene. \n\n"You arrive at the scene of the crime. The office is silent..."'
-                            }
-                        },
-                        {
-                            id: 'suspect-1',
-                            type: 'suspect',
-                            position: { x: 500, y: 100 },
-                            data: {
-                                label: 'Suspect: The Intern',
-                                name: 'Alex "The Coder" Mercer',
-                                description: 'Nervous, typing furiously.',
-                                isKiller: false
-                            }
-                        },
-                        {
-                            id: 'evidence-1',
-                            type: 'evidence',
-                            position: { x: 500, y: 300 },
-                            data: {
-                                label: 'Found USB Drive',
-                                description: 'A black encrypted USB drive found under the desk.'
-                            }
-                        },
-                        {
-                            id: 'logic-1',
-                            type: 'logic',
-                            position: { x: 900, y: 200 },
-                            data: {
-                                label: 'Has Evidence?',
-                                condition: 'has_usb_drive'
-                            }
-                        },
-                        {
-                            id: 'msg-1',
-                            type: 'message',
-                            position: { x: 100, y: 400 },
-                            data: {
-                                label: 'Incoming Text',
-                                sender: 'Unknown',
-                                content: 'Stop looking for the architect. - Watcher'
-                            }
+            const tutorialData = {
+                nodes: [
+                    {
+                        id: 'start-node',
+                        type: 'story',
+                        position: { x: 100, y: 100 },
+                        data: {
+                            label: 'The Beginning',
+                            text: 'Welcome to the Mystery Architect! This is a "Story Node". It sets the scene. \n\n"You arrive at the scene of the crime. The office is silent..."'
                         }
-                    ],
-                    edges: [
-                        { id: 'e1-2', source: 'start-node', target: 'suspect-1' },
-                        { id: 'e1-3', source: 'start-node', target: 'evidence-1' },
-                        { id: 'e2-4', source: 'suspect-1', target: 'logic-1' }
-                    ]
-                };
+                    },
+                    {
+                        id: 'suspect-1',
+                        type: 'suspect',
+                        position: { x: 500, y: 100 },
+                        data: {
+                            label: 'Suspect: The Intern',
+                            name: 'Alex "The Coder" Mercer',
+                            role: 'Junior Dev',
+                            alibi: 'Nervous, typing furiously.',
+                            isKiller: false
+                        }
+                    },
+                    {
+                        id: 'evidence-1',
+                        type: 'evidence',
+                        position: { x: 500, y: 300 },
+                        data: {
+                            label: 'Found USB Drive',
+                            description: 'A black encrypted USB drive found under the desk.'
+                        }
+                    },
+                    {
+                        id: 'logic-1',
+                        type: 'logic',
+                        position: { x: 900, y: 200 },
+                        data: {
+                            label: 'Has Evidence?',
+                            condition: 'has_usb_drive'
+                        }
+                    },
+                    {
+                        id: 'msg-1',
+                        type: 'message',
+                        position: { x: 100, y: 400 },
+                        data: {
+                            label: 'Incoming Text',
+                            sender: 'Unknown',
+                            message: 'Stop looking for the architect. - Watcher'
+                        }
+                    }
+                ],
+                edges: [
+                    { id: 'e1-2', source: 'start-node', target: 'suspect-1' },
+                    { id: 'e1-3', source: 'start-node', target: 'evidence-1' },
+                    { id: 'e2-4', source: 'suspect-1', target: 'logic-1' }
+                ]
+            };
 
-                const updatedProjects = [tutorialProject, ...currentProjects];
-                setProjects(updatedProjects);
-                localStorage.setItem('mystery_projects', JSON.stringify(updatedProjects));
-                localStorage.setItem(`project_data_${tutorialId}`, JSON.stringify(tutorialData));
-            }
+            currentProjects.unshift(tutorialProject);
+            localStorage.setItem(`project_data_${tutorialId}`, JSON.stringify(tutorialData));
+            modified = true;
+        }
+
+        // 2. Cyber Attack Sample Check
+        const cyberId = 'sample-cyber-attack-v1';
+        const isCyberDismissed = localStorage.getItem('sample_cyber_dismissed') === 'true';
+
+        if (!isCyberDismissed && !currentProjects.some(p => p.id === cyberId)) {
+            const cyberProject = {
+                id: cyberId,
+                title: 'Case: The Digital Insider',
+                description: 'CRITICAL: DarkCipher Ransomware attack on Global FinTech. Identify the insider threat immediately.',
+                updatedAt: new Date().toISOString(),
+                nodeCount: 12
+            };
+
+            const cyberData = {
+                nodes: [
+                    {
+                        id: 'cyber-start',
+                        type: 'story',
+                        position: { x: 0, y: 0 },
+                        data: {
+                            label: 'Briefing: 0800 HRS',
+                            text: 'ALERT: Global FinTech Bank systems are locked by DarkCipher ransomware. \n\nForensics indicates the payload was deployed internally. We have 5 suspects who had access during the 0200-0400 maintenance window. \n\nFind the culprit. Time is running out.'
+                        }
+                    },
+                    {
+                        id: 'suspect-sarah',
+                        type: 'suspect',
+                        position: { x: -400, y: 250 },
+                        data: {
+                            label: 'Suspect: Sarah',
+                            name: 'Sarah "The Vet" Jenkins',
+                            role: 'Senior SysAdmin',
+                            alibi: 'Claimed to be patching Server Block B. Logs confirm her login at 02:15.',
+                        }
+                    },
+                    {
+                        id: 'suspect-mike',
+                        type: 'suspect',
+                        position: { x: -200, y: 250 },
+                        data: {
+                            label: 'Suspect: Mike',
+                            name: 'Mike "Script" Ross',
+                            role: 'IT Intern',
+                            alibi: 'Left office at 18:00. Badge swipe shows re-entry at 08:00. Known to browse hacker forums.',
+                        }
+                    },
+                    {
+                        id: 'suspect-elena',
+                        type: 'suspect',
+                        position: { x: 0, y: 250 },
+                        data: {
+                            label: 'Suspect: Elena',
+                            name: 'Elena "Ghost" Petrova',
+                            role: 'Lead Developer',
+                            alibi: 'Working remote from Warsaw. VPN logs show constant activity on the repo.',
+                        }
+                    },
+                    {
+                        id: 'suspect-ken',
+                        type: 'suspect',
+                        position: { x: 200, y: 250 },
+                        data: {
+                            label: 'Suspect: Ken',
+                            name: 'Ken Sato',
+                            role: 'External Consultant',
+                            alibi: 'On-site for migration. Had unsupervised access to the server room.',
+                        }
+                    },
+                    {
+                        id: 'suspect-david',
+                        type: 'suspect',
+                        position: { x: 400, y: 250 },
+                        data: {
+                            label: 'Suspect: David',
+                            name: 'David Sterling',
+                            role: 'CTO',
+                            alibi: 'In frantic meetings. Pressured team to bypass security protocols for speed.',
+                        }
+                    },
+                    {
+                        id: 'term-logs',
+                        type: 'terminal',
+                        position: { x: -300, y: 500 },
+                        data: {
+                            label: 'Server Auth Logs',
+                            prompt: 'Check the authentication logs for unusual activity around 03:00.',
+                            command: 'grep "03:" /var/log/auth.log'
+                        }
+                    },
+                    {
+                        id: 'evidence-cctv',
+                        type: 'evidence',
+                        position: { x: 0, y: 500 },
+                        data: {
+                            label: 'CCTV Footage',
+                            description: 'Blurry footage from 03:14 AM shows a figure in a hoodie entering the secure zone using a keycard.'
+                        }
+                    },
+                    {
+                        id: 'msg-tip',
+                        type: 'message',
+                        position: { x: 300, y: 500 },
+                        data: {
+                            label: 'Anonymous Tip',
+                            sender: 'Unknown',
+                            message: 'Check the consultant\'s trash. He thought he was clever.'
+                        }
+                    },
+                    {
+                        id: 'logic-keycard',
+                        type: 'logic',
+                        position: { x: 0, y: 700 },
+                        data: {
+                            label: 'Analyze Keycard',
+                            condition: 'keycard_match_ken'
+                        }
+                    },
+                    {
+                        id: 'evidence-trash',
+                        type: 'evidence',
+                        position: { x: 300, y: 700 },
+                        data: {
+                            label: 'Burned Note',
+                            description: 'Recovered note: "Payload active. Payment to wallet 3Xy... - K.S."'
+                        }
+                    },
+                    {
+                        id: 'story-climax',
+                        type: 'story',
+                        position: { x: 0, y: 900 },
+                        data: {
+                            label: 'The Confrontation',
+                            text: 'You have gathered the evidence. All signs point to one person. It is time to make the arrest.'
+                        }
+                    }
+                ],
+                edges: [
+                    { id: 'e-start-sarah', source: 'cyber-start', target: 'suspect-sarah' },
+                    { id: 'e-start-mike', source: 'cyber-start', target: 'suspect-mike' },
+                    { id: 'e-start-elena', source: 'cyber-start', target: 'suspect-elena' },
+                    { id: 'e-start-ken', source: 'cyber-start', target: 'suspect-ken' },
+                    { id: 'e-start-david', source: 'cyber-start', target: 'suspect-david' },
+                    { id: 'e-start-logs', source: 'cyber-start', target: 'term-logs' },
+                    { id: 'e-start-cctv', source: 'cyber-start', target: 'evidence-cctv' },
+                    { id: 'e-start-tip', source: 'cyber-start', target: 'msg-tip' },
+                    { id: 'e-tip-trash', source: 'msg-tip', target: 'evidence-trash' },
+                    { id: 'e-cctv-logic', source: 'evidence-cctv', target: 'logic-keycard' },
+                    { id: 'e-logic-climax', source: 'logic-keycard', target: 'story-climax' }
+                ]
+            };
+
+            currentProjects.unshift(cyberProject);
+            localStorage.setItem(`project_data_${cyberId}`, JSON.stringify(cyberData));
+            modified = true;
+        }
+
+        if (modified) {
+            setProjects([...currentProjects]); // Create new reference
+            localStorage.setItem('mystery_projects', JSON.stringify(currentProjects));
+        } else {
+            setProjects(currentProjects);
         }
     }, []);
 
@@ -140,6 +294,8 @@ const Dashboard = () => {
         // If deleting tutorial, mark it as dismissed
         if (deleteId === 'tutorial-sample-story-v1') {
             localStorage.setItem('tutorial_dismissed', 'true');
+        } else if (deleteId === 'sample-cyber-attack-v1') {
+            localStorage.setItem('sample_cyber_dismissed', 'true');
         }
 
         setProjects(prev => {
