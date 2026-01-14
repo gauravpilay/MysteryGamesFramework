@@ -15,9 +15,90 @@ const Dashboard = () => {
 
     // Load projects from local storage
     useEffect(() => {
+        // Load existing projects
         const saved = localStorage.getItem('mystery_projects');
+        let currentProjects = [];
+
         if (saved) {
-            setProjects(JSON.parse(saved));
+            currentProjects = JSON.parse(saved);
+            setProjects(currentProjects);
+        }
+
+        // Check for tutorial project
+        const tutorialId = 'tutorial-sample-story-v1';
+        const hasTutorial = currentProjects.some(p => p.id === tutorialId);
+
+        if (!hasTutorial) {
+            const tutorialProject = {
+                id: tutorialId,
+                title: 'Tutorial: The Missing Architect',
+                description: 'A guided sample story demonstrating how to structure a mystery game.',
+                updatedAt: new Date().toISOString(),
+                nodeCount: 7
+            };
+
+            const tutorialData = {
+                nodes: [
+                    {
+                        id: 'start-node',
+                        type: 'story',
+                        position: { x: 100, y: 100 },
+                        data: {
+                            label: 'The Beginning',
+                            content: 'Welcome to the Mystery Architect! This is a "Story Node". It sets the scene. \n\n"You arrive at the scene of the crime. The office is silent..."'
+                        }
+                    },
+                    {
+                        id: 'suspect-1',
+                        type: 'suspect',
+                        position: { x: 500, y: 100 },
+                        data: {
+                            label: 'Suspect: The Intern',
+                            name: 'Alex "The Coder" Mercer',
+                            description: 'Nervous, typing furiously.',
+                            isKiller: false
+                        }
+                    },
+                    {
+                        id: 'evidence-1',
+                        type: 'evidence',
+                        position: { x: 500, y: 300 },
+                        data: {
+                            label: 'Found USB Drive',
+                            description: 'A black encrypted USB drive found under the desk.'
+                        }
+                    },
+                    {
+                        id: 'logic-1',
+                        type: 'logic',
+                        position: { x: 900, y: 200 },
+                        data: {
+                            label: 'Has Evidence?',
+                            condition: 'has_usb_drive'
+                        }
+                    },
+                    {
+                        id: 'msg-1',
+                        type: 'message',
+                        position: { x: 100, y: 400 },
+                        data: {
+                            label: 'Incoming Text',
+                            sender: 'Unknown',
+                            content: 'Stop looking for the architect. - Watcher'
+                        }
+                    }
+                ],
+                edges: [
+                    { id: 'e1-2', source: 'start-node', target: 'suspect-1' },
+                    { id: 'e1-3', source: 'start-node', target: 'evidence-1' },
+                    { id: 'e2-4', source: 'suspect-1', target: 'logic-1' }
+                ]
+            };
+
+            const updatedProjects = [tutorialProject, ...currentProjects];
+            setProjects(updatedProjects);
+            localStorage.setItem('mystery_projects', JSON.stringify(updatedProjects));
+            localStorage.setItem(`project_data_${tutorialId}`, JSON.stringify(tutorialData));
         }
     }, []);
 

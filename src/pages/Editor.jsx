@@ -11,8 +11,10 @@ import ReactFlow, {
 import 'reactflow/dist/style.css';
 import { useParams, useNavigate } from 'react-router-dom';
 import { Button } from '../components/ui/shared';
-import { Save, ArrowLeft, Download, FileText, User, Search, GitMerge, Terminal, MessageSquare } from 'lucide-react';
+import { Save, ArrowLeft, Download, FileText, User, Search, GitMerge, Terminal, MessageSquare, CircleHelp } from 'lucide-react';
 import { StoryNode, SuspectNode, EvidenceNode, LogicNode, TerminalNode, MessageNode } from '../components/nodes/CustomNodes';
+import { TutorialOverlay } from '../components/ui/TutorialOverlay';
+import { AnimatePresence } from 'framer-motion';
 import JSZip from 'jszip';
 
 const Editor = () => {
@@ -22,6 +24,35 @@ const Editor = () => {
     const [nodes, setNodes, onNodesChange] = useNodesState([]);
     const [edges, setEdges, onEdgesChange] = useEdgesState([]);
     const [reactFlowInstance, setReactFlowInstance] = useState(null);
+    const [showTutorial, setShowTutorial] = useState(false);
+
+    const tutorialSteps = [
+        {
+            title: "Welcome to the Editor",
+            description: "This is where you craft your mystery. Let's take a quick tour of the features.",
+            targetId: null
+        },
+        {
+            title: "The Toolbar",
+            description: "Here you can navigate back to the dashboard, manage your case file, and access help.",
+            targetId: "editor-toolbar"
+        },
+        {
+            title: "Node Palette",
+            description: "These are your building blocks. Drag and drop Story, Suspect, Evidence, or Logic nodes onto the canvas to construct your narrative.",
+            targetId: "node-sidebar"
+        },
+        {
+            title: "The Canvas",
+            description: "This is your workspace. Drag nodes here and connect them to create the flow of the story.",
+            targetId: "editor-canvas"
+        },
+        {
+            title: "Actions",
+            description: "Save your progress often. When you're ready, click 'Generate Build' to export a playable HTML game.",
+            targetId: "editor-actions"
+        }
+    ];
 
     const nodeTypes = useMemo(() => ({
         story: StoryNode,
@@ -171,7 +202,7 @@ const Editor = () => {
     return (
         <div className="flex h-screen w-screen flex-col bg-black text-white overflow-hidden">
             {/* Toolbar */}
-            <div className="h-16 border-b border-zinc-800 bg-black/80 flex items-center justify-between px-4 z-10 backdrop-blur-md">
+            <div id="editor-toolbar" className="h-16 border-b border-zinc-800 bg-black/80 flex items-center justify-between px-4 z-10 backdrop-blur-md">
                 <div className="flex items-center gap-4">
                     <Button variant="ghost" size="sm" onClick={() => navigate('/')}>
                         <ArrowLeft className="w-4 h-4 mr-2" />
@@ -179,7 +210,10 @@ const Editor = () => {
                     </Button>
                     <span className="font-bold text-zinc-400">Mission Architect</span>
                 </div>
-                <div className="flex items-center gap-2">
+                <div id="editor-actions" className="flex items-center gap-2">
+                    <Button variant="ghost" size="icon" onClick={() => setShowTutorial(true)} title="How to use">
+                        <CircleHelp className="w-5 h-5 text-indigo-400" />
+                    </Button>
                     <Button id="save-btn" variant="secondary" size="sm" onClick={saveProject}>
                         <Save className="w-4 h-4 mr-2" />
                         Save
@@ -193,7 +227,7 @@ const Editor = () => {
 
             <div className="flex flex-1 overflow-hidden">
                 {/* Sidebar */}
-                <aside className="w-64 border-r border-zinc-800 bg-zinc-950 p-4 flex flex-col gap-4 z-10">
+                <aside id="node-sidebar" className="w-64 border-r border-zinc-800 bg-zinc-950 p-4 flex flex-col gap-4 z-10">
                     <div className="text-xs font-bold text-zinc-500 uppercase tracking-wider mb-2">Node Palette</div>
 
                     <div className="space-y-3">
@@ -231,7 +265,7 @@ const Editor = () => {
                 </aside>
 
                 {/* Canvas */}
-                <div className="flex-1 h-full relative" ref={reactFlowWrapper}>
+                <div id="editor-canvas" className="flex-1 h-full relative" ref={reactFlowWrapper}>
                     <ReactFlow
                         nodes={nodes}
                         edges={edges}
@@ -252,12 +286,21 @@ const Editor = () => {
                     </ReactFlow>
                 </div>
             </div>
+            <AnimatePresence>
+                {showTutorial && (
+                    <TutorialOverlay steps={tutorialSteps} onClose={() => setShowTutorial(false)} />
+                )}
+            </AnimatePresence>
         </div>
     );
 };
 
+import ErrorBoundary from '../components/ErrorBoundary';
+
 export default () => (
-    <ReactFlowProvider>
-        <Editor />
-    </ReactFlowProvider>
+    <ErrorBoundary>
+        <ReactFlowProvider>
+            <Editor />
+        </ReactFlowProvider>
+    </ErrorBoundary>
 );

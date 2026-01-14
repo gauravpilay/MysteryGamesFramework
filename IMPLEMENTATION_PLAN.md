@@ -57,7 +57,10 @@
   3. Zip the entire structure using `jszip`.
   4. Trigger download.
 - *Note*: To keep it "no-code" for the agent to build, we might embed the player template source codes as string constants or have a sub-folder that gets read. For simplicity in this single environment, we will embed the critical "Player" logic as a string template that gets written to `App.jsx` in the downloaded zip.
-
+- [x] **Sample Story & Tutorial**
+  - [x] Create "Tutorial: The Missing Architect" sample project injection logic
+  - [x] Implement "How To" guided tour in Editor
+  - [x] Add highlighting/spotlight feature for tutorial steps
 ## 4. Work Breakdown
 1. **Initialize Project**: Scaffold Vite app, install libs.
 2. **Setup Tailwind**: Config for dark mode and colors.
