@@ -303,7 +303,57 @@ const Dashboard = () => {
     };
 
     // Filter projects for view
-    const visibleProjects = projects.filter(p => isAdmin || p.status === 'published');
+    const publishedProjects = projects.filter(p => p.status === 'published');
+    const draftProjects = projects.filter(p => p.status !== 'published');
+
+    const ProjectCard = ({ project }) => (
+        <motion.div
+            layout
+            initial={{ opacity: 0, y: 20 }}
+            animate={{ opacity: 1, y: 0 }}
+            exit={{ opacity: 0, scale: 0.95 }}
+            onClick={() => openProject(project.id)}
+            className="group relative cursor-pointer"
+        >
+            <Card className={`h-full p-5 hover:border-indigo-500/50 transition-colors bg-gradient-to-tr from-zinc-900 via-zinc-900 to-zinc-900/50 hover:to-indigo-900/10 ${project.status === 'draft' ? 'border-dashed border-zinc-700 opacity-80' : ''}`}>
+                <div className="flex items-start justify-between mb-4">
+                    <div className={`p-2 rounded-md ${project.status === 'published' ? 'bg-indigo-500/20 text-indigo-400' : 'bg-zinc-800 text-zinc-400'} transition-colors`}>
+                        <FolderOpen className="w-5 h-5" />
+                    </div>
+                    {isAdmin && (
+                        <div className="flex items-center gap-1 relative z-20">
+                            <button
+                                className={`px-2 py-1 text-xs font-bold rounded uppercase tracking-wider ${project.status === 'published' ? 'bg-indigo-900/30 text-indigo-400 hover:bg-indigo-900/50' : 'bg-zinc-800 text-zinc-500 hover:text-zinc-300'}`}
+                                onClick={(e) => togglePublish(e, project)}
+                                title={project.status === 'published' ? 'Unpublish' : 'Publish to Users'}
+                            >
+                                {project.status === 'published' ? 'Live' : 'Draft'}
+                            </button>
+                            <button
+                                className="p-1 rounded-md hover:bg-zinc-800 text-zinc-500 hover:text-red-400"
+                                onClick={(e) => initiateDelete(e, project.id)}
+                                title="Delete Project"
+                            >
+                                <Trash2 className="w-4 h-4" />
+                            </button>
+                        </div>
+                    )}
+                </div>
+                <h3 className="font-semibold text-zinc-200 group-hover:text-white transition-colors truncate">
+                    {project.title}
+                </h3>
+                <p className="text-sm text-zinc-500 mt-2 line-clamp-2 h-10">{project.description}</p>
+
+                <div className="mt-6 pt-4 border-t border-zinc-800/50 flex items-center justify-between text-xs text-zinc-500">
+                    <span>{new Date(project.updatedAt).toLocaleDateString()}</span>
+                    <div className="flex items-center gap-1 group-hover:text-indigo-400 transition-colors">
+                        <Rocket className="w-3 h-3" />
+                        <span>Launch</span>
+                    </div>
+                </div>
+            </Card>
+        </motion.div>
+    );
 
     return (
         <div className="min-h-screen bg-black text-zinc-100 font-sans selection:bg-indigo-500/30">
@@ -332,17 +382,15 @@ const Dashboard = () => {
             </header>
 
             {/* Main Content */}
-            <main className="container mx-auto px-6 py-10">
-                <div className="flex items-center justify-between mb-8">
+            <main className="container mx-auto px-6 py-10 space-y-12">
+                {/* Header Section */}
+                <div className="flex items-center justify-between">
                     <div>
-                        <h1 className="text-2xl font-bold bg-clip-text text-transparent bg-gradient-to-r from-white to-zinc-500">Case Files</h1>
+                        <h1 className="text-2xl font-bold bg-clip-text text-transparent bg-gradient-to-r from-white to-zinc-500">Dashboard</h1>
                         <p className="text-zinc-500 text-sm mt-1">Manage your active investigations</p>
                     </div>
                     <div className="flex items-center gap-3">
-                        <div className="relative">
-                            <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-zinc-500" />
-                            <input type="text" placeholder="Search cases..." className="pl-9 pr-4 py-2 bg-zinc-900 border border-zinc-800 rounded-lg text-sm focus:outline-none focus:ring-1 focus:ring-indigo-500 w-64 text-zinc-300 placeholder:text-zinc-600" />
-                        </div>
+                        {/* Search is hidden for cleaner separate view for now, or can be re-added below */}
                         {isAdmin && (
                             <>
                                 <Button variant="secondary" onClick={generateSampleCase} type="button">
@@ -358,74 +406,43 @@ const Dashboard = () => {
                     </div>
                 </div>
 
-                {/* Grid */}
-                <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-6">
-                    <AnimatePresence>
-                        {visibleProjects.map((project) => (
-                            <motion.div
-                                key={project.id}
-                                initial={{ opacity: 0, y: 20 }}
-                                animate={{ opacity: 1, y: 0 }}
-                                exit={{ opacity: 0, scale: 0.95 }}
-                                layout
-                                onClick={() => openProject(project.id)}
-                                className="group relative cursor-pointer"
-                            >
-                                <Card className={`h-full p-5 hover:border-indigo-500/50 transition-colors bg-gradient-to-tr from-zinc-900 via-zinc-900 to-zinc-900/50 hover:to-indigo-900/10 ${project.status === 'draft' ? 'border-dashed border-zinc-700 opacity-80' : ''}`}>
-                                    <div className="flex items-start justify-between mb-4">
-                                        <div className={`p-2 rounded-md ${project.status === 'published' ? 'bg-indigo-500/20 text-indigo-400' : 'bg-zinc-800 text-zinc-400'} transition-colors`}>
-                                            <FolderOpen className="w-5 h-5" />
-                                        </div>
-                                        {isAdmin && (
-                                            <div className="flex items-center gap-1 relative z-20">
-                                                <button
-                                                    className={`px-2 py-1 text-xs font-bold rounded uppercase tracking-wider ${project.status === 'published' ? 'bg-indigo-900/30 text-indigo-400 hover:bg-indigo-900/50' : 'bg-zinc-800 text-zinc-500 hover:text-zinc-300'}`}
-                                                    onClick={(e) => togglePublish(e, project)}
-                                                    title={project.status === 'published' ? 'Unpublish' : 'Publish to Users'}
-                                                >
-                                                    {project.status === 'published' ? 'Live' : 'Draft'}
-                                                </button>
-                                                <button
-                                                    className="p-1 rounded-md hover:bg-zinc-800 text-zinc-500 hover:text-red-400"
-                                                    onClick={(e) => initiateDelete(e, project.id)}
-                                                    title="Delete Project"
-                                                >
-                                                    <Trash2 className="w-4 h-4" />
-                                                </button>
-                                            </div>
-                                        )}
-                                    </div>
-                                    <h3 className="font-semibold text-zinc-200 group-hover:text-white transition-colors truncate">
-                                        {project.title}
-                                    </h3>
-                                    <p className="text-sm text-zinc-500 mt-2 line-clamp-2 h-10">{project.description}</p>
-
-                                    <div className="mt-6 pt-4 border-t border-zinc-800/50 flex items-center justify-between text-xs text-zinc-500">
-                                        <span>{new Date(project.updatedAt).toLocaleDateString()}</span>
-                                        <div className="flex items-center gap-1 group-hover:text-indigo-400 transition-colors">
-                                            <Rocket className="w-3 h-3" />
-                                            <span>Launch Architect</span>
-                                        </div>
-                                    </div>
-                                </Card>
-                            </motion.div>
-                        ))}
-                    </AnimatePresence>
-
-                    {/* Empty State */}
-                    {visibleProjects.length === 0 && (
-                        <div className="col-span-full py-20 text-center border border-dashed border-zinc-800 rounded-xl bg-zinc-900/20">
-                            <div className="w-16 h-16 rounded-full bg-zinc-900 flex items-center justify-center mx-auto mb-4 border border-zinc-800">
-                                <Plus className="w-6 h-6 text-zinc-600" />
+                {/* Published Section */}
+                <section>
+                    <div className="flex items-center gap-2 mb-6">
+                        <div className="w-2 h-2 rounded-full bg-indigo-500 shadow-[0_0_10px_rgba(99,102,241,0.5)]"></div>
+                        <h2 className="text-lg font-bold text-white tracking-wide uppercase text-sm">Active Investigations</h2>
+                    </div>
+                    <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-6">
+                        <AnimatePresence>
+                            {publishedProjects.map(p => <ProjectCard key={p.id} project={p} />)}
+                        </AnimatePresence>
+                        {publishedProjects.length === 0 && (
+                            <div className="col-span-full py-12 text-center border border-dashed border-zinc-800 rounded-xl bg-zinc-900/10">
+                                <p className="text-zinc-500 text-sm">No live cases currently available.</p>
                             </div>
-                            <h3 className="text-zinc-400 font-medium">No active cases</h3>
-                            <p className="text-zinc-600 text-sm mt-1 max-w-sm mx-auto">
-                                {isAdmin ? "Start by creating a new mystery." : "No published cases available yet."}
-                            </p>
-                            {isAdmin && <Button variant="outline" className="mt-6" onClick={() => setShowNewModal(true)}>Create Case</Button>}
+                        )}
+                    </div>
+                </section>
+
+                {/* Drafts Section (Admin Only) */}
+                {isAdmin && (
+                    <section>
+                        <div className="flex items-center gap-2 mb-6 border-t border-zinc-800/50 pt-8">
+                            <div className="w-2 h-2 rounded-full bg-zinc-500"></div>
+                            <h2 className="text-lg font-bold text-zinc-400 tracking-wide uppercase text-sm">Draft Case Files</h2>
                         </div>
-                    )}
-                </div>
+                        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-6">
+                            <AnimatePresence>
+                                {draftProjects.map(p => <ProjectCard key={p.id} project={p} />)}
+                            </AnimatePresence>
+                            {draftProjects.length === 0 && (
+                                <div className="col-span-full py-12 text-center border border-dashed border-zinc-800 rounded-xl bg-zinc-900/10">
+                                    <p className="text-zinc-500 text-sm">No drafts in progress. Start a new case.</p>
+                                </div>
+                            )}
+                        </div>
+                    </section>
+                )}
             </main>
 
             {/* New Project Modal */}
