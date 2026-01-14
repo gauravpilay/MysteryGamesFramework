@@ -34,7 +34,89 @@ const Editor = () => {
     const [showSettings, setShowSettings] = useState(false);
     const [timeLimit, setTimeLimit] = useState(15); // Default 15 minutes
 
-    // ... (tutorialSteps and nodeTypes remain same)
+    const tutorialSteps = [
+        {
+            title: "Welcome to the Editor",
+            description: "This is where you craft your mystery. Let's take a quick tour of the features.",
+            targetId: null
+        },
+        {
+            title: "The Toolbar",
+            description: "Here you can navigate back to the dashboard, manage your case file, and access help.",
+            targetId: "editor-toolbar"
+        },
+        {
+            title: "Node Palette",
+            description: "These are your building blocks. Drag and drop Story, Suspect, Evidence, or Logic nodes onto the canvas to construct your narrative.",
+            targetId: "node-sidebar"
+        },
+        {
+            title: "The Canvas",
+            description: "This is your workspace. Drag nodes here and connect them to create the flow of the story.",
+            targetId: "editor-canvas"
+        },
+        {
+            title: "Actions",
+            description: "Save your progress often. When you're ready, click 'Generate Build' to export a playable HTML game.",
+            targetId: "editor-actions"
+        }
+    ];
+
+    const nodeTypes = useMemo(() => ({
+        story: StoryNode,
+        suspect: SuspectNode,
+        evidence: EvidenceNode,
+        logic: LogicNode,
+        terminal: TerminalNode,
+        message: MessageNode
+    }), []);
+
+    // Update handler
+    const onNodeUpdate = useCallback((id, newData) => {
+        setNodes((nds) => nds.map((node) => {
+            if (node.id === id) {
+                return { ...node, data: { ...newData, onChange: onNodeUpdate } };
+            }
+            return node;
+        }));
+    }, [setNodes]);
+
+    const onConnect = useCallback((params) => setEdges((eds) => addEdge(params, eds)), [setEdges]);
+
+    const onDragOver = useCallback((event) => {
+        event.preventDefault();
+        event.dataTransfer.dropEffect = 'move';
+    }, []);
+
+    // Reattach handlers on load where they might be missing (deserialization)
+    useEffect(() => {
+        if (nodes.length > 0 && !nodes[0].data.onChange) {
+            setNodes((nds) => nds.map(node => ({
+                ...node,
+                data: { ...node.data, onChange: onNodeUpdate }
+            })));
+        }
+    }, [nodes, onNodeUpdate, setNodes]);
+
+    const onDrop = useCallback((event) => {
+        event.preventDefault();
+        const type = event.dataTransfer.getData('application/reactflow');
+        if (typeof type === 'undefined' || !type) return;
+
+        const position = reactFlowInstance.screenToFlowPosition({
+            x: event.clientX,
+            y: event.clientY,
+        });
+
+        const newNode = {
+            id: crypto.randomUUID(),
+            type,
+            position,
+            data: { label: `${type} node`, onChange: onNodeUpdate },
+        };
+
+        setNodes((nds) => nds.concat(newNode));
+    }, [reactFlowInstance, onNodeUpdate, setNodes]);
 
     // Initial Load
     useEffect(() => {
