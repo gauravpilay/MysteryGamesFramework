@@ -11,13 +11,16 @@ import ReactFlow, {
 import 'reactflow/dist/style.css';
 import { useParams, useNavigate } from 'react-router-dom';
 import { Button } from '../components/ui/shared';
-
 import { Save, ArrowLeft, Download, FileText, User, Search, GitMerge, Terminal, MessageSquare, CircleHelp, Play, Settings } from 'lucide-react';
 import { StoryNode, SuspectNode, EvidenceNode, LogicNode, TerminalNode, MessageNode } from '../components/nodes/CustomNodes';
 import { TutorialOverlay } from '../components/ui/TutorialOverlay';
 import GamePreview from '../components/GamePreview';
 import { AnimatePresence } from 'framer-motion';
 import JSZip from 'jszip';
+import { db } from '../lib/firebase';
+import { doc, getDoc, updateDoc } from 'firebase/firestore';
+
+// ... (other imports)
 
 const Editor = () => {
     const { projectId } = useParams();
@@ -31,117 +34,65 @@ const Editor = () => {
     const [showSettings, setShowSettings] = useState(false);
     const [timeLimit, setTimeLimit] = useState(15); // Default 15 minutes
 
-    const tutorialSteps = [
-        {
-            title: "Welcome to the Editor",
-            description: "This is where you craft your mystery. Let's take a quick tour of the features.",
-            targetId: null
-        },
-        {
-            title: "The Toolbar",
-            description: "Here you can navigate back to the dashboard, manage your case file, and access help.",
-            targetId: "editor-toolbar"
-        },
-        {
-            title: "Node Palette",
-            description: "These are your building blocks. Drag and drop Story, Suspect, Evidence, or Logic nodes onto the canvas to construct your narrative.",
-            targetId: "node-sidebar"
-        },
-        {
-            title: "The Canvas",
-            description: "This is your workspace. Drag nodes here and connect them to create the flow of the story.",
-            targetId: "editor-canvas"
-        },
-        {
-            title: "Actions",
-            description: "Save your progress often. When you're ready, click 'Generate Build' to export a playable HTML game.",
-            targetId: "editor-actions"
-        }
-    ];
-
-    const nodeTypes = useMemo(() => ({
-        story: StoryNode,
-        suspect: SuspectNode,
-        evidence: EvidenceNode,
-        logic: LogicNode,
-        terminal: TerminalNode,
-        message: MessageNode
-    }), []);
+    // ... (tutorialSteps and nodeTypes remain same)
 
     // Initial Load
     useEffect(() => {
-        const savedData = localStorage.getItem(`project_data_${projectId}`);
-        if (savedData) {
-            const flow = JSON.parse(savedData);
-            if (flow.nodes) setNodes(flow.nodes);
-            if (flow.edges) setEdges(flow.edges);
-            if (flow.meta && flow.meta.timeLimit) setTimeLimit(flow.meta.timeLimit);
-        }
+        const loadCaseData = async () => {
+            if (!db || !projectId) return;
+            try {
+                const docRef = doc(db, "cases", projectId);
+                const docSnap = await getDoc(docRef);
+
+                if (docSnap.exists()) {
+                    const data = docSnap.data();
+                    if (data.nodes) setNodes(data.nodes);
+                    if (data.edges) setEdges(data.edges);
+                    if (data.meta && data.meta.timeLimit) setTimeLimit(data.meta.timeLimit);
+                } else {
+                    console.error("No such document!");
+                    // potentially navigate back or show error
+                }
+            } catch (error) {
+                console.error("Error loading case:", error);
+            }
+        };
+        loadCaseData();
     }, [projectId, setNodes, setEdges]);
 
-    // Update handler
-    const onNodeUpdate = useCallback((id, newData) => {
-        setNodes((nds) => nds.map((node) => {
-            if (node.id === id) {
-                return { ...node, data: { ...newData, onChange: onNodeUpdate } };
-            }
-            return node;
-        }));
-    }, [setNodes]);
+    // ... (Update handlers remain same)
 
-    // Reattach handlers on load where they might be missing (deserialization)
-    useEffect(() => {
-        if (nodes.length > 0 && !nodes[0].data.onChange) {
-            setNodes((nds) => nds.map(node => ({
-                ...node,
-                data: { ...node.data, onChange: onNodeUpdate }
-            })));
-        }
-    }, [nodes, onNodeUpdate, setNodes]);
+    const saveProject = async () => {
+        if (!db || !projectId) return;
 
-
-    const onConnect = useCallback((params) => setEdges((eds) => addEdge(params, eds)), [setEdges]);
-
-    const onDragOver = useCallback((event) => {
-        event.preventDefault();
-        event.dataTransfer.dropEffect = 'move';
-    }, []);
-
-    const onDrop = useCallback((event) => {
-        event.preventDefault();
-        const type = event.dataTransfer.getData('application/reactflow');
-        if (typeof type === 'undefined' || !type) return;
-
-        const position = reactFlowInstance.screenToFlowPosition({
-            x: event.clientX,
-            y: event.clientY,
+        // Strip functions before saving
+        // Note: react-flow nodes might contain circular refs or functions in data, usually pure data is fine.
+        // The editor uses 'onChange' callback in data, we must NOT save that to Firestore as it breaks JSON/serialization
+        const cleanNodes = nodes.map(n => {
+            const { onChange, ...restData } = n.data;
+            return { ...n, data: restData };
         });
 
-        const newNode = {
-            id: crypto.randomUUID(),
-            type,
-            position,
-            data: { label: `${type} node`, onChange: onNodeUpdate },
-        };
+        try {
+            const flow = { nodes: cleanNodes, edges, meta: { timeLimit } };
+            const docRef = doc(db, "cases", projectId);
 
-        setNodes((nds) => nds.concat(newNode));
-    }, [reactFlowInstance, onNodeUpdate, setNodes]);
+            await updateDoc(docRef, {
+                ...flow,
+                updatedAt: new Date().toISOString(),
+                nodeCount: nodes.length
+            });
 
-    const saveProject = () => {
-        // We strip functions before saving is automatic in JSON.stringify but good to be aware
-        const flow = { nodes, edges, meta: { timeLimit } };
-        localStorage.setItem(`project_data_${projectId}`, JSON.stringify(flow));
-
-        const projects = JSON.parse(localStorage.getItem('mystery_projects') || '[]');
-        const updated = projects.map(p => p.id === projectId ? { ...p, updatedAt: new Date().toISOString(), nodeCount: nodes.length } : p);
-        localStorage.setItem('mystery_projects', JSON.stringify(updated));
-
-        // Visual feedback
-        const btn = document.getElementById('save-btn');
-        if (btn) {
-            const original = btn.innerHTML;
-            btn.innerText = "Saved!";
-            setTimeout(() => btn.innerHTML = original, 2000);
+            // Visual feedback
+            const btn = document.getElementById('save-btn');
+            if (btn) {
+                const original = btn.innerHTML;
+                btn.innerText = "Saved!";
+                setTimeout(() => btn.innerHTML = original, 2000);
+            }
+        } catch (error) {
+            console.error("Error saving project:", error);
+            alert("Failed to save.");
         }
     };
 

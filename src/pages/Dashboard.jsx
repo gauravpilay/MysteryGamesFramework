@@ -1,5 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import { useAuth } from '../lib/auth';
+import { db } from '../lib/firebase';
+import { collection, addDoc, deleteDoc, updateDoc, doc, onSnapshot, query } from 'firebase/firestore';
 import { Button, Card, Input, Label } from '../components/ui/shared';
 import { Plus, FolderOpen, LogOut, Search, Trash2, Rocket } from 'lucide-react';
 import { useNavigate } from 'react-router-dom';
@@ -15,277 +17,48 @@ const Dashboard = () => {
     const [deleteId, setDeleteId] = useState(null); // State for delete confirmation
     const [newProjectName, setNewProjectName] = useState('');
     const [newProjectDesc, setNewProjectDesc] = useState('');
+    const isAdmin = user?.role === 'Admin';
 
-    // Load projects from local storage
+    // Load projects from Firestore
     useEffect(() => {
-        // Load existing projects
-        const saved = localStorage.getItem('mystery_projects');
-        let currentProjects = saved ? JSON.parse(saved) : [];
-        let modified = false;
+        if (!db) return;
 
-        // 1. Tutorial Project Check
-        const tutorialId = 'tutorial-sample-story-v1';
-        const isTutorialDismissed = localStorage.getItem('tutorial_dismissed') === 'true';
+        const q = query(collection(db, "cases"));
+        const unsubscribe = onSnapshot(q, (snapshot) => {
+            const loadedCases = snapshot.docs.map(doc => ({
+                id: doc.id,
+                ...doc.data()
+            }));
+            setProjects(loadedCases);
+        });
 
-        if (!isTutorialDismissed && !currentProjects.some(p => p.id === tutorialId)) {
-            const tutorialProject = {
-                id: tutorialId,
-                title: 'Tutorial: The Missing Architect',
-                description: 'A guided sample story demonstrating how to structure a mystery game.',
-                updatedAt: new Date().toISOString(),
-                nodeCount: 7
-            };
-
-            const tutorialData = {
-                nodes: [
-                    {
-                        id: 'start-node',
-                        type: 'story',
-                        position: { x: 100, y: 100 },
-                        data: {
-                            label: 'The Beginning',
-                            text: 'Welcome to the Mystery Architect! This is a "Story Node". It sets the scene. \n\n"You arrive at the scene of the crime. The office is silent..."'
-                        }
-                    },
-                    {
-                        id: 'suspect-1',
-                        type: 'suspect',
-                        position: { x: 500, y: 100 },
-                        data: {
-                            label: 'Suspect: The Intern',
-                            name: 'Alex "The Coder" Mercer',
-                            role: 'Junior Dev',
-                            alibi: 'Nervous, typing furiously.',
-                            isKiller: false
-                        }
-                    },
-                    {
-                        id: 'evidence-1',
-                        type: 'evidence',
-                        position: { x: 500, y: 300 },
-                        data: {
-                            label: 'Found USB Drive',
-                            description: 'A black encrypted USB drive found under the desk.'
-                        }
-                    },
-                    {
-                        id: 'logic-1',
-                        type: 'logic',
-                        position: { x: 900, y: 200 },
-                        data: {
-                            label: 'Has Evidence?',
-                            condition: 'has_usb_drive'
-                        }
-                    },
-                    {
-                        id: 'msg-1',
-                        type: 'message',
-                        position: { x: 100, y: 400 },
-                        data: {
-                            label: 'Incoming Text',
-                            sender: 'Unknown',
-                            message: 'Stop looking for the architect. - Watcher'
-                        }
-                    }
-                ],
-                edges: [
-                    { id: 'e1-2', source: 'start-node', target: 'suspect-1' },
-                    { id: 'e1-3', source: 'start-node', target: 'evidence-1' },
-                    { id: 'e2-4', source: 'suspect-1', target: 'logic-1' }
-                ]
-            };
-
-            currentProjects.unshift(tutorialProject);
-            localStorage.setItem(`project_data_${tutorialId}`, JSON.stringify(tutorialData));
-            modified = true;
-        }
-
-        // 2. Cyber Attack Sample Check
-        const cyberId = 'sample-cyber-attack-v2';
-        const isCyberDismissed = localStorage.getItem('sample_cyber_dismissed') === 'true';
-
-        if (!isCyberDismissed && !currentProjects.some(p => p.id === cyberId)) {
-            const cyberProject = {
-                id: cyberId,
-                title: 'Case: The Digital Insider',
-                description: 'CRITICAL: DarkCipher Ransomware attack on Global FinTech. Identify the insider threat immediately.',
-                updatedAt: new Date().toISOString(),
-                nodeCount: 16
-            };
-
-            const cyberData = {
-                nodes: [
-                    {
-                        id: 'cyber-start',
-                        type: 'story',
-                        position: { x: 0, y: 0 },
-                        data: {
-                            label: 'Briefing: 0800 HRS',
-                            text: 'ALERT: Global FinTech Bank systems are locked by DarkCipher ransomware. \n\nForensics indicates the payload was deployed internally. We have 5 suspects who had access during the 0200-0400 maintenance window. \n\nFind the culprit. Time is running out.'
-                        }
-                    },
-                    {
-                        id: 'suspect-sarah',
-                        type: 'suspect',
-                        position: { x: -400, y: 250 },
-                        data: {
-                            label: 'Suspect: Sarah',
-                            name: 'Sarah "The Vet" Jenkins',
-                            role: 'Senior SysAdmin',
-                            alibi: 'Claimed to be patching Server Block B. Logs confirm her login at 02:15.',
-                        }
-                    },
-                    {
-                        id: 'suspect-mike',
-                        type: 'suspect',
-                        position: { x: -200, y: 250 },
-                        data: {
-                            label: 'Suspect: Mike',
-                            name: 'Mike "Script" Ross',
-                            role: 'IT Intern',
-                            alibi: 'Left office at 18:00. Badge swipe shows re-entry at 08:00. Known to browse hacker forums.',
-                        }
-                    },
-                    {
-                        id: 'suspect-elena',
-                        type: 'suspect',
-                        position: { x: 0, y: 250 },
-                        data: {
-                            label: 'Suspect: Elena',
-                            name: 'Elena "Ghost" Petrova',
-                            role: 'Lead Developer',
-                            alibi: 'Working remote from Warsaw. VPN logs show constant activity on the repo.',
-                        }
-                    },
-                    {
-                        id: 'suspect-ken',
-                        type: 'suspect',
-                        position: { x: 200, y: 250 },
-                        data: {
-                            label: 'Suspect: Ken',
-                            name: 'Ken Sato',
-                            role: 'External Consultant',
-                            alibi: 'On-site for migration. Had unsupervised access to the server room.',
-                        }
-                    },
-                    {
-                        id: 'suspect-david',
-                        type: 'suspect',
-                        position: { x: 400, y: 250 },
-                        data: {
-                            label: 'Suspect: David',
-                            name: 'David Sterling',
-                            role: 'CTO',
-                            alibi: 'In frantic meetings. Pressured team to bypass security protocols for speed.',
-                        }
-                    },
-                    {
-                        id: 'term-logs',
-                        type: 'terminal',
-                        position: { x: -300, y: 500 },
-                        data: {
-                            label: 'Server Auth Logs',
-                            prompt: 'Check the authentication logs for unusual activity around 03:00.',
-                            command: 'grep "03:" /var/log/auth.log'
-                        }
-                    },
-                    {
-                        id: 'evidence-cctv',
-                        type: 'evidence',
-                        position: { x: 0, y: 500 },
-                        data: {
-                            label: 'CCTV Footage',
-                            description: 'Blurry footage from 03:14 AM shows a figure in a hoodie entering the secure zone using a keycard.'
-                        }
-                    },
-                    {
-                        id: 'msg-tip',
-                        type: 'message',
-                        position: { x: 300, y: 500 },
-                        data: {
-                            label: 'Anonymous Tip',
-                            sender: 'Unknown',
-                            message: 'Check the consultant\'s trash. He thought he was clever.'
-                        }
-                    },
-                    {
-                        id: 'logic-keycard',
-                        type: 'logic',
-                        position: { x: 0, y: 700 },
-                        data: {
-                            label: 'Analyze Keycard',
-                            condition: 'keycard_match_ken'
-                        }
-                    },
-                    {
-                        id: 'evidence-trash',
-                        type: 'evidence',
-                        position: { x: 300, y: 700 },
-                        data: {
-                            label: 'Burned Note',
-                            description: 'Recovered note: "Payload active. Payment to wallet 3Xy... - K.S."'
-                        }
-                    },
-                    {
-                        id: 'story-climax',
-                        type: 'story',
-                        position: { x: 0, y: 900 },
-                        data: {
-                            label: 'The Confrontation',
-                            text: 'You have gathered the evidence. All signs point to one person. It is time to make the arrest.'
-                        }
-                    }
-                ],
-                edges: [
-                    { id: 'e-start-sarah', source: 'cyber-start', target: 'suspect-sarah' },
-                    { id: 'e-start-mike', source: 'cyber-start', target: 'suspect-mike' },
-                    { id: 'e-start-elena', source: 'cyber-start', target: 'suspect-elena' },
-                    { id: 'e-start-ken', source: 'cyber-start', target: 'suspect-ken' },
-                    { id: 'e-start-david', source: 'cyber-start', target: 'suspect-david' },
-
-                    // New: Suspects leading to clues
-                    { id: 'e-sarah-logs', source: 'suspect-sarah', target: 'term-logs' },
-                    { id: 'e-mike-cctv', source: 'suspect-mike', target: 'evidence-cctv' },
-                    { id: 'e-elena-tip', source: 'suspect-elena', target: 'msg-tip' },
-                    { id: 'e-david-logs', source: 'suspect-david', target: 'term-logs' },
-                    { id: 'e-ken-trash', source: 'suspect-ken', target: 'evidence-trash' },
-
-                    // Clue Interconnections
-                    { id: 'e-tip-trash', source: 'msg-tip', target: 'evidence-trash' },
-                    { id: 'e-cctv-logic', source: 'evidence-cctv', target: 'logic-keycard' },
-                    { id: 'e-logic-climax', source: 'logic-keycard', target: 'story-climax' }
-                ]
-            };
-
-            currentProjects.unshift(cyberProject);
-            localStorage.setItem(`project_data_${cyberId}`, JSON.stringify(cyberData));
-            modified = true;
-        }
-
-        if (modified) {
-            setProjects([...currentProjects]); // Create new reference
-            localStorage.setItem('mystery_projects', JSON.stringify(currentProjects));
-        } else {
-            setProjects(currentProjects);
-        }
+        return () => unsubscribe();
     }, []);
 
-    const createProject = () => {
-        const newProject = {
-            id: crypto.randomUUID(),
-            title: newProjectName || 'Untitled Mystery',
-            description: newProjectDesc || 'A thrilling case awaiting design.',
-            updatedAt: new Date().toISOString(),
-            nodeCount: 0
-        };
-        const updated = [newProject, ...projects];
-        setProjects(updated);
-        localStorage.setItem('mystery_projects', JSON.stringify(updated));
-        setShowNewModal(false);
-        setNewProjectName('');
-        setNewProjectDesc('');
-        // Initialize empty graph for this project
-        localStorage.setItem(`project_data_${newProject.id}`, JSON.stringify({ nodes: [], edges: [] }));
+    const createProject = async () => {
+        if (!isAdmin) return;
+
+        try {
+            const newCaseData = {
+                title: newProjectName || 'Untitled Mystery',
+                description: newProjectDesc || 'A thrilling case awaiting design.',
+                updatedAt: new Date().toISOString(),
+                nodeCount: 0,
+                status: "draft",
+                createdBy: user.email,
+                nodes: [],
+                edges: []
+            };
+
+            await addDoc(collection(db, "cases"), newCaseData);
+
+            setShowNewModal(false);
+            setNewProjectName('');
+            setNewProjectDesc('');
+        } catch (error) {
+            console.error("Error creating case:", error);
+            alert("Failed to create case. Check console.");
+        }
     };
 
     const initiateDelete = (e, id) => {
@@ -294,27 +67,39 @@ const Dashboard = () => {
         setDeleteId(id);
     };
 
-    const confirmDelete = () => {
-        if (!deleteId) return;
+    const confirmDelete = async () => {
+        if (!deleteId || !isAdmin) return;
 
-        // Prevent deletion of the Cyber Attack sample case
-        // If deleting tutorial, mark it as dismissed
-        if (deleteId === 'tutorial-sample-story-v1') {
-            localStorage.setItem('tutorial_dismissed', 'true');
+        try {
+            await deleteDoc(doc(db, "cases", deleteId));
+            setDeleteId(null);
+        } catch (error) {
+            console.error("Error deleting case:", error);
+            alert("Failed to delete case.");
         }
+    };
 
-        setProjects(prev => {
-            const updated = prev.filter(p => p.id !== deleteId);
-            localStorage.setItem('mystery_projects', JSON.stringify(updated));
-            return updated;
-        });
-        localStorage.removeItem(`project_data_${deleteId}`);
-        setDeleteId(null);
+    const togglePublish = async (e, project) => {
+        e.preventDefault();
+        e.stopPropagation();
+        if (!isAdmin) return;
+
+        const newStatus = project.status === 'published' ? 'draft' : 'published';
+        try {
+            await updateDoc(doc(db, "cases", project.id), {
+                status: newStatus
+            });
+        } catch (error) {
+            console.error("Error updating status:", error);
+        }
     };
 
     const openProject = (id) => {
         navigate(`/editor/${id}`);
     };
+
+    // Filter projects for view
+    const visibleProjects = projects.filter(p => isAdmin || p.status === 'published');
 
     return (
         <div className="min-h-screen bg-black text-zinc-100 font-sans selection:bg-indigo-500/30">
@@ -330,7 +115,10 @@ const Dashboard = () => {
                     <div className="flex items-center gap-4">
                         <div className="flex items-center gap-2 px-3 py-1.5 rounded-full bg-zinc-900 border border-zinc-800">
                             {user?.photoURL ? <img src={user.photoURL} alt="User" className="w-5 h-5 rounded-full" /> : <div className="w-5 h-5 rounded-full bg-indigo-500"></div>}
-                            <span className="text-xs font-medium text-zinc-300">{user?.displayName || "Detective"}</span>
+                            <span className="text-xs font-medium text-zinc-300">
+                                {user?.displayName || "Detective"}
+                                {isAdmin && <span className="ml-2 text-indigo-400 font-bold">(Admin)</span>}
+                            </span>
                         </div>
                         <Button variant="ghost" size="icon" onClick={() => logout()} title="Logout">
                             <LogOut className="w-4 h-4" />
@@ -351,17 +139,19 @@ const Dashboard = () => {
                             <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-zinc-500" />
                             <input type="text" placeholder="Search cases..." className="pl-9 pr-4 py-2 bg-zinc-900 border border-zinc-800 rounded-lg text-sm focus:outline-none focus:ring-1 focus:ring-indigo-500 w-64 text-zinc-300 placeholder:text-zinc-600" />
                         </div>
-                        <Button onClick={() => setShowNewModal(true)}>
-                            <Plus className="w-4 h-4 mr-2" />
-                            New Case
-                        </Button>
+                        {isAdmin && (
+                            <Button onClick={() => setShowNewModal(true)}>
+                                <Plus className="w-4 h-4 mr-2" />
+                                New Case
+                            </Button>
+                        )}
                     </div>
                 </div>
 
                 {/* Grid */}
                 <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-6">
                     <AnimatePresence>
-                        {projects.map((project) => (
+                        {visibleProjects.map((project) => (
                             <motion.div
                                 key={project.id}
                                 initial={{ opacity: 0, y: 20 }}
@@ -371,22 +161,33 @@ const Dashboard = () => {
                                 onClick={() => openProject(project.id)}
                                 className="group relative cursor-pointer"
                             >
-                                <Card className="h-full p-5 hover:border-indigo-500/50 transition-colors bg-gradient-to-tr from-zinc-900 via-zinc-900 to-zinc-900/50 hover:to-indigo-900/10">
+                                <Card className={`h-full p-5 hover:border-indigo-500/50 transition-colors bg-gradient-to-tr from-zinc-900 via-zinc-900 to-zinc-900/50 hover:to-indigo-900/10 ${project.status === 'draft' ? 'border-dashed border-zinc-700 opacity-80' : ''}`}>
                                     <div className="flex items-start justify-between mb-4">
-                                        <div className="p-2 rounded-md bg-zinc-800 group-hover:bg-indigo-500/20 group-hover:text-indigo-400 transition-colors">
-                                            <FolderOpen className="w-5 h-5 text-zinc-400 group-hover:text-indigo-400" />
+                                        <div className={`p-2 rounded-md ${project.status === 'published' ? 'bg-indigo-500/20 text-indigo-400' : 'bg-zinc-800 text-zinc-400'} transition-colors`}>
+                                            <FolderOpen className="w-5 h-5" />
                                         </div>
-                                        <div className="dropdown relative">
-                                            <button
-                                                className="p-1 rounded-md hover:bg-zinc-800 text-zinc-500 hover:text-white relative z-20"
-                                                onClick={(e) => initiateDelete(e, project.id)}
-                                                title="Delete Project"
-                                            >
-                                                <Trash2 className="w-4 h-4" />
-                                            </button>
-                                        </div>
+                                        {isAdmin && (
+                                            <div className="flex items-center gap-1 relative z-20">
+                                                <button
+                                                    className={`px-2 py-1 text-xs font-bold rounded uppercase tracking-wider ${project.status === 'published' ? 'bg-indigo-900/30 text-indigo-400 hover:bg-indigo-900/50' : 'bg-zinc-800 text-zinc-500 hover:text-zinc-300'}`}
+                                                    onClick={(e) => togglePublish(e, project)}
+                                                    title={project.status === 'published' ? 'Unpublish' : 'Publish to Users'}
+                                                >
+                                                    {project.status === 'published' ? 'Live' : 'Draft'}
+                                                </button>
+                                                <button
+                                                    className="p-1 rounded-md hover:bg-zinc-800 text-zinc-500 hover:text-red-400"
+                                                    onClick={(e) => initiateDelete(e, project.id)}
+                                                    title="Delete Project"
+                                                >
+                                                    <Trash2 className="w-4 h-4" />
+                                                </button>
+                                            </div>
+                                        )}
                                     </div>
-                                    <h3 className="font-semibold text-zinc-200 group-hover:text-white transition-colors truncate">{project.title}</h3>
+                                    <h3 className="font-semibold text-zinc-200 group-hover:text-white transition-colors truncate">
+                                        {project.title}
+                                    </h3>
                                     <p className="text-sm text-zinc-500 mt-2 line-clamp-2 h-10">{project.description}</p>
 
                                     <div className="mt-6 pt-4 border-t border-zinc-800/50 flex items-center justify-between text-xs text-zinc-500">
@@ -402,14 +203,16 @@ const Dashboard = () => {
                     </AnimatePresence>
 
                     {/* Empty State */}
-                    {projects.length === 0 && (
+                    {visibleProjects.length === 0 && (
                         <div className="col-span-full py-20 text-center border border-dashed border-zinc-800 rounded-xl bg-zinc-900/20">
                             <div className="w-16 h-16 rounded-full bg-zinc-900 flex items-center justify-center mx-auto mb-4 border border-zinc-800">
                                 <Plus className="w-6 h-6 text-zinc-600" />
                             </div>
                             <h3 className="text-zinc-400 font-medium">No active cases</h3>
-                            <p className="text-zinc-600 text-sm mt-1 max-w-sm mx-auto">Start by creating a new mystery to investigate.</p>
-                            <Button variant="outline" className="mt-6" onClick={() => setShowNewModal(true)}>Create Case</Button>
+                            <p className="text-zinc-600 text-sm mt-1 max-w-sm mx-auto">
+                                {isAdmin ? "Start by creating a new mystery." : "No published cases available yet."}
+                            </p>
+                            {isAdmin && <Button variant="outline" className="mt-6" onClick={() => setShowNewModal(true)}>Create Case</Button>}
                         </div>
                     )}
                 </div>

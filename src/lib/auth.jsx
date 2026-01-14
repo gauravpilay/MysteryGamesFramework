@@ -14,8 +14,25 @@ export const AuthProvider = ({ children }) => {
             setLoading(false);
             return;
         }
-        const unsubscribe = onAuthStateChanged(auth, (u) => {
-            setUser(u);
+        const unsubscribe = onAuthStateChanged(auth, async (u) => {
+            if (u) {
+                if (db) {
+                    const userRef = doc(db, "users", u.uid);
+                    const userSnap = await getDoc(userRef);
+                    if (userSnap.exists()) {
+                        setUser({ ...u, ...userSnap.data() });
+                    } else {
+                        // If document doesn't exist yet but user is auth'd (race condition or first login), 
+                        // we might wait or just set basic auth. 
+                        // For now, set basic auth, login function creates the doc.
+                        setUser(u);
+                    }
+                } else {
+                    setUser(u);
+                }
+            } else {
+                setUser(null);
+            }
             setLoading(false);
         });
         return unsubscribe;
