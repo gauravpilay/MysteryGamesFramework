@@ -9,7 +9,6 @@ const GamePreview = ({ nodes, edges, onClose }) => {
     const [inventory, setInventory] = useState(new Set());
     const [history, setHistory] = useState([]); // Array of distinct visited node IDs
     const [logs, setLogs] = useState([]); // Text logs for the "terminal" feel on the side
-    const [gameOver, setGameOver] = useState(false);
 
     // Initialize Game
     useEffect(() => {
@@ -62,20 +61,6 @@ const GamePreview = ({ nodes, edges, onClose }) => {
         // 2. Logic: Auto-redirect
         if (currentNode.type === 'logic') {
             const condition = currentNode.data.condition;
-            // Check if condition met (simple check: is the condition string in inventory? or is the exact string 'has_usb_drive' etc in inventory?)
-            // For flexibility, let's assume inventory stores node IDs AND specific flags.
-            // But here, we will just check if any inventory item *includes* the condition string if it's not exact match? 
-            // Better: Simple Check. Is 'condition' in inventory? 
-            // Let's rely on loose matching for this prototype or specific flags set by Evidence nodes.
-            // In the tutorial: Evidence data has NO "flag". Logic checks 'has_usb_drive'.
-            // So Evidence Node needs to set a flag. 
-            // In the provided code for EvidenceNode, there is no "flag" field input. 
-            // HACK: We will check if we have visited a node that "looks like" the condition, 
-            // or if the *label* of an evidence node we visited matches.
-
-            // To make the tutorial work: 
-            // Tutorial Evidence Label: "Found USB Drive". Logic: "has_usb_drive".
-            // Let's normalize strings: "found usb drive" -> includes "usb drive".
 
             // Allow mapping evidence node IDs to true
             let isTrue = false;
@@ -134,6 +119,20 @@ const GamePreview = ({ nodes, edges, onClose }) => {
         }
     };
 
+    const getAvatarColor = (name) => {
+        const colors = [
+            'from-red-500 to-orange-500',
+            'from-blue-500 to-cyan-500',
+            'from-green-500 to-emerald-500',
+            'from-purple-500 to-pink-500',
+            'from-yellow-500 to-amber-500',
+            'from-indigo-500 to-violet-500',
+        ];
+        let hash = 0;
+        for (let i = 0; i < name.length; i++) hash = name.charCodeAt(i) + ((hash << 5) - hash);
+        return colors[Math.abs(hash) % colors.length];
+    };
+
     // Render Node Content
     const renderContent = () => {
         if (!currentNode) return <div className="text-zinc-500">Initializing Neural Link...</div>;
@@ -142,13 +141,39 @@ const GamePreview = ({ nodes, edges, onClose }) => {
 
         switch (type) {
             case 'story':
+                // Check if this is a "Briefing" node (start node or explicitly labeled)
+                const isBriefing = data.label.toLowerCase().includes('briefing') || history.length === 0;
+
                 return (
-                    <div className="space-y-4 animate-in fade-in slide-in-from-bottom-4 duration-500">
-                        <div className="flex items-center gap-3 text-blue-400 mb-2">
-                            <FileText className="w-6 h-6" />
-                            <h2 className="text-xl font-bold text-white">{data.label}</h2>
-                        </div>
-                        <p className="text-lg text-zinc-300 leading-relaxed whitespace-pre-wrap">{data.text || data.content}</p>
+                    <div className="space-y-8 animate-in fade-in slide-in-from-bottom-4 duration-700">
+                        {isBriefing && (
+                            <div className="text-center mb-8">
+                                <motion.div
+                                    initial={{ scale: 0.9, opacity: 0 }}
+                                    animate={{ scale: 1, opacity: 1 }}
+                                    transition={{ duration: 0.5 }}
+                                    className="inline-block px-3 py-1 bg-red-500/10 border border-red-500/50 text-red-500 text-xs font-bold tracking-[0.2em] mb-4"
+                                >
+                                    TOP SECRET // CLEARANCE LEVEL 5
+                                </motion.div>
+                                <h1 className="text-4xl md:text-5xl font-black text-transparent bg-clip-text bg-gradient-to-b from-white to-zinc-500 uppercase tracking-tighter">
+                                    {data.label}
+                                </h1>
+                            </div>
+                        )}
+
+                        {!isBriefing && (
+                            <div className="flex items-center gap-3 text-blue-400 mb-2">
+                                <FileText className="w-6 h-6" />
+                                <h2 className="text-xl font-bold text-white">{data.label}</h2>
+                            </div>
+                        )}
+
+                        <Card className={`bg-zinc-900/50 border-zinc-800 p-8 ${isBriefing ? 'border-t-4 border-t-red-600 shadow-2xl shadow-red-900/20' : ''}`}>
+                            <p className={`text-zinc-200 leading-loose whitespace-pre-wrap ${isBriefing ? 'text-lg md:text-xl font-light' : 'text-lg'}`}>
+                                {data.text || data.content}
+                            </p>
+                        </Card>
                     </div>
                 );
             case 'suspect':
@@ -267,34 +292,89 @@ const GamePreview = ({ nodes, edges, onClose }) => {
                         {renderContent()}
 
                         {/* Actions / Choices */}
-                        <div className="mt-12 grid grid-cols-1 gap-3">
-                            {options.map((edge) => {
-                                const targetNode = nodes.find(n => n.id === edge.target);
-                                if (!targetNode) return null;
+                        <div className="mt-12">
+                            {options.some(e => nodes.find(n => n.id === e.target)?.type === 'suspect') ? (
+                                // Grid Layout for Suspects
+                                <div className="space-y-4">
+                                    <div className="flex items-center gap-2 text-zinc-400 text-sm font-bold tracking-wider uppercase">
+                                        <User className="w-4 h-4" />
+                                        <span>Suspect Database Matches ({options.length})</span>
+                                    </div>
+                                    <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+                                        {options.map((edge, i) => {
+                                            const targetNode = nodes.find(n => n.id === edge.target);
+                                            if (!targetNode || targetNode.type !== 'suspect') return null;
 
-                                // Logic nodes are handled automatically, don't show buttons
-                                if (targetNode.type === 'logic') return null;
+                                            return (
+                                                <motion.button
+                                                    key={edge.id}
+                                                    initial={{ opacity: 0, y: 20 }}
+                                                    animate={{ opacity: 1, y: 0 }}
+                                                    transition={{ delay: i * 0.1 }}
+                                                    onClick={() => handleOptionClick(edge.target)}
+                                                    className="group text-left relative overflow-hidden bg-zinc-900 border border-zinc-800 hover:border-indigo-500/50 rounded-xl p-0 transition-all hover:shadow-lg hover:shadow-indigo-500/10"
+                                                >
+                                                    <div className={`h-24 bg-gradient-to-br ${getAvatarColor(targetNode.data.name || 'Unk')} opacity-20 group-hover:opacity-30 transition-opacity`}></div>
+                                                    <div className="absolute top-4 left-4">
+                                                        <div className={`w-12 h-12 rounded-full bg-gradient-to-br ${getAvatarColor(targetNode.data.name || 'Unk')} flex items-center justify-center shadow-lg border-2 border-zinc-900`}>
+                                                            <span className="text-white font-bold text-lg">
+                                                                {(targetNode.data.name || '?').charAt(0)}
+                                                            </span>
+                                                        </div>
+                                                    </div>
+                                                    <div className="p-4 pt-2">
+                                                        <div className="flex justify-between items-start">
+                                                            <div>
+                                                                <h3 className="font-bold text-white group-hover:text-indigo-400 transition-colors truncate pr-2">
+                                                                    {targetNode.data.name}
+                                                                </h3>
+                                                                <p className="text-xs text-zinc-500 uppercase tracking-wider mt-1">
+                                                                    {targetNode.data.role}
+                                                                </p>
+                                                            </div>
+                                                        </div>
+                                                        <div className="mt-4 flex items-center text-xs text-zinc-600 group-hover:text-zinc-400">
+                                                            <span>Review Profile</span>
+                                                            <ArrowRight className="w-3 h-3 ml-auto opacity-0 group-hover:opacity-100 transition-opacity" />
+                                                        </div>
+                                                    </div>
+                                                </motion.button>
+                                            );
+                                        })}
+                                    </div>
+                                </div>
+                            ) : (
+                                // Standard List Layout
+                                <div className="grid grid-cols-1 gap-3">
+                                    {options.map((edge) => {
+                                        const targetNode = nodes.find(n => n.id === edge.target);
+                                        if (!targetNode) return null;
 
-                                return (
-                                    <Button
-                                        key={edge.id}
-                                        onClick={() => handleOptionClick(edge.target)}
-                                        className="w-full justify-between h-auto py-4 text-base group"
-                                        variant="outline"
-                                    >
-                                        <div className="flex items-center gap-3">
-                                            <span className="w-2 h-2 rounded-full bg-indigo-500 group-hover:bg-white transition-colors"></span>
-                                            <span>
-                                                {targetNode.type === 'story' ? (targetNode.data.label || 'Continue Narrative') :
-                                                    targetNode.type === 'suspect' ? `Investigate: ${targetNode.data.name || targetNode.data.label}` :
-                                                        targetNode.type === 'evidence' ? `Examine: ${targetNode.data.label}` :
-                                                            `Proceed to ${targetNode.data.label}`}
-                                            </span>
-                                        </div>
-                                        <ArrowRight className="w-4 h-4 opacity-50 group-hover:opacity-100 transform group-hover:translate-x-1 transition-all" />
-                                    </Button>
-                                );
-                            })}
+                                        // Logic nodes are handled automatically, don't show buttons
+                                        if (targetNode.type === 'logic') return null;
+
+                                        return (
+                                            <Button
+                                                key={edge.id}
+                                                onClick={() => handleOptionClick(edge.target)}
+                                                className="w-full justify-between h-auto py-4 text-base group"
+                                                variant="outline"
+                                            >
+                                                <div className="flex items-center gap-3">
+                                                    <span className="w-2 h-2 rounded-full bg-indigo-500 group-hover:bg-white transition-colors"></span>
+                                                    <span>
+                                                        {targetNode.type === 'story' ? (targetNode.data.label || 'Continue Narrative') :
+                                                            targetNode.type === 'suspect' ? `Investigate: ${targetNode.data.name || targetNode.data.label}` :
+                                                                targetNode.type === 'evidence' ? `Examine: ${targetNode.data.label}` :
+                                                                    `Proceed to ${targetNode.data.label}`}
+                                                    </span>
+                                                </div>
+                                                <ArrowRight className="w-4 h-4 opacity-50 group-hover:opacity-100 transform group-hover:translate-x-1 transition-all" />
+                                            </Button>
+                                        );
+                                    })}
+                                </div>
+                            )}
                         </div>
                     </div>
                 </div>
