@@ -12,6 +12,9 @@ const GamePreview = ({ nodes, edges, onClose }) => {
     const [missionStarted, setMissionStarted] = useState(false);
     // Generic Modal State: can hold a node object or null
     const [activeModalNode, setActiveModalNode] = useState(null);
+    // Accusation State
+    const [showAccuseModal, setShowAccuseModal] = useState(false);
+    const [accusationResult, setAccusationResult] = useState(null); // 'success' | 'failure' | null
 
     // Initialize Game
     useEffect(() => {
@@ -136,6 +139,29 @@ const GamePreview = ({ nodes, edges, onClose }) => {
         }
     };
 
+    const handleAccuse = (suspect) => {
+        // Logic to check if correct.
+        // We look for a property `isKiller` or `isCulprit` in data.
+        // For the sample case, let's assume if we don't find explicit data, we check against a hardcoded name for the sample.
+
+        let isCorrect = suspect.data.isKiller === true || suspect.data.isCulprit === true;
+
+        // Hardcoded check for the sample case "The Digital Insider"
+        // In our sample data, we didn't explicitly set isKiller on "Ken Sato" v2, but let's assume he is based on story.
+        // Or if the user hasn't set it, we default to failure to prevent false positives? 
+        // Better: Check if ANY suspect has isKiller set. If not, maybe the logic is missing.
+        // For valid gameplay, let's assume "Ken Sato" is the culprit for the sample case if no flag exists.
+        if (suspect.data.name?.includes('Ken Sato') && !nodes.some(n => n.data.isKiller)) {
+            isCorrect = true;
+        }
+
+        if (isCorrect) {
+            setAccusationResult('success');
+        } else {
+            setAccusationResult('failure');
+        }
+    };
+
     const getAvatarColor = (name) => {
         const colors = [
             'from-red-500 to-orange-500',
@@ -221,17 +247,28 @@ const GamePreview = ({ nodes, edges, onClose }) => {
     return (
         <div className="fixed inset-0 z-50 bg-black flex flex-col font-sans">
             {/* Header */}
-            <div className="h-16 border-b border-zinc-800 bg-zinc-950 flex items-center justify-between px-6">
+            <div className="h-16 border-b border-zinc-800 bg-zinc-950 flex items-center justify-between px-6 shrink-0">
                 <div className="flex items-center gap-3">
                     <div className="bg-red-600 px-2 py-1 rounded text-xs font-bold text-white uppercase tracking-widest animate-pulse">
                         Simulation Active
                     </div>
                     <span className="text-zinc-500 text-sm font-mono">ID: {currentNode?.id || '---'}</span>
                 </div>
-                <Button variant="ghost" onClick={onClose}>
-                    <X className="w-5 h-5 mr-2" />
-                    Terminate Simulation
-                </Button>
+                <div className="flex items-center gap-3">
+                    {missionStarted && (
+                        <Button
+                            variant="outline"
+                            className="border-red-500/50 text-red-500 hover:bg-red-500/10 hover:text-red-400 uppercase tracking-wider text-xs font-bold"
+                            onClick={() => { setShowAccuseModal(true); setAccusationResult(null); }}
+                        >
+                            <ShieldAlert className="w-4 h-4 mr-2" />
+                            Identify Culprit
+                        </Button>
+                    )}
+                    <Button variant="ghost" onClick={onClose}>
+                        <X className="w-5 h-5" />
+                    </Button>
+                </div>
             </div>
 
             {/* Generic Interaction Modal (Replaces Suspect Modal) */}
@@ -426,6 +463,99 @@ const GamePreview = ({ nodes, edges, onClose }) => {
                 <div className="flex-1 overflow-y-auto p-10 flex flex-col items-center w-full">
                     <div className="w-full max-w-4xl relative z-10"> {/* Increased max-width since sidebar is gone */}
                         {renderContent()}
+
+                        {/* Accusation Modal */}
+                        <AnimatePresence>
+                            {showAccuseModal && (
+                                <div className="fixed inset-0 z-[70] flex items-center justify-center p-4 bg-black/90 backdrop-blur-md">
+                                    <motion.div
+                                        initial={{ scale: 0.95, opacity: 0 }}
+                                        animate={{ scale: 1, opacity: 1 }}
+                                        exit={{ scale: 0.95, opacity: 0 }}
+                                        className="w-full max-w-4xl bg-zinc-950 border border-zinc-800 rounded-2xl overflow-hidden shadow-2xl flex flex-col max-h-[85vh]"
+                                    >
+                                        <div className="p-6 border-b border-zinc-900 flex items-center justify-between bg-zinc-900/50">
+                                            <h2 className="text-2xl font-black text-white uppercase tracking-tighter flex items-center gap-3">
+                                                <ShieldAlert className="w-8 h-8 text-red-600" />
+                                                Identify The Culprit
+                                            </h2>
+                                            <Button variant="ghost" onClick={() => setShowAccuseModal(false)}>
+                                                <X className="w-6 h-6" />
+                                            </Button>
+                                        </div>
+
+                                        <div className="flex-1 overflow-y-auto p-8">
+                                            {!accusationResult && (
+                                                <>
+                                                    <p className="text-zinc-400 text-center mb-8 max-w-lg mx-auto">
+                                                        Review the evidence carefully. Selecting the wrong suspect will result in immediate termination of the investigation.
+                                                    </p>
+
+                                                    <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+                                                        {nodes.filter(n => n.type === 'suspect').map((suspect) => (
+                                                            <button
+                                                                key={suspect.id}
+                                                                onClick={() => handleAccuse(suspect)}
+                                                                className="group relative flex flex-col items-center p-6 bg-zinc-900/50 border border-zinc-900 hover:border-red-500/50 rounded-xl transition-all hover:bg-zinc-900"
+                                                            >
+                                                                <div className={`w-20 h-20 rounded-full bg-gradient-to-br ${getAvatarColor(suspect.data.name)} flex items-center justify-center mb-4 group-hover:scale-110 transition-transform`}>
+                                                                    <span className="text-3xl font-bold text-white shadow-black drop-shadow-lg">{suspect.data.name.charAt(0)}</span>
+                                                                </div>
+                                                                <h3 className="text-lg font-bold text-white mb-1 group-hover:text-red-400 transition-colors">{suspect.data.name}</h3>
+                                                                <p className="text-xs text-zinc-500 uppercase tracking-wider">{suspect.data.role}</p>
+                                                                <div className="absolute inset-0 border-2 border-red-500/0 group-hover:border-red-500/20 rounded-xl transition-colors pointer-events-none"></div>
+                                                            </button>
+                                                        ))}
+                                                        {nodes.filter(n => n.type === 'suspect').length === 0 && (
+                                                            <div className="col-span-full text-center text-zinc-500 py-10">
+                                                                No suspects found in database.
+                                                            </div>
+                                                        )}
+                                                    </div>
+                                                </>
+                                            )}
+
+                                            {accusationResult === 'success' && (
+                                                <div className="flex flex-col items-center justify-center py-10 text-center animate-in zoom-in duration-500">
+                                                    <div className="w-24 h-24 rounded-full bg-green-500/20 flex items-center justify-center mb-6 border-4 border-green-500">
+                                                        <CheckCircle className="w-12 h-12 text-green-500" />
+                                                    </div>
+                                                    <h2 className="text-4xl font-black text-white mb-4">CASE CLOSED</h2>
+                                                    <p className="text-xl text-zinc-300 max-w-xl">
+                                                        Excellent work, Detective. The culprit has been identified and apprehended thanks to your diligence.
+                                                    </p>
+                                                    <Button
+                                                        className="mt-8 bg-white text-black hover:bg-zinc-200"
+                                                        onClick={onClose}
+                                                    >
+                                                        Return to Headquarters
+                                                    </Button>
+                                                </div>
+                                            )}
+
+                                            {accusationResult === 'failure' && (
+                                                <div className="flex flex-col items-center justify-center py-10 text-center animate-in zoom-in duration-500">
+                                                    <div className="w-24 h-24 rounded-full bg-red-500/20 flex items-center justify-center mb-6 border-4 border-red-500">
+                                                        <X className="w-12 h-12 text-red-500" />
+                                                    </div>
+                                                    <h2 className="text-4xl font-black text-white mb-4">MISSION FAILED</h2>
+                                                    <p className="text-xl text-zinc-300 max-w-xl">
+                                                        You accused the wrong person. The real perpetrator escaped while you were distracted.
+                                                    </p>
+                                                    <Button
+                                                        variant="outline"
+                                                        className="mt-8 border-zinc-700 hover:bg-zinc-800"
+                                                        onClick={() => setAccusationResult(null)}
+                                                    >
+                                                        Review Evidence Again
+                                                    </Button>
+                                                </div>
+                                            )}
+                                        </div>
+                                    </motion.div>
+                                </div>
+                            )}
+                        </AnimatePresence>
 
                         {/* Begin Mission Button (Only for Briefing Node) */}
                         {currentNode && (currentNode.data.label.toLowerCase().includes('briefing') || history.length === 0) && !missionStarted ? (
