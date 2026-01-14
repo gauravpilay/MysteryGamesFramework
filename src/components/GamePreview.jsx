@@ -9,6 +9,8 @@ const GamePreview = ({ nodes, edges, onClose }) => {
     const [inventory, setInventory] = useState(new Set());
     const [history, setHistory] = useState([]); // Array of distinct visited node IDs
     const [logs, setLogs] = useState([]); // Text logs for the "terminal" feel on the side
+    const [missionStarted, setMissionStarted] = useState(false);
+    const [selectedSuspect, setSelectedSuspect] = useState(null);
 
     // Initialize Game
     useEffect(() => {
@@ -98,6 +100,8 @@ const GamePreview = ({ nodes, edges, onClose }) => {
         // Add current to history
         setHistory(prev => [...prev, currentNodeId]);
         setCurrentNodeId(targetId);
+        // If we were in a popup, close it
+        setSelectedSuspect(null);
     };
 
     const handleTerminalSubmit = (input) => {
@@ -132,6 +136,16 @@ const GamePreview = ({ nodes, edges, onClose }) => {
         for (let i = 0; i < name.length; i++) hash = name.charCodeAt(i) + ((hash << 5) - hash);
         return colors[Math.abs(hash) % colors.length];
     };
+
+    // Helper to get nice labels for buttons
+    const getEdgeLabel = (node) => {
+        if (!node) return "Continue";
+        if (node.type === 'story') return node.data.label || "Continue Narrative";
+        if (node.type === 'evidence') return `Examine Evidence: ${node.data.label}`;
+        if (node.type === 'terminal') return `Access Terminal: ${node.data.label}`;
+        if (node.type === 'message') return `Read Message: ${node.data.label}`;
+        return `Proceed to ${node.data.label}`;
+    }
 
     // Render Node Content
     const renderContent = () => {
@@ -284,6 +298,94 @@ const GamePreview = ({ nodes, edges, onClose }) => {
                 </Button>
             </div>
 
+            {/* Suspect Modal */}
+            <AnimatePresence>
+                {selectedSuspect && (
+                    <div className="fixed inset-0 z-[60] flex items-center justify-center p-4 bg-black/80 backdrop-blur-sm">
+                        <motion.div
+                            initial={{ scale: 0.9, opacity: 0 }}
+                            animate={{ scale: 1, opacity: 1 }}
+                            exit={{ scale: 0.9, opacity: 0 }}
+                            className="bg-zinc-950 border border-zinc-800 p-0 rounded-2xl max-w-2xl w-full relative overflow-hidden shadow-2xl shadow-black"
+                        >
+                            {/* Decorative Header */}
+                            <div className="h-32 bg-gradient-to-r from-zinc-900 to-black relative">
+                                <div className={`absolute inset-0 bg-gradient-to-br ${getAvatarColor(selectedSuspect.data.name)} opacity-20`}></div>
+                                <Button variant="ghost" className="absolute top-4 right-4 text-white hover:bg-white/10 z-10" onClick={() => setSelectedSuspect(null)}>
+                                    <X className="w-6 h-6" />
+                                </Button>
+                                <div className="absolute -bottom-10 left-8 flex items-end">
+                                    <div className={`w-24 h-24 rounded-2xl bg-gradient-to-br ${getAvatarColor(selectedSuspect.data.name)} p-1 shadow-xl border-4 border-zinc-950`}>
+                                        <div className="w-full h-full bg-black/20 rounded-xl flex items-center justify-center">
+                                            <span className="text-4xl font-bold text-white">{selectedSuspect.data.name.charAt(0)}</span>
+                                        </div>
+                                    </div>
+                                </div>
+                            </div>
+
+                            <div className="pt-14 px-8 pb-8">
+                                <h2 className="text-3xl font-black text-white uppercase">{selectedSuspect.data.name}</h2>
+                                <span className="inline-block mt-1 px-2 py-0.5 bg-zinc-800 text-zinc-400 text-xs font-bold tracking-wider uppercase rounded">
+                                    {selectedSuspect.data.role}
+                                </span>
+
+                                <div className="mt-8 grid grid-cols-1 gap-6">
+                                    <div className="space-y-2">
+                                        <h4 className="text-xs font-bold text-indigo-500 uppercase tracking-widest flex items-center gap-2">
+                                            <FileText className="w-4 h-4" />
+                                            Dossier / Notes
+                                        </h4>
+                                        <p className="text-zinc-300 leading-relaxed bg-zinc-900/50 p-4 rounded-lg border border-zinc-900">
+                                            {selectedSuspect.data.description || "No additional notes available in database."}
+                                        </p>
+                                    </div>
+                                    <div className="space-y-2">
+                                        <h4 className="text-xs font-bold text-emerald-500 uppercase tracking-widest flex items-center gap-2">
+                                            <ShieldAlert className="w-4 h-4" />
+                                            Known Alibi
+                                        </h4>
+                                        <p className="text-zinc-300 leading-relaxed italic border-l-2 border-emerald-500/50 pl-4">
+                                            "{selectedSuspect.data.alibi || "Alibi not yet established."}"
+                                        </p>
+                                    </div>
+
+                                    {/* Action Buttons for this Suspect */}
+                                    <div className="pt-8 border-t border-zinc-900 mt-4">
+                                        <h4 className="text-xs font-bold text-zinc-500 uppercase tracking-widest mb-4">Available Actions</h4>
+                                        <div className="grid grid-cols-1 gap-3">
+                                            {/* Find edges originating from this specific suspect node */}
+                                            {edges.filter(e => e.source === selectedSuspect.id).map(edge => {
+                                                const target = nodes.find(n => n.id === edge.target);
+                                                if (!target) return null;
+                                                return (
+                                                    <Button
+                                                        key={edge.id}
+                                                        onClick={() => handleOptionClick(edge.target)}
+                                                        className="w-full justify-between h-auto py-3 bg-indigo-600 hover:bg-indigo-700 text-white border-0"
+                                                    >
+                                                        <span>{getEdgeLabel(target)}</span>
+                                                        <ArrowRight className="w-4 h-4" />
+                                                    </Button>
+                                                )
+                                            })}
+                                            {edges.filter(e => e.source === selectedSuspect.id).length === 0 && (
+                                                <div className="p-3 rounded bg-zinc-900/50 border border-zinc-900 border-dashed">
+                                                    <p className="text-zinc-500 italic text-sm mb-1">No further leads on this suspect currently.</p>
+                                                    <p className="text-[10px] text-zinc-600 font-mono">
+                                                        Debug: Node ID `{selectedSuspect.id}` has 0 outgoing connections.
+                                                        Connect this node to Evidence or Story nodes in the editor to create actions.
+                                                    </p>
+                                                </div>
+                                            )}
+                                        </div>
+                                    </div>
+                                </div>
+                            </div>
+                        </motion.div>
+                    </div>
+                )}
+            </AnimatePresence>
+
             {/* Main Layout */}
             <div className="flex-1 flex overflow-hidden">
                 {/* Visual Feed (Left/Center) */}
@@ -291,91 +393,104 @@ const GamePreview = ({ nodes, edges, onClose }) => {
                     <div className="w-full max-w-3xl">
                         {renderContent()}
 
-                        {/* Actions / Choices */}
-                        <div className="mt-12">
-                            {options.some(e => nodes.find(n => n.id === e.target)?.type === 'suspect') ? (
-                                // Grid Layout for Suspects
-                                <div className="space-y-4">
-                                    <div className="flex items-center gap-2 text-zinc-400 text-sm font-bold tracking-wider uppercase">
-                                        <User className="w-4 h-4" />
-                                        <span>Suspect Database Matches ({options.length})</span>
-                                    </div>
-                                    <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
-                                        {options.map((edge, i) => {
-                                            const targetNode = nodes.find(n => n.id === edge.target);
-                                            if (!targetNode || targetNode.type !== 'suspect') return null;
+                        {/* Begin Mission Button (Only for Briefing Node) */}
+                        {currentNode && (currentNode.data.label.toLowerCase().includes('briefing') || history.length === 0) && !missionStarted ? (
+                            <div className="mt-12 flex justify-center animate-in fade-in slide-in-from-bottom-8 duration-1000 delay-500">
+                                <Button
+                                    onClick={() => setMissionStarted(true)}
+                                    className="px-12 py-8 text-xl font-bold tracking-[0.2em] bg-red-600 hover:bg-red-700 text-white border-none shadow-[0_0_50px_rgba(220,38,38,0.4)] hover:shadow-[0_0_80px_rgba(220,38,38,0.6)] hover:scale-105 transition-all duration-300 uppercase"
+                                >
+                                    Begin Mission
+                                </Button>
+                            </div>
+                        ) : (
+                            /* Actions / Choices */
+                            <div className="mt-12 animate-in fade-in zoom-in-95 duration-500">
+                                {options.some(e => nodes.find(n => n.id === e.target)?.type === 'suspect') ? (
+                                    // Grid Layout for Suspects
+                                    <div className="space-y-4">
+                                        <div className="flex items-center gap-2 text-zinc-400 text-sm font-bold tracking-wider uppercase">
+                                            <User className="w-4 h-4" />
+                                            <span>Suspect Database Matches ({options.length})</span>
+                                        </div>
+                                        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+                                            {options.map((edge, i) => {
+                                                const targetNode = nodes.find(n => n.id === edge.target);
+                                                if (!targetNode || targetNode.type !== 'suspect') return null;
 
-                                            return (
-                                                <motion.button
-                                                    key={edge.id}
-                                                    initial={{ opacity: 0, y: 20 }}
-                                                    animate={{ opacity: 1, y: 0 }}
-                                                    transition={{ delay: i * 0.1 }}
-                                                    onClick={() => handleOptionClick(edge.target)}
-                                                    className="group text-left relative overflow-hidden bg-zinc-900 border border-zinc-800 hover:border-indigo-500/50 rounded-xl p-0 transition-all hover:shadow-lg hover:shadow-indigo-500/10"
-                                                >
-                                                    <div className={`h-24 bg-gradient-to-br ${getAvatarColor(targetNode.data.name || 'Unk')} opacity-20 group-hover:opacity-30 transition-opacity`}></div>
-                                                    <div className="absolute top-4 left-4">
-                                                        <div className={`w-12 h-12 rounded-full bg-gradient-to-br ${getAvatarColor(targetNode.data.name || 'Unk')} flex items-center justify-center shadow-lg border-2 border-zinc-900`}>
-                                                            <span className="text-white font-bold text-lg">
-                                                                {(targetNode.data.name || '?').charAt(0)}
-                                                            </span>
-                                                        </div>
-                                                    </div>
-                                                    <div className="p-4 pt-2">
-                                                        <div className="flex justify-between items-start">
-                                                            <div>
-                                                                <h3 className="font-bold text-white group-hover:text-indigo-400 transition-colors truncate pr-2">
-                                                                    {targetNode.data.name}
-                                                                </h3>
-                                                                <p className="text-xs text-zinc-500 uppercase tracking-wider mt-1">
-                                                                    {targetNode.data.role}
-                                                                </p>
+                                                return (
+                                                    <motion.button
+                                                        key={edge.id}
+                                                        initial={{ opacity: 0, y: 20 }}
+                                                        animate={{ opacity: 1, y: 0 }}
+                                                        transition={{ delay: i * 0.1 }}
+                                                        // For Suspsect Grid, instead of navigating, we open Modal
+                                                        onClick={() => setSelectedSuspect(targetNode)}
+                                                        className="group text-left relative overflow-hidden bg-zinc-900 border border-zinc-800 hover:border-indigo-500/50 rounded-xl p-0 transition-all hover:shadow-lg hover:shadow-indigo-500/10"
+                                                    >
+                                                        <div className={`h-24 bg-gradient-to-br ${getAvatarColor(targetNode.data.name || 'Unk')} opacity-20 group-hover:opacity-30 transition-opacity`}></div>
+                                                        <div className="absolute top-4 left-4">
+                                                            <div className={`w-12 h-12 rounded-full bg-gradient-to-br ${getAvatarColor(targetNode.data.name || 'Unk')} flex items-center justify-center shadow-lg border-2 border-zinc-900`}>
+                                                                <span className="text-white font-bold text-lg">
+                                                                    {(targetNode.data.name || '?').charAt(0)}
+                                                                </span>
                                                             </div>
                                                         </div>
-                                                        <div className="mt-4 flex items-center text-xs text-zinc-600 group-hover:text-zinc-400">
-                                                            <span>Review Profile</span>
-                                                            <ArrowRight className="w-3 h-3 ml-auto opacity-0 group-hover:opacity-100 transition-opacity" />
+                                                        <div className="p-4 pt-2">
+                                                            <div className="flex justify-between items-start">
+                                                                <div>
+                                                                    <h3 className="font-bold text-white group-hover:text-indigo-400 transition-colors truncate pr-2">
+                                                                        {targetNode.data.name}
+                                                                    </h3>
+                                                                    <p className="text-xs text-zinc-500 uppercase tracking-wider mt-1">
+                                                                        {targetNode.data.role}
+                                                                    </p>
+                                                                </div>
+                                                            </div>
+                                                            <div className="mt-4 flex items-center text-xs text-zinc-600 group-hover:text-zinc-400">
+                                                                <span>Review Profile</span>
+                                                                <ArrowRight className="w-3 h-3 ml-auto opacity-0 group-hover:opacity-100 transition-opacity" />
+                                                            </div>
                                                         </div>
+                                                    </motion.button>
+                                                );
+                                            })}
+                                        </div>
+                                    </div>
+                                ) : (
+                                    // Standard List Layout
+                                    <div className="grid grid-cols-1 gap-3">
+                                        {options.map((edge) => {
+                                            const targetNode = nodes.find(n => n.id === edge.target);
+                                            if (!targetNode) return null;
+
+                                            // Logic nodes are handled automatically, don't show buttons
+                                            if (targetNode.type === 'logic') return null;
+
+                                            return (
+                                                <Button
+                                                    key={edge.id}
+                                                    onClick={() => handleOptionClick(edge.target)}
+                                                    className="w-full justify-between h-auto py-4 text-base group"
+                                                    variant="outline"
+                                                >
+                                                    <div className="flex items-center gap-3">
+                                                        <span className="w-2 h-2 rounded-full bg-indigo-500 group-hover:bg-white transition-colors"></span>
+                                                        <span>
+                                                            {targetNode.type === 'story' ? (targetNode.data.label || 'Continue Narrative') :
+                                                                targetNode.type === 'suspect' ? `Investigate: ${targetNode.data.name || targetNode.data.label}` :
+                                                                    targetNode.type === 'evidence' ? `Examine: ${targetNode.data.label}` :
+                                                                        `Proceed to ${targetNode.data.label}`}
+                                                        </span>
                                                     </div>
-                                                </motion.button>
+                                                    <ArrowRight className="w-4 h-4 opacity-50 group-hover:opacity-100 transform group-hover:translate-x-1 transition-all" />
+                                                </Button>
                                             );
                                         })}
                                     </div>
-                                </div>
-                            ) : (
-                                // Standard List Layout
-                                <div className="grid grid-cols-1 gap-3">
-                                    {options.map((edge) => {
-                                        const targetNode = nodes.find(n => n.id === edge.target);
-                                        if (!targetNode) return null;
-
-                                        // Logic nodes are handled automatically, don't show buttons
-                                        if (targetNode.type === 'logic') return null;
-
-                                        return (
-                                            <Button
-                                                key={edge.id}
-                                                onClick={() => handleOptionClick(edge.target)}
-                                                className="w-full justify-between h-auto py-4 text-base group"
-                                                variant="outline"
-                                            >
-                                                <div className="flex items-center gap-3">
-                                                    <span className="w-2 h-2 rounded-full bg-indigo-500 group-hover:bg-white transition-colors"></span>
-                                                    <span>
-                                                        {targetNode.type === 'story' ? (targetNode.data.label || 'Continue Narrative') :
-                                                            targetNode.type === 'suspect' ? `Investigate: ${targetNode.data.name || targetNode.data.label}` :
-                                                                targetNode.type === 'evidence' ? `Examine: ${targetNode.data.label}` :
-                                                                    `Proceed to ${targetNode.data.label}`}
-                                                    </span>
-                                                </div>
-                                                <ArrowRight className="w-4 h-4 opacity-50 group-hover:opacity-100 transform group-hover:translate-x-1 transition-all" />
-                                            </Button>
-                                        );
-                                    })}
-                                </div>
-                            )}
-                        </div>
+                                )}
+                            </div>
+                        )}
                     </div>
                 </div>
 

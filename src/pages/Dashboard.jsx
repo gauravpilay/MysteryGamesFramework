@@ -101,7 +101,7 @@ const Dashboard = () => {
         }
 
         // 2. Cyber Attack Sample Check
-        const cyberId = 'sample-cyber-attack-v1';
+        const cyberId = 'sample-cyber-attack-v2';
         const isCyberDismissed = localStorage.getItem('sample_cyber_dismissed') === 'true';
 
         if (!isCyberDismissed && !currentProjects.some(p => p.id === cyberId)) {
@@ -110,7 +110,7 @@ const Dashboard = () => {
                 title: 'Case: The Digital Insider',
                 description: 'CRITICAL: DarkCipher Ransomware attack on Global FinTech. Identify the insider threat immediately.',
                 updatedAt: new Date().toISOString(),
-                nodeCount: 12
+                nodeCount: 16
             };
 
             const cyberData = {
@@ -242,9 +242,15 @@ const Dashboard = () => {
                     { id: 'e-start-elena', source: 'cyber-start', target: 'suspect-elena' },
                     { id: 'e-start-ken', source: 'cyber-start', target: 'suspect-ken' },
                     { id: 'e-start-david', source: 'cyber-start', target: 'suspect-david' },
-                    { id: 'e-start-logs', source: 'cyber-start', target: 'term-logs' },
-                    { id: 'e-start-cctv', source: 'cyber-start', target: 'evidence-cctv' },
-                    { id: 'e-start-tip', source: 'cyber-start', target: 'msg-tip' },
+
+                    // New: Suspects leading to clues
+                    { id: 'e-sarah-logs', source: 'suspect-sarah', target: 'term-logs' },
+                    { id: 'e-mike-cctv', source: 'suspect-mike', target: 'evidence-cctv' },
+                    { id: 'e-elena-tip', source: 'suspect-elena', target: 'msg-tip' },
+                    { id: 'e-david-logs', source: 'suspect-david', target: 'term-logs' },
+                    { id: 'e-ken-trash', source: 'suspect-ken', target: 'evidence-trash' },
+
+                    // Clue Interconnections
                     { id: 'e-tip-trash', source: 'msg-tip', target: 'evidence-trash' },
                     { id: 'e-cctv-logic', source: 'evidence-cctv', target: 'logic-keycard' },
                     { id: 'e-logic-climax', source: 'logic-keycard', target: 'story-climax' }
@@ -292,11 +298,6 @@ const Dashboard = () => {
         if (!deleteId) return;
 
         // Prevent deletion of the Cyber Attack sample case
-        if (deleteId === 'sample-cyber-attack-v1') {
-            setDeleteId(null);
-            return;
-        }
-
         // If deleting tutorial, mark it as dismissed
         if (deleteId === 'tutorial-sample-story-v1') {
             localStorage.setItem('tutorial_dismissed', 'true');
@@ -376,15 +377,13 @@ const Dashboard = () => {
                                             <FolderOpen className="w-5 h-5 text-zinc-400 group-hover:text-indigo-400" />
                                         </div>
                                         <div className="dropdown relative">
-                                            {project.id !== 'sample-cyber-attack-v1' && (
-                                                <button
-                                                    className="p-1 rounded-md hover:bg-zinc-800 text-zinc-500 hover:text-white relative z-20"
-                                                    onClick={(e) => initiateDelete(e, project.id)}
-                                                    title="Delete Project"
-                                                >
-                                                    <Trash2 className="w-4 h-4" />
-                                                </button>
-                                            )}
+                                            <button
+                                                className="p-1 rounded-md hover:bg-zinc-800 text-zinc-500 hover:text-white relative z-20"
+                                                onClick={(e) => initiateDelete(e, project.id)}
+                                                title="Delete Project"
+                                            >
+                                                <Trash2 className="w-4 h-4" />
+                                            </button>
                                         </div>
                                     </div>
                                     <h3 className="font-semibold text-zinc-200 group-hover:text-white transition-colors truncate">{project.title}</h3>
