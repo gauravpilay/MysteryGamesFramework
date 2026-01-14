@@ -61,6 +61,206 @@ const Dashboard = () => {
         }
     };
 
+    const generateSampleCase = async (e) => {
+        if (e) e.preventDefault();
+        console.log("generateSampleCase: Clicked");
+
+        if (!isAdmin) {
+            console.log("generateSampleCase: Not admin");
+            return;
+        }
+
+        // Skipping confirmation to avoid browser blocking issues
+        console.log("generateSampleCase: Auto-confirming seed...");
+
+        console.log("generateSampleCase: Attempting to create doc...");
+        try {
+            // Sample Data Construction (nodes array definition)
+            const nodes = [
+                {
+                    id: 'node-briefing',
+                    type: 'story',
+                    position: { x: 0, y: 0 },
+                    data: {
+                        label: 'Mission Briefing',
+                        content: "URGENT // PRIORITY ALPHA\nLocation: City Power Authority (CPA) HQ\nTime: 08:00 Hours\n\nCommand, we have a catastrophic failure of the city's power grid. Preliminary forensics indicate a sophisticated ransomware strain known as 'DarkPulse'. \n\nThe entry point was internal. Valid credentials were used to bypass the air-gapped protection at 03:22 AM. \n\nWe have detained 5 key personnel who were in the building. You have 30 minutes to identify the insider threat before the backup generators fail and the city descends into chaos.\n\nGood luck, Detective."
+                    }
+                },
+                {
+                    id: 'node-hub',
+                    type: 'story',
+                    position: { x: 400, y: 200 },
+                    data: {
+                        label: 'Investigation Hub',
+                        content: "You are in the main lobby. The 5 suspects are being held in separate holding rooms. The server room is locked down. \n\nReview your leads and interrogate the suspects. Remember, every minute counts."
+                    }
+                },
+                // Suspects
+                {
+                    id: 'suspect-viktor',
+                    type: 'suspect',
+                    position: { x: 0, y: 400 },
+                    data: {
+                        name: 'Viktor Novikov',
+                        role: 'SysAdmin',
+                        alibi: 'Claims he was sleeping in the server room break area.',
+                        description: 'Senior System Administrator. Brilliant but disgruntled. Has been denied a raise three times this year.'
+                    }
+                },
+                {
+                    id: 'suspect-sarah',
+                    type: 'suspect',
+                    position: { x: 200, y: 400 },
+                    data: {
+                        name: 'Sarah Jenkins',
+                        role: 'Lead Developer',
+                        alibi: 'Working late on the new UI update.',
+                        description: 'Lead Developer for the grid control software. Known for erratic security practices. Often shares passwords.'
+                    }
+                },
+                {
+                    id: 'suspect-marcus',
+                    type: 'suspect',
+                    position: { x: 400, y: 400 },
+                    data: {
+                        name: 'Marcus Chen',
+                        role: 'Network Engineer',
+                        alibi: 'In the gym downstairs.',
+                        description: 'Network Engineer. Former "Grey Hat" hacker with a record. Hired for his expertise in penetration testing.',
+                        isKiller: false
+                    }
+                },
+                {
+                    id: 'suspect-elena',
+                    type: 'suspect',
+                    position: { x: 600, y: 400 },
+                    data: {
+                        name: 'Elena Petrov',
+                        role: 'External Consultant',
+                        alibi: 'On a call with overseas clients in the conference room.',
+                        description: 'Cybersecurity Consultant. Very professional, highly paid. Rumored to have debts.'
+                    }
+                },
+                {
+                    id: 'suspect-halloway',
+                    type: 'suspect',
+                    position: { x: 800, y: 400 },
+                    data: {
+                        name: 'Dir. Halloway',
+                        role: 'Director of Ops',
+                        alibi: 'In his office reviewing quarterly reports.',
+                        description: 'Director of Operations. The boss. Under immense pressure due to budget cuts. Living beyond his means.',
+                        isKiller: true // The Culprit
+                    }
+                },
+                // Evidence
+                {
+                    id: 'ev-logs',
+                    type: 'evidence',
+                    position: { x: 100, y: 600 },
+                    data: {
+                        label: 'Server Access Logs',
+                        description: 'Log file showing a login event at 03:22 AM. User: "ADMIN". Terminal ID: DIR-OFFICE-01.'
+                    }
+                },
+                {
+                    id: 'ev-email',
+                    type: 'evidence',
+                    position: { x: 300, y: 600 },
+                    data: {
+                        label: 'Phishing Email',
+                        description: 'Printout of an email found on Sarah\'s desk. "URGENT: Password Reset Required". The link points to a known malware domain.'
+                    }
+                },
+                {
+                    id: 'ev-financials',
+                    type: 'evidence',
+                    position: { x: 800, y: 700 },
+                    data: {
+                        label: 'Offshore Accounts',
+                        description: 'Encrypted ledger decoded from Halloway\'s private terminal. Shows massive crypto deposits matching the ransomware demand amount.'
+                    }
+                },
+                // Terminal
+                {
+                    id: 'term-office',
+                    type: 'terminal',
+                    position: { x: 800, y: 550 },
+                    data: {
+                        label: 'Director\'s Terminal',
+                        prompt: 'Enter override code to access secure files:',
+                        command: 'override_auth_alpha'
+                    }
+                },
+                // Logic
+                {
+                    id: 'logic-check-logs',
+                    type: 'logic',
+                    position: { x: 600, y: 550 },
+                    data: {
+                        label: 'Has Logs?',
+                        condition: 'ev-logs'
+                    }
+                }
+            ];
+
+            const edges = [
+                // Flow to Hub
+                { id: 'e1', source: 'node-briefing', target: 'node-hub' },
+                { id: 'e2', source: 'node-hub', target: 'suspect-viktor', label: 'Interrogate Viktor' },
+                { id: 'e3', source: 'node-hub', target: 'suspect-sarah', label: 'Interrogate Sarah' },
+                { id: 'e4', source: 'node-hub', target: 'suspect-marcus', label: 'Interrogate Marcus' },
+                { id: 'e5', source: 'node-hub', target: 'suspect-elena', label: 'Interrogate Elena' },
+                { id: 'e6', source: 'node-hub', target: 'suspect-halloway', label: 'Interrogate Halloway' },
+
+                // Interactions
+                // Viktor -> Logs (He points out the anomaly)
+                { id: 'e-vik-logs', source: 'suspect-viktor', target: 'ev-logs', label: 'Ask about the breach time' },
+                { id: 'e-logs-back', source: 'ev-logs', target: 'node-hub', label: 'Return to Hub' },
+
+                // Sarah -> Email (She admits mistake)
+                { id: 'e-sarah-email', source: 'suspect-sarah', target: 'ev-email', label: 'Ask about recent emails' },
+                { id: 'e-email-back', source: 'ev-email', target: 'node-hub', label: 'Return to Hub' },
+
+                // Marcus -> Halloway Hint (He tracked the traffic)
+                { id: 'e-marcus-term', source: 'suspect-marcus', target: 'node-hub', label: 'Verify Alibi' }, // Dead end for him but helpful info in text
+
+                // Elena -> Needs Logs to talk
+                { id: 'e-elena-logic', source: 'suspect-elena', target: 'logic-check-logs', label: 'Ask about Admin Access' },
+                // Logic -> True -> Points to Halloway
+                { id: 'e-logic-true', source: 'logic-check-logs', target: 'node-hub', label: 'True', sourceHandle: 'true' },
+                { id: 'e-logic-false', source: 'logic-check-logs', target: 'node-hub', label: 'False', sourceHandle: 'false' },
+
+                // Halloway -> Terminal (Need to hack his computer)
+                { id: 'e-halloway-term', source: 'suspect-halloway', target: 'term-office', label: 'Inspect Office Computer' },
+                // Terminal -> Financials
+                { id: 'e-term-fin', source: 'term-office', target: 'ev-financials', label: 'Access Secure Folder' },
+                { id: 'e-fin-back', source: 'ev-financials', target: 'node-hub', label: 'Return to Hub' },
+            ];
+
+            const sampleCase = {
+                title: 'Operation Blackout',
+                description: 'Cyber Security Threat: The city grid has been hijacked. Find the insider who installed the DarkPulse ransomware.',
+                status: 'draft',
+                createdAt: new Date().toISOString(),
+                updatedAt: new Date().toISOString(),
+                createdBy: user.email,
+                nodeCount: nodes.length,
+                nodes: nodes,
+                edges: edges,
+                meta: {
+                    timeLimit: 30
+                }
+            };
+
+            await addDoc(collection(db, "cases"), sampleCase);
+            alert("Success! 'Operation Blackout' has been created.");
+        } catch (error) {
+            console.error("Seeding failed detailed:", error);
+            alert(`Failed to seed case. Error: ${error.message}`);
+        }
+    };
+
     const initiateDelete = (e, id) => {
         e.preventDefault();
         e.stopPropagation();
@@ -144,10 +344,16 @@ const Dashboard = () => {
                             <input type="text" placeholder="Search cases..." className="pl-9 pr-4 py-2 bg-zinc-900 border border-zinc-800 rounded-lg text-sm focus:outline-none focus:ring-1 focus:ring-indigo-500 w-64 text-zinc-300 placeholder:text-zinc-600" />
                         </div>
                         {isAdmin && (
-                            <Button onClick={() => setShowNewModal(true)}>
-                                <Plus className="w-4 h-4 mr-2" />
-                                New Case
-                            </Button>
+                            <>
+                                <Button variant="secondary" onClick={generateSampleCase} type="button">
+                                    <Rocket className="w-4 h-4 mr-2" />
+                                    Seed Sample
+                                </Button>
+                                <Button onClick={() => setShowNewModal(true)}>
+                                    <Plus className="w-4 h-4 mr-2" />
+                                    New Case
+                                </Button>
+                            </>
                         )}
                     </div>
                 </div>
