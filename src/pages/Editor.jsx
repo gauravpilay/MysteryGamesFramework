@@ -11,9 +11,11 @@ import ReactFlow, {
 import 'reactflow/dist/style.css';
 import { useParams, useNavigate } from 'react-router-dom';
 import { Button } from '../components/ui/shared';
-import { Save, ArrowLeft, Download, FileText, User, Search, GitMerge, Terminal, MessageSquare, CircleHelp } from 'lucide-react';
+
+import { Save, ArrowLeft, Download, FileText, User, Search, GitMerge, Terminal, MessageSquare, CircleHelp, Play } from 'lucide-react';
 import { StoryNode, SuspectNode, EvidenceNode, LogicNode, TerminalNode, MessageNode } from '../components/nodes/CustomNodes';
 import { TutorialOverlay } from '../components/ui/TutorialOverlay';
+import GamePreview from '../components/GamePreview';
 import { AnimatePresence } from 'framer-motion';
 import JSZip from 'jszip';
 
@@ -25,6 +27,7 @@ const Editor = () => {
     const [edges, setEdges, onEdgesChange] = useEdgesState([]);
     const [reactFlowInstance, setReactFlowInstance] = useState(null);
     const [showTutorial, setShowTutorial] = useState(false);
+    const [showPreview, setShowPreview] = useState(false);
 
     const tutorialSteps = [
         {
@@ -218,6 +221,10 @@ const Editor = () => {
                         <Save className="w-4 h-4 mr-2" />
                         Save
                     </Button>
+                    <Button variant="outline" size="sm" onClick={() => { saveProject(); setShowPreview(true); }}>
+                        <Play className="w-4 h-4 mr-2" />
+                        Preview
+                    </Button>
                     <Button variant="primary" size="sm" onClick={generateBuild}>
                         <Download className="w-4 h-4 mr-2" />
                         Generate Build
@@ -289,6 +296,9 @@ const Editor = () => {
             <AnimatePresence>
                 {showTutorial && (
                     <TutorialOverlay steps={tutorialSteps} onClose={() => setShowTutorial(false)} />
+                )}
+                {showPreview && (
+                    <GamePreview nodes={nodes} edges={edges} onClose={() => setShowPreview(false)} />
                 )}
             </AnimatePresence>
         </div>
