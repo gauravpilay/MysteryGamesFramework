@@ -260,7 +260,7 @@ const Editor = () => {
                         </div>
                         <div onDragStart={(event) => onDragStart(event, 'message')} draggable className="flex items-center gap-3 p-3 rounded bg-zinc-900 border border-zinc-800 cursor-grab hover:border-violet-500/50 hover:bg-zinc-800 transition-all active:cursor-grabbing">
                             <MessageSquare className="w-4 h-4 text-violet-400" />
-                            <span className="text-sm font-medium">Chat Message</span>
+                            <span className="text-sm font-medium">Message Block</span>
                         </div>
                     </div>
 
@@ -283,6 +283,7 @@ const Editor = () => {
                         onDrop={onDrop}
                         onDragOver={onDragOver}
                         nodeTypes={nodeTypes}
+                        deleteKeyCode={['Backspace', 'Delete']}
                         fitView
                         className="bg-zinc-950"
                         proOptions={{ hideAttribution: true }}
