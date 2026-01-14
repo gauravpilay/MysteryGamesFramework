@@ -131,12 +131,17 @@ export const TerminalNode = memo(({ id, data, selected }) => {
             <NodeWrapper title="Terminal Challenge" icon={Terminal} selected={selected} headerClass="bg-zinc-800 text-green-400" colorClass="border-green-900/30">
                 <div className="space-y-2 font-mono">
                     <div>
-                        <p className="text-[10px] text-zinc-500 mb-1">Challenge Prompt</p>
-                        <TextArea placeholder="e.g. Find the IP in headers..." rows={2} value={data.prompt} onChange={(e) => handleChange('prompt', e.target.value)} />
+                        <p className="text-[10px] text-zinc-500 mb-1">Challenge Prompt (Visible to Player)</p>
+                        <TextArea placeholder="e.g. SYSTEM LOCKED. ENTER OVERRIDE KEY..." rows={2} value={data.prompt} onChange={(e) => handleChange('prompt', e.target.value)} />
                     </div>
-                    <div>
-                        <p className="text-[10px] text-zinc-500 mb-1">Expected Command / Answer</p>
-                        <InputField className="text-green-400 bg-black/50" placeholder="grep '192' access.log" value={data.command} onChange={(e) => handleChange('command', e.target.value)} />
+                    <div className="pt-2 border-t border-zinc-800">
+                        <p className="text-[10px] text-zinc-500 mb-1 font-bold text-green-600">REQUIRED COMMAND (SECRET ANSWER)</p>
+                        <InputField
+                            className="text-green-400 bg-black border-green-900/40 focus:border-green-500"
+                            placeholder="e.g. sudo override"
+                            value={data.command}
+                            onChange={(e) => handleChange('command', e.target.value)}
+                        />
                     </div>
                 </div>
             </NodeWrapper>
