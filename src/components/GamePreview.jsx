@@ -504,8 +504,25 @@ const GamePreview = ({ nodes, edges, onClose }) => {
             <div className="flex-1 flex overflow-hidden relative">
                 {/* Visual Feed (Center) */}
                 <div className="flex-1 overflow-y-auto p-10 flex flex-col items-center w-full">
-                    <div className="w-full max-w-4xl relative z-10"> {/* Increased max-width since sidebar is gone */}
-                        {renderContent()}
+                    <div className="w-full max-w-4xl relative z-10">
+                        {/* If mission started and we are still at the briefing node (which links to suspects), show the "Database View" instead of the text */}
+                        {missionStarted && currentNode && currentNode.data.label.toLowerCase().includes('briefing') ? (
+                            <div className="animate-in fade-in slide-in-from-bottom-4 duration-700">
+                                <div className="text-center mb-12">
+                                    <div className="inline-block px-3 py-1 bg-indigo-500/10 border border-indigo-500/50 text-indigo-400 text-xs font-bold tracking-[0.2em] mb-4 uppercase">
+                                        Database Access Granted
+                                    </div>
+                                    <h1 className="text-3xl md:text-5xl font-black text-white uppercase tracking-tighter mb-4">
+                                        Active Suspects
+                                    </h1>
+                                    <p className="text-zinc-400 max-w-lg mx-auto">
+                                        The following individuals have been flagged for investigation. Select a dossier to begin analysis and follow leads.
+                                    </p>
+                                </div>
+                            </div>
+                        ) : (
+                            renderContent()
+                        )}
 
                         {/* Accusation Modal */}
                         <AnimatePresence>
@@ -612,14 +629,17 @@ const GamePreview = ({ nodes, edges, onClose }) => {
                             </div>
                         ) : (
                             /* Actions / Choices */
-                            <div className="mt-12 animate-in fade-in zoom-in-95 duration-500">
+                            <div className="mt-8 animate-in fade-in zoom-in-95 duration-500">
                                 {options.some(e => nodes.find(n => n.id === e.target)?.type === 'suspect') ? (
                                     // Grid Layout for Suspects
                                     <div className="space-y-4">
-                                        <div className="flex items-center gap-2 text-zinc-400 text-sm font-bold tracking-wider uppercase">
-                                            <User className="w-4 h-4" />
-                                            <span>Suspect Database Matches ({options.length})</span>
-                                        </div>
+                                        {/* Only show label if NOT in the dedicated view (fallback) */}
+                                        {!(missionStarted && currentNode && currentNode.data.label.toLowerCase().includes('briefing')) && (
+                                            <div className="flex items-center gap-2 text-zinc-400 text-sm font-bold tracking-wider uppercase">
+                                                <User className="w-4 h-4" />
+                                                <span>Suspect Database Matches ({options.length})</span>
+                                            </div>
+                                        )}
                                         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
                                             {options.map((edge, i) => {
                                                 const targetNode = nodes.find(n => n.id === edge.target);
