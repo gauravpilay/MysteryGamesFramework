@@ -291,11 +291,15 @@ const Dashboard = () => {
     const confirmDelete = () => {
         if (!deleteId) return;
 
+        // Prevent deletion of the Cyber Attack sample case
+        if (deleteId === 'sample-cyber-attack-v1') {
+            setDeleteId(null);
+            return;
+        }
+
         // If deleting tutorial, mark it as dismissed
         if (deleteId === 'tutorial-sample-story-v1') {
             localStorage.setItem('tutorial_dismissed', 'true');
-        } else if (deleteId === 'sample-cyber-attack-v1') {
-            localStorage.setItem('sample_cyber_dismissed', 'true');
         }
 
         setProjects(prev => {
@@ -372,12 +376,15 @@ const Dashboard = () => {
                                             <FolderOpen className="w-5 h-5 text-zinc-400 group-hover:text-indigo-400" />
                                         </div>
                                         <div className="dropdown relative">
-                                            <button
-                                                className="p-1 rounded-md hover:bg-zinc-800 text-zinc-500 hover:text-white relative z-20"
-                                                onClick={(e) => initiateDelete(e, project.id)}
-                                            >
-                                                <Trash2 className="w-4 h-4" />
-                                            </button>
+                                            {project.id !== 'sample-cyber-attack-v1' && (
+                                                <button
+                                                    className="p-1 rounded-md hover:bg-zinc-800 text-zinc-500 hover:text-white relative z-20"
+                                                    onClick={(e) => initiateDelete(e, project.id)}
+                                                    title="Delete Project"
+                                                >
+                                                    <Trash2 className="w-4 h-4" />
+                                                </button>
+                                            )}
                                         </div>
                                     </div>
                                     <h3 className="font-semibold text-zinc-200 group-hover:text-white transition-colors truncate">{project.title}</h3>
