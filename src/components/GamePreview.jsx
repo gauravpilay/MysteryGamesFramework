@@ -8,9 +8,10 @@ const GamePreview = ({ nodes, edges, onClose }) => {
     const [currentNodeId, setCurrentNodeId] = useState(null);
     const [inventory, setInventory] = useState(new Set());
     const [history, setHistory] = useState([]); // Array of distinct visited node IDs
-    const [logs, setLogs] = useState([]); // Text logs for the "terminal" feel on the side
+    const [logs, setLogs] = useState([]);
     const [missionStarted, setMissionStarted] = useState(false);
-    const [selectedSuspect, setSelectedSuspect] = useState(null);
+    // Generic Modal State: can hold a node object or null
+    const [activeModalNode, setActiveModalNode] = useState(null);
 
     // Initialize Game
     useEffect(() => {
@@ -100,23 +101,35 @@ const GamePreview = ({ nodes, edges, onClose }) => {
         // Add current to history
         setHistory(prev => [...prev, currentNodeId]);
         setCurrentNodeId(targetId);
-        // If we were in a popup, close it
-        setSelectedSuspect(null);
+
+        // Find the target node
+        const targetNode = nodes.find(n => n.id === targetId);
+
+        // If it's a type that requires a popup, set it as active modal
+        if (targetNode && ['suspect', 'evidence', 'terminal', 'message'].includes(targetNode.type)) {
+            setActiveModalNode(targetNode);
+        } else {
+            setActiveModalNode(null);
+        }
     };
 
     const handleTerminalSubmit = (input) => {
         // specific for terminal node
-        if (!currentNode || currentNode.type !== 'terminal') return;
+        if (!activeModalNode || activeModalNode.type !== 'terminal') return;
 
-        const expected = currentNode.data.command || '';
-        if (input.trim() === expected.trim() || input.includes('grep')) { // loose matching for fun
+        const expected = activeModalNode.data.command || '';
+        if (input.trim() === expected.trim() || input.includes('grep')) {
             addLog(`COMMAND SUCCESS: ${input}`);
 
             // Find next node (usually just one output)
-            if (options.length > 0) {
+            const nodeOptions = edges.filter(e => e.source === activeModalNode.id);
+
+            if (nodeOptions.length > 0) {
                 // Add to inventory that we beat this terminal
-                setInventory(prev => new Set([...prev, currentNode.id]));
-                handleOptionClick(options[0].target);
+                setInventory(prev => new Set([...prev, activeModalNode.id]));
+                // Close modal and move to next
+                setActiveModalNode(null); // Close first
+                handleOptionClick(nodeOptions[0].target);
             }
         } else {
             addLog(`COMMAND FAILED: Access Denied.`);
@@ -147,139 +160,62 @@ const GamePreview = ({ nodes, edges, onClose }) => {
         return `Proceed to ${node.data.label}`;
     }
 
-    // Render Node Content
+    // Render Node Content (Background / Story)
     const renderContent = () => {
         if (!currentNode) return <div className="text-zinc-500">Initializing Neural Link...</div>;
 
         const { type, data } = currentNode;
 
-        switch (type) {
-            case 'story':
-                // Check if this is a "Briefing" node (start node or explicitly labeled)
-                const isBriefing = data.label.toLowerCase().includes('briefing') || history.length === 0;
-
-                return (
-                    <div className="space-y-8 animate-in fade-in slide-in-from-bottom-4 duration-700">
-                        {isBriefing && (
-                            <div className="text-center mb-8">
-                                <motion.div
-                                    initial={{ scale: 0.9, opacity: 0 }}
-                                    animate={{ scale: 1, opacity: 1 }}
-                                    transition={{ duration: 0.5 }}
-                                    className="inline-block px-3 py-1 bg-red-500/10 border border-red-500/50 text-red-500 text-xs font-bold tracking-[0.2em] mb-4"
-                                >
-                                    TOP SECRET // CLEARANCE LEVEL 5
-                                </motion.div>
-                                <h1 className="text-4xl md:text-5xl font-black text-transparent bg-clip-text bg-gradient-to-b from-white to-zinc-500 uppercase tracking-tighter">
-                                    {data.label}
-                                </h1>
-                            </div>
-                        )}
-
-                        {!isBriefing && (
-                            <div className="flex items-center gap-3 text-blue-400 mb-2">
-                                <FileText className="w-6 h-6" />
-                                <h2 className="text-xl font-bold text-white">{data.label}</h2>
-                            </div>
-                        )}
-
-                        <Card className={`bg-zinc-900/50 border-zinc-800 p-8 ${isBriefing ? 'border-t-4 border-t-red-600 shadow-2xl shadow-red-900/20' : ''}`}>
-                            <p className={`text-zinc-200 leading-loose whitespace-pre-wrap ${isBriefing ? 'text-lg md:text-xl font-light' : 'text-lg'}`}>
-                                {data.text || data.content}
-                            </p>
-                        </Card>
+        // If we are currently "at" a non-story node (like we just clicked it), 
+        // we might want to show the LAST story node or a generic background.
+        // For now, let's just render the story content if it's a story node, otherwise show a placeholder.
+        if (type !== 'story') {
+            // If we are at a terminal/evidence node, the popup handles the interaction.
+            // The main view can just show "Interaction in progress..."
+            return (
+                <div className="flex flex-col items-center justify-center h-64 opacity-50">
+                    <div className="animate-pulse text-zinc-500 text-sm tracking-widest uppercase">
+                        secure link established // accessing subsystem
                     </div>
-                );
-            case 'suspect':
-                return (
-                    <div className="space-y-6 animate-in fade-in slide-in-from-bottom-4 duration-500">
-                        <div className="flex items-center gap-3 text-red-500 mb-4">
-                            <User className="w-8 h-8" />
-                            <h2 className="text-2xl font-bold text-white uppercase">{data.label}</h2>
-                        </div>
-                        <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-                            <div className="p-4 bg-zinc-900 border border-zinc-800 rounded-lg">
-                                <span className="text-xs font-bold text-zinc-500 uppercase tracking-wider">Name</span>
-                                <p className="text-xl text-white mt-1">{data.name}</p>
-                            </div>
-                            <div className="p-4 bg-zinc-900 border border-zinc-800 rounded-lg">
-                                <span className="text-xs font-bold text-zinc-500 uppercase tracking-wider">Role</span>
-                                <p className="text-xl text-white mt-1">{data.role || "Unknown"}</p>
-                            </div>
-                            <div className="col-span-full p-4 bg-zinc-900 border border-zinc-800 rounded-lg">
-                                <span className="text-xs font-bold text-zinc-500 uppercase tracking-wider">Alibi / Notes</span>
-                                <p className="text-zinc-300 mt-1 italic">"{data.alibi || data.description}"</p>
-                            </div>
-                        </div>
-                    </div>
-                );
-            case 'evidence':
-                return (
-                    <div className="space-y-4 animate-in fade-in slide-in-from-bottom-4 duration-500">
-                        <div className="flex items-center gap-3 text-yellow-400 mb-2">
-                            <Search className="w-6 h-6" />
-                            <h2 className="text-xl font-bold text-white">Evidence Found</h2>
-                        </div>
-                        <Card className="p-6 bg-yellow-950/10 border-yellow-900/30">
-                            <h3 className="text-lg font-bold text-yellow-200 mb-2">{data.label}</h3>
-                            <p className="text-zinc-300">{data.description}</p>
-                        </Card>
-                        <div className="flex items-center gap-2 text-green-400 text-sm mt-4">
-                            <CheckCircle className="w-4 h-4" />
-                            <span>Evidence logged to case file.</span>
-                        </div>
-                    </div>
-                );
-            case 'terminal':
-                return (
-                    <div className="space-y-4 animate-in fade-in slide-in-from-bottom-4 duration-500">
-                        <div className="flex items-center gap-3 text-green-400 mb-2">
-                            <Terminal className="w-6 h-6" />
-                            <h2 className="text-xl font-bold text-white">Secure Terminal Access</h2>
-                        </div>
-                        <div className="bg-black border border-green-900/50 rounded-lg p-4 font-mono text-sm max-w-2xl">
-                            <div className="text-green-600 mb-2"># {data.label}</div>
-                            <p className="text-zinc-300 mb-4">{data.prompt}</p>
-                            <div className="flex items-center gap-2 border-t border-zinc-800 pt-4">
-                                <span className="text-green-500">$</span>
-                                <input
-                                    className="bg-transparent border-none focus:outline-none text-green-400 w-full"
-                                    placeholder="Enter command..."
-                                    onKeyDown={(e) => {
-                                        if (e.key === 'Enter') handleTerminalSubmit(e.currentTarget.value);
-                                    }}
-                                    autoFocus
-                                />
-                            </div>
-                        </div>
-                        <p className="text-xs text-zinc-500">Hint: Try standard Linux commands or check node data.</p>
-                    </div>
-                );
-            case 'message':
-                return (
-                    <div className="space-y-4 animate-in fade-in slide-in-from-bottom-4 duration-500">
-                        <div className="flex items-center gap-3 text-violet-400 mb-2">
-                            <MessageSquare className="w-6 h-6" />
-                            <h2 className="text-xl font-bold text-white">Incoming Transmission</h2>
-                        </div>
-                        <div className="flex flex-col gap-2 max-w-xl">
-                            <div className="self-start bg-zinc-800 rounded-tr-xl rounded-br-xl rounded-bl-xl p-4 border border-zinc-700">
-                                <span className="text-xs font-bold text-indigo-400 block mb-1">{data.sender || 'Unknown'}</span>
-                                <p className="text-zinc-200">{data.message || data.content}</p>
-                            </div>
-                        </div>
-                    </div>
-                );
-            case 'logic':
-                return (
-                    <div className="flex flex-col items-center justify-center h-64 text-zinc-500 gap-3 animate-pulse">
-                        <ShieldAlert className="w-12 h-12" />
-                        <p>Analysing Logic Gates...</p>
-                    </div>
-                );
-            default:
-                return <div>Unknown Node Type</div>;
+                </div>
+            )
         }
+
+        // Story Node (Briefing or Narrative)
+        const isBriefing = data.label.toLowerCase().includes('briefing') || history.length === 0;
+
+        return (
+            <div className="space-y-8 animate-in fade-in slide-in-from-bottom-4 duration-700">
+                {isBriefing && (
+                    <div className="text-center mb-8">
+                        <motion.div
+                            initial={{ scale: 0.9, opacity: 0 }}
+                            animate={{ scale: 1, opacity: 1 }}
+                            transition={{ duration: 0.5 }}
+                            className="inline-block px-3 py-1 bg-red-500/10 border border-red-500/50 text-red-500 text-xs font-bold tracking-[0.2em] mb-4"
+                        >
+                            TOP SECRET // CLEARANCE LEVEL 5
+                        </motion.div>
+                        <h1 className="text-4xl md:text-5xl font-black text-transparent bg-clip-text bg-gradient-to-b from-white to-zinc-500 uppercase tracking-tighter">
+                            {data.label}
+                        </h1>
+                    </div>
+                )}
+
+                {!isBriefing && (
+                    <div className="flex items-center gap-3 text-blue-400 mb-2">
+                        <FileText className="w-6 h-6" />
+                        <h2 className="text-xl font-bold text-white">{data.label}</h2>
+                    </div>
+                )}
+
+                <Card className={`bg-zinc-900/50 border-zinc-800 p-8 ${isBriefing ? 'border-t-4 border-t-red-600 shadow-2xl shadow-red-900/20' : ''}`}>
+                    <p className={`text-zinc-200 leading-loose whitespace-pre-wrap ${isBriefing ? 'text-lg md:text-xl font-light' : 'text-lg'}`}>
+                        {data.text || data.content}
+                    </p>
+                </Card>
+            </div>
+        );
     };
 
     return (
@@ -298,99 +234,197 @@ const GamePreview = ({ nodes, edges, onClose }) => {
                 </Button>
             </div>
 
-            {/* Suspect Modal */}
+            {/* Generic Interaction Modal (Replaces Suspect Modal) */}
             <AnimatePresence>
-                {selectedSuspect && (
+                {activeModalNode && (
                     <div className="fixed inset-0 z-[60] flex items-center justify-center p-4 bg-black/80 backdrop-blur-sm">
                         <motion.div
                             initial={{ scale: 0.9, opacity: 0 }}
                             animate={{ scale: 1, opacity: 1 }}
                             exit={{ scale: 0.9, opacity: 0 }}
-                            className="bg-zinc-950 border border-zinc-800 p-0 rounded-2xl max-w-2xl w-full relative overflow-hidden shadow-2xl shadow-black"
+                            className="bg-zinc-950 border border-zinc-800 p-0 rounded-2xl max-w-2xl w-full relative overflow-hidden shadow-2xl shadow-black max-h-[90vh] flex flex-col"
                         >
-                            {/* Decorative Header */}
-                            <div className="h-32 bg-gradient-to-r from-zinc-900 to-black relative">
-                                <div className={`absolute inset-0 bg-gradient-to-br ${getAvatarColor(selectedSuspect.data.name)} opacity-20`}></div>
-                                <Button variant="ghost" className="absolute top-4 right-4 text-white hover:bg-white/10 z-10" onClick={() => setSelectedSuspect(null)}>
-                                    <X className="w-6 h-6" />
-                                </Button>
-                                <div className="absolute -bottom-10 left-8 flex items-end">
-                                    <div className={`w-24 h-24 rounded-2xl bg-gradient-to-br ${getAvatarColor(selectedSuspect.data.name)} p-1 shadow-xl border-4 border-zinc-950`}>
-                                        <div className="w-full h-full bg-black/20 rounded-xl flex items-center justify-center">
-                                            <span className="text-4xl font-bold text-white">{selectedSuspect.data.name.charAt(0)}</span>
-                                        </div>
-                                    </div>
-                                </div>
-                            </div>
-
-                            <div className="pt-14 px-8 pb-8">
-                                <h2 className="text-3xl font-black text-white uppercase">{selectedSuspect.data.name}</h2>
-                                <span className="inline-block mt-1 px-2 py-0.5 bg-zinc-800 text-zinc-400 text-xs font-bold tracking-wider uppercase rounded">
-                                    {selectedSuspect.data.role}
-                                </span>
-
-                                <div className="mt-8 grid grid-cols-1 gap-6">
-                                    <div className="space-y-2">
-                                        <h4 className="text-xs font-bold text-indigo-500 uppercase tracking-widest flex items-center gap-2">
-                                            <FileText className="w-4 h-4" />
-                                            Dossier / Notes
-                                        </h4>
-                                        <p className="text-zinc-300 leading-relaxed bg-zinc-900/50 p-4 rounded-lg border border-zinc-900">
-                                            {selectedSuspect.data.description || "No additional notes available in database."}
-                                        </p>
-                                    </div>
-                                    <div className="space-y-2">
-                                        <h4 className="text-xs font-bold text-emerald-500 uppercase tracking-widest flex items-center gap-2">
-                                            <ShieldAlert className="w-4 h-4" />
-                                            Known Alibi
-                                        </h4>
-                                        <p className="text-zinc-300 leading-relaxed italic border-l-2 border-emerald-500/50 pl-4">
-                                            "{selectedSuspect.data.alibi || "Alibi not yet established."}"
-                                        </p>
-                                    </div>
-
-                                    {/* Action Buttons for this Suspect */}
-                                    <div className="pt-8 border-t border-zinc-900 mt-4">
-                                        <h4 className="text-xs font-bold text-zinc-500 uppercase tracking-widest mb-4">Available Actions</h4>
-                                        <div className="grid grid-cols-1 gap-3">
-                                            {/* Find edges originating from this specific suspect node */}
-                                            {edges.filter(e => e.source === selectedSuspect.id).map(edge => {
-                                                const target = nodes.find(n => n.id === edge.target);
-                                                if (!target) return null;
-                                                return (
-                                                    <Button
-                                                        key={edge.id}
-                                                        onClick={() => handleOptionClick(edge.target)}
-                                                        className="w-full justify-between h-auto py-3 bg-indigo-600 hover:bg-indigo-700 text-white border-0"
-                                                    >
-                                                        <span>{getEdgeLabel(target)}</span>
-                                                        <ArrowRight className="w-4 h-4" />
-                                                    </Button>
-                                                )
-                                            })}
-                                            {edges.filter(e => e.source === selectedSuspect.id).length === 0 && (
-                                                <div className="p-3 rounded bg-zinc-900/50 border border-zinc-900 border-dashed">
-                                                    <p className="text-zinc-500 italic text-sm mb-1">No further leads on this suspect currently.</p>
-                                                    <p className="text-[10px] text-zinc-600 font-mono">
-                                                        Debug: Node ID `{selectedSuspect.id}` has 0 outgoing connections.
-                                                        Connect this node to Evidence or Story nodes in the editor to create actions.
-                                                    </p>
+                            {/* Suspect Layout */}
+                            {activeModalNode.type === 'suspect' && (
+                                <>
+                                    <div className="h-32 bg-gradient-to-r from-zinc-900 to-black relative shrink-0">
+                                        <div className={`absolute inset-0 bg-gradient-to-br ${getAvatarColor(activeModalNode.data.name)} opacity-20`}></div>
+                                        <Button variant="ghost" className="absolute top-4 right-4 text-white hover:bg-white/10 z-10" onClick={() => setActiveModalNode(null)}>
+                                            <X className="w-6 h-6" />
+                                        </Button>
+                                        <div className="absolute -bottom-10 left-8 flex items-end">
+                                            <div className={`w-24 h-24 rounded-2xl bg-gradient-to-br ${getAvatarColor(activeModalNode.data.name)} p-1 shadow-xl border-4 border-zinc-950`}>
+                                                <div className="w-full h-full bg-black/20 rounded-xl flex items-center justify-center">
+                                                    <span className="text-4xl font-bold text-white">{activeModalNode.data.name.charAt(0)}</span>
                                                 </div>
-                                            )}
+                                            </div>
                                         </div>
                                     </div>
+
+                                    <div className="pt-14 px-8 pb-8 overflow-y-auto">
+                                        <h2 className="text-3xl font-black text-white uppercase">{activeModalNode.data.name}</h2>
+                                        <span className="inline-block mt-1 px-2 py-0.5 bg-zinc-800 text-zinc-400 text-xs font-bold tracking-wider uppercase rounded">
+                                            {activeModalNode.data.role}
+                                        </span>
+
+                                        <div className="mt-8 grid grid-cols-1 gap-6">
+                                            <div className="space-y-2">
+                                                <h4 className="text-xs font-bold text-indigo-500 uppercase tracking-widest flex items-center gap-2">
+                                                    <FileText className="w-4 h-4" />
+                                                    Dossier / Notes
+                                                </h4>
+                                                <p className="text-zinc-300 leading-relaxed bg-zinc-900/50 p-4 rounded-lg border border-zinc-900">
+                                                    {activeModalNode.data.description || "No additional notes available in database."}
+                                                </p>
+                                            </div>
+                                            <div className="space-y-2">
+                                                <h4 className="text-xs font-bold text-emerald-500 uppercase tracking-widest flex items-center gap-2">
+                                                    <ShieldAlert className="w-4 h-4" />
+                                                    Known Alibi
+                                                </h4>
+                                                <p className="text-zinc-300 leading-relaxed italic border-l-2 border-emerald-500/50 pl-4">
+                                                    "{activeModalNode.data.alibi || "Alibi not yet established."}"
+                                                </p>
+                                            </div>
+
+                                            {/* Action Buttons for this Suspect */}
+                                            <div className="pt-8 border-t border-zinc-900 mt-4">
+                                                <h4 className="text-xs font-bold text-zinc-500 uppercase tracking-widest mb-4">Available Actions</h4>
+                                                <div className="grid grid-cols-1 gap-3">
+                                                    {edges.filter(e => e.source === activeModalNode.id).map(edge => {
+                                                        const target = nodes.find(n => n.id === edge.target);
+                                                        if (!target) return null;
+                                                        return (
+                                                            <Button
+                                                                key={edge.id}
+                                                                onClick={() => { setActiveModalNode(null); handleOptionClick(edge.target); }}
+                                                                className="w-full justify-between h-auto py-3 bg-indigo-600 hover:bg-indigo-700 text-white border-0"
+                                                            >
+                                                                <span>{getEdgeLabel(target)}</span>
+                                                                <ArrowRight className="w-4 h-4" />
+                                                            </Button>
+                                                        )
+                                                    })}
+                                                    {edges.filter(e => e.source === activeModalNode.id).length === 0 && (
+                                                        <div className="p-3 rounded bg-zinc-900/50 border border-zinc-900 border-dashed">
+                                                            <p className="text-zinc-500 italic text-sm mb-1">No further leads on this suspect currently.</p>
+                                                            <p className="text-[10px] text-zinc-600 font-mono">
+                                                                Debug: Node ID `{activeModalNode.id}` has 0 outgoing connections.
+                                                                Connect this node to Evidence or Story nodes in the editor to create actions.
+                                                            </p>
+                                                        </div>
+                                                    )}
+                                                </div>
+                                            </div>
+                                        </div>
+                                    </div>
+                                </>
+                            )}
+
+                            {/* Evidence Layout */}
+                            {activeModalNode.type === 'evidence' && (
+                                <div className="p-8 border-t-4 border-yellow-500 bg-zinc-900/50">
+                                    <div className="flex items-center justify-between mb-6">
+                                        <div className="flex items-center gap-3 text-yellow-500">
+                                            <Search className="w-8 h-8" />
+                                            <h2 className="text-2xl font-bold text-white uppercase">Evidence Logged</h2>
+                                        </div>
+                                        <Button variant="ghost" onClick={() => setActiveModalNode(null)}><X className="w-6 h-6" /></Button>
+                                    </div>
+
+                                    <Card className="p-8 bg-black border-yellow-900/30 mb-6">
+                                        <h3 className="text-2xl font-bold text-yellow-200 mb-4">{activeModalNode.data.label}</h3>
+                                        <p className="text-zinc-300 text-lg leading-relaxed">{activeModalNode.data.description}</p>
+                                    </Card>
+
+                                    <div className="flex justify-end">
+                                        <Button
+                                            className="bg-yellow-600 hover:bg-yellow-700 text-black font-bold"
+                                            onClick={() => {
+                                                // Auto-advance if there is a single path out (often back to story or next clue)
+                                                // Or just close
+                                                const next = edges.find(e => e.source === activeModalNode.id);
+                                                setActiveModalNode(null);
+                                                if (next) handleOptionClick(next.target);
+                                            }}
+                                        >
+                                            Process & Continue <ArrowRight className="w-4 h-4 ml-2" />
+                                        </Button>
+                                    </div>
                                 </div>
-                            </div>
+                            )}
+
+                            {/* Terminal Layout */}
+                            {activeModalNode.type === 'terminal' && (
+                                <div className="p-0 bg-black h-full flex flex-col font-mono">
+                                    <div className="p-4 border-b border-green-900/50 flex items-center justify-between bg-zinc-900/50">
+                                        <div className="flex items-center gap-2 text-green-500">
+                                            <Terminal className="w-5 h-5" />
+                                            <span className="font-bold tracking-widest">SECURE TERMINAL // {activeModalNode.data.label}</span>
+                                        </div>
+                                        <Button variant="ghost" className="text-green-500 hover:text-green-400" onClick={() => setActiveModalNode(null)}><X className="w-5 h-5" /></Button>
+                                    </div>
+
+                                    <div className="flex-1 p-6 overflow-y-auto space-y-4">
+                                        {logs.map((l, i) => <div key={i} className="text-green-800 text-xs">{l}</div>)}
+                                        <div className="text-green-400 my-4 text-sm">{activeModalNode.data.prompt}</div>
+                                        <div className="flex items-center gap-2 border-t border-green-900/30 pt-4 mt-auto">
+                                            <span className="text-green-500 animate-pulse">$</span>
+                                            <input
+                                                className="bg-transparent border-none focus:outline-none text-green-400 w-full font-bold text-lg"
+                                                placeholder="Enter command..."
+                                                onKeyDown={(e) => {
+                                                    if (e.key === 'Enter') handleTerminalSubmit(e.currentTarget.value);
+                                                }}
+                                                autoFocus
+                                            />
+                                        </div>
+                                        <p className="text-xs text-green-700 mt-2">ACCESS RESTRICTED. UNAUTHORIZED USE IS A FELONY.</p>
+                                    </div>
+                                </div>
+                            )}
+
+                            {/* Message Layout */}
+                            {activeModalNode.type === 'message' && (
+                                <div className="p-8 bg-zinc-900 border-t-4 border-violet-500">
+                                    <div className="flex items-center justify-between mb-6">
+                                        <div className="flex items-center gap-3 text-violet-400">
+                                            <MessageSquare className="w-6 h-6" />
+                                            <h2 className="text-xl font-bold text-white uppercase">Incoming Transmission</h2>
+                                        </div>
+                                        <Button variant="ghost" onClick={() => setActiveModalNode(null)}><X className="w-6 h-6" /></Button>
+                                    </div>
+
+                                    <div className="bg-zinc-950 p-6 rounded-lg border border-zinc-800 relative">
+                                        <div className="absolute top-4 right-4 text-xs font-bold text-zinc-600 uppercase">ENCRYPTED</div>
+                                        <span className="text-xs font-bold text-indigo-400 block mb-2">FROM: {activeModalNode.data.sender || 'Unknown'}</span>
+                                        <p className="text-zinc-200 text-lg font-mono leading-relaxed">{activeModalNode.data.message || activeModalNode.data.content}</p>
+                                    </div>
+                                    <div className="mt-6 flex justify-end">
+                                        <Button
+                                            variant="outline"
+                                            onClick={() => {
+                                                const next = edges.find(e => e.source === activeModalNode.id);
+                                                setActiveModalNode(null);
+                                                if (next) handleOptionClick(next.target);
+                                            }}
+                                        >
+                                            Close Transmission
+                                        </Button>
+                                    </div>
+                                </div>
+                            )}
+
                         </motion.div>
                     </div>
                 )}
             </AnimatePresence>
 
             {/* Main Layout */}
-            <div className="flex-1 flex overflow-hidden">
-                {/* Visual Feed (Left/Center) */}
-                <div className="flex-1 overflow-y-auto p-10 flex flex-col items-center">
-                    <div className="w-full max-w-3xl">
+            <div className="flex-1 flex overflow-hidden relative">
+                {/* Visual Feed (Center) */}
+                <div className="flex-1 overflow-y-auto p-10 flex flex-col items-center w-full">
+                    <div className="w-full max-w-4xl relative z-10"> {/* Increased max-width since sidebar is gone */}
                         {renderContent()}
 
                         {/* Begin Mission Button (Only for Briefing Node) */}
@@ -425,7 +459,7 @@ const GamePreview = ({ nodes, edges, onClose }) => {
                                                         animate={{ opacity: 1, y: 0 }}
                                                         transition={{ delay: i * 0.1 }}
                                                         // For Suspsect Grid, instead of navigating, we open Modal
-                                                        onClick={() => setSelectedSuspect(targetNode)}
+                                                        onClick={() => setActiveModalNode(targetNode)}
                                                         className="group text-left relative overflow-hidden bg-zinc-900 border border-zinc-800 hover:border-indigo-500/50 rounded-xl p-0 transition-all hover:shadow-lg hover:shadow-indigo-500/10"
                                                     >
                                                         <div className={`h-24 bg-gradient-to-br ${getAvatarColor(targetNode.data.name || 'Unk')} opacity-20 group-hover:opacity-30 transition-opacity`}></div>
@@ -491,32 +525,6 @@ const GamePreview = ({ nodes, edges, onClose }) => {
                                 )}
                             </div>
                         )}
-                    </div>
-                </div>
-
-                {/* System Log (Right Sidebar) */}
-                <div className="w-80 border-l border-zinc-800 bg-zinc-950 p-4 font-mono text-xs flex flex-col">
-                    <div className="flex items-center gap-2 text-zinc-400 mb-4 pb-2 border-b border-zinc-800">
-                        <Terminal className="w-4 h-4" />
-                        <span>SYSTEM LOGS</span>
-                    </div>
-                    <div className="flex-1 overflow-y-auto space-y-2 text-zinc-500">
-                        {logs.map((log, i) => (
-                            <div key={i} className="break-words">
-                                {log}
-                            </div>
-                        ))}
-                    </div>
-                    <div className="mt-4 pt-4 border-t border-zinc-800">
-                        <div className="text-zinc-400 mb-2">INVENTORY</div>
-                        <div className="flex flex-wrap gap-2">
-                            {Array.from(inventory).length === 0 && <span className="text-zinc-600 italic">Empty</span>}
-                            {Array.from(inventory).map(item => (
-                                <span key={item} className="px-2 py-1 bg-zinc-900 border border-zinc-700 rounded text-zinc-300">
-                                    {nodes.find(n => n.id === item)?.data.label || item}
-                                </span>
-                            ))}
-                        </div>
                     </div>
                 </div>
             </div>
