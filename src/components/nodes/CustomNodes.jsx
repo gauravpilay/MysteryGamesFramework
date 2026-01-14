@@ -34,9 +34,9 @@ const TextArea = ({ value, onChange, placeholder, rows = 3 }) => (
     />
 );
 
-export const StoryNode = memo(({ data, selected }) => {
+export const StoryNode = memo(({ id, data, selected }) => {
     const handleChange = (key, val) => {
-        data.onChange && data.onChange(data.id, { ...data, [key]: val });
+        data.onChange && data.onChange(id, { ...data, [key]: val });
     };
 
     return (
@@ -54,9 +54,9 @@ export const StoryNode = memo(({ data, selected }) => {
     );
 });
 
-export const SuspectNode = memo(({ data, selected }) => {
+export const SuspectNode = memo(({ id, data, selected }) => {
     const handleChange = (key, val) => {
-        data.onChange && data.onChange(data.id, { ...data, [key]: val });
+        data.onChange && data.onChange(id, { ...data, [key]: val });
     };
     return (
         <>
@@ -73,9 +73,9 @@ export const SuspectNode = memo(({ data, selected }) => {
     );
 });
 
-export const EvidenceNode = memo(({ data, selected }) => {
+export const EvidenceNode = memo(({ id, data, selected }) => {
     const handleChange = (key, val) => {
-        data.onChange && data.onChange(data.id, { ...data, [key]: val });
+        data.onChange && data.onChange(id, { ...data, [key]: val });
     };
     return (
         <>
@@ -94,12 +94,12 @@ export const EvidenceNode = memo(({ data, selected }) => {
     );
 });
 
-export const LogicNode = memo(({ data, selected }) => {
+export const LogicNode = memo(({ id, data, selected }) => {
     // Logic nodes might have multiple handles? Or just one output that branches?
     // User asked for "Branching logic (Success/Failure paths)".
     // So maybe two source handles.
     const handleChange = (key, val) => {
-        data.onChange && data.onChange(data.id, { ...data, [key]: val });
+        data.onChange && data.onChange(id, { ...data, [key]: val });
     };
 
     return (
@@ -120,9 +120,9 @@ export const LogicNode = memo(({ data, selected }) => {
     );
 });
 
-export const TerminalNode = memo(({ data, selected }) => {
+export const TerminalNode = memo(({ id, data, selected }) => {
     const handleChange = (key, val) => {
-        data.onChange && data.onChange(data.id, { ...data, [key]: val });
+        data.onChange && data.onChange(id, { ...data, [key]: val });
     };
 
     return (
@@ -145,9 +145,9 @@ export const TerminalNode = memo(({ data, selected }) => {
     );
 });
 
-export const MessageNode = memo(({ data, selected }) => {
+export const MessageNode = memo(({ id, data, selected }) => {
     const handleChange = (key, val) => {
-        data.onChange && data.onChange(data.id, { ...data, [key]: val });
+        data.onChange && data.onChange(id, { ...data, [key]: val });
     };
 
     return (
