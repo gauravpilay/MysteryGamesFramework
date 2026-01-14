@@ -475,7 +475,22 @@ const GamePreview = ({ nodes, edges, onClose, gameMetadata }) => {
                                             <Terminal className="w-5 h-5" />
                                             <span className="font-bold tracking-widest">SECURE TERMINAL // {activeModalNode.data.label}</span>
                                         </div>
-                                        <Button variant="ghost" className="text-green-500 hover:text-green-400" onClick={() => setActiveModalNode(null)}><X className="w-5 h-5" /></Button>
+                                        <Button
+                                            variant="ghost"
+                                            className="text-green-500 hover:text-green-400"
+                                            onClick={() => {
+                                                // If closing without solving, go back to previous node
+                                                if (!inventory.has(activeModalNode.id)) {
+                                                    const prevNodeId = history[history.length - 1];
+                                                    if (prevNodeId) setCurrentNodeId(prevNodeId);
+                                                    // Pop the history to keep it clean (optional, but good for "Back" logic)
+                                                    setHistory(prev => prev.slice(0, -1));
+                                                }
+                                                setActiveModalNode(null);
+                                            }}
+                                        >
+                                            <X className="w-5 h-5" />
+                                        </Button>
                                     </div>
 
                                     <div className="flex-1 p-6 overflow-y-auto space-y-4">
