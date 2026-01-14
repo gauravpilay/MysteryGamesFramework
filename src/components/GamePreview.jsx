@@ -51,6 +51,51 @@ const GamePreview = ({ nodes, edges, onClose }) => {
         return edges.filter(e => e.source === currentNodeId);
     }, [currentNodeId, edges]);
 
+    // Helper to evaluate logic conditions
+    const checkLogicCondition = (condition) => {
+        if (!condition || condition === 'always_true') return true;
+        if (condition === 'always_false') return false;
+
+        // Check for boolean operators (simple implementation)
+        if (condition.includes(' && ')) {
+            return condition.split(' && ').every(c => checkLogicCondition(c.trim()));
+        }
+        if (condition.includes(' || ')) {
+            return condition.split(' || ').some(c => checkLogicCondition(c.trim()));
+        }
+
+        // PREV keyword: Check if the previous node was completed
+        if (condition === 'PREV' || condition === 'previous_task') {
+            const prevNodeId = history[history.length - 1];
+            return prevNodeId && inventory.has(prevNodeId);
+        }
+
+        // Check visited status
+        if (condition.startsWith('visited:')) {
+            const targetId = condition.split(':')[1];
+            return history.includes(targetId);
+        }
+
+        // Check collected status (Inventory)
+        if (condition.startsWith('has:')) {
+            const targetId = condition.split(':')[1];
+            return inventory.has(targetId);
+        }
+
+        // Legacy/Direct ID checks
+        // Hardcoded check for tutorial/sample usage
+        if (condition === 'has_usb_drive' && (inventory.has('evidence-1') || inventory.has('sample-evidence-usb') || Array.from(inventory).some(i => i.toLowerCase().includes('usb')))) return true;
+
+        // Cyber Case Hardcode
+        if (condition === 'keycard_match_ken') {
+            // Logic: Needs Keycard OR Logs (providing Access Code)
+            if (inventory.has('evidence-cctv') || inventory.has('term-logs')) return true;
+        }
+
+        // Default: Check if the condition string matches an item in inventory
+        return inventory.has(condition);
+    };
+
     // Effect to handle "Auto-traverse" nodes (Logic) or State Updates (Evidence)
     useEffect(() => {
         if (!currentNode) return;
@@ -67,33 +112,31 @@ const GamePreview = ({ nodes, edges, onClose }) => {
         // 2. Logic: Auto-redirect
         if (currentNode.type === 'logic') {
             const condition = currentNode.data.condition;
+            const isTrue = checkLogicCondition(condition);
 
-            // Allow mapping evidence node IDs to true
-            let isTrue = false;
-
-            // Hardcoded check for tutorial/sample consistency
-            if (condition === 'has_usb_drive' && (inventory.has('evidence-1') || inventory.has('sample-evidence-usb') || Array.from(inventory).some(i => i.toLowerCase().includes('usb')))) {
-                isTrue = true;
-            } else if (condition === 'keycard_match_ken' && (inventory.has('evidence-cctv') || inventory.has('term-logs'))) {
-                // In the Cyber case, logic requires finding the culprit. 
-                // Let's assume if we visited the relevant nodes, it's true.
-                isTrue = true;
-            } else if (inventory.has(condition)) {
-                isTrue = true;
-            }
-
-            addLog(`Executing Logic Gate: ${currentNode.data.label} [${isTrue ? 'PASS' : 'FAIL'}]`);
+            addLog(`ANALYSING: ${currentNode.data.label || 'Logic Gate'}...`);
+            addLog(`CONDITION: ${condition} = ${isTrue ? 'PASS' : 'FAIL'}`);
 
             // Find edges
-            const trueEdge = options.find(e => e.sourceHandle === 'true');
-            const falseEdge = options.find(e => e.sourceHandle === 'false');
+            const trueEdge = options.find(e => e.sourceHandle === 'true' || e.label === 'True' || e.label === 'true');
+            const falseEdge = options.find(e => e.sourceHandle === 'false' || e.label === 'False' || e.label === 'false');
 
-            const nextEdge = isTrue ? trueEdge : falseEdge;
+            // Fallback: if handles aren't labeled, maybe first is true, second is false? 
+            // Or just check if only one edge exists (always pass)
+
+            let nextEdge = isTrue ? trueEdge : falseEdge;
+
+            // If no explicit True/False edges found, but we have edges:
+            if (!nextEdge && options.length > 0) {
+                // If condition passed, take the first one. If failed, take the second one?
+                // Or assume single output = always proceed?
+                if (options.length === 1) nextEdge = options[0];
+            }
 
             if (nextEdge) {
-                setTimeout(() => setCurrentNodeId(nextEdge.target), 800); // Small delay for effect
+                setTimeout(() => setCurrentNodeId(nextEdge.target), 1500); // Delay to read log
             } else {
-                addLog(`ERROR: Logic gate stuck. No path for ${isTrue ? 'True' : 'False'}.`);
+                addLog(`CRITICAL ERROR: Logic Gate stalemate. No path for result [${isTrue ? 'TRUE' : 'FALSE'}].`);
             }
         }
 
