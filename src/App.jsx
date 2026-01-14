@@ -3,6 +3,7 @@ import { BrowserRouter, Routes, Route, Navigate } from 'react-router-dom';
 import Login from './pages/Login';
 import Dashboard from './pages/Dashboard';
 import Editor from './pages/Editor';
+import Player from './pages/Player';
 import { AuthProvider, useAuth } from './lib/auth';
 
 const PrivateRoute = ({ children }) => {
@@ -30,6 +31,14 @@ function App() {
             element={
               <PrivateRoute>
                 <Editor />
+              </PrivateRoute>
+            }
+          />
+          <Route
+            path="/play/:projectId"
+            element={
+              <PrivateRoute>
+                <Player />
               </PrivateRoute>
             }
           />

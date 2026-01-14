@@ -95,7 +95,11 @@ const Dashboard = () => {
     };
 
     const openProject = (id) => {
-        navigate(`/editor/${id}`);
+        if (isAdmin) {
+            navigate(`/editor/${id}`);
+        } else {
+            navigate(`/play/${id}`);
+        }
     };
 
     // Filter projects for view
