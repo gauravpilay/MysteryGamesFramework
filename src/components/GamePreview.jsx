@@ -323,8 +323,9 @@ const GamePreview = ({ nodes, edges, onClose, gameMetadata }) => {
                         Simulation Active
                     </div>
                     {missionStarted && (
-                        <div className={`px-3 py-1 rounded border ${timeLeft < 60 ? 'border-red-500 text-red-500 animate-pulse' : 'border-zinc-800 text-zinc-400'} font-mono text-sm font-bold`}>
-                            T-MINUS {formatTime(timeLeft)}
+                        <div className={`fixed top-4 left-1/2 -translate-x-1/2 px-6 py-2 rounded-lg border-2 shadow-2xl z-50 flex items-center gap-3 backdrop-blur-md ${timeLeft < 60 ? 'bg-red-950/80 border-red-500 text-red-500 animate-pulse' : 'bg-zinc-950/80 border-indigo-500/50 text-indigo-400'}`}>
+                            <span className="text-xs font-bold uppercase tracking-widest opacity-70">Time Remaining</span>
+                            <span className="font-mono text-2xl font-black tracking-widest">{formatTime(timeLeft)}</span>
                         </div>
                     )}
                     <span className="text-zinc-500 text-sm font-mono">ID: {currentNode?.id || '---'}</span>
