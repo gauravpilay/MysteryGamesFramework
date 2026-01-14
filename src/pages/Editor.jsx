@@ -12,7 +12,7 @@ import 'reactflow/dist/style.css';
 import { useParams, useNavigate } from 'react-router-dom';
 import { Button } from '../components/ui/shared';
 
-import { Save, ArrowLeft, Download, FileText, User, Search, GitMerge, Terminal, MessageSquare, CircleHelp, Play } from 'lucide-react';
+import { Save, ArrowLeft, Download, FileText, User, Search, GitMerge, Terminal, MessageSquare, CircleHelp, Play, Settings } from 'lucide-react';
 import { StoryNode, SuspectNode, EvidenceNode, LogicNode, TerminalNode, MessageNode } from '../components/nodes/CustomNodes';
 import { TutorialOverlay } from '../components/ui/TutorialOverlay';
 import GamePreview from '../components/GamePreview';
@@ -28,6 +28,8 @@ const Editor = () => {
     const [reactFlowInstance, setReactFlowInstance] = useState(null);
     const [showTutorial, setShowTutorial] = useState(false);
     const [showPreview, setShowPreview] = useState(false);
+    const [showSettings, setShowSettings] = useState(false);
+    const [timeLimit, setTimeLimit] = useState(15); // Default 15 minutes
 
     const tutorialSteps = [
         {
@@ -73,6 +75,7 @@ const Editor = () => {
             const flow = JSON.parse(savedData);
             if (flow.nodes) setNodes(flow.nodes);
             if (flow.edges) setEdges(flow.edges);
+            if (flow.meta && flow.meta.timeLimit) setTimeLimit(flow.meta.timeLimit);
         }
     }, [projectId, setNodes, setEdges]);
 
@@ -126,7 +129,7 @@ const Editor = () => {
 
     const saveProject = () => {
         // We strip functions before saving is automatic in JSON.stringify but good to be aware
-        const flow = { nodes, edges };
+        const flow = { nodes, edges, meta: { timeLimit } };
         localStorage.setItem(`project_data_${projectId}`, JSON.stringify(flow));
 
         const projects = JSON.parse(localStorage.getItem('mystery_projects') || '[]');
@@ -148,7 +151,7 @@ const Editor = () => {
 
         // Clean nodes data of functions
         const cleanNodes = nodes.map(n => ({ ...n, data: { ...n.data, onChange: undefined } }));
-        const gameData = { nodes: cleanNodes, edges, meta: { generatedAt: new Date() } };
+        const gameData = { nodes: cleanNodes, edges, meta: { generatedAt: new Date(), timeLimit } };
 
         const folder = zip.folder("mystery-game-build");
         folder.file("game-data.json", JSON.stringify(gameData, null, 2));
@@ -216,6 +219,9 @@ const Editor = () => {
                 <div id="editor-actions" className="flex items-center gap-2">
                     <Button variant="ghost" size="icon" onClick={() => setShowTutorial(true)} title="How to use">
                         <CircleHelp className="w-5 h-5 text-indigo-400" />
+                    </Button>
+                    <Button variant="ghost" size="icon" onClick={() => setShowSettings(true)} title="Game Settings">
+                        <Settings className="w-5 h-5 text-zinc-400" />
                     </Button>
                     <Button id="save-btn" variant="secondary" size="sm" onClick={saveProject}>
                         <Save className="w-4 h-4 mr-2" />
@@ -299,7 +305,39 @@ const Editor = () => {
                     <TutorialOverlay steps={tutorialSteps} onClose={() => setShowTutorial(false)} />
                 )}
                 {showPreview && (
-                    <GamePreview nodes={nodes} edges={edges} onClose={() => setShowPreview(false)} />
+                    <GamePreview nodes={nodes} edges={edges} onClose={() => setShowPreview(false)} gameMetadata={{ timeLimit }} />
+                )}
+                {/* Settings Modal */}
+                {showSettings && (
+                    <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/80 backdrop-blur-sm">
+                        <div className="bg-zinc-950 border border-zinc-800 p-6 rounded-xl max-w-md w-full shadow-2xl">
+                            <h2 className="text-xl font-bold text-white mb-4 flex items-center gap-2">
+                                <Settings className="w-6 h-6 text-indigo-500" />
+                                Game Configuration
+                            </h2>
+                            <div className="space-y-4">
+                                <div>
+                                    <label className="block text-xs font-bold text-zinc-500 uppercase tracking-wider mb-2">Time Limit (Minutes)</label>
+                                    <div className="flex items-center gap-4">
+                                        <input
+                                            type="number"
+                                            min="1"
+                                            max="120"
+                                            value={timeLimit}
+                                            onChange={(e) => setTimeLimit(parseInt(e.target.value) || 15)}
+                                            className="bg-black border border-zinc-700 rounded px-3 py-2 text-white w-24 text-center text-lg font-bold focus:border-indigo-500 outline-none"
+                                        />
+                                        <span className="text-zinc-400 text-sm">Minutes to solve the case.</span>
+                                    </div>
+                                </div>
+                            </div>
+                            <div className="mt-8 flex justify-end gap-2">
+                                <Button onClick={() => setShowSettings(false)}>
+                                    Save & Close
+                                </Button>
+                            </div>
+                        </div>
+                    </div>
                 )}
             </AnimatePresence>
         </div>

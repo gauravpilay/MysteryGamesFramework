@@ -3,7 +3,7 @@ import { Button, Card } from './ui/shared';
 import { X, User, Search, Terminal, MessageSquare, FileText, ArrowRight, ShieldAlert, CheckCircle, AlertTriangle } from 'lucide-react';
 import { motion, AnimatePresence } from 'framer-motion';
 
-const GamePreview = ({ nodes, edges, onClose }) => {
+const GamePreview = ({ nodes, edges, onClose, gameMetadata }) => {
     // Game State
     const [currentNodeId, setCurrentNodeId] = useState(null);
     const [inventory, setInventory] = useState(new Set());
@@ -14,7 +14,34 @@ const GamePreview = ({ nodes, edges, onClose }) => {
     const [activeModalNode, setActiveModalNode] = useState(null);
     // Accusation State
     const [showAccuseModal, setShowAccuseModal] = useState(false);
-    const [accusationResult, setAccusationResult] = useState(null); // 'success' | 'failure' | null
+    const [accusationResult, setAccusationResult] = useState(null); // 'success' | 'failure' | null | 'timeout'
+
+    // Timer State
+    const initialTime = (gameMetadata?.timeLimit || 15) * 60; // Convert minutes to seconds
+    const [timeLeft, setTimeLeft] = useState(initialTime);
+
+    // Timer Logic
+    useEffect(() => {
+        if (!missionStarted || accusationResult) return; // Stop if not started or game ended
+
+        if (timeLeft <= 0) {
+            setAccusationResult('timeout');
+            setShowAccuseModal(true); // Re-use the modal to show failure
+            return;
+        }
+
+        const timer = setInterval(() => {
+            setTimeLeft(prev => prev - 1);
+        }, 1000);
+
+        return () => clearInterval(timer);
+    }, [missionStarted, timeLeft, accusationResult]);
+
+    const formatTime = (seconds) => {
+        const mins = Math.floor(seconds / 60);
+        const secs = seconds % 60;
+        return `${mins.toString().padStart(2, '0')}:${secs.toString().padStart(2, '0')}`;
+    };
 
     // Initialize Game
     useEffect(() => {
@@ -295,6 +322,11 @@ const GamePreview = ({ nodes, edges, onClose }) => {
                     <div className="bg-red-600 px-2 py-1 rounded text-xs font-bold text-white uppercase tracking-widest animate-pulse">
                         Simulation Active
                     </div>
+                    {missionStarted && (
+                        <div className={`px-3 py-1 rounded border ${timeLeft < 60 ? 'border-red-500 text-red-500 animate-pulse' : 'border-zinc-800 text-zinc-400'} font-mono text-sm font-bold`}>
+                            T-MINUS {formatTime(timeLeft)}
+                        </div>
+                    )}
                     <span className="text-zinc-500 text-sm font-mono">ID: {currentNode?.id || '---'}</span>
                 </div>
                 <div className="flex items-center gap-3">
@@ -608,6 +640,24 @@ const GamePreview = ({ nodes, edges, onClose }) => {
                                                         onClick={() => setAccusationResult(null)}
                                                     >
                                                         Review Evidence Again
+                                                    </Button>
+                                                </div>
+                                            )}
+
+                                            {accusationResult === 'timeout' && (
+                                                <div className="flex flex-col items-center justify-center py-10 text-center animate-in zoom-in duration-500">
+                                                    <div className="w-24 h-24 rounded-full bg-red-500/20 flex items-center justify-center mb-6 border-4 border-red-500">
+                                                        <AlertTriangle className="w-12 h-12 text-red-500" />
+                                                    </div>
+                                                    <h2 className="text-4xl font-black text-white mb-4">TIME EXPIRED</h2>
+                                                    <p className="text-xl text-zinc-300 max-w-xl">
+                                                        The operational window has closed. The culprit has escaped jurisdiction.
+                                                    </p>
+                                                    <Button
+                                                        className="mt-8 bg-white text-black hover:bg-zinc-200"
+                                                        onClick={onClose}
+                                                    >
+                                                        Abort Mission
                                                     </Button>
                                                 </div>
                                             )}
