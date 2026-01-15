@@ -28,7 +28,7 @@ const Login = () => {
                         Mystery Architect
                     </h1>
                     <p className="mt-2 text-sm text-gray-400">
-                        Design immersive, node-based detective games.
+                        Design immersive, engaging, and interactive detective games.
                     </p>
                 </div>
 
@@ -37,10 +37,10 @@ const Login = () => {
                         onClick={login}
                         className="group relative flex w-full justify-center rounded-xl bg-gradient-to-r from-indigo-600 to-violet-600 px-4 py-3.5 text-sm font-semibold text-white transition-all hover:brightness-110 hover:shadow-[0_0_20px_rgba(99,102,241,0.5)] focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:ring-offset-2 focus:ring-offset-gray-900"
                     >
-                        Access Dashboard
+                        Let's Begin
                     </button>
                     <div className="mt-4 text-center">
-                        <p className="text-xs text-gray-600">Secure production-ready environment</p>
+                        <p className="text-xs text-gray-600">Developed By Gaurav Pilay</p>
                     </div>
                 </div>
             </motion.div>

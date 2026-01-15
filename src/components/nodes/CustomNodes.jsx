@@ -1,6 +1,6 @@
 import React, { memo } from 'react';
 import { Handle, Position } from 'reactflow';
-import { FileText, User, Search, GitMerge, Terminal, MessageSquare, Music, Image as ImageIcon } from 'lucide-react';
+import { FileText, User, Search, GitMerge, Terminal, MessageSquare, Music, Image as ImageIcon, Star } from 'lucide-react';
 import { Card } from '../ui/shared';
 
 const NodeWrapper = ({ children, title, icon: Icon, colorClass = "border-zinc-700", headerClass = "bg-zinc-900", selected }) => (
@@ -15,12 +15,13 @@ const NodeWrapper = ({ children, title, icon: Icon, colorClass = "border-zinc-70
     </Card>
 );
 
-const InputField = ({ value, onChange, placeholder, className = "" }) => (
+const InputField = ({ value, onChange, placeholder, className = "", ...props }) => (
     <input
         className={`w-full bg-zinc-900/50 border border-zinc-800 rounded px-2 py-1 text-xs text-zinc-200 placeholder:text-zinc-600 focus:outline-none focus:border-indigo-500/50 nodrag ${className}`}
         placeholder={placeholder}
         value={value || ''}
         onChange={onChange}
+        {...props}
     />
 );
 
@@ -48,6 +49,16 @@ export const StoryNode = memo(({ id, data, selected }) => {
                     value={data.text}
                     onChange={(e) => handleChange('text', e.target.value)}
                 />
+                <div className="flex items-center gap-2 mt-2 pt-2 border-t border-blue-900/20">
+                    <Star className="w-3 h-3 text-yellow-500" />
+                    <InputField
+                        type="number"
+                        placeholder="Points Awarded"
+                        value={data.score}
+                        onChange={(e) => handleChange('score', parseInt(e.target.value) || 0)}
+                        className="bg-black/50"
+                    />
+                </div>
             </NodeWrapper>
             <Handle type="source" position={Position.Bottom} className="!bg-blue-500 !w-3 !h-3 !border-2 !border-black" />
         </>
@@ -155,6 +166,17 @@ export const LogicNode = memo(({ id, data, selected }) => {
                     </div>
                 </div>
 
+                <div className="flex items-center gap-2 mt-3 pt-2 border-t border-emerald-900/20">
+                    <Star className="w-3 h-3 text-yellow-500" />
+                    <InputField
+                        type="number"
+                        placeholder="Points Awarded"
+                        value={data.score}
+                        onChange={(e) => handleChange('score', parseInt(e.target.value) || 0)}
+                        className="bg-black/50"
+                    />
+                </div>
+
                 <div className="flex justify-between mt-3 px-1 text-[10px] uppercase font-bold text-zinc-500">
                     <span>True</span>
                     <span>False</span>
@@ -188,6 +210,16 @@ export const TerminalNode = memo(({ id, data, selected }) => {
                             placeholder="e.g. sudo override"
                             value={data.command}
                             onChange={(e) => handleChange('command', e.target.value)}
+                        />
+                    </div>
+                    <div className="flex items-center gap-2 pt-2 border-t border-zinc-800">
+                        <Star className="w-3 h-3 text-yellow-500" />
+                        <InputField
+                            type="number"
+                            placeholder="Hack Reward Points"
+                            value={data.score}
+                            onChange={(e) => handleChange('score', parseInt(e.target.value) || 0)}
+                            className="bg-black/50"
                         />
                     </div>
                 </div>

@@ -1,6 +1,6 @@
 import React, { useState, useEffect, useMemo, useRef } from 'react';
 import { Button, Card } from './ui/shared';
-import { X, User, Search, Terminal, MessageSquare, FileText, ArrowRight, ShieldAlert, CheckCircle, AlertTriangle, Volume2, VolumeX, Image as ImageIcon, Briefcase } from 'lucide-react';
+import { X, User, Search, Terminal, MessageSquare, FileText, ArrowRight, ShieldAlert, CheckCircle, AlertTriangle, Volume2, VolumeX, Image as ImageIcon, Briefcase, Star } from 'lucide-react';
 import { motion, AnimatePresence } from 'framer-motion';
 
 const GamePreview = ({ nodes, edges, onClose, gameMetadata }) => {
@@ -22,6 +22,10 @@ const GamePreview = ({ nodes, edges, onClose, gameMetadata }) => {
     // Timer State
     const initialTime = (gameMetadata?.timeLimit || 15) * 60; // Convert minutes to seconds
     const [timeLeft, setTimeLeft] = useState(initialTime);
+
+    // Scoring State
+    const [score, setScore] = useState(0);
+    const [scoredNodes, setScoredNodes] = useState(new Set());
 
     // Timer Logic
     useEffect(() => {
@@ -47,6 +51,16 @@ const GamePreview = ({ nodes, edges, onClose, gameMetadata }) => {
     };
 
     // Initialize Game
+    const currentNode = useMemo(() =>
+        nodes.find(n => n.id === currentNodeId),
+        [currentNodeId, nodes]
+    );
+
+    const addLog = (msg) => {
+        setLogs(prev => [`> ${msg}`, ...prev].slice(0, 50));
+    };
+
+    // Initialize Game
     useEffect(() => {
         // Find a suitable start node.
         // 1. Try to find a node ID containing 'start'
@@ -66,14 +80,21 @@ const GamePreview = ({ nodes, edges, onClose, gameMetadata }) => {
         }
     }, []);
 
-    const currentNode = useMemo(() =>
-        nodes.find(n => n.id === currentNodeId),
-        [currentNodeId, nodes]
-    );
+    // Scoring Logic (Visit-based)
+    useEffect(() => {
+        if (!currentNode || !currentNode.data.score) return;
 
-    const addLog = (msg) => {
-        setLogs(prev => [`> ${msg}`, ...prev].slice(0, 50));
-    };
+        // Terminal nodes award score on hack success, not visit.
+        if (currentNode.type === 'terminal') return;
+
+        if (!scoredNodes.has(currentNode.id)) {
+            setScore(s => s + currentNode.data.score);
+            setScoredNodes(prev => new Set([...prev, currentNode.id]));
+            addLog(`SCORE REWARD: +${currentNode.data.score} Points`);
+        }
+    }, [currentNode, scoredNodes]);
+
+
 
     // Navigation Options (Outgoing Edges)
     const options = useMemo(() => {
@@ -242,8 +263,17 @@ const GamePreview = ({ nodes, edges, onClose, gameMetadata }) => {
 
             if (nodeOptions.length > 0) {
                 // Add to inventory that we beat this terminal
+                // Add to inventory that we beat this terminal
                 setInventory(prev => new Set([...prev, activeModalNode.id]));
                 setNodeOutputs(prev => ({ ...prev, [activeModalNode.id]: input, [activeModalNode.data.label]: input }));
+
+                // Award Score for Terminal Hack
+                if (activeModalNode.data.score && !scoredNodes.has(activeModalNode.id)) {
+                    setScore(s => s + activeModalNode.data.score);
+                    setScoredNodes(prev => new Set([...prev, activeModalNode.id]));
+                    addLog(`HACK REWARD: +${activeModalNode.data.score} Points`);
+                }
+
                 // Close modal and move to next
                 setActiveModalNode(null); // Close first
                 handleOptionClick(nodeOptions[0].target);
@@ -410,6 +440,11 @@ const GamePreview = ({ nodes, edges, onClose, gameMetadata }) => {
                 <div className="flex items-center gap-3">
                     <div className="bg-red-600 px-2 py-1 rounded text-xs font-bold text-white uppercase tracking-widest animate-pulse">
                         Simulation Active
+                    </div>
+                    {/* Score Display */}
+                    <div className="flex items-center gap-2 px-3 py-1 bg-zinc-900 border border-zinc-800 rounded">
+                        <Star className="w-3 h-3 text-yellow-500 fill-yellow-500" />
+                        <span className="text-zinc-200 font-bold font-mono text-sm">{score}</span>
                     </div>
                     {/* ... Time Remaining logic ... */}
                     {missionStarted && (
