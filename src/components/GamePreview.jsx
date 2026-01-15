@@ -1,6 +1,6 @@
 import React, { useState, useEffect, useMemo, useRef } from 'react';
 import { Button, Card } from './ui/shared';
-import { X, User, Search, Terminal, MessageSquare, FileText, ArrowRight, ShieldAlert, CheckCircle, AlertTriangle, Volume2, VolumeX, Image as ImageIcon } from 'lucide-react';
+import { X, User, Search, Terminal, MessageSquare, FileText, ArrowRight, ShieldAlert, CheckCircle, AlertTriangle, Volume2, VolumeX, Image as ImageIcon, Briefcase } from 'lucide-react';
 import { motion, AnimatePresence } from 'framer-motion';
 
 const GamePreview = ({ nodes, edges, onClose, gameMetadata }) => {
@@ -170,6 +170,10 @@ const GamePreview = ({ nodes, edges, onClose, gameMetadata }) => {
     }, [currentNode, inventory, options]);
 
 
+    const [showVault, setShowVault] = useState(false);
+
+    // ...
+
     const handleOptionClick = (targetId) => {
         // Add current to history
         setHistory(prev => [...prev, currentNodeId]);
@@ -178,9 +182,10 @@ const GamePreview = ({ nodes, edges, onClose, gameMetadata }) => {
         // Find the target node
         const targetNode = nodes.find(n => n.id === targetId);
 
-        // If it's a type that requires a popup, set it as active modal
+        // If it's a type that requires a popup, set it as active modal AND add to inventory
         if (targetNode && ['suspect', 'evidence', 'terminal', 'message', 'media'].includes(targetNode.type)) {
             setActiveModalNode(targetNode);
+            setInventory(prev => new Set([...prev, targetId]));
         } else {
             setActiveModalNode(null);
         }
@@ -384,6 +389,19 @@ const GamePreview = ({ nodes, edges, onClose, gameMetadata }) => {
                         </Button>
                     )}
 
+                    {/* Vault Button */}
+                    {missionStarted && (
+                        <Button
+                            variant="secondary"
+                            size="sm"
+                            onClick={() => setShowVault(true)}
+                            className="bg-zinc-800 border border-zinc-700 text-zinc-300 hover:text-white"
+                        >
+                            <Briefcase className="w-4 h-4 mr-2" />
+                            Evidence Vault
+                        </Button>
+                    )}
+
                     {missionStarted && (
                         <Button
                             variant="outline"
@@ -399,6 +417,179 @@ const GamePreview = ({ nodes, edges, onClose, gameMetadata }) => {
                     </Button>
                 </div>
             </div>
+
+            {/* Content Area - Scrolls vertically */}
+            <div className="flex-1 overflow-y-auto p-6 md:p-12 relative">
+                <AnimatePresence mode="wait">
+                    <motion.div
+                        key={currentNode?.id || 'loading'}
+                        initial={{ opacity: 0, y: 10 }}
+                        animate={{ opacity: 1, y: 0 }}
+                        exit={{ opacity: 0, y: -10 }}
+                        className="max-w-4xl mx-auto w-full pb-20"
+                    >
+                        {renderContent()}
+
+                        {/* Begin Mission Button (Only for Briefing Node) */}
+                        {currentNode && (currentNode.data.label.toLowerCase().includes('briefing') || history.length === 0) && !missionStarted ? (
+                            <div className="mt-12 flex justify-center animate-in fade-in slide-in-from-bottom-8 duration-1000 delay-500">
+                                <Button
+                                    onClick={() => setMissionStarted(true)}
+                                    className="px-12 py-8 text-xl font-bold tracking-[0.2em] bg-red-600 hover:bg-red-700 text-white border-none shadow-[0_0_50px_rgba(220,38,38,0.4)] hover:shadow-[0_0_80px_rgba(220,38,38,0.6)] hover:scale-105 transition-all duration-300 uppercase"
+                                >
+                                    Begin Mission
+                                </Button>
+                            </div>
+                        ) : (
+                            /* Actions / Choices */
+                            <div className="mt-8 animate-in fade-in zoom-in-95 duration-500">
+                                {options.some(e => nodes.find(n => n.id === e.target)?.type === 'suspect') ? (
+                                    // Grid Layout for Suspects
+                                    <div className="space-y-4">
+                                        {/* Only show label if NOT in the dedicated view (fallback) */}
+                                        {!(missionStarted && currentNode && currentNode.data.label.toLowerCase().includes('briefing')) && (
+                                            <div className="flex items-center gap-2 text-zinc-400 text-sm font-bold tracking-wider uppercase">
+                                                <User className="w-4 h-4" />
+                                                <span>Suspect Database Matches ({options.length})</span>
+                                            </div>
+                                        )}
+                                        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+                                            {options.map((edge, i) => {
+                                                const targetNode = nodes.find(n => n.id === edge.target);
+                                                if (!targetNode || targetNode.type !== 'suspect') return null;
+
+                                                return (
+                                                    <motion.button
+                                                        key={edge.id}
+                                                        initial={{ opacity: 0, y: 20 }}
+                                                        animate={{ opacity: 1, y: 0 }}
+                                                        transition={{ delay: i * 0.1 }}
+                                                        onClick={() => setActiveModalNode(targetNode)}
+                                                        className="group text-left relative overflow-hidden bg-zinc-900 border border-zinc-800 hover:border-indigo-500/50 rounded-xl p-0 transition-all hover:shadow-lg hover:shadow-indigo-500/10"
+                                                    >
+                                                        <div className={`h-24 bg-gradient-to-br ${getAvatarColor(targetNode.data.name || 'Unk')} opacity-20 group-hover:opacity-30 transition-opacity`}></div>
+                                                        <div className="absolute top-4 left-4">
+                                                            <div className={`w-12 h-12 rounded-full bg-gradient-to-br ${getAvatarColor(targetNode.data.name || 'Unk')} flex items-center justify-center shadow-lg border-2 border-zinc-900`}>
+                                                                <span className="text-white font-bold text-lg">
+                                                                    {(targetNode.data.name || '?').charAt(0)}
+                                                                </span>
+                                                            </div>
+                                                        </div>
+                                                        <div className="p-4 pt-2">
+                                                            <div className="flex justify-between items-start">
+                                                                <div>
+                                                                    <h3 className="font-bold text-white group-hover:text-indigo-400 transition-colors truncate pr-2">
+                                                                        {targetNode.data.name}
+                                                                    </h3>
+                                                                    <p className="text-xs text-zinc-500 uppercase tracking-wider mt-1">
+                                                                        {targetNode.data.role}
+                                                                    </p>
+                                                                </div>
+                                                            </div>
+                                                            <div className="mt-4 flex items-center text-xs text-zinc-600 group-hover:text-zinc-400">
+                                                                <span>Review Profile</span>
+                                                                <ArrowRight className="w-3 h-3 ml-auto opacity-0 group-hover:opacity-100 transition-opacity" />
+                                                            </div>
+                                                        </div>
+                                                    </motion.button>
+                                                );
+                                            })}
+                                        </div>
+                                    </div>
+                                ) : (
+                                    // Standard List Layout
+                                    <div className="grid grid-cols-1 gap-3">
+                                        {options.map((edge) => {
+                                            const targetNode = nodes.find(n => n.id === edge.target);
+                                            if (!targetNode) return null;
+                                            if (targetNode.type === 'logic') return null;
+
+                                            return (
+                                                <Button
+                                                    key={edge.id}
+                                                    onClick={() => handleOptionClick(edge.target)}
+                                                    className="w-full justify-between h-auto py-4 text-base group"
+                                                    variant="outline"
+                                                >
+                                                    <div className="flex items-center gap-3">
+                                                        <span className="w-2 h-2 rounded-full bg-indigo-500 group-hover:bg-white transition-colors"></span>
+                                                        <span>
+                                                            {targetNode.type === 'story' ? (targetNode.data.label || 'Continue Narrative') :
+                                                                targetNode.type === 'suspect' ? `Investigate: ${targetNode.data.name || targetNode.data.label}` :
+                                                                    targetNode.type === 'evidence' ? `Examine: ${targetNode.data.label}` :
+                                                                        targetNode.type === 'media' ? `View Asset: ${targetNode.data.label}` :
+                                                                            `Proceed to ${targetNode.data.label}`}
+                                                        </span>
+                                                    </div>
+                                                    <ArrowRight className="w-4 h-4 opacity-50 group-hover:opacity-100 transform group-hover:translate-x-1 transition-all" />
+                                                </Button>
+                                            );
+                                        })}
+                                    </div>
+                                )}
+                            </div>
+                        )}
+                    </motion.div>
+                </AnimatePresence>
+            </div>
+
+            {/* Inventory / Vault Modal */}
+            <AnimatePresence>
+                {showVault && (
+                    <div className="fixed inset-0 z-[70] flex items-center justify-center p-4 bg-black/90 backdrop-blur-md">
+                        <div className="bg-zinc-950 border border-zinc-800 rounded-2xl w-full max-w-4xl h-[80vh] flex flex-col shadow-2xl relative">
+                            <div className="p-6 border-b border-zinc-800 flex items-center justify-between">
+                                <div className="flex items-center gap-3">
+                                    <Briefcase className="w-6 h-6 text-indigo-500" />
+                                    <h2 className="text-xl font-bold text-white uppercase tracking-wider">Resource Vault</h2>
+                                </div>
+                                <Button variant="ghost" onClick={() => setShowVault(false)}>
+                                    <X className="w-6 h-6" />
+                                </Button>
+                            </div>
+                            <div className="flex-1 overflow-y-auto p-6">
+                                <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+                                    {Array.from(inventory).map(id => {
+                                        const node = nodes.find(n => n.id === id);
+                                        if (!node || !['evidence', 'media'].includes(node.type)) return null;
+
+                                        const Icon = node.type === 'media' ? ImageIcon : Search;
+                                        const color = node.type === 'media' ? 'text-orange-500' : 'text-yellow-500';
+
+                                        return (
+                                            <div
+                                                key={id}
+                                                onClick={() => { setShowVault(false); setActiveModalNode(node); }}
+                                                className="bg-black border border-zinc-800 p-4 rounded-xl hover:border-indigo-500/50 cursor-pointer transition-all group"
+                                            >
+                                                <div className="flex items-center gap-3 mb-3">
+                                                    <Icon className={`w-5 h-5 ${color}`} />
+                                                    <span className="text-xs font-bold text-zinc-500 uppercase">{node.type}</span>
+                                                </div>
+                                                <h4 className="font-bold text-zinc-200 group-hover:text-indigo-400 truncate">{node.data.label}</h4>
+                                                {node.type === 'media' && node.data.mediaType === 'image' && (
+                                                    <div className="mt-3 aspect-video bg-zinc-900 rounded overflow-hidden">
+                                                        <img src={node.data.url} alt="" className="w-full h-full object-cover opacity-50 group-hover:opacity-80 transition-opacity" />
+                                                    </div>
+                                                )}
+                                                <p className="text-xs text-zinc-600 mt-2 line-clamp-2">{node.data.description || node.data.text}</p>
+                                            </div>
+                                        )
+                                    })}
+                                    {Array.from(inventory).filter(id => {
+                                        const n = nodes.find(x => x.id === id);
+                                        return n && ['evidence', 'media'].includes(n.type);
+                                    }).length === 0 && (
+                                            <div className="col-span-full py-12 text-center text-zinc-600">
+                                                <p>No evidence collected yet.</p>
+                                            </div>
+                                        )}
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                )}
+            </AnimatePresence>
 
             {/* Generic Interaction Modal (Replaces Suspect Modal) */}
             <AnimatePresence>
@@ -486,8 +677,6 @@ const GamePreview = ({ nodes, edges, onClose, gameMetadata }) => {
                                     </div>
                                 </>
                             )}
-
-                            {/* Evidence Layout */}
                             {activeModalNode.type === 'evidence' && (
                                 <div className="p-8 border-t-4 border-yellow-500 bg-zinc-900/50">
                                     <div className="flex items-center justify-between mb-6">
@@ -661,30 +850,6 @@ const GamePreview = ({ nodes, edges, onClose, gameMetadata }) => {
                 )}
             </AnimatePresence>
 
-            {/* Main Layout */}
-            <div className="flex-1 flex overflow-hidden relative">
-                {/* Visual Feed (Center) */}
-                <div className="flex-1 overflow-y-auto p-10 flex flex-col items-center w-full">
-                    <div className="w-full max-w-4xl relative z-10">
-                        {/* If mission started and we are still at the briefing node (which links to suspects), show the "Database View" instead of the text */}
-                        {missionStarted && currentNode && currentNode.data.label.toLowerCase().includes('briefing') ? (
-                            <div className="animate-in fade-in slide-in-from-bottom-4 duration-700">
-                                <div className="text-center mb-12">
-                                    <div className="inline-block px-3 py-1 bg-indigo-500/10 border border-indigo-500/50 text-indigo-400 text-xs font-bold tracking-[0.2em] mb-4 uppercase">
-                                        Database Access Granted
-                                    </div>
-                                    <h1 className="text-3xl md:text-5xl font-black text-white uppercase tracking-tighter mb-4">
-                                        Active Suspects
-                                    </h1>
-                                    <p className="text-zinc-400 max-w-lg mx-auto">
-                                        The following individuals have been flagged for investigation. Select a dossier to begin analysis and follow leads.
-                                    </p>
-                                </div>
-                            </div>
-                        ) : (
-                            renderContent()
-                        )}
-
                         {/* Accusation Modal */}
                         <AnimatePresence>
                             {showAccuseModal && (
@@ -795,113 +960,8 @@ const GamePreview = ({ nodes, edges, onClose, gameMetadata }) => {
                                 </div>
                             )}
                         </AnimatePresence>
-
-                        {/* Begin Mission Button (Only for Briefing Node) */}
-                        {currentNode && (currentNode.data.label.toLowerCase().includes('briefing') || history.length === 0) && !missionStarted ? (
-                            <div className="mt-12 flex justify-center animate-in fade-in slide-in-from-bottom-8 duration-1000 delay-500">
-                                <Button
-                                    onClick={() => setMissionStarted(true)}
-                                    className="px-12 py-8 text-xl font-bold tracking-[0.2em] bg-red-600 hover:bg-red-700 text-white border-none shadow-[0_0_50px_rgba(220,38,38,0.4)] hover:shadow-[0_0_80px_rgba(220,38,38,0.6)] hover:scale-105 transition-all duration-300 uppercase"
-                                >
-                                    Begin Mission
-                                </Button>
-                            </div>
-                        ) : (
-                            /* Actions / Choices */
-                            <div className="mt-8 animate-in fade-in zoom-in-95 duration-500">
-                                {options.some(e => nodes.find(n => n.id === e.target)?.type === 'suspect') ? (
-                                    // Grid Layout for Suspects
-                                    <div className="space-y-4">
-                                        {/* Only show label if NOT in the dedicated view (fallback) */}
-                                        {!(missionStarted && currentNode && currentNode.data.label.toLowerCase().includes('briefing')) && (
-                                            <div className="flex items-center gap-2 text-zinc-400 text-sm font-bold tracking-wider uppercase">
-                                                <User className="w-4 h-4" />
-                                                <span>Suspect Database Matches ({options.length})</span>
-                                            </div>
-                                        )}
-                                        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
-                                            {options.map((edge, i) => {
-                                                const targetNode = nodes.find(n => n.id === edge.target);
-                                                if (!targetNode || targetNode.type !== 'suspect') return null;
-
-                                                return (
-                                                    <motion.button
-                                                        key={edge.id}
-                                                        initial={{ opacity: 0, y: 20 }}
-                                                        animate={{ opacity: 1, y: 0 }}
-                                                        transition={{ delay: i * 0.1 }}
-                                                        // For Suspsect Grid, instead of navigating, we open Modal
-                                                        onClick={() => setActiveModalNode(targetNode)}
-                                                        className="group text-left relative overflow-hidden bg-zinc-900 border border-zinc-800 hover:border-indigo-500/50 rounded-xl p-0 transition-all hover:shadow-lg hover:shadow-indigo-500/10"
-                                                    >
-                                                        <div className={`h-24 bg-gradient-to-br ${getAvatarColor(targetNode.data.name || 'Unk')} opacity-20 group-hover:opacity-30 transition-opacity`}></div>
-                                                        <div className="absolute top-4 left-4">
-                                                            <div className={`w-12 h-12 rounded-full bg-gradient-to-br ${getAvatarColor(targetNode.data.name || 'Unk')} flex items-center justify-center shadow-lg border-2 border-zinc-900`}>
-                                                                <span className="text-white font-bold text-lg">
-                                                                    {(targetNode.data.name || '?').charAt(0)}
-                                                                </span>
-                                                            </div>
-                                                        </div>
-                                                        <div className="p-4 pt-2">
-                                                            <div className="flex justify-between items-start">
-                                                                <div>
-                                                                    <h3 className="font-bold text-white group-hover:text-indigo-400 transition-colors truncate pr-2">
-                                                                        {targetNode.data.name}
-                                                                    </h3>
-                                                                    <p className="text-xs text-zinc-500 uppercase tracking-wider mt-1">
-                                                                        {targetNode.data.role}
-                                                                    </p>
-                                                                </div>
-                                                            </div>
-                                                            <div className="mt-4 flex items-center text-xs text-zinc-600 group-hover:text-zinc-400">
-                                                                <span>Review Profile</span>
-                                                                <ArrowRight className="w-3 h-3 ml-auto opacity-0 group-hover:opacity-100 transition-opacity" />
-                                                            </div>
-                                                        </div>
-                                                    </motion.button>
-                                                );
-                                            })}
-                                        </div>
-                                    </div>
-                                ) : (
-                                    // Standard List Layout
-                                    <div className="grid grid-cols-1 gap-3">
-                                        {options.map((edge) => {
-                                            const targetNode = nodes.find(n => n.id === edge.target);
-                                            if (!targetNode) return null;
-
-                                            // Logic nodes are handled automatically, don't show buttons
-                                            if (targetNode.type === 'logic') return null;
-
-                                            return (
-                                                <Button
-                                                    key={edge.id}
-                                                    onClick={() => handleOptionClick(edge.target)}
-                                                    className="w-full justify-between h-auto py-4 text-base group"
-                                                    variant="outline"
-                                                >
-                                                    <div className="flex items-center gap-3">
-                                                        <span className="w-2 h-2 rounded-full bg-indigo-500 group-hover:bg-white transition-colors"></span>
-                                                        <span>
-                                                            {targetNode.type === 'story' ? (targetNode.data.label || 'Continue Narrative') :
-                                                                targetNode.type === 'suspect' ? `Investigate: ${targetNode.data.name || targetNode.data.label}` :
-                                                                    targetNode.type === 'evidence' ? `Examine: ${targetNode.data.label}` :
-                                                                        `Proceed to ${targetNode.data.label}`}
-                                                        </span>
-                                                    </div>
-                                                    <ArrowRight className="w-4 h-4 opacity-50 group-hover:opacity-100 transform group-hover:translate-x-1 transition-all" />
-                                                </Button>
-                                            );
-                                        })}
-                                    </div>
-                                )}
-                            </div>
-                        )}
                     </div>
-                </div>
-            </div>
-        </div>
-    );
+                    );
 };
 
-export default GamePreview;
+                    export default GamePreview;
