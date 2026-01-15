@@ -3,6 +3,7 @@ import { useAuth } from '../lib/auth';
 import { db } from '../lib/firebase';
 import { collection, addDoc, deleteDoc, updateDoc, doc, onSnapshot, query } from 'firebase/firestore';
 import { Button, Card, Input, Label } from '../components/ui/shared';
+import { Logo } from '../components/ui/Logo';
 import { Plus, FolderOpen, LogOut, Search, Trash2, Rocket } from 'lucide-react';
 import { useNavigate } from 'react-router-dom';
 import { motion, AnimatePresence } from 'framer-motion';
@@ -371,8 +372,8 @@ const Dashboard = () => {
             <header className="sticky top-0 z-10 border-b border-zinc-800 bg-black/80 backdrop-blur-md">
                 <div className="container mx-auto px-6 h-16 flex items-center justify-between">
                     <div className="flex items-center gap-3">
-                        <div className="w-8 h-8 rounded-lg bg-indigo-600 flex items-center justify-center shadow-lg shadow-indigo-500/20">
-                            <FolderOpen className="w-4 h-4 text-white" />
+                        <div className="flex items-center justify-center">
+                            <Logo className="w-9 h-9 drop-shadow-[0_0_10px_rgba(99,102,241,0.5)]" />
                         </div>
                         <span className="font-bold text-lg tracking-tight">Mystery Architect</span>
                     </div>

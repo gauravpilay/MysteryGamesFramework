@@ -11,6 +11,7 @@ import ReactFlow, {
 import 'reactflow/dist/style.css';
 import { useParams, useNavigate } from 'react-router-dom';
 import { Button } from '../components/ui/shared';
+import { Logo } from '../components/ui/Logo';
 import { Save, ArrowLeft, X, FileText, User, Search, GitMerge, Terminal, MessageSquare, CircleHelp, Play, Settings, Music, Image as ImageIcon } from 'lucide-react';
 import { StoryNode, SuspectNode, EvidenceNode, LogicNode, TerminalNode, MessageNode, MusicNode, MediaNode } from '../components/nodes/CustomNodes';
 import { TutorialOverlay } from '../components/ui/TutorialOverlay';
@@ -333,7 +334,10 @@ const Editor = () => {
                         <ArrowLeft className="w-4 h-4 mr-2" />
                         Back
                     </Button>
-                    <span className="font-bold text-zinc-400">Mission Architect</span>
+                    <div className="flex items-center gap-2">
+                        <Logo className="w-6 h-6" />
+                        <span className="font-bold text-zinc-400">Mission Architect</span>
+                    </div>
                 </div>
                 <div id="editor-actions" className="flex items-center gap-2">
                     <Button variant="ghost" size="icon" onClick={() => setShowTutorial(true)} title="How to use">
