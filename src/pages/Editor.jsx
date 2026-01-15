@@ -11,7 +11,7 @@ import ReactFlow, {
 import 'reactflow/dist/style.css';
 import { useParams, useNavigate } from 'react-router-dom';
 import { Button } from '../components/ui/shared';
-import { Save, ArrowLeft, Download, FileText, User, Search, GitMerge, Terminal, MessageSquare, CircleHelp, Play, Settings, Music, Image as ImageIcon } from 'lucide-react';
+import { Save, ArrowLeft, FileText, User, Search, GitMerge, Terminal, MessageSquare, CircleHelp, Play, Settings, Music, Image as ImageIcon } from 'lucide-react';
 import { StoryNode, SuspectNode, EvidenceNode, LogicNode, TerminalNode, MessageNode, MusicNode, MediaNode } from '../components/nodes/CustomNodes';
 import { TutorialOverlay } from '../components/ui/TutorialOverlay';
 import GamePreview from '../components/GamePreview';
@@ -295,10 +295,7 @@ const Editor = () => {
                         <Play className="w-4 h-4 mr-2" />
                         Preview
                     </Button>
-                    <Button variant="primary" size="sm" onClick={generateBuild}>
-                        <Download className="w-4 h-4 mr-2" />
-                        Generate Build
-                    </Button>
+
                 </div>
             </div>
 
