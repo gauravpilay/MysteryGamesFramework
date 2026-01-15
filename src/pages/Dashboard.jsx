@@ -315,22 +315,25 @@ const Dashboard = () => {
             onClick={() => openProject(project.id)}
             className="group relative cursor-pointer"
         >
-            <Card className={`h-full p-5 hover:border-indigo-500/50 transition-colors bg-gradient-to-tr from-zinc-900 via-zinc-900 to-zinc-900/50 hover:to-indigo-900/10 ${project.status === 'draft' ? 'border-dashed border-zinc-700 opacity-80' : ''}`}>
-                <div className="flex items-start justify-between mb-4">
-                    <div className={`p-2 rounded-md ${project.status === 'published' ? 'bg-indigo-500/20 text-indigo-400' : 'bg-zinc-800 text-zinc-400'} transition-colors`}>
-                        <FolderOpen className="w-5 h-5" />
+            <Card className={`h-full p-6 transition-all duration-300 transform rounded-xl min-h-[200px] flex flex-col ${project.status === 'published'
+                ? 'bg-gradient-to-br from-zinc-900 via-indigo-950/20 to-zinc-900 border border-indigo-500/40 shadow-[0_0_20px_rgba(99,102,241,0.1)] hover:shadow-[0_0_40px_rgba(99,102,241,0.3)] hover:border-indigo-400 hover:-translate-y-2 hover:scale-[1.02]'
+                : 'bg-zinc-900/50 border border-dashed border-red-500/30 hover:border-red-500 hover:bg-red-950/10 hover:shadow-[0_0_20px_rgba(239,68,68,0.2)] hover:-translate-y-1'
+                }`}>
+                <div className="flex items-start justify-between mb-5">
+                    <div className={`p-3 rounded-lg ${project.status === 'published' ? 'bg-indigo-500/20 text-indigo-400 shadow-[0_0_15px_rgba(99,102,241,0.25)]' : 'bg-zinc-800 text-zinc-400'} transition-colors`}>
+                        <FolderOpen className="w-6 h-6" />
                     </div>
                     {isAdmin && (
-                        <div className="flex items-center gap-1 relative z-20">
+                        <div className="flex items-center gap-2 relative z-20">
                             <button
-                                className={`px-2 py-1 text-xs font-bold rounded uppercase tracking-wider ${project.status === 'published' ? 'bg-indigo-900/30 text-indigo-400 hover:bg-indigo-900/50' : 'bg-zinc-800 text-zinc-500 hover:text-zinc-300'}`}
+                                className={`px-2.5 py-1 text-xs font-bold rounded-md uppercase tracking-wider transition-colors ${project.status === 'published' ? 'bg-indigo-900/40 text-indigo-300 hover:bg-indigo-800/60 border border-indigo-500/30' : 'bg-red-900/20 text-red-400 border border-red-500/20 hover:bg-red-900/40'}`}
                                 onClick={(e) => togglePublish(e, project)}
                                 title={project.status === 'published' ? 'Unpublish' : 'Publish to Users'}
                             >
                                 {project.status === 'published' ? 'Live' : 'Draft'}
                             </button>
                             <button
-                                className="p-1 rounded-md hover:bg-zinc-800 text-zinc-500 hover:text-red-400"
+                                className="p-1.5 rounded-md hover:bg-zinc-800 text-zinc-500 hover:text-red-400 transition-colors"
                                 onClick={(e) => initiateDelete(e, project.id)}
                                 title="Delete Project"
                             >
@@ -339,16 +342,23 @@ const Dashboard = () => {
                         </div>
                     )}
                 </div>
-                <h3 className="font-semibold text-zinc-200 group-hover:text-white transition-colors truncate">
+
+                <h3 className="text-xl font-bold text-zinc-100 group-hover:text-white transition-colors truncate mb-3 tracking-tight">
                     {project.title}
                 </h3>
-                <p className="text-sm text-zinc-500 mt-2 line-clamp-2 h-10">{project.description}</p>
 
-                <div className="mt-6 pt-4 border-t border-zinc-800/50 flex items-center justify-between text-xs text-zinc-500">
-                    <span>{new Date(project.updatedAt).toLocaleDateString()}</span>
-                    <div className="flex items-center gap-1 group-hover:text-indigo-400 transition-colors">
-                        <Rocket className="w-3 h-3" />
-                        <span>Launch</span>
+                <p className="text-sm text-zinc-400 leading-relaxed mb-auto line-clamp-3">
+                    {project.description}
+                </p>
+
+                <div className="mt-6 pt-4 border-t border-zinc-800/50 flex items-center justify-between text-xs font-medium text-zinc-500">
+                    <span className="flex items-center gap-1.5">
+                        <span className="text-[10px] uppercase tracking-wider text-zinc-600">Updated</span>
+                        {new Date(project.updatedAt).toLocaleDateString()}
+                    </span>
+                    <div className="flex items-center gap-2 px-3 py-1.5 rounded-full bg-zinc-900 group-hover:bg-indigo-600 group-hover:text-white transition-colors duration-300">
+                        <Rocket className="w-3.5 h-3.5" />
+                        <span className="uppercase tracking-wider text-[10px] font-bold">Open Case</span>
                     </div>
                 </div>
             </Card>
