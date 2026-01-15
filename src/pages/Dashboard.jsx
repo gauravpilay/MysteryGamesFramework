@@ -4,7 +4,7 @@ import { db } from '../lib/firebase';
 import { collection, addDoc, deleteDoc, updateDoc, doc, onSnapshot, query } from 'firebase/firestore';
 import { Button, Card, Input, Label } from '../components/ui/shared';
 import { Logo } from '../components/ui/Logo';
-import { Plus, FolderOpen, LogOut, Search, Trash2, Rocket } from 'lucide-react';
+import { Plus, FolderOpen, LogOut, Search, Trash2, Rocket, Copy } from 'lucide-react';
 import { useNavigate } from 'react-router-dom';
 import { motion, AnimatePresence } from 'framer-motion';
 
@@ -16,6 +16,8 @@ const Dashboard = () => {
     const [projects, setProjects] = useState([]);
     const [showNewModal, setShowNewModal] = useState(false);
     const [deleteId, setDeleteId] = useState(null); // State for delete confirmation
+    const [duplicateId, setDuplicateId] = useState(null); // State for duplicate confirmation
+    const [duplicateName, setDuplicateName] = useState('');
     const [newProjectName, setNewProjectName] = useState('');
     const [newProjectDesc, setNewProjectDesc] = useState('');
     const isAdmin = user?.role === 'Admin';
@@ -281,6 +283,40 @@ const Dashboard = () => {
         }
     };
 
+    const initiateDuplicate = (e, project) => {
+        e.preventDefault();
+        e.stopPropagation();
+        setDuplicateId(project.id);
+        setDuplicateName(`Copy of ${project.title}`);
+    };
+
+    const confirmDuplicate = async () => {
+        if (!duplicateId || !isAdmin) return;
+
+        try {
+            const originalProject = projects.find(p => p.id === duplicateId);
+            if (!originalProject) return;
+
+            const newCaseData = {
+                ...originalProject,
+                title: duplicateName,
+                createdAt: new Date().toISOString(),
+                updatedAt: new Date().toISOString(),
+                status: 'draft',
+            };
+
+            // Remove id if it exists in the object, as addDoc creates a new one
+            delete newCaseData.id;
+
+            await addDoc(collection(db, "cases"), newCaseData);
+            setDuplicateId(null);
+            setDuplicateName('');
+        } catch (error) {
+            console.error("Error duplicating case:", error);
+            alert("Failed to duplicate case.");
+        }
+    };
+
     const togglePublish = async (e, project) => {
         e.preventDefault();
         e.stopPropagation();
@@ -333,6 +369,13 @@ const Dashboard = () => {
                                 title={project.status === 'published' ? 'Unpublish' : 'Publish to Users'}
                             >
                                 {project.status === 'published' ? 'Live' : 'Draft'}
+                            </button>
+                            <button
+                                className="p-1.5 rounded-md hover:bg-zinc-800 text-zinc-500 hover:text-indigo-400 transition-colors"
+                                onClick={(e) => initiateDuplicate(e, project)}
+                                title="Duplicate Project"
+                            >
+                                <Copy className="w-4 h-4" />
                             </button>
                             <button
                                 className="p-1.5 rounded-md hover:bg-zinc-800 text-zinc-500 hover:text-red-400 transition-colors"
@@ -498,6 +541,47 @@ const Dashboard = () => {
                     </motion.div>
                 </div>
             )}
+
+            {/* Duplicate Confirmation Modal */}
+            <AnimatePresence>
+                {duplicateId && (
+                    <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/80 backdrop-blur-sm p-4">
+                        <motion.div
+                            initial={{ opacity: 0, scale: 0.95 }}
+                            animate={{ opacity: 1, scale: 1 }}
+                            exit={{ opacity: 0, scale: 0.95 }}
+                            className="w-full max-w-sm bg-zinc-950 border border-zinc-800 rounded-xl shadow-2xl overflow-hidden"
+                        >
+                            <div className="p-6">
+                                <div className="flex items-center justify-center w-12 h-12 rounded-full bg-indigo-500/10 mb-4 mx-auto">
+                                    <Copy className="w-6 h-6 text-indigo-500" />
+                                </div>
+                                <h2 className="text-lg font-bold text-white text-center mb-1">Duplicate Case File</h2>
+                                <p className="text-zinc-500 text-center text-sm mb-6">
+                                    Create a copy of this investigation.
+                                </p>
+
+                                <div className="space-y-4 mb-6">
+                                    <div className="space-y-1">
+                                        <Label>New Case Title</Label>
+                                        <Input
+                                            placeholder="Name of the copy"
+                                            value={duplicateName}
+                                            onChange={e => setDuplicateName(e.target.value)}
+                                            autoFocus
+                                        />
+                                    </div>
+                                </div>
+
+                                <div className="flex items-center justify-center gap-3">
+                                    <Button variant="ghost" onClick={() => setDuplicateId(null)}>Cancel</Button>
+                                    <Button onClick={confirmDuplicate} disabled={!duplicateName.trim()}>Duplicate Case</Button>
+                                </div>
+                            </div>
+                        </motion.div>
+                    </div>
+                )}
+            </AnimatePresence>
 
             {/* Delete Confirmation Modal */}
             <AnimatePresence>
