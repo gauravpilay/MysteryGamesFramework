@@ -77,11 +77,12 @@ const Dashboard = () => {
         console.log("generateSampleCase: Attempting to create doc...");
         try {
             // Sample Data Construction (nodes array definition)
+            // Sample Data Construction (nodes array definition)
             const nodes = [
                 {
                     id: 'node-briefing',
                     type: 'story',
-                    position: { x: 0, y: 0 },
+                    position: { x: 400, y: 0 },
                     data: {
                         label: 'Mission Briefing',
                         content: "URGENT // PRIORITY ALPHA\nLocation: City Power Authority (CPA) HQ\nTime: 08:00 Hours\n\nCommand, we have a catastrophic failure of the city's power grid. Preliminary forensics indicate a sophisticated ransomware strain known as 'DarkPulse'. \n\nThe entry point was internal. Valid credentials were used to bypass the air-gapped protection at 03:22 AM. \n\nWe have detained 5 key personnel who were in the building. You have 30 minutes to identify the insider threat before the backup generators fail and the city descends into chaos.\n\nGood luck, Detective."
@@ -90,17 +91,17 @@ const Dashboard = () => {
                 {
                     id: 'node-hub',
                     type: 'story',
-                    position: { x: 400, y: 200 },
+                    position: { x: 400, y: 300 },
                     data: {
                         label: 'Investigation Hub',
                         content: "You are in the main lobby. The 5 suspects are being held in separate holding rooms. The server room is locked down. \n\nReview your leads and interrogate the suspects. Remember, every minute counts."
                     }
                 },
-                // Suspects
+                // Suspects - Row 1
                 {
                     id: 'suspect-viktor',
                     type: 'suspect',
-                    position: { x: 0, y: 400 },
+                    position: { x: -100, y: 600 },
                     data: {
                         name: 'Viktor Novikov',
                         role: 'SysAdmin',
@@ -111,7 +112,7 @@ const Dashboard = () => {
                 {
                     id: 'suspect-sarah',
                     type: 'suspect',
-                    position: { x: 200, y: 400 },
+                    position: { x: 150, y: 600 },
                     data: {
                         name: 'Sarah Jenkins',
                         role: 'Lead Developer',
@@ -122,7 +123,7 @@ const Dashboard = () => {
                 {
                     id: 'suspect-marcus',
                     type: 'suspect',
-                    position: { x: 400, y: 400 },
+                    position: { x: 400, y: 600 },
                     data: {
                         name: 'Marcus Chen',
                         role: 'Network Engineer',
@@ -134,7 +135,7 @@ const Dashboard = () => {
                 {
                     id: 'suspect-elena',
                     type: 'suspect',
-                    position: { x: 600, y: 400 },
+                    position: { x: 650, y: 600 },
                     data: {
                         name: 'Elena Petrov',
                         role: 'External Consultant',
@@ -145,7 +146,7 @@ const Dashboard = () => {
                 {
                     id: 'suspect-halloway',
                     type: 'suspect',
-                    position: { x: 800, y: 400 },
+                    position: { x: 900, y: 600 },
                     data: {
                         name: 'Dir. Halloway',
                         role: 'Director of Ops',
@@ -154,11 +155,11 @@ const Dashboard = () => {
                         isKiller: true // The Culprit
                     }
                 },
-                // Evidence
+                // Evidence - Row 2
                 {
                     id: 'ev-logs',
                     type: 'evidence',
-                    position: { x: 100, y: 600 },
+                    position: { x: -100, y: 900 },
                     data: {
                         label: 'Server Access Logs',
                         description: 'Log file showing a login event at 03:22 AM. User: "ADMIN". Terminal ID: DIR-OFFICE-01.'
@@ -167,37 +168,37 @@ const Dashboard = () => {
                 {
                     id: 'ev-email',
                     type: 'evidence',
-                    position: { x: 300, y: 600 },
+                    position: { x: 150, y: 900 },
                     data: {
                         label: 'Phishing Email',
                         description: 'Printout of an email found on Sarah\'s desk. "URGENT: Password Reset Required". The link points to a known malware domain.'
                     }
                 },
-                {
-                    id: 'ev-financials',
-                    type: 'evidence',
-                    position: { x: 800, y: 700 },
-                    data: {
-                        label: 'Offshore Accounts',
-                        description: 'Encrypted ledger decoded from Halloway\'s private terminal. Shows massive crypto deposits matching the ransomware demand amount.'
-                    }
-                },
-                // Terminal
+                // Terminal Chain
                 {
                     id: 'term-office',
                     type: 'terminal',
-                    position: { x: 800, y: 550 },
+                    position: { x: 900, y: 900 },
                     data: {
                         label: 'Director\'s Terminal',
                         prompt: 'Enter override code to access secure files:',
                         command: 'override_auth_alpha'
                     }
                 },
+                {
+                    id: 'ev-financials',
+                    type: 'evidence',
+                    position: { x: 900, y: 1200 },
+                    data: {
+                        label: 'Offshore Accounts',
+                        description: 'Encrypted ledger decoded from Halloway\'s private terminal. Shows massive crypto deposits matching the ransomware demand amount.'
+                    }
+                },
                 // Logic
                 {
                     id: 'logic-check-logs',
                     type: 'logic',
-                    position: { x: 600, y: 550 },
+                    position: { x: 400, y: 900 },
                     data: {
                         label: 'Has Logs?',
                         condition: 'ev-logs'
