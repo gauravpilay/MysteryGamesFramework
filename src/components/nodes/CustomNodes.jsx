@@ -106,8 +106,55 @@ export const LogicNode = memo(({ id, data, selected }) => {
         <>
             <Handle type="target" position={Position.Top} className="!bg-zinc-500 !w-3 !h-3 !border-2 !border-black" />
             <NodeWrapper title="Logic Gate" icon={GitMerge} selected={selected} headerClass="bg-emerald-950/30 text-emerald-200" colorClass="border-emerald-900/30">
-                <p className="text-[10px] text-zinc-400 mb-2">Define condition for branching:</p>
-                <InputField placeholder="Condition (e.g. key_found)" value={data.condition} onChange={(e) => handleChange('condition', e.target.value)} />
+
+                <div className="space-y-2">
+                    <div>
+                        <p className="text-[10px] text-zinc-400 mb-1">Logic Type</p>
+                        <select
+                            className="w-full bg-black border border-zinc-800 rounded px-2 py-1 text-xs text-zinc-300 focus:border-indigo-500 outline-none"
+                            value={data.logicType || 'if'}
+                            onChange={(e) => handleChange('logicType', e.target.value)}
+                        >
+                            <option value="if">IF (Branch)</option>
+                            <option value="while">WHILE (Loop/Wait)</option>
+                        </select>
+                    </div>
+
+                    <div>
+                        <p className="text-[10px] text-zinc-400 mb-1">Check Variable / Previous Output</p>
+                        <InputField
+                            placeholder="e.g. 'terminal_1_output' or 'has_key'"
+                            value={data.variable}
+                            onChange={(e) => handleChange('variable', e.target.value)}
+                        />
+                    </div>
+
+                    <div className="flex gap-2">
+                        <div className="w-1/3">
+                            <p className="text-[10px] text-zinc-400 mb-1">Op</p>
+                            <select
+                                className="w-full bg-black border border-zinc-800 rounded px-2 py-1 text-xs text-zinc-300 focus:border-indigo-500 outline-none"
+                                value={data.operator || '=='}
+                                onChange={(e) => handleChange('operator', e.target.value)}
+                            >
+                                <option value="==">==</option>
+                                <option value="!=">!=</option>
+                                <option value=">">&gt;</option>
+                                <option value="<">&lt;</option>
+                                <option value="contains">in</option>
+                            </select>
+                        </div>
+                        <div className="flex-1">
+                            <p className="text-[10px] text-zinc-400 mb-1">Value</p>
+                            <InputField
+                                placeholder="Target value"
+                                value={data.value}
+                                onChange={(e) => handleChange('value', e.target.value)}
+                            />
+                        </div>
+                    </div>
+                </div>
+
                 <div className="flex justify-between mt-3 px-1 text-[10px] uppercase font-bold text-zinc-500">
                     <span>True</span>
                     <span>False</span>

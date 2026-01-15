@@ -16,6 +16,9 @@ const GamePreview = ({ nodes, edges, onClose, gameMetadata }) => {
     const [showAccuseModal, setShowAccuseModal] = useState(false);
     const [accusationResult, setAccusationResult] = useState(null); // 'success' | 'failure' | null | 'timeout'
 
+    // Logic/Outputs State
+    const [nodeOutputs, setNodeOutputs] = useState({});
+
     // Timer State
     const initialTime = (gameMetadata?.timeLimit || 15) * 60; // Convert minutes to seconds
     const [timeLeft, setTimeLeft] = useState(initialTime);
@@ -138,36 +141,71 @@ const GamePreview = ({ nodes, edges, onClose, gameMetadata }) => {
 
         // 2. Logic: Auto-redirect
         if (currentNode.type === 'logic') {
-            const condition = currentNode.data.condition;
-            const isTrue = checkLogicCondition(condition);
+            const { logicType, variable, operator, value, condition } = currentNode.data;
+            let isTrue = false;
 
-            addLog(`ANALYSING: ${currentNode.data.label || 'Logic Gate'}...`);
-            addLog(`CONDITION: ${condition} = ${isTrue ? 'PASS' : 'FAIL'}`);
+            // New Structured Logic
+            if (variable) {
+                // Determine actual value
+                let actualValue = undefined;
+
+                // 1. Check Node Outputs (by Label or ID)
+                if (nodeOutputs[variable] !== undefined) actualValue = nodeOutputs[variable];
+                // 2. Check Inventory (Boolean existence)
+                else if (inventory.has(variable)) actualValue = true;
+
+                // Evaluate
+                if (actualValue === undefined) {
+                    // Variable not found
+                    isTrue = false;
+                } else {
+                    // Operators
+                    const sVal = String(actualValue).toLowerCase();
+                    const tVal = String(value || '').toLowerCase();
+
+                    if (operator === '!=') isTrue = sVal != tVal;
+                    else if (operator === '>') isTrue = parseFloat(actualValue) > parseFloat(value);
+                    else if (operator === '<') isTrue = parseFloat(actualValue) < parseFloat(value);
+                    else if (operator === 'contains') isTrue = sVal.includes(tVal);
+                    else isTrue = sVal == tVal; // Default ==
+                }
+
+                addLog(`LOGIC (${logicType}): ${variable} [${actualValue}] ${operator} ${value} = ${isTrue}`);
+            } else {
+                // Legacy Condition String
+                isTrue = checkLogicCondition(condition);
+                addLog(`LOGIC CHECK: ${condition || 'Default'} = ${isTrue}`);
+            }
+
+            // WHILE (Wait) Handling
+            if (logicType === 'while' && !isTrue) {
+                // If it's a WHILE loop and condition is met (or not met?), assume 'While True' = Perform Loop?
+                // Or 'While' = 'Wait Until True'?
+                // Let's implement 'Wait Until True' behavior. 
+                // Does NOT traverse. Just waits for state update.
+                return;
+            }
 
             // Find edges
             const trueEdge = options.find(e => e.sourceHandle === 'true' || e.label === 'True' || e.label === 'true');
             const falseEdge = options.find(e => e.sourceHandle === 'false' || e.label === 'False' || e.label === 'false');
 
-            // Fallback: if handles aren't labeled, maybe first is true, second is false? 
-            // Or just check if only one edge exists (always pass)
-
             let nextEdge = isTrue ? trueEdge : falseEdge;
 
-            // If no explicit True/False edges found, but we have edges:
+            // Fallback for unlabeled edges
             if (!nextEdge && options.length > 0) {
-                // If condition passed, take the first one. If failed, take the second one?
-                // Or assume single output = always proceed?
                 if (options.length === 1) nextEdge = options[0];
+                else nextEdge = isTrue ? options[0] : options[1];
             }
 
             if (nextEdge) {
-                setTimeout(() => setCurrentNodeId(nextEdge.target), 1500); // Delay to read log
+                setTimeout(() => setCurrentNodeId(nextEdge.target), 1500);
             } else {
-                addLog(`CRITICAL ERROR: Logic Gate stalemate. No path for result [${isTrue ? 'TRUE' : 'FALSE'}].`);
+                addLog(`LOGIC STOP: No path for result ${isTrue}`);
             }
         }
 
-    }, [currentNode, inventory, options]);
+    }, [currentNode, inventory, options, nodeOutputs]);
 
 
     const [showVault, setShowVault] = useState(false);
@@ -205,6 +243,7 @@ const GamePreview = ({ nodes, edges, onClose, gameMetadata }) => {
             if (nodeOptions.length > 0) {
                 // Add to inventory that we beat this terminal
                 setInventory(prev => new Set([...prev, activeModalNode.id]));
+                setNodeOutputs(prev => ({ ...prev, [activeModalNode.id]: input, [activeModalNode.data.label]: input }));
                 // Close modal and move to next
                 setActiveModalNode(null); // Close first
                 handleOptionClick(nodeOptions[0].target);
@@ -850,118 +889,118 @@ const GamePreview = ({ nodes, edges, onClose, gameMetadata }) => {
                 )}
             </AnimatePresence>
 
-                        {/* Accusation Modal */}
-                        <AnimatePresence>
-                            {showAccuseModal && (
-                                <div className="fixed inset-0 z-[70] flex items-center justify-center p-4 bg-black/90 backdrop-blur-md">
-                                    <motion.div
-                                        initial={{ scale: 0.95, opacity: 0 }}
-                                        animate={{ scale: 1, opacity: 1 }}
-                                        exit={{ scale: 0.95, opacity: 0 }}
-                                        className="w-full max-w-4xl bg-zinc-950 border border-zinc-800 rounded-2xl overflow-hidden shadow-2xl flex flex-col max-h-[85vh]"
-                                    >
-                                        <div className="p-6 border-b border-zinc-900 flex items-center justify-between bg-zinc-900/50">
-                                            <h2 className="text-2xl font-black text-white uppercase tracking-tighter flex items-center gap-3">
-                                                <ShieldAlert className="w-8 h-8 text-red-600" />
-                                                Identify The Culprit
-                                            </h2>
-                                            <Button variant="ghost" onClick={() => setShowAccuseModal(false)}>
-                                                <X className="w-6 h-6" />
-                                            </Button>
-                                        </div>
+            {/* Accusation Modal */}
+            <AnimatePresence>
+                {showAccuseModal && (
+                    <div className="fixed inset-0 z-[70] flex items-center justify-center p-4 bg-black/90 backdrop-blur-md">
+                        <motion.div
+                            initial={{ scale: 0.95, opacity: 0 }}
+                            animate={{ scale: 1, opacity: 1 }}
+                            exit={{ scale: 0.95, opacity: 0 }}
+                            className="w-full max-w-4xl bg-zinc-950 border border-zinc-800 rounded-2xl overflow-hidden shadow-2xl flex flex-col max-h-[85vh]"
+                        >
+                            <div className="p-6 border-b border-zinc-900 flex items-center justify-between bg-zinc-900/50">
+                                <h2 className="text-2xl font-black text-white uppercase tracking-tighter flex items-center gap-3">
+                                    <ShieldAlert className="w-8 h-8 text-red-600" />
+                                    Identify The Culprit
+                                </h2>
+                                <Button variant="ghost" onClick={() => setShowAccuseModal(false)}>
+                                    <X className="w-6 h-6" />
+                                </Button>
+                            </div>
 
-                                        <div className="flex-1 overflow-y-auto p-8">
-                                            {!accusationResult && (
-                                                <>
-                                                    <p className="text-zinc-400 text-center mb-8 max-w-lg mx-auto">
-                                                        Review the evidence carefully. Selecting the wrong suspect will result in immediate termination of the investigation.
-                                                    </p>
+                            <div className="flex-1 overflow-y-auto p-8">
+                                {!accusationResult && (
+                                    <>
+                                        <p className="text-zinc-400 text-center mb-8 max-w-lg mx-auto">
+                                            Review the evidence carefully. Selecting the wrong suspect will result in immediate termination of the investigation.
+                                        </p>
 
-                                                    <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
-                                                        {nodes.filter(n => n.type === 'suspect').map((suspect) => (
-                                                            <button
-                                                                key={suspect.id}
-                                                                onClick={() => handleAccuse(suspect)}
-                                                                className="group relative flex flex-col items-center p-6 bg-zinc-900/50 border border-zinc-900 hover:border-red-500/50 rounded-xl transition-all hover:bg-zinc-900"
-                                                            >
-                                                                <div className={`w-20 h-20 rounded-full bg-gradient-to-br ${getAvatarColor(suspect.data.name)} flex items-center justify-center mb-4 group-hover:scale-110 transition-transform`}>
-                                                                    <span className="text-3xl font-bold text-white shadow-black drop-shadow-lg">{suspect.data.name.charAt(0)}</span>
-                                                                </div>
-                                                                <h3 className="text-lg font-bold text-white mb-1 group-hover:text-red-400 transition-colors">{suspect.data.name}</h3>
-                                                                <p className="text-xs text-zinc-500 uppercase tracking-wider">{suspect.data.role}</p>
-                                                                <div className="absolute inset-0 border-2 border-red-500/0 group-hover:border-red-500/20 rounded-xl transition-colors pointer-events-none"></div>
-                                                            </button>
-                                                        ))}
-                                                        {nodes.filter(n => n.type === 'suspect').length === 0 && (
-                                                            <div className="col-span-full text-center text-zinc-500 py-10">
-                                                                No suspects found in database.
-                                                            </div>
-                                                        )}
+                                        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+                                            {nodes.filter(n => n.type === 'suspect').map((suspect) => (
+                                                <button
+                                                    key={suspect.id}
+                                                    onClick={() => handleAccuse(suspect)}
+                                                    className="group relative flex flex-col items-center p-6 bg-zinc-900/50 border border-zinc-900 hover:border-red-500/50 rounded-xl transition-all hover:bg-zinc-900"
+                                                >
+                                                    <div className={`w-20 h-20 rounded-full bg-gradient-to-br ${getAvatarColor(suspect.data.name)} flex items-center justify-center mb-4 group-hover:scale-110 transition-transform`}>
+                                                        <span className="text-3xl font-bold text-white shadow-black drop-shadow-lg">{suspect.data.name.charAt(0)}</span>
                                                     </div>
-                                                </>
-                                            )}
-
-                                            {accusationResult === 'success' && (
-                                                <div className="flex flex-col items-center justify-center py-10 text-center animate-in zoom-in duration-500">
-                                                    <div className="w-24 h-24 rounded-full bg-green-500/20 flex items-center justify-center mb-6 border-4 border-green-500">
-                                                        <CheckCircle className="w-12 h-12 text-green-500" />
-                                                    </div>
-                                                    <h2 className="text-4xl font-black text-white mb-4">CASE CLOSED</h2>
-                                                    <p className="text-xl text-zinc-300 max-w-xl">
-                                                        Excellent work, Detective. The culprit has been identified and apprehended thanks to your diligence.
-                                                    </p>
-                                                    <Button
-                                                        className="mt-8 bg-white text-black hover:bg-zinc-200"
-                                                        onClick={onClose}
-                                                    >
-                                                        Return to Headquarters
-                                                    </Button>
-                                                </div>
-                                            )}
-
-                                            {accusationResult === 'failure' && (
-                                                <div className="flex flex-col items-center justify-center py-10 text-center animate-in zoom-in duration-500">
-                                                    <div className="w-24 h-24 rounded-full bg-red-500/20 flex items-center justify-center mb-6 border-4 border-red-500">
-                                                        <X className="w-12 h-12 text-red-500" />
-                                                    </div>
-                                                    <h2 className="text-4xl font-black text-white mb-4">MISSION FAILED</h2>
-                                                    <p className="text-xl text-zinc-300 max-w-xl">
-                                                        You accused the wrong person. The real perpetrator escaped while you were distracted.
-                                                    </p>
-                                                    <Button
-                                                        variant="outline"
-                                                        className="mt-8 border-zinc-700 hover:bg-zinc-800"
-                                                        onClick={() => setAccusationResult(null)}
-                                                    >
-                                                        Review Evidence Again
-                                                    </Button>
-                                                </div>
-                                            )}
-
-                                            {accusationResult === 'timeout' && (
-                                                <div className="flex flex-col items-center justify-center py-10 text-center animate-in zoom-in duration-500">
-                                                    <div className="w-24 h-24 rounded-full bg-red-500/20 flex items-center justify-center mb-6 border-4 border-red-500">
-                                                        <AlertTriangle className="w-12 h-12 text-red-500" />
-                                                    </div>
-                                                    <h2 className="text-4xl font-black text-white mb-4">TIME EXPIRED</h2>
-                                                    <p className="text-xl text-zinc-300 max-w-xl">
-                                                        The operational window has closed. The culprit has escaped jurisdiction.
-                                                    </p>
-                                                    <Button
-                                                        className="mt-8 bg-white text-black hover:bg-zinc-200"
-                                                        onClick={onClose}
-                                                    >
-                                                        Abort Mission
-                                                    </Button>
+                                                    <h3 className="text-lg font-bold text-white mb-1 group-hover:text-red-400 transition-colors">{suspect.data.name}</h3>
+                                                    <p className="text-xs text-zinc-500 uppercase tracking-wider">{suspect.data.role}</p>
+                                                    <div className="absolute inset-0 border-2 border-red-500/0 group-hover:border-red-500/20 rounded-xl transition-colors pointer-events-none"></div>
+                                                </button>
+                                            ))}
+                                            {nodes.filter(n => n.type === 'suspect').length === 0 && (
+                                                <div className="col-span-full text-center text-zinc-500 py-10">
+                                                    No suspects found in database.
                                                 </div>
                                             )}
                                         </div>
-                                    </motion.div>
-                                </div>
-                            )}
-                        </AnimatePresence>
+                                    </>
+                                )}
+
+                                {accusationResult === 'success' && (
+                                    <div className="flex flex-col items-center justify-center py-10 text-center animate-in zoom-in duration-500">
+                                        <div className="w-24 h-24 rounded-full bg-green-500/20 flex items-center justify-center mb-6 border-4 border-green-500">
+                                            <CheckCircle className="w-12 h-12 text-green-500" />
+                                        </div>
+                                        <h2 className="text-4xl font-black text-white mb-4">CASE CLOSED</h2>
+                                        <p className="text-xl text-zinc-300 max-w-xl">
+                                            Excellent work, Detective. The culprit has been identified and apprehended thanks to your diligence.
+                                        </p>
+                                        <Button
+                                            className="mt-8 bg-white text-black hover:bg-zinc-200"
+                                            onClick={onClose}
+                                        >
+                                            Return to Headquarters
+                                        </Button>
+                                    </div>
+                                )}
+
+                                {accusationResult === 'failure' && (
+                                    <div className="flex flex-col items-center justify-center py-10 text-center animate-in zoom-in duration-500">
+                                        <div className="w-24 h-24 rounded-full bg-red-500/20 flex items-center justify-center mb-6 border-4 border-red-500">
+                                            <X className="w-12 h-12 text-red-500" />
+                                        </div>
+                                        <h2 className="text-4xl font-black text-white mb-4">MISSION FAILED</h2>
+                                        <p className="text-xl text-zinc-300 max-w-xl">
+                                            You accused the wrong person. The real perpetrator escaped while you were distracted.
+                                        </p>
+                                        <Button
+                                            variant="outline"
+                                            className="mt-8 border-zinc-700 hover:bg-zinc-800"
+                                            onClick={() => setAccusationResult(null)}
+                                        >
+                                            Review Evidence Again
+                                        </Button>
+                                    </div>
+                                )}
+
+                                {accusationResult === 'timeout' && (
+                                    <div className="flex flex-col items-center justify-center py-10 text-center animate-in zoom-in duration-500">
+                                        <div className="w-24 h-24 rounded-full bg-red-500/20 flex items-center justify-center mb-6 border-4 border-red-500">
+                                            <AlertTriangle className="w-12 h-12 text-red-500" />
+                                        </div>
+                                        <h2 className="text-4xl font-black text-white mb-4">TIME EXPIRED</h2>
+                                        <p className="text-xl text-zinc-300 max-w-xl">
+                                            The operational window has closed. The culprit has escaped jurisdiction.
+                                        </p>
+                                        <Button
+                                            className="mt-8 bg-white text-black hover:bg-zinc-200"
+                                            onClick={onClose}
+                                        >
+                                            Abort Mission
+                                        </Button>
+                                    </div>
+                                )}
+                            </div>
+                        </motion.div>
                     </div>
-                    );
+                )}
+            </AnimatePresence>
+        </div>
+    );
 };
 
-                    export default GamePreview;
+export default GamePreview;
