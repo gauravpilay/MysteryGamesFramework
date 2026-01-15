@@ -1,6 +1,6 @@
 import React, { memo } from 'react';
 import { Handle, Position } from 'reactflow';
-import { FileText, User, Search, GitMerge, Terminal, MessageSquare, Music } from 'lucide-react';
+import { FileText, User, Search, GitMerge, Terminal, MessageSquare, Music, Image as ImageIcon } from 'lucide-react';
 import { Card } from '../ui/shared';
 
 const NodeWrapper = ({ children, title, icon: Icon, colorClass = "border-zinc-700", headerClass = "bg-zinc-900", selected }) => (
@@ -192,6 +192,71 @@ export const MusicNode = memo(({ id, data, selected }) => {
                 </div>
             </NodeWrapper>
             <Handle type="source" position={Position.Bottom} className="!bg-pink-500 !w-3 !h-3 !border-2 !border-black" />
+        </>
+    );
+});
+
+export const MediaNode = memo(({ id, data, selected }) => {
+    const handleChange = (key, val) => {
+        data.onChange && data.onChange(id, { ...data, [key]: val });
+    };
+
+    return (
+        <>
+            <Handle type="target" position={Position.Top} className="!bg-zinc-500 !w-3 !h-3 !border-2 !border-black" />
+            <NodeWrapper title="Media Asset" icon={ImageIcon} selected={selected} headerClass="bg-orange-950/30 text-orange-200" colorClass="border-orange-900/30">
+                <div className="space-y-2">
+                    <div className="flex gap-2">
+                        <select
+                            className="bg-zinc-900 border border-zinc-800 text-xs text-zinc-300 rounded p-1 w-1/3"
+                            value={data.mediaType || 'image'}
+                            onChange={(e) => handleChange('mediaType', e.target.value)}
+                        >
+                            <option value="image">Image</option>
+                            <option value="video">Video</option>
+                        </select>
+                        <InputField
+                            placeholder={data.mediaType === 'video' ? "Video URL (mp4/yt)" : "Image URL"}
+                            value={data.url}
+                            onChange={(e) => handleChange('url', e.target.value)}
+                            className="w-2/3"
+                        />
+                    </div>
+                    {/* Simulated Upload Button for Images */}
+                    {(!data.mediaType || data.mediaType === 'image') && (
+                        <div className="relative group">
+                            <input
+                                type="file"
+                                accept="image/*"
+                                className="absolute inset-0 w-full h-full opacity-0 cursor-pointer"
+                                onChange={(e) => {
+                                    const file = e.target.files[0];
+                                    if (file) {
+                                        const reader = new FileReader();
+                                        reader.onloadend = () => handleChange('url', reader.result);
+                                        reader.readAsDataURL(file);
+                                    }
+                                }}
+                            />
+                            <div className="border border-dashed border-zinc-700 p-1 text-center text-[10px] text-zinc-500 rounded group-hover:bg-zinc-800 transition-colors">
+                                Or click to upload file
+                            </div>
+                        </div>
+                    )}
+                    <InputField
+                        placeholder="Title / Caption"
+                        value={data.label}
+                        onChange={(e) => handleChange('label', e.target.value)}
+                    />
+                    <TextArea
+                        placeholder="Description text displayed with media..."
+                        rows={3}
+                        value={data.text}
+                        onChange={(e) => handleChange('text', e.target.value)}
+                    />
+                </div>
+            </NodeWrapper>
+            <Handle type="source" position={Position.Bottom} className="!bg-orange-500 !w-3 !h-3 !border-2 !border-black" />
         </>
     );
 });

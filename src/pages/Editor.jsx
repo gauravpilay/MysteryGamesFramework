@@ -11,8 +11,8 @@ import ReactFlow, {
 import 'reactflow/dist/style.css';
 import { useParams, useNavigate } from 'react-router-dom';
 import { Button } from '../components/ui/shared';
-import { Save, ArrowLeft, Download, FileText, User, Search, GitMerge, Terminal, MessageSquare, CircleHelp, Play, Settings, Music } from 'lucide-react';
-import { StoryNode, SuspectNode, EvidenceNode, LogicNode, TerminalNode, MessageNode, MusicNode } from '../components/nodes/CustomNodes';
+import { Save, ArrowLeft, Download, FileText, User, Search, GitMerge, Terminal, MessageSquare, CircleHelp, Play, Settings, Music, Image as ImageIcon } from 'lucide-react';
+import { StoryNode, SuspectNode, EvidenceNode, LogicNode, TerminalNode, MessageNode, MusicNode, MediaNode } from '../components/nodes/CustomNodes';
 import { TutorialOverlay } from '../components/ui/TutorialOverlay';
 import GamePreview from '../components/GamePreview';
 import { AnimatePresence } from 'framer-motion';
@@ -69,7 +69,8 @@ const Editor = () => {
         logic: LogicNode,
         terminal: TerminalNode,
         message: MessageNode,
-        music: MusicNode
+        music: MusicNode,
+        media: MediaNode
     }), []);
 
     const [editingEdge, setEditingEdge] = useState(null); // { id: string, label: string }
@@ -334,6 +335,10 @@ const Editor = () => {
                         <div onDragStart={(event) => onDragStart(event, 'music')} draggable className="flex items-center gap-3 p-3 rounded bg-zinc-900 border border-zinc-800 cursor-grab hover:border-pink-500/50 hover:bg-zinc-800 transition-all active:cursor-grabbing">
                             <Music className="w-4 h-4 text-pink-400" />
                             <span className="text-sm font-medium">Background Audio</span>
+                        </div>
+                        <div onDragStart={(event) => onDragStart(event, 'media')} draggable className="flex items-center gap-3 p-3 rounded bg-zinc-900 border border-zinc-800 cursor-grab hover:border-orange-500/50 hover:bg-zinc-800 transition-all active:cursor-grabbing">
+                            <ImageIcon className="w-4 h-4 text-orange-400" />
+                            <span className="text-sm font-medium">Media Asset</span>
                         </div>
                     </div>
 

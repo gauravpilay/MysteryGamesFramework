@@ -1,6 +1,6 @@
 import React, { useState, useEffect, useMemo, useRef } from 'react';
 import { Button, Card } from './ui/shared';
-import { X, User, Search, Terminal, MessageSquare, FileText, ArrowRight, ShieldAlert, CheckCircle, AlertTriangle, Volume2, VolumeX } from 'lucide-react';
+import { X, User, Search, Terminal, MessageSquare, FileText, ArrowRight, ShieldAlert, CheckCircle, AlertTriangle, Volume2, VolumeX, Image as ImageIcon } from 'lucide-react';
 import { motion, AnimatePresence } from 'framer-motion';
 
 const GamePreview = ({ nodes, edges, onClose, gameMetadata }) => {
@@ -179,7 +179,7 @@ const GamePreview = ({ nodes, edges, onClose, gameMetadata }) => {
         const targetNode = nodes.find(n => n.id === targetId);
 
         // If it's a type that requires a popup, set it as active modal
-        if (targetNode && ['suspect', 'evidence', 'terminal', 'message'].includes(targetNode.type)) {
+        if (targetNode && ['suspect', 'evidence', 'terminal', 'message', 'media'].includes(targetNode.type)) {
             setActiveModalNode(targetNode);
         } else {
             setActiveModalNode(null);
@@ -591,6 +591,66 @@ const GamePreview = ({ nodes, edges, onClose, gameMetadata }) => {
                                             }}
                                         >
                                             Close Transmission
+                                        </Button>
+                                    </div>
+                                </div>
+                            )}
+
+                            {/* Media Layout */}
+                            {activeModalNode.type === 'media' && (
+                                <div className="p-0 bg-black h-full flex flex-col">
+                                    <div className="p-4 border-b border-orange-900/50 flex items-center justify-between bg-zinc-900/50 shrink-0">
+                                        <div className="flex items-center gap-2 text-orange-500">
+                                            <ImageIcon className="w-5 h-5" />
+                                            <span className="font-bold tracking-widest uppercase">ASSET // {activeModalNode.data.label}</span>
+                                        </div>
+                                        <Button variant="ghost" className="text-orange-500 hover:text-orange-400" onClick={() => setActiveModalNode(null)}>
+                                            <X className="w-5 h-5" />
+                                        </Button>
+                                    </div>
+
+                                    <div className="flex-1 overflow-y-auto p-4 md:p-8 flex flex-col items-center">
+                                        {activeModalNode.data.mediaType === 'video' ? (
+                                            <div className="w-full max-w-3xl aspect-video bg-black rounded-lg overflow-hidden border border-zinc-800 shadow-2xl mb-6">
+                                                {/* Simple heuristic for YouTube embeds */}
+                                                {(activeModalNode.data.url?.includes('youtube.com') || activeModalNode.data.url?.includes('youtu.be')) ? (
+                                                    <iframe
+                                                        src={activeModalNode.data.url.replace("watch?v=", "embed/").replace("youtu.be/", "www.youtube.com/embed/")}
+                                                        className="w-full h-full"
+                                                        allow="autoplay; encrypted-media"
+                                                        allowFullScreen
+                                                        title="Video Asset"
+                                                    />
+                                                ) : (
+                                                    <video controls src={activeModalNode.data.url} className="w-full h-full" />
+                                                )}
+                                            </div>
+                                        ) : (
+                                            <div className="w-full max-w-3xl mb-6">
+                                                <img
+                                                    src={activeModalNode.data.url}
+                                                    alt="Asset"
+                                                    className="w-full h-auto rounded-lg border border-zinc-800 shadow-2xl"
+                                                />
+                                            </div>
+                                        )}
+
+                                        <div className="w-full max-w-3xl bg-zinc-900/80 p-6 rounded-xl border border-zinc-800 backdrop-blur-sm">
+                                            <h3 className="text-orange-200 font-bold mb-2">{activeModalNode.data.label}</h3>
+                                            <p className="text-zinc-300 leading-relaxed">{activeModalNode.data.text}</p>
+                                        </div>
+                                    </div>
+
+                                    <div className="p-4 border-t border-zinc-800 bg-zinc-900/50 flex justify-end shrink-0">
+                                        <Button
+                                            className="bg-orange-600 hover:bg-orange-700 text-white"
+                                            onClick={() => {
+                                                const next = edges.find(e => e.source === activeModalNode.id);
+                                                setActiveModalNode(null);
+                                                if (next) handleOptionClick(next.target);
+                                            }}
+                                        >
+                                            Continue <ArrowRight className="w-4 h-4 ml-2" />
                                         </Button>
                                     </div>
                                 </div>
