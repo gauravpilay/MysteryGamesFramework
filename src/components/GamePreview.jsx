@@ -578,25 +578,69 @@ const GamePreview = ({ nodes, edges, onClose, gameMetadata }) => {
                                             if (!targetNode) return null;
                                             if (targetNode.type === 'logic') return null;
 
+                                            // UI Configuration based on Node Type
+                                            let icon = ArrowRight;
+                                            let color = "text-indigo-400";
+                                            let bg = "bg-indigo-500/10";
+                                            let action = "PROCEED";
+                                            let title = targetNode.data.label || "Continue";
+
+                                            if (targetNode.type === 'story') {
+                                                icon = FileText;
+                                                color = "text-blue-400";
+                                                bg = "bg-blue-500/10";
+                                                action = "NARRATIVE";
+                                            } else if (targetNode.type === 'suspect') {
+                                                icon = User;
+                                                color = "text-red-400";
+                                                bg = "bg-red-500/10";
+                                                action = "INVESTIGATE";
+                                                title = targetNode.data.name || targetNode.data.label;
+                                            } else if (targetNode.type === 'evidence') {
+                                                icon = Search;
+                                                color = "text-yellow-400";
+                                                bg = "bg-yellow-500/10";
+                                                action = "EXAMINE";
+                                            } else if (targetNode.type === 'media') {
+                                                icon = ImageIcon;
+                                                color = "text-orange-400";
+                                                bg = "bg-orange-500/10";
+                                                action = "VIEW ASSET";
+                                            } else if (targetNode.type === 'terminal') {
+                                                icon = Terminal;
+                                                color = "text-green-400";
+                                                bg = "bg-green-500/10";
+                                                action = "HACK TERMINAL";
+                                            } else if (targetNode.type === 'message') {
+                                                icon = MessageSquare;
+                                                color = "text-violet-400";
+                                                bg = "bg-violet-500/10";
+                                                action = "INCOMING";
+                                            }
+
+                                            const Icon = icon;
+
                                             return (
-                                                <Button
+                                                <button
                                                     key={edge.id}
                                                     onClick={() => handleOptionClick(edge.target)}
-                                                    className="w-full justify-between h-auto py-4 text-base group"
-                                                    variant="outline"
+                                                    className="w-full text-left bg-zinc-900/50 border border-zinc-800 hover:border-indigo-500/50 p-4 rounded-xl transition-all group hover:bg-zinc-900 relative overflow-hidden flex items-center gap-4 hover:shadow-lg hover:shadow-indigo-500/10 active:scale-[0.99]"
                                                 >
-                                                    <div className="flex items-center gap-3">
-                                                        <span className="w-2 h-2 rounded-full bg-indigo-500 group-hover:bg-white transition-colors"></span>
-                                                        <span>
-                                                            {targetNode.type === 'story' ? (targetNode.data.label || 'Continue Narrative') :
-                                                                targetNode.type === 'suspect' ? `Investigate: ${targetNode.data.name || targetNode.data.label}` :
-                                                                    targetNode.type === 'evidence' ? `Examine: ${targetNode.data.label}` :
-                                                                        targetNode.type === 'media' ? `View Asset: ${targetNode.data.label}` :
-                                                                            `Proceed to ${targetNode.data.label}`}
-                                                        </span>
+                                                    <div className={`p-3 rounded-lg ${bg} border border-white/5 group-hover:scale-110 transition-transform shrink-0`}>
+                                                        <Icon className={`w-5 h-5 ${color}`} />
                                                     </div>
-                                                    <ArrowRight className="w-4 h-4 opacity-50 group-hover:opacity-100 transform group-hover:translate-x-1 transition-all" />
-                                                </Button>
+
+                                                    <div className="flex-1 min-w-0">
+                                                        <div className={`text-[10px] font-bold tracking-widest uppercase mb-1 ${color} opacity-70 group-hover:opacity-100 transition-opacity`}>
+                                                            {action}
+                                                        </div>
+                                                        <div className="font-bold text-zinc-200 group-hover:text-white truncate text-lg transition-colors">
+                                                            {title}
+                                                        </div>
+                                                    </div>
+
+                                                    <ArrowRight className="w-5 h-5 text-zinc-600 group-hover:text-indigo-400 transform group-hover:translate-x-1 transition-all shrink-0" />
+                                                </button>
                                             );
                                         })}
                                     </div>
@@ -862,13 +906,32 @@ const GamePreview = ({ nodes, edges, onClose, gameMetadata }) => {
                             {/* Media Layout */}
                             {activeModalNode.type === 'media' && (
                                 <div className="p-0 bg-black h-full flex flex-col">
-                                    <div className="p-4 border-b border-orange-900/50 flex items-center justify-between bg-zinc-900/50 shrink-0">
-                                        <div className="flex items-center gap-2 text-orange-500">
-                                            <ImageIcon className="w-5 h-5" />
-                                            <span className="font-bold tracking-widest uppercase">ASSET // {activeModalNode.data.label}</span>
+                                    <div className="relative p-6 border-b border-orange-500/30 flex items-start justify-between bg-zinc-900 overflow-hidden shrink-0">
+                                        {/* Background Decoration */}
+                                        <div className="absolute inset-0 bg-gradient-to-r from-orange-900/20 via-transparent to-transparent pointer-events-none" />
+
+                                        <div className="relative flex items-center gap-4 z-10">
+                                            <div className="w-12 h-12 rounded-xl bg-orange-500/10 flex items-center justify-center border border-orange-500/20 shadow-[0_0_15px_rgba(249,115,22,0.1)]">
+                                                <ImageIcon className="w-6 h-6 text-orange-500" />
+                                            </div>
+                                            <div>
+                                                <div className="flex items-center gap-2 mb-1">
+                                                    <span className="w-1.5 h-1.5 rounded-full bg-orange-500 animate-pulse" />
+                                                    <span className="text-[10px] font-bold tracking-[0.2em] text-orange-500 uppercase">Secure Asset</span>
+                                                </div>
+                                                <h2 className="text-xl md:text-2xl font-black text-white uppercase tracking-tight">
+                                                    {activeModalNode.data.label}
+                                                </h2>
+                                            </div>
                                         </div>
-                                        <Button variant="ghost" className="text-orange-500 hover:text-orange-400" onClick={() => setActiveModalNode(null)}>
-                                            <X className="w-5 h-5" />
+
+                                        <Button
+                                            variant="ghost"
+                                            size="icon"
+                                            className="text-zinc-500 hover:text-white hover:bg-white/10 relative z-10"
+                                            onClick={() => setActiveModalNode(null)}
+                                        >
+                                            <X className="w-6 h-6" />
                                         </Button>
                                     </div>
 
