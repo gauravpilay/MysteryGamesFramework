@@ -11,7 +11,7 @@ import ReactFlow, {
 import 'reactflow/dist/style.css';
 import { useParams, useNavigate } from 'react-router-dom';
 import { Button } from '../components/ui/shared';
-import { Save, ArrowLeft, FileText, User, Search, GitMerge, Terminal, MessageSquare, CircleHelp, Play, Settings, Music, Image as ImageIcon } from 'lucide-react';
+import { Save, ArrowLeft, X, FileText, User, Search, GitMerge, Terminal, MessageSquare, CircleHelp, Play, Settings, Music, Image as ImageIcon } from 'lucide-react';
 import { StoryNode, SuspectNode, EvidenceNode, LogicNode, TerminalNode, MessageNode, MusicNode, MediaNode } from '../components/nodes/CustomNodes';
 import { TutorialOverlay } from '../components/ui/TutorialOverlay';
 import GamePreview from '../components/GamePreview';
@@ -22,12 +22,67 @@ import { doc, getDoc, updateDoc } from 'firebase/firestore';
 
 // ... (other imports)
 
+const NODE_HELP = {
+    story: {
+        title: "Story Node",
+        desc: "The primary narrative building block. Use this to display story text, dialogue, or descriptions to the player.",
+        examples: ["Opening Scene", "Conversation with Witness", "Room Description"]
+    },
+    suspect: {
+        title: "Suspect Profile",
+        desc: "Represents a character in the mystery. Players can click them to view their dossier, alibi, and actions.",
+        examples: ["Col. Mustard", "The suspicious butler"]
+    },
+    evidence: {
+        title: "Evidence Item",
+        desc: "A collectible item. Evidence is added to the player's inventory and can be used to satisfy logic conditions.",
+        examples: ["Bloody Knife", "Encrypted USB Drive", "Crumpled Note"]
+    },
+    logic: {
+        title: "Logic Gate",
+        desc: "Controls the flow of the game based on conditions. Use 'If' to branch and 'While' to wait for events.",
+        examples: ["Check if key is found", "Wait for terminal hack", "Branch based on suspect accusation"]
+    },
+    terminal: {
+        title: "Terminal Challenge",
+        desc: "A hacking interface where the player must type a specific command or answer to proceed.",
+        examples: ["Password Lock", "Database Query", "Override Sequence"]
+    },
+    message: {
+        title: "Incoming Transmission",
+        desc: "Simulates an incoming message or email. Useful for providing hints or urgent updates.",
+        examples: ["Anonymous Tip", "HQ Briefing", "Threatening Text"]
+    },
+    music: {
+        title: "Background Audio",
+        desc: "Sets the mood. The specified audio track will loop when this node is active.",
+        examples: ["Suspense Theme", "Action Music", "Silence"]
+    },
+    media: {
+        title: "Media Asset",
+        desc: "Displays a visual asset (Image or Video) to the player.",
+        examples: ["CCTV Footage (YouTube)", "Crime Scene Photo", "Document Scan"]
+    }
+};
+
+const PALETTE_ITEMS = [
+    { type: 'story', label: 'Story Narrative', icon: FileText, className: "hover:border-indigo-500/50", iconClass: "text-blue-400" },
+    { type: 'suspect', label: 'Suspect', icon: User, className: "hover:border-red-500/50", iconClass: "text-red-400" },
+    { type: 'evidence', label: 'Evidence Item', icon: Search, className: "hover:border-yellow-500/50", iconClass: "text-yellow-400" },
+    { type: 'logic', label: 'Logic Branch', icon: GitMerge, className: "hover:border-emerald-500/50", iconClass: "text-emerald-400" },
+    { type: 'terminal', label: 'Terminal Prompt', icon: Terminal, className: "hover:border-green-500/50", iconClass: "text-green-400" },
+    { type: 'message', label: 'Message Block', icon: MessageSquare, className: "hover:border-violet-500/50", iconClass: "text-violet-400" },
+    { type: 'music', label: 'Background Audio', icon: Music, className: "hover:border-pink-500/50", iconClass: "text-pink-400" },
+    { type: 'media', label: 'Media Asset', icon: ImageIcon, className: "hover:border-orange-500/50", iconClass: "text-orange-400" },
+];
+
 const Editor = () => {
     const { projectId } = useParams();
     const navigate = useNavigate();
     const reactFlowWrapper = useRef(null);
     const [nodes, setNodes, onNodesChange] = useNodesState([]);
     const [edges, setEdges, onEdgesChange] = useEdgesState([]);
+    const [helpModalData, setHelpModalData] = useState(null);
     const [reactFlowInstance, setReactFlowInstance] = useState(null);
     const [showTutorial, setShowTutorial] = useState(false);
     const [showPreview, setShowPreview] = useState(false);
@@ -305,38 +360,24 @@ const Editor = () => {
                     <div className="text-xs font-bold text-zinc-500 uppercase tracking-wider mb-2">Node Palette</div>
 
                     <div className="space-y-3">
-                        <div onDragStart={(event) => onDragStart(event, 'story')} draggable className="flex items-center gap-3 p-3 rounded bg-zinc-900 border border-zinc-800 cursor-grab hover:border-indigo-500/50 hover:bg-zinc-800 transition-all active:cursor-grabbing">
-                            <FileText className="w-4 h-4 text-blue-400" />
-                            <span className="text-sm font-medium">Story Narrative</span>
-                        </div>
-                        <div onDragStart={(event) => onDragStart(event, 'suspect')} draggable className="flex items-center gap-3 p-3 rounded bg-zinc-900 border border-zinc-800 cursor-grab hover:border-red-500/50 hover:bg-zinc-800 transition-all active:cursor-grabbing">
-                            <User className="w-4 h-4 text-red-400" />
-                            <span className="text-sm font-medium">Suspect</span>
-                        </div>
-                        <div onDragStart={(event) => onDragStart(event, 'evidence')} draggable className="flex items-center gap-3 p-3 rounded bg-zinc-900 border border-zinc-800 cursor-grab hover:border-yellow-500/50 hover:bg-zinc-800 transition-all active:cursor-grabbing">
-                            <Search className="w-4 h-4 text-yellow-400" />
-                            <span className="text-sm font-medium">Evidence Item</span>
-                        </div>
-                        <div onDragStart={(event) => onDragStart(event, 'logic')} draggable className="flex items-center gap-3 p-3 rounded bg-zinc-900 border border-zinc-800 cursor-grab hover:border-emerald-500/50 hover:bg-zinc-800 transition-all active:cursor-grabbing">
-                            <GitMerge className="w-4 h-4 text-emerald-400" />
-                            <span className="text-sm font-medium">Logic Branch</span>
-                        </div>
-                        <div onDragStart={(event) => onDragStart(event, 'terminal')} draggable className="flex items-center gap-3 p-3 rounded bg-zinc-900 border border-zinc-800 cursor-grab hover:border-green-500/50 hover:bg-zinc-800 transition-all active:cursor-grabbing">
-                            <Terminal className="w-4 h-4 text-green-400" />
-                            <span className="text-sm font-medium">Terminal Prompt</span>
-                        </div>
-                        <div onDragStart={(event) => onDragStart(event, 'message')} draggable className="flex items-center gap-3 p-3 rounded bg-zinc-900 border border-zinc-800 cursor-grab hover:border-violet-500/50 hover:bg-zinc-800 transition-all active:cursor-grabbing">
-                            <MessageSquare className="w-4 h-4 text-violet-400" />
-                            <span className="text-sm font-medium">Message Block</span>
-                        </div>
-                        <div onDragStart={(event) => onDragStart(event, 'music')} draggable className="flex items-center gap-3 p-3 rounded bg-zinc-900 border border-zinc-800 cursor-grab hover:border-pink-500/50 hover:bg-zinc-800 transition-all active:cursor-grabbing">
-                            <Music className="w-4 h-4 text-pink-400" />
-                            <span className="text-sm font-medium">Background Audio</span>
-                        </div>
-                        <div onDragStart={(event) => onDragStart(event, 'media')} draggable className="flex items-center gap-3 p-3 rounded bg-zinc-900 border border-zinc-800 cursor-grab hover:border-orange-500/50 hover:bg-zinc-800 transition-all active:cursor-grabbing">
-                            <ImageIcon className="w-4 h-4 text-orange-400" />
-                            <span className="text-sm font-medium">Media Asset</span>
-                        </div>
+                        {PALETTE_ITEMS.map((item) => (
+                            <div
+                                key={item.type}
+                                onDragStart={(event) => onDragStart(event, item.type)}
+                                draggable
+                                className={`flex items-center gap-3 p-3 rounded bg-zinc-900 border border-zinc-800 cursor-grab hover:bg-zinc-800 transition-all active:cursor-grabbing group relative ${item.className}`}
+                            >
+                                <item.icon className={`w-4 h-4 ${item.iconClass}`} />
+                                <span className="text-sm font-medium">{item.label}</span>
+                                <button
+                                    onClick={(e) => { e.stopPropagation(); setHelpModalData(NODE_HELP[item.type]); }}
+                                    className="ml-auto opacity-0 group-hover:opacity-100 transition-opacity p-1 hover:bg-zinc-800 rounded-full text-zinc-500 hover:text-white"
+                                    title="View Documentation"
+                                >
+                                    <CircleHelp className="w-4 h-4" />
+                                </button>
+                            </div>
+                        ))}
                     </div>
 
                     <div className="mt-auto p-4 bg-zinc-900/50 rounded-lg border border-zinc-800/50">
@@ -444,6 +485,31 @@ const Editor = () => {
                                         Save Label
                                     </Button>
                                 </div>
+                            </div>
+                        </div>
+                    </div>
+                )}
+                {helpModalData && (
+                    <div className="fixed inset-0 z-[60] flex items-center justify-center p-4 bg-black/80 backdrop-blur-sm" onClick={() => setHelpModalData(null)}>
+                        <div className="bg-zinc-950 border border-zinc-800 p-6 rounded-xl max-w-md w-full shadow-2xl relative" onClick={(e) => e.stopPropagation()}>
+                            <button onClick={() => setHelpModalData(null)} className="absolute top-4 right-4 text-zinc-500 hover:text-white transition-colors">
+                                <X className="w-5 h-5" />
+                            </button>
+                            <h2 className="text-xl font-bold text-white mb-4 flex items-center gap-2">
+                                <CircleHelp className="w-6 h-6 text-indigo-500" />
+                                {helpModalData.title}
+                            </h2>
+                            <p className="text-zinc-300 leading-relaxed mb-6"> {helpModalData.desc} </p>
+                            <div className="bg-zinc-900/50 rounded-lg p-4 border border-zinc-800">
+                                <h3 className="text-xs font-bold text-zinc-500 uppercase tracking-wider mb-3">Example Usage</h3>
+                                <ul className="space-y-2">
+                                    {helpModalData.examples.map((ex, i) => (
+                                        <li key={i} className="flex items-start gap-2 text-sm text-zinc-400">
+                                            <span className="text-indigo-500 mt-1">•</span>
+                                            {ex}
+                                        </li>
+                                    ))}
+                                </ul>
                             </div>
                         </div>
                     </div>
