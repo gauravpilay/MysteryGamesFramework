@@ -17,7 +17,7 @@ export const Logo = ({ className = "w-10 h-10" }) => (
         <circle cx="50" cy="50" r="42" stroke="url(#logoGradient)" strokeWidth="6" strokeLinecap="round" className="opacity-90" />
 
         {/* 'G' - The Inner Geometric Arc */}
-        <path d="M 70 35 A 25 25 0 1 0 70 65 L 50 65" stroke="white" strokeWidth="5" strokeLinecap="round" strokeLinejoin="round" className="opacity-80" />
+        <path d="M 70 35 A 25 25 0 1 0 70 65 L 70 55 L 58 55" stroke="white" strokeWidth="5" strokeLinecap="round" strokeLinejoin="round" className="opacity-80" />
 
         {/* 'A' - The Central Peak */}
         <path d="M 35 65 L 50 30 L 65 65" stroke="url(#logoGradient)" strokeWidth="4" strokeLinecap="round" strokeLinejoin="round" />
