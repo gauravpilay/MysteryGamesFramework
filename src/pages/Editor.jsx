@@ -314,7 +314,7 @@ const Editor = () => {
                         </div>
                         <div onDragStart={(event) => onDragStart(event, 'suspect')} draggable className="flex items-center gap-3 p-3 rounded bg-zinc-900 border border-zinc-800 cursor-grab hover:border-red-500/50 hover:bg-zinc-800 transition-all active:cursor-grabbing">
                             <User className="w-4 h-4 text-red-400" />
-                            <span className="text-sm font-medium">Suspect Unknown</span>
+                            <span className="text-sm font-medium">Suspect</span>
                         </div>
                         <div onDragStart={(event) => onDragStart(event, 'evidence')} draggable className="flex items-center gap-3 p-3 rounded bg-zinc-900 border border-zinc-800 cursor-grab hover:border-yellow-500/50 hover:bg-zinc-800 transition-all active:cursor-grabbing">
                             <Search className="w-4 h-4 text-yellow-400" />
