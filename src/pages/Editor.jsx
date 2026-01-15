@@ -11,8 +11,8 @@ import ReactFlow, {
 import 'reactflow/dist/style.css';
 import { useParams, useNavigate } from 'react-router-dom';
 import { Button } from '../components/ui/shared';
-import { Save, ArrowLeft, Download, FileText, User, Search, GitMerge, Terminal, MessageSquare, CircleHelp, Play, Settings } from 'lucide-react';
-import { StoryNode, SuspectNode, EvidenceNode, LogicNode, TerminalNode, MessageNode } from '../components/nodes/CustomNodes';
+import { Save, ArrowLeft, Download, FileText, User, Search, GitMerge, Terminal, MessageSquare, CircleHelp, Play, Settings, Music } from 'lucide-react';
+import { StoryNode, SuspectNode, EvidenceNode, LogicNode, TerminalNode, MessageNode, MusicNode } from '../components/nodes/CustomNodes';
 import { TutorialOverlay } from '../components/ui/TutorialOverlay';
 import GamePreview from '../components/GamePreview';
 import { AnimatePresence } from 'framer-motion';
@@ -68,7 +68,8 @@ const Editor = () => {
         evidence: EvidenceNode,
         logic: LogicNode,
         terminal: TerminalNode,
-        message: MessageNode
+        message: MessageNode,
+        music: MusicNode
     }), []);
 
     const [editingEdge, setEditingEdge] = useState(null); // { id: string, label: string }
@@ -329,6 +330,10 @@ const Editor = () => {
                         <div onDragStart={(event) => onDragStart(event, 'message')} draggable className="flex items-center gap-3 p-3 rounded bg-zinc-900 border border-zinc-800 cursor-grab hover:border-violet-500/50 hover:bg-zinc-800 transition-all active:cursor-grabbing">
                             <MessageSquare className="w-4 h-4 text-violet-400" />
                             <span className="text-sm font-medium">Message Block</span>
+                        </div>
+                        <div onDragStart={(event) => onDragStart(event, 'music')} draggable className="flex items-center gap-3 p-3 rounded bg-zinc-900 border border-zinc-800 cursor-grab hover:border-pink-500/50 hover:bg-zinc-800 transition-all active:cursor-grabbing">
+                            <Music className="w-4 h-4 text-pink-400" />
+                            <span className="text-sm font-medium">Background Audio</span>
                         </div>
                     </div>
 

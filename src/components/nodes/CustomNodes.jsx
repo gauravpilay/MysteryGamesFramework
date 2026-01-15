@@ -1,6 +1,6 @@
 import React, { memo } from 'react';
 import { Handle, Position } from 'reactflow';
-import { FileText, User, Search, GitMerge, Terminal, MessageSquare } from 'lucide-react';
+import { FileText, User, Search, GitMerge, Terminal, MessageSquare, Music } from 'lucide-react';
 import { Card } from '../ui/shared';
 
 const NodeWrapper = ({ children, title, icon: Icon, colorClass = "border-zinc-700", headerClass = "bg-zinc-900", selected }) => (
@@ -165,6 +165,33 @@ export const MessageNode = memo(({ id, data, selected }) => {
                 </div>
             </NodeWrapper>
             <Handle type="source" position={Position.Bottom} className="!bg-violet-500 !w-3 !h-3 !border-2 !border-black" />
+        </>
+    );
+});
+
+export const MusicNode = memo(({ id, data, selected }) => {
+    const handleChange = (key, val) => {
+        data.onChange && data.onChange(id, { ...data, [key]: val });
+    };
+
+    return (
+        <>
+            <Handle type="target" position={Position.Top} className="!bg-zinc-500 !w-3 !h-3 !border-2 !border-black" />
+            <NodeWrapper title="Background Audio" icon={Music} selected={selected} headerClass="bg-pink-950/30 text-pink-200" colorClass="border-pink-900/30">
+                <div className="space-y-2">
+                    <p className="text-[10px] text-zinc-500 mb-1">Audio Source URL (MP3/WAV)</p>
+                    <InputField
+                        placeholder="https://example.com/suspense.mp3"
+                        value={data.url}
+                        onChange={(e) => handleChange('url', e.target.value)}
+                    />
+                    <div className="flex items-center gap-2 mt-2">
+                        <span className="text-[10px] text-pink-400 font-bold uppercase tracking-wider">Note:</span>
+                        <span className="text-[10px] text-zinc-400">Plays when this node is reached.</span>
+                    </div>
+                </div>
+            </NodeWrapper>
+            <Handle type="source" position={Position.Bottom} className="!bg-pink-500 !w-3 !h-3 !border-2 !border-black" />
         </>
     );
 });

@@ -1,6 +1,6 @@
-import React, { useState, useEffect, useMemo } from 'react';
+import React, { useState, useEffect, useMemo, useRef } from 'react';
 import { Button, Card } from './ui/shared';
-import { X, User, Search, Terminal, MessageSquare, FileText, ArrowRight, ShieldAlert, CheckCircle, AlertTriangle } from 'lucide-react';
+import { X, User, Search, Terminal, MessageSquare, FileText, ArrowRight, ShieldAlert, CheckCircle, AlertTriangle, Volume2, VolumeX } from 'lucide-react';
 import { motion, AnimatePresence } from 'framer-motion';
 
 const GamePreview = ({ nodes, edges, onClose, gameMetadata }) => {
@@ -314,14 +314,60 @@ const GamePreview = ({ nodes, edges, onClose, gameMetadata }) => {
         );
     };
 
+    // Audio State
+    const [isMuted, setIsMuted] = useState(false);
+    const [audioSource, setAudioSource] = useState(null);
+    const audioRef = useRef(null);
+
+    // Audio Control Loop
+    useEffect(() => {
+        if (!audioRef.current || !audioSource) return;
+
+        audioRef.current.src = audioSource;
+        audioRef.current.loop = true;
+
+        if (!isMuted) {
+            audioRef.current.play().catch(e => console.log("Audio autoplay blocked:", e));
+        }
+    }, [audioSource]);
+
+    useEffect(() => {
+        if (!audioRef.current) return;
+        if (isMuted) audioRef.current.pause();
+        else if (audioSource) audioRef.current.play().catch(e => console.log("Audio play failed:", e));
+    }, [isMuted, audioSource]);
+
+    // Handle Music Nodes (Auto-play and Auto-advance)
+    useEffect(() => {
+        if (!currentNode) return;
+
+        if (currentNode.type === 'music') {
+            if (currentNode.data.url) {
+                setAudioSource(currentNode.data.url);
+                addLog(`AUDIO: Now playing background track.`);
+            }
+
+            // Auto advance like logic nodes
+            // Find edges
+            const edgesOut = options.filter(e => e.source === currentNode.id);
+            if (edgesOut.length > 0) {
+                setTimeout(() => handleOptionClick(edgesOut[0].target), 500);
+            }
+        }
+    }, [currentNode, options]);
+
     return (
         <div className="fixed inset-0 z-50 bg-black flex flex-col font-sans">
+            {/* Audio Player (Hidden) */}
+            <audio ref={audioRef} />
+
             {/* Header */}
             <div className="h-16 border-b border-zinc-800 bg-zinc-950 flex items-center justify-between px-6 shrink-0">
                 <div className="flex items-center gap-3">
                     <div className="bg-red-600 px-2 py-1 rounded text-xs font-bold text-white uppercase tracking-widest animate-pulse">
                         Simulation Active
                     </div>
+                    {/* ... Time Remaining logic ... */}
                     {missionStarted && (
                         <div className={`fixed top-4 left-1/2 -translate-x-1/2 px-6 py-2 rounded-lg border-2 shadow-2xl z-50 flex items-center gap-3 backdrop-blur-md ${timeLeft < 60 ? 'bg-red-950/80 border-red-500 text-red-500 animate-pulse' : 'bg-zinc-950/80 border-indigo-500/50 text-indigo-400'}`}>
                             <span className="text-xs font-bold uppercase tracking-widest opacity-70">Time Remaining</span>
@@ -331,6 +377,13 @@ const GamePreview = ({ nodes, edges, onClose, gameMetadata }) => {
                     <span className="text-zinc-500 text-sm font-mono">ID: {currentNode?.id || '---'}</span>
                 </div>
                 <div className="flex items-center gap-3">
+                    {/* Audio Toggle */}
+                    {audioSource && (
+                        <Button variant="ghost" size="icon" onClick={() => setIsMuted(!isMuted)} className={isMuted ? "text-red-500" : "text-green-500"}>
+                            {isMuted ? <VolumeX className="w-5 h-5" /> : <Volume2 className="w-5 h-5" />}
+                        </Button>
+                    )}
+
                     {missionStarted && (
                         <Button
                             variant="outline"
