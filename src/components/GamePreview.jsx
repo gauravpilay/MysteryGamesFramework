@@ -439,7 +439,7 @@ const GamePreview = ({ nodes, edges, onClose, gameMetadata }) => {
             <div className="h-16 border-b border-zinc-800 bg-zinc-950 flex items-center justify-between px-6 shrink-0">
                 <div className="flex items-center gap-3">
                     <div className="bg-red-600 px-2 py-1 rounded text-xs font-bold text-white uppercase tracking-widest animate-pulse">
-                        Simulation Active
+                        Case Active
                     </div>
                     {/* Score Display */}
                     <div className="flex items-center gap-2 px-3 py-1 bg-zinc-900 border border-zinc-800 rounded">
