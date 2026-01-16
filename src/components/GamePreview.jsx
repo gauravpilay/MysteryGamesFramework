@@ -33,7 +33,7 @@ const BackgroundEffect = () => (
     </div>
 );
 
-const TypewriterText = ({ text }) => {
+const TypewriterText = ({ text, onComplete }) => {
     const [displayedText, setDisplayedText] = useState('');
     const index = useRef(0);
 
@@ -41,12 +41,19 @@ const TypewriterText = ({ text }) => {
         setDisplayedText('');
         index.current = 0;
 
+        // If no text, complete immediately (or if text is short)
+        if (!text) {
+            if (onComplete) onComplete();
+            return;
+        }
+
         const timer = setInterval(() => {
             if (index.current < text.length) {
                 setDisplayedText((prev) => prev + text.charAt(index.current));
                 index.current++;
             } else {
                 clearInterval(timer);
+                if (onComplete) onComplete();
             }
         }, 15); // Speed
 
@@ -59,6 +66,7 @@ const TypewriterText = ({ text }) => {
 const GamePreview = ({ nodes, edges, onClose, gameMetadata }) => {
     // Game State
     const [currentNodeId, setCurrentNodeId] = useState(null);
+    const [isContentReady, setIsContentReady] = useState(false);
     const [inventory, setInventory] = useState(new Set());
     const [history, setHistory] = useState([]); // Array of distinct visited node IDs
     const [logs, setLogs] = useState([]);
@@ -287,6 +295,9 @@ const GamePreview = ({ nodes, edges, onClose, gameMetadata }) => {
             }
         }
 
+        // Reset content ready state on new node
+        setIsContentReady(false);
+
     }, [currentNode, inventory, options, nodeOutputs]);
 
 
@@ -471,7 +482,7 @@ const GamePreview = ({ nodes, edges, onClose, gameMetadata }) => {
 
                 <Card className="bg-zinc-900/50 border-zinc-800 p-8 backdrop-blur-md border-t-4 border-t-red-600 shadow-[0_20px_50px_-12px_rgba(0,0,0,0.5)] hover:border-zinc-700 transition-colors duration-500">
                     <p className="text-zinc-200 leading-loose whitespace-pre-wrap text-lg md:text-xl font-light font-mono">
-                        <TypewriterText text={data.text || data.content || ""} />
+                        <TypewriterText text={data.text || data.content || ""} onComplete={() => setIsContentReady(true)} />
                     </p>
                 </Card>
             </div>
@@ -607,153 +618,157 @@ const GamePreview = ({ nodes, edges, onClose, gameMetadata }) => {
                             </div>
                         ) : (
                             /* Actions / Choices */
-                            <div className="mt-8 animate-in fade-in zoom-in-95 duration-500">
-                                {options.some(e => nodes.find(n => n.id === e.target)?.type === 'suspect') ? (
-                                    // Grid Layout for Suspects
-                                    <div className="space-y-4">
-                                        {/* Only show label if NOT in the dedicated view (fallback) */}
-                                        {!(missionStarted && currentNode && currentNode.data.label.toLowerCase().includes('briefing')) && (
-                                            <div className="flex items-center gap-2 text-zinc-400 text-sm font-bold tracking-wider uppercase">
-                                                <User className="w-4 h-4" />
-                                                <span>Suspect Database Matches ({options.length})</span>
+                            // Only show actions if content is ready (text finished typing)
+                            isContentReady && (
+                                <div className="mt-8 animate-in fade-in zoom-in-95 duration-500">
+                                    {options.some(e => nodes.find(n => n.id === e.target)?.type === 'suspect') ? (
+                                        // Grid Layout for Suspects
+                                        <div className="space-y-4">
+                                            {/* Only show label if NOT in the dedicated view (fallback) */}
+                                            {!(missionStarted && currentNode && currentNode.data.label.toLowerCase().includes('briefing')) && (
+                                                <div className="flex items-center gap-2 text-zinc-400 text-sm font-bold tracking-wider uppercase">
+                                                    <User className="w-4 h-4" />
+                                                    <span>Suspect Database Matches ({options.length})</span>
+                                                </div>
+                                            )}
+                                            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+                                                {options.map((edge, i) => {
+                                                    const targetNode = nodes.find(n => n.id === edge.target);
+                                                    if (!targetNode || targetNode.type !== 'suspect') return null;
+
+                                                    return (
+                                                        <motion.button
+                                                            key={edge.id}
+                                                            initial={{ opacity: 0, y: 20 }}
+                                                            animate={{ opacity: 1, y: 0 }}
+                                                            transition={{ delay: i * 0.1 }}
+                                                            onClick={() => setActiveModalNode(targetNode)}
+                                                            className="group text-left relative overflow-hidden bg-zinc-900 border border-zinc-800 hover:border-indigo-500/50 rounded-xl p-0 transition-all hover:shadow-lg hover:shadow-indigo-500/10"
+                                                        >
+                                                            <div className={`h-24 bg-gradient-to-br ${getAvatarColor(targetNode.data.name || 'Unk')} opacity-20 group-hover:opacity-30 transition-opacity`}></div>
+                                                            <div className="absolute top-4 left-4">
+                                                                <div className={`w-12 h-12 rounded-full bg-gradient-to-br ${getAvatarColor(targetNode.data.name || 'Unk')} flex items-center justify-center shadow-lg border-2 border-zinc-900`}>
+                                                                    <span className="text-white font-bold text-lg">
+                                                                        {(targetNode.data.name || '?').charAt(0)}
+                                                                    </span>
+                                                                </div>
+                                                            </div>
+                                                            <div className="p-4 pt-2">
+                                                                <div className="flex justify-between items-start">
+                                                                    <div>
+                                                                        <h3 className="font-bold text-white group-hover:text-indigo-400 transition-colors truncate pr-2">
+                                                                            {targetNode.data.name}
+                                                                        </h3>
+                                                                        <p className="text-xs text-zinc-500 uppercase tracking-wider mt-1">
+                                                                            {targetNode.data.role}
+                                                                        </p>
+                                                                    </div>
+                                                                </div>
+                                                                <div className="mt-4 flex items-center text-xs text-zinc-600 group-hover:text-zinc-400">
+                                                                    <span>Review Profile</span>
+                                                                    <ArrowRight className="w-3 h-3 ml-auto opacity-0 group-hover:opacity-100 transition-opacity" />
+                                                                </div>
+                                                            </div>
+                                                        </motion.button>
+                                                    );
+                                                })}
                                             </div>
-                                        )}
-                                        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
-                                            {options.map((edge, i) => {
+                                        </div>
+                                    ) : (
+                                        // Standard List Layout
+                                        <div className="grid grid-cols-1 gap-3">
+                                            {options.map((edge) => {
                                                 const targetNode = nodes.find(n => n.id === edge.target);
-                                                if (!targetNode || targetNode.type !== 'suspect') return null;
+                                                if (!targetNode) return null;
+                                                if (targetNode.type === 'logic') return null;
+
+                                                // UI Configuration based on Node Type
+                                                // Look ahead for Music nodes to show the real destination
+                                                let displayNode = targetNode;
+                                                while (displayNode && displayNode.type === 'music') {
+                                                    const outEdges = edges.filter(e => e.source === displayNode.id);
+                                                    if (outEdges.length > 0) {
+                                                        const next = nodes.find(n => n.id === outEdges[0].target);
+                                                        if (next) displayNode = next;
+                                                        else break;
+                                                    } else {
+                                                        break;
+                                                    }
+                                                }
+
+                                                // UI Configuration based on Display Node Type
+                                                let icon = ArrowRight;
+                                                let color = "text-indigo-400";
+                                                let bg = "bg-indigo-500/10";
+                                                let action = "PROCEED";
+                                                let title = displayNode.data.label || "Continue";
+
+                                                if (displayNode.type === 'story') {
+                                                    icon = FileText;
+                                                    color = "text-blue-400";
+                                                    bg = "bg-blue-500/10";
+                                                    action = "NARRATIVE";
+                                                } else if (displayNode.type === 'suspect') {
+                                                    icon = User;
+                                                    color = "text-red-400";
+                                                    bg = "bg-red-500/10";
+                                                    action = "INVESTIGATE";
+                                                    title = displayNode.data.name || displayNode.data.label;
+                                                } else if (displayNode.type === 'evidence') {
+                                                    icon = Search;
+                                                    color = "text-yellow-400";
+                                                    bg = "bg-yellow-500/10";
+                                                    action = "EXAMINE";
+                                                } else if (displayNode.type === 'media') {
+                                                    icon = ImageIcon;
+                                                    color = "text-orange-400";
+                                                    bg = "bg-orange-500/10";
+                                                    action = "VIEW ASSET";
+                                                } else if (displayNode.type === 'terminal') {
+                                                    icon = Terminal;
+                                                    color = "text-green-400";
+                                                    bg = "bg-green-500/10";
+                                                    action = "HACK TERMINAL";
+                                                } else if (displayNode.type === 'message') {
+                                                    icon = MessageSquare;
+                                                    color = "text-violet-400";
+                                                    bg = "bg-violet-500/10";
+                                                    action = "INCOMING";
+                                                }
+
+                                                const Icon = icon;
 
                                                 return (
                                                     <motion.button
                                                         key={edge.id}
-                                                        initial={{ opacity: 0, y: 20 }}
-                                                        animate={{ opacity: 1, y: 0 }}
-                                                        transition={{ delay: i * 0.1 }}
-                                                        onClick={() => setActiveModalNode(targetNode)}
-                                                        className="group text-left relative overflow-hidden bg-zinc-900 border border-zinc-800 hover:border-indigo-500/50 rounded-xl p-0 transition-all hover:shadow-lg hover:shadow-indigo-500/10"
+                                                        whileHover={{ scale: 1.02, x: 5 }}
+                                                        whileTap={{ scale: 0.98 }}
+                                                        onClick={() => handleOptionClick(edge.target)}
+                                                        className="w-full text-left bg-zinc-900/50 border border-zinc-800 hover:border-indigo-500/50 p-4 rounded-xl transition-all group hover:bg-zinc-900 relative overflow-hidden flex items-center gap-4 hover:shadow-lg hover:shadow-indigo-500/10"
                                                     >
-                                                        <div className={`h-24 bg-gradient-to-br ${getAvatarColor(targetNode.data.name || 'Unk')} opacity-20 group-hover:opacity-30 transition-opacity`}></div>
-                                                        <div className="absolute top-4 left-4">
-                                                            <div className={`w-12 h-12 rounded-full bg-gradient-to-br ${getAvatarColor(targetNode.data.name || 'Unk')} flex items-center justify-center shadow-lg border-2 border-zinc-900`}>
-                                                                <span className="text-white font-bold text-lg">
-                                                                    {(targetNode.data.name || '?').charAt(0)}
-                                                                </span>
+                                                        <div className={`p-3 rounded-lg ${bg} border border-white/5 group-hover:scale-110 transition-transform shrink-0`}>
+                                                            <Icon className={`w-5 h-5 ${color}`} />
+                                                        </div>
+
+                                                        <div className="flex-1 min-w-0">
+                                                            <div className={`text-[10px] font-bold tracking-widest uppercase mb-1 ${color} opacity-70 group-hover:opacity-100 transition-opacity`}>
+                                                                {action}
+                                                            </div>
+                                                            <div className="font-bold text-zinc-200 group-hover:text-white truncate text-lg transition-colors">
+                                                                {title}
                                                             </div>
                                                         </div>
-                                                        <div className="p-4 pt-2">
-                                                            <div className="flex justify-between items-start">
-                                                                <div>
-                                                                    <h3 className="font-bold text-white group-hover:text-indigo-400 transition-colors truncate pr-2">
-                                                                        {targetNode.data.name}
-                                                                    </h3>
-                                                                    <p className="text-xs text-zinc-500 uppercase tracking-wider mt-1">
-                                                                        {targetNode.data.role}
-                                                                    </p>
-                                                                </div>
-                                                            </div>
-                                                            <div className="mt-4 flex items-center text-xs text-zinc-600 group-hover:text-zinc-400">
-                                                                <span>Review Profile</span>
-                                                                <ArrowRight className="w-3 h-3 ml-auto opacity-0 group-hover:opacity-100 transition-opacity" />
-                                                            </div>
-                                                        </div>
+
+                                                        <ArrowRight className="w-5 h-5 text-zinc-600 group-hover:text-indigo-400 transform group-hover:translate-x-1 transition-all shrink-0" />
                                                     </motion.button>
                                                 );
                                             })}
                                         </div>
-                                    </div>
-                                ) : (
-                                    // Standard List Layout
-                                    <div className="grid grid-cols-1 gap-3">
-                                        {options.map((edge) => {
-                                            const targetNode = nodes.find(n => n.id === edge.target);
-                                            if (!targetNode) return null;
-                                            if (targetNode.type === 'logic') return null;
-
-                                            // UI Configuration based on Node Type
-                                            // Look ahead for Music nodes to show the real destination
-                                            let displayNode = targetNode;
-                                            while (displayNode && displayNode.type === 'music') {
-                                                const outEdges = edges.filter(e => e.source === displayNode.id);
-                                                if (outEdges.length > 0) {
-                                                    const next = nodes.find(n => n.id === outEdges[0].target);
-                                                    if (next) displayNode = next;
-                                                    else break;
-                                                } else {
-                                                    break;
-                                                }
-                                            }
-
-                                            // UI Configuration based on Display Node Type
-                                            let icon = ArrowRight;
-                                            let color = "text-indigo-400";
-                                            let bg = "bg-indigo-500/10";
-                                            let action = "PROCEED";
-                                            let title = displayNode.data.label || "Continue";
-
-                                            if (displayNode.type === 'story') {
-                                                icon = FileText;
-                                                color = "text-blue-400";
-                                                bg = "bg-blue-500/10";
-                                                action = "NARRATIVE";
-                                            } else if (displayNode.type === 'suspect') {
-                                                icon = User;
-                                                color = "text-red-400";
-                                                bg = "bg-red-500/10";
-                                                action = "INVESTIGATE";
-                                                title = displayNode.data.name || displayNode.data.label;
-                                            } else if (displayNode.type === 'evidence') {
-                                                icon = Search;
-                                                color = "text-yellow-400";
-                                                bg = "bg-yellow-500/10";
-                                                action = "EXAMINE";
-                                            } else if (displayNode.type === 'media') {
-                                                icon = ImageIcon;
-                                                color = "text-orange-400";
-                                                bg = "bg-orange-500/10";
-                                                action = "VIEW ASSET";
-                                            } else if (displayNode.type === 'terminal') {
-                                                icon = Terminal;
-                                                color = "text-green-400";
-                                                bg = "bg-green-500/10";
-                                                action = "HACK TERMINAL";
-                                            } else if (displayNode.type === 'message') {
-                                                icon = MessageSquare;
-                                                color = "text-violet-400";
-                                                bg = "bg-violet-500/10";
-                                                action = "INCOMING";
-                                            }
-
-                                            const Icon = icon;
-
-                                            return (
-                                                <motion.button
-                                                    key={edge.id}
-                                                    whileHover={{ scale: 1.02, x: 5 }}
-                                                    whileTap={{ scale: 0.98 }}
-                                                    onClick={() => handleOptionClick(edge.target)}
-                                                    className="w-full text-left bg-zinc-900/50 border border-zinc-800 hover:border-indigo-500/50 p-4 rounded-xl transition-all group hover:bg-zinc-900 relative overflow-hidden flex items-center gap-4 hover:shadow-lg hover:shadow-indigo-500/10"
-                                                >
-                                                    <div className={`p-3 rounded-lg ${bg} border border-white/5 group-hover:scale-110 transition-transform shrink-0`}>
-                                                        <Icon className={`w-5 h-5 ${color}`} />
-                                                    </div>
-
-                                                    <div className="flex-1 min-w-0">
-                                                        <div className={`text-[10px] font-bold tracking-widest uppercase mb-1 ${color} opacity-70 group-hover:opacity-100 transition-opacity`}>
-                                                            {action}
-                                                        </div>
-                                                        <div className="font-bold text-zinc-200 group-hover:text-white truncate text-lg transition-colors">
-                                                            {title}
-                                                        </div>
-                                                    </div>
-
-                                                    <ArrowRight className="w-5 h-5 text-zinc-600 group-hover:text-indigo-400 transform group-hover:translate-x-1 transition-all shrink-0" />
-                                                </motion.button>
-                                            );
-                                        })}
-                                    </div>
-                                )}
-                            </div>
-                        )}
+                                    )}
+                                </div>
+                            )
+                        )
+                        }
                     </motion.div>
                 </AnimatePresence>
             </div>
@@ -1203,7 +1218,7 @@ const GamePreview = ({ nodes, edges, onClose, gameMetadata }) => {
                     </div>
                 )}
             </AnimatePresence>
-        </div>
+        </div >
     );
 };
 
