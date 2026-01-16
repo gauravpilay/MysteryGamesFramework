@@ -12,8 +12,8 @@ import 'reactflow/dist/style.css';
 import { useParams, useNavigate } from 'react-router-dom';
 import { Button } from '../components/ui/shared';
 import { Logo } from '../components/ui/Logo';
-import { Save, ArrowLeft, X, FileText, User, Search, GitMerge, Terminal, MessageSquare, CircleHelp, Play, Settings, Music, Image as ImageIcon } from 'lucide-react';
-import { StoryNode, SuspectNode, EvidenceNode, LogicNode, TerminalNode, MessageNode, MusicNode, MediaNode } from '../components/nodes/CustomNodes';
+import { Save, ArrowLeft, X, FileText, User, Search, GitMerge, Terminal, MessageSquare, CircleHelp, Play, Settings, Music, Image as ImageIcon, MousePointerClick } from 'lucide-react';
+import { StoryNode, SuspectNode, EvidenceNode, LogicNode, TerminalNode, MessageNode, MusicNode, MediaNode, ActionNode } from '../components/nodes/CustomNodes';
 import { TutorialOverlay } from '../components/ui/TutorialOverlay';
 import GamePreview from '../components/GamePreview';
 import { AnimatePresence } from 'framer-motion';
@@ -60,9 +60,13 @@ const NODE_HELP = {
         examples: ["Suspense Theme", "Action Music", "Silence"]
     },
     media: {
-        title: "Media Asset",
         desc: "Displays a visual asset (Image or Video) to the player.",
         examples: ["CCTV Footage (YouTube)", "Crime Scene Photo", "Document Scan"]
+    },
+    action: {
+        title: "Action Button",
+        desc: "A interactive button for player choices. Use this to create branching paths or interaction points.",
+        examples: ["Open Door", "Talk to Witness", "Examine Object"]
     }
 };
 
@@ -75,6 +79,7 @@ const PALETTE_ITEMS = [
     { type: 'message', label: 'Message Block', icon: MessageSquare, className: "hover:border-violet-500/50", iconClass: "text-violet-400" },
     { type: 'music', label: 'Background Audio', icon: Music, className: "hover:border-pink-500/50", iconClass: "text-pink-400" },
     { type: 'media', label: 'Media Asset', icon: ImageIcon, className: "hover:border-orange-500/50", iconClass: "text-orange-400" },
+    { type: 'action', label: 'Action Button', icon: MousePointerClick, className: "hover:border-indigo-500/50", iconClass: "text-indigo-400" },
 ];
 
 const Editor = () => {
@@ -126,7 +131,8 @@ const Editor = () => {
         terminal: TerminalNode,
         message: MessageNode,
         music: MusicNode,
-        media: MediaNode
+        media: MediaNode,
+        action: ActionNode
     }), []);
 
     const [editingEdge, setEditingEdge] = useState(null); // { id: string, label: string }

@@ -1,6 +1,6 @@
 import React, { useState, useEffect, useMemo, useRef } from 'react';
 import { Button, Card } from './ui/shared';
-import { X, User, Search, Terminal, MessageSquare, FileText, ArrowRight, ShieldAlert, CheckCircle, AlertTriangle, Volume2, VolumeX, Image as ImageIcon, Briefcase, Star } from 'lucide-react';
+import { X, User, Search, Terminal, MessageSquare, FileText, ArrowRight, ShieldAlert, CheckCircle, AlertTriangle, Volume2, VolumeX, Image as ImageIcon, Briefcase, Star, MousePointerClick } from 'lucide-react';
 import { motion, AnimatePresence } from 'framer-motion';
 
 const BackgroundEffect = () => (
@@ -123,17 +123,46 @@ const GamePreview = ({ nodes, edges, onClose, gameMetadata }) => {
 
     // Initialize Game
     useEffect(() => {
-        // Find a suitable start node.
-        // 1. Try to find a node ID containing 'start'
-        // 2. Or ANY node with no incoming edges (Root)
-        // 3. Or just the first node
+        // Find a suitable start node logic:
+        // 1. Explicit ID 'start'
         let start = nodes.find(n => n.id.toLowerCase().includes('start'));
+
+        // 2. Look for "Briefing" or "Start" in label (Common conventions)
         if (!start) {
-            const tempEdges = new Set(edges.map(e => e.target));
-            // Prioritize finding a true root node
-            start = nodes.find(n => !tempEdges.has(n.id));
+            start = nodes.find(n => {
+                const label = (n.data?.label || '').toLowerCase();
+                return label.includes('briefing') || label === 'start' || label === 'mission start';
+            });
         }
-        if (!start && nodes.length > 0) start = nodes[0];
+
+        // 3. Topology: Root Nodes (sorted by visual position)
+        if (!start) {
+            const targets = new Set(edges.map(e => e.target));
+            const roots = nodes.filter(n => !targets.has(n.id));
+
+            if (roots.length > 0) {
+                // Sort by Y (top to bottom), then X to find top-left node
+                roots.sort((a, b) => {
+                    const ax = a.position?.x || 0;
+                    const ay = a.position?.y || 0;
+                    const bx = b.position?.x || 0;
+                    const by = b.position?.y || 0;
+                    if (Math.abs(ay - by) > 100) return ay - by; // distinct rows
+                    return ax - bx;
+                });
+                start = roots[0];
+            }
+        }
+
+        // 4. Fallback: Top-most node overall (Cycle handling or weird state)
+        if (!start && nodes.length > 0) {
+            const sortedAll = [...nodes].sort((a, b) => {
+                const ay = a.position?.y || 0;
+                const by = b.position?.y || 0;
+                return ay - by;
+            });
+            start = sortedAll[0];
+        }
 
         if (start) {
             setCurrentNodeId(start.id);
@@ -426,6 +455,7 @@ const GamePreview = ({ nodes, edges, onClose, gameMetadata }) => {
         if (node.type === 'evidence') return `Examine Evidence: ${node.data.label}`;
         if (node.type === 'terminal') return `Access Terminal: ${node.data.label}`;
         if (node.type === 'message') return `Read Message: ${node.data.label}`;
+        if (node.type === 'action') return node.data.label || "Interact";
         return `Proceed to ${node.data.label}`;
     }
 
@@ -446,6 +476,8 @@ const GamePreview = ({ nodes, edges, onClose, gameMetadata }) => {
                 </div>
             )
         }
+
+
 
         // Story Node (Briefing or Narrative)
         const isBriefing = data.label.toLowerCase().includes('briefing') || history.length === 0;
@@ -675,100 +707,180 @@ const GamePreview = ({ nodes, edges, onClose, gameMetadata }) => {
                                             </div>
                                         </div>
                                     ) : (
-                                        // Standard List Layout
                                         <div className="grid grid-cols-1 gap-3">
-                                            {options.map((edge) => {
-                                                const targetNode = nodes.find(n => n.id === edge.target);
-                                                if (!targetNode) return null;
-                                                if (targetNode.type === 'logic') return null;
+                                            {(() => {
+                                                // Prepare combined list of interactables (Actions defined in data + Generic Edges)
+                                                const actions = currentNode.data?.actions || [];
+                                                const usedEdges = new Set();
 
-                                                // UI Configuration based on Node Type
-                                                // Look ahead for Music nodes to show the real destination
-                                                let displayNode = targetNode;
-                                                while (displayNode && displayNode.type === 'music') {
-                                                    const outEdges = edges.filter(e => e.source === displayNode.id);
-                                                    if (outEdges.length > 0) {
-                                                        const next = nodes.find(n => n.id === outEdges[0].target);
-                                                        if (next) displayNode = next;
-                                                        else break;
-                                                    } else {
-                                                        break;
+                                                // 1. Explicit Actions
+                                                const actionItems = actions.map(action => {
+                                                    let edge = options.find(e => e.sourceHandle === action.id);
+
+                                                    // Intelligent Fallback:
+                                                    // If this is the ONLY action, and the user hasn't re-wired the connection (so it's still using the default null sourceHandle),
+                                                    // but a connection EXISTS, we assume they want that connection to apply to this action.
+                                                    if (!edge && actions.length === 1) {
+                                                        edge = options.find(e => !e.sourceHandle);
                                                     }
-                                                }
 
-                                                // UI Configuration based on Display Node Type
-                                                let icon = ArrowRight;
-                                                let color = "text-indigo-400";
-                                                let bg = "bg-indigo-500/10";
-                                                let action = "PROCEED";
-                                                let title = displayNode.data.label || "Continue";
+                                                    if (edge) usedEdges.add(edge.id);
+                                                    return {
+                                                        isAction: true,
+                                                        id: action.id,
+                                                        label: action.label,
+                                                        variant: action.variant,
+                                                        target: edge ? edge.target : null,
+                                                        edgeId: edge ? edge.id : null
+                                                    };
+                                                });
 
-                                                if (displayNode.type === 'story') {
-                                                    icon = FileText;
-                                                    color = "text-blue-400";
-                                                    bg = "bg-blue-500/10";
-                                                    action = "NARRATIVE";
-                                                } else if (displayNode.type === 'suspect') {
-                                                    icon = User;
-                                                    color = "text-red-400";
-                                                    bg = "bg-red-500/10";
-                                                    action = "INVESTIGATE";
-                                                    title = displayNode.data.name || displayNode.data.label;
-                                                } else if (displayNode.type === 'evidence') {
-                                                    icon = Search;
-                                                    color = "text-yellow-400";
-                                                    bg = "bg-yellow-500/10";
-                                                    action = "EXAMINE";
-                                                } else if (displayNode.type === 'media') {
-                                                    icon = ImageIcon;
-                                                    color = "text-orange-400";
-                                                    bg = "bg-orange-500/10";
-                                                    action = "VIEW ASSET";
-                                                } else if (displayNode.type === 'terminal') {
-                                                    icon = Terminal;
-                                                    color = "text-green-400";
-                                                    bg = "bg-green-500/10";
-                                                    action = "HACK TERMINAL";
-                                                } else if (displayNode.type === 'message') {
-                                                    icon = MessageSquare;
-                                                    color = "text-violet-400";
-                                                    bg = "bg-violet-500/10";
-                                                    action = "INCOMING";
-                                                }
+                                                // 2. Remaining Edges (Default/Standard Exits)
+                                                const standardItems = options
+                                                    .filter(e => !usedEdges.has(e.id))
+                                                    .map(edge => ({
+                                                        isAction: false,
+                                                        id: edge.id,
+                                                        target: edge.target,
+                                                        edgeId: edge.id
+                                                    }));
 
-                                                const Icon = icon;
+                                                const allItems = [...actionItems, ...standardItems];
 
-                                                return (
-                                                    <motion.button
-                                                        key={edge.id}
-                                                        whileHover={{ scale: 1.02, x: 5 }}
-                                                        whileTap={{ scale: 0.98 }}
-                                                        onClick={() => handleOptionClick(edge.target)}
-                                                        className="w-full text-left bg-zinc-900/50 border border-zinc-800 hover:border-indigo-500/50 p-4 rounded-xl transition-all group hover:bg-zinc-900 relative overflow-hidden flex items-center gap-4 hover:shadow-lg hover:shadow-indigo-500/10"
-                                                    >
-                                                        <div className={`p-3 rounded-lg ${bg} border border-white/5 group-hover:scale-110 transition-transform shrink-0`}>
-                                                            <Icon className={`w-5 h-5 ${color}`} />
-                                                        </div>
+                                                if (allItems.length === 0) return null;
 
-                                                        <div className="flex-1 min-w-0">
-                                                            <div className={`text-[10px] font-bold tracking-widest uppercase mb-1 ${color} opacity-70 group-hover:opacity-100 transition-opacity`}>
-                                                                {action}
+                                                return allItems.map((item, idx) => {
+                                                    // Default Styles
+                                                    let icon = ArrowRight;
+                                                    let color = "text-indigo-400";
+                                                    let bg = "bg-indigo-500/10";
+                                                    let actionLabel = "PROCEED";
+                                                    let title = "";
+
+                                                    // Resolve Target Node info if it exists
+                                                    let targetNode = item.target ? nodes.find(n => n.id === item.target) : null;
+
+                                                    // Handle Music Node skipping
+                                                    let displayNode = targetNode;
+                                                    while (displayNode && displayNode.type === 'music') {
+                                                        const outEdges = edges.filter(e => e.source === displayNode.id);
+                                                        if (outEdges.length > 0) {
+                                                            const next = nodes.find(n => n.id === outEdges[outEdges.length - 1].target); // simplistic next
+                                                            if (next) displayNode = next;
+                                                            else break;
+                                                        } else break;
+                                                    }
+
+                                                    if (displayNode) {
+                                                        title = displayNode.data.label || displayNode.data.name || "Continue";
+
+                                                        // Type-based icons / colors
+                                                        if (displayNode.type === 'story') {
+                                                            icon = FileText;
+                                                            color = "text-blue-400";
+                                                            bg = "bg-blue-500/10";
+                                                            actionLabel = "NARRATIVE";
+                                                        } else if (displayNode.type === 'suspect') {
+                                                            icon = User;
+                                                            color = "text-red-400";
+                                                            bg = "bg-red-500/10";
+                                                            actionLabel = "INVESTIGATE";
+                                                            title = displayNode.data.name || title;
+                                                        } else if (displayNode.type === 'evidence') {
+                                                            icon = Search;
+                                                            color = "text-yellow-400";
+                                                            bg = "bg-yellow-500/10";
+                                                            actionLabel = "EXAMINE";
+                                                        } else if (displayNode.type === 'media') {
+                                                            icon = ImageIcon;
+                                                            color = "text-orange-400";
+                                                            bg = "bg-orange-500/10";
+                                                            actionLabel = "VIEW ASSET";
+                                                        } else if (displayNode.type === 'terminal') {
+                                                            icon = Terminal;
+                                                            color = "text-green-400";
+                                                            bg = "bg-green-500/10";
+                                                            actionLabel = "HACK TERMINAL";
+                                                        } else if (displayNode.type === 'message') {
+                                                            icon = MessageSquare;
+                                                            color = "text-violet-400";
+                                                            bg = "bg-violet-500/10";
+                                                            actionLabel = "INCOMING";
+                                                        } else if (displayNode.type === 'action') {
+                                                            icon = MousePointerClick;
+                                                            color = "text-indigo-400";
+                                                            bg = "bg-indigo-500/10";
+                                                            actionLabel = "INTERACTION";
+                                                        }
+                                                    }
+
+                                                    // Override if it is an Explicit Action
+                                                    if (item.isAction) {
+                                                        icon = MousePointerClick;
+                                                        title = item.label;
+                                                        actionLabel = "DECISION";
+                                                        if (item.variant === 'danger') {
+                                                            color = "text-red-400";
+                                                            bg = "bg-red-500/10";
+                                                        } else if (item.variant === 'primary') {
+                                                            color = "text-blue-400";
+                                                            bg = "bg-blue-500/10";
+                                                        }
+                                                    }
+
+                                                    // "Disabled" state look
+                                                    if (!item.target) {
+                                                        color = "text-zinc-600";
+                                                        bg = "bg-zinc-800/50";
+                                                        title = item.label || "Unconnected Path";
+                                                        actionLabel = "UNAVAILABLE";
+                                                    }
+
+                                                    const Icon = icon;
+
+                                                    return (
+                                                        <motion.button
+                                                            key={`${item.id}-${idx}`}
+                                                            layout
+                                                            initial={{ opacity: 0, x: -20 }}
+                                                            animate={{ opacity: 1, x: 0 }}
+                                                            transition={{ delay: idx * 0.1 }}
+                                                            whileHover={item.target ? { scale: 1.02, x: 5 } : {}}
+                                                            whileTap={item.target ? { scale: 0.98 } : {}}
+                                                            onClick={() => item.target && handleOptionClick(item.target)}
+                                                            disabled={!item.target}
+                                                            className={`w-full text-left border p-4 rounded-xl transition-all group relative overflow-hidden flex items-center gap-4 
+                                                            ${!item.target ? 'cursor-not-allowed border-zinc-900 opacity-60' : 'hover:shadow-lg hover:shadow-indigo-500/10 cursor-pointer'}
+                                                            ${item.isAction && item.target
+                                                                    ? `${bg} ${color.replace('text', 'border')} hover:brightness-110`
+                                                                    : "bg-zinc-900/50 border-zinc-800 hover:border-indigo-500/50 hover:bg-zinc-900"
+                                                                }`}
+                                                        >
+                                                            <div className={`p-3 rounded-lg ${item.isAction ? 'bg-black/20' : bg} border border-white/5 ${item.target && 'group-hover:scale-110'} transition-transform shrink-0`}>
+                                                                <Icon className={`w-5 h-5 ${item.isAction ? 'text-white' : color}`} />
                                                             </div>
-                                                            <div className="font-bold text-zinc-200 group-hover:text-white truncate text-lg transition-colors">
-                                                                {title}
-                                                            </div>
-                                                        </div>
 
-                                                        <ArrowRight className="w-5 h-5 text-zinc-600 group-hover:text-indigo-400 transform group-hover:translate-x-1 transition-all shrink-0" />
-                                                    </motion.button>
-                                                );
-                                            })}
+                                                            <div className="flex-1 min-w-0">
+                                                                <div className={`text-[10px] font-bold tracking-widest uppercase mb-1 ${item.isAction ? 'text-white/70' : color} opacity-70 group-hover:opacity-100 transition-opacity`}>
+                                                                    {actionLabel}
+                                                                </div>
+                                                                <div className={`font-bold truncate text-lg transition-colors ${item.isAction ? 'text-white' : 'text-zinc-200 group-hover:text-white'}`}>
+                                                                    {title}
+                                                                </div>
+                                                            </div>
+
+                                                            {item.target && (
+                                                                <ArrowRight className={`w-5 h-5 transform group-hover:translate-x-1 transition-all shrink-0 ${item.isAction ? 'text-white/70' : 'text-zinc-600 group-hover:text-indigo-400'}`} />
+                                                            )}
+                                                        </motion.button>
+                                                    );
+                                                });
+                                            })()}
                                         </div>
                                     )}
                                 </div>
                             )
-                        )
-                        }
+                        )}
                     </motion.div>
                 </AnimatePresence>
             </div>
