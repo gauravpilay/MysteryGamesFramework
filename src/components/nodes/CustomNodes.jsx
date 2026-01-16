@@ -201,8 +201,43 @@ export const EvidenceNode = memo(({ id, data, selected }) => {
                 <div className="space-y-2">
                     {/* Label managed by NodeWrapper now */}
                     <TextArea placeholder="Description of the clue..." rows={2} value={data.description} onChange={(e) => handleChange('description', e.target.value)} />
-                    <div className="p-2 border border-dashed border-zinc-700 rounded text-center text-[10px] text-zinc-500 cursor-pointer hover:bg-zinc-900/50">
-                        Click to upload image (Simulated)
+
+                    {/* Image Upload for Evidence */}
+                    <div className="relative group pt-2">
+                        {data.image ? (
+                            <div className="relative w-full h-32 bg-zinc-900 rounded overflow-hidden mb-1 border border-zinc-800 group-hover:border-zinc-600 transition-colors">
+                                <img src={data.image} alt="Evidence" className="w-full h-full object-cover" />
+                                <button
+                                    onClick={(e) => { e.stopPropagation(); handleChange('image', null); }}
+                                    className="absolute top-2 right-2 p-1.5 bg-black/60 hover:bg-black/90 backdrop-blur-sm rounded-full text-white transition-all shadow-lg"
+                                    title="Remove Image"
+                                >
+                                    <Trash2 className="w-3 h-3" />
+                                </button>
+                            </div>
+                        ) : (
+                            <div className="relative w-full">
+                                <input
+                                    type="file"
+                                    accept="image/*"
+                                    className="absolute inset-0 w-full h-full opacity-0 cursor-pointer z-10"
+                                    onChange={(e) => {
+                                        const file = e.target.files[0];
+                                        if (file) {
+                                            const reader = new FileReader();
+                                            reader.onloadend = () => handleChange('image', reader.result);
+                                            reader.readAsDataURL(file);
+                                        }
+                                    }}
+                                />
+                                <div className="p-3 border border-dashed border-zinc-700 rounded text-center text-zinc-500 group-hover:bg-zinc-900/50 group-hover:border-zinc-500 transition-colors cursor-pointer">
+                                    <div className="flex flex-col items-center gap-1">
+                                        <ImageIcon className="w-4 h-4 mb-1" />
+                                        <span className="text-[10px] uppercase font-bold tracking-wider">Upload Evidence Image</span>
+                                    </div>
+                                </div>
+                            </div>
+                        )}
                     </div>
                 </div>
             </NodeWrapper>

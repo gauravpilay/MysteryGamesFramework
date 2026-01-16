@@ -949,9 +949,9 @@ const GamePreview = ({ nodes, edges, onClose, gameMetadata }) => {
                                                     <span className="text-xs font-bold text-zinc-500 uppercase">{node.type}</span>
                                                 </div>
                                                 <h4 className="font-bold text-zinc-200 group-hover:text-indigo-400 truncate">{node.data.label}</h4>
-                                                {node.type === 'media' && node.data.mediaType === 'image' && (
+                                                {((node.type === 'media' && node.data.mediaType === 'image') || (node.type === 'evidence' && node.data.image)) && (
                                                     <div className="mt-3 aspect-video bg-zinc-900 rounded overflow-hidden">
-                                                        <img src={node.data.url} alt="" className="w-full h-full object-cover opacity-50 group-hover:opacity-80 transition-opacity" />
+                                                        <img src={node.data.image || node.data.url} alt="" className="w-full h-full object-cover opacity-50 group-hover:opacity-80 transition-opacity" />
                                                     </div>
                                                 )}
                                                 <p className="text-xs text-zinc-600 mt-2 line-clamp-2">{node.data.description || node.data.text}</p>
@@ -1070,6 +1070,11 @@ const GamePreview = ({ nodes, edges, onClose, gameMetadata }) => {
                                     </div>
 
                                     <Card className="p-8 bg-black border-yellow-900/30 mb-6">
+                                        {activeModalNode.data.image && (
+                                            <div className="w-full mb-6 rounded-lg overflow-hidden border border-yellow-900/50 shadow-2xl">
+                                                <img src={activeModalNode.data.image} alt="Evidence" className="w-full h-auto object-contain max-h-[400px]" />
+                                            </div>
+                                        )}
                                         <h3 className="text-2xl font-bold text-yellow-200 mb-4">{activeModalNode.data.label}</h3>
                                         <p className="text-zinc-300 text-lg leading-relaxed">{activeModalNode.data.description}</p>
                                     </Card>
