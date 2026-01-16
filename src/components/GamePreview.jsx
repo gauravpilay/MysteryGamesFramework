@@ -234,19 +234,46 @@ const GamePreview = ({ nodes, edges, onClose, gameMetadata }) => {
     // ...
 
     const handleOptionClick = (targetId) => {
-        // Add current to history
-        setHistory(prev => [...prev, currentNodeId]);
-        setCurrentNodeId(targetId);
+        let nextNodeId = targetId;
+        let nextNode = nodes.find(n => n.id === nextNodeId);
+        const intermediateIds = [];
 
-        // Find the target node
-        const targetNode = nodes.find(n => n.id === targetId);
+        // Handle seamless transition for Music nodes
+        while (nextNode && nextNode.type === 'music') {
+            if (nextNode.data.url) {
+                setAudioSource(nextNode.data.url);
+                addLog(`AUDIO: Background track started.`);
+            }
+            intermediateIds.push(nextNodeId);
+
+            // Find next node
+            const outEdges = edges.filter(e => e.source === nextNode.id);
+            if (outEdges.length > 0) {
+                nextNodeId = outEdges[0].target;
+                nextNode = nodes.find(n => n.id === nextNodeId);
+            } else {
+                break;
+            }
+        }
+
+        // Add current and intermediates to history
+        setHistory(prev => {
+            const newHistory = [...prev, currentNodeId];
+            return [...newHistory, ...intermediateIds];
+        });
+
+        setCurrentNodeId(nextNodeId);
 
         // If it's a type that requires a popup, set it as active modal AND add to inventory
-        if (targetNode && ['suspect', 'evidence', 'terminal', 'message', 'media'].includes(targetNode.type)) {
-            setActiveModalNode(targetNode);
-            setInventory(prev => new Set([...prev, targetId]));
+        if (nextNode && ['suspect', 'evidence', 'terminal', 'message', 'media'].includes(nextNode.type)) {
+            setActiveModalNode(nextNode);
+            setInventory(prev => new Set([...prev, nextNodeId, ...intermediateIds]));
         } else {
             setActiveModalNode(null);
+            // Ensure intermediate nodes are tracked in inventory if needed (usually just history is sufficient)
+            if (intermediateIds.length > 0) {
+                setInventory(prev => new Set([...prev, ...intermediateIds]));
+            }
         }
     };
 
@@ -579,39 +606,53 @@ const GamePreview = ({ nodes, edges, onClose, gameMetadata }) => {
                                             if (targetNode.type === 'logic') return null;
 
                                             // UI Configuration based on Node Type
+                                            // Look ahead for Music nodes to show the real destination
+                                            let displayNode = targetNode;
+                                            while (displayNode && displayNode.type === 'music') {
+                                                const outEdges = edges.filter(e => e.source === displayNode.id);
+                                                if (outEdges.length > 0) {
+                                                    const next = nodes.find(n => n.id === outEdges[0].target);
+                                                    if (next) displayNode = next;
+                                                    else break;
+                                                } else {
+                                                    break;
+                                                }
+                                            }
+
+                                            // UI Configuration based on Display Node Type
                                             let icon = ArrowRight;
                                             let color = "text-indigo-400";
                                             let bg = "bg-indigo-500/10";
                                             let action = "PROCEED";
-                                            let title = targetNode.data.label || "Continue";
+                                            let title = displayNode.data.label || "Continue";
 
-                                            if (targetNode.type === 'story') {
+                                            if (displayNode.type === 'story') {
                                                 icon = FileText;
                                                 color = "text-blue-400";
                                                 bg = "bg-blue-500/10";
                                                 action = "NARRATIVE";
-                                            } else if (targetNode.type === 'suspect') {
+                                            } else if (displayNode.type === 'suspect') {
                                                 icon = User;
                                                 color = "text-red-400";
                                                 bg = "bg-red-500/10";
                                                 action = "INVESTIGATE";
-                                                title = targetNode.data.name || targetNode.data.label;
-                                            } else if (targetNode.type === 'evidence') {
+                                                title = displayNode.data.name || displayNode.data.label;
+                                            } else if (displayNode.type === 'evidence') {
                                                 icon = Search;
                                                 color = "text-yellow-400";
                                                 bg = "bg-yellow-500/10";
                                                 action = "EXAMINE";
-                                            } else if (targetNode.type === 'media') {
+                                            } else if (displayNode.type === 'media') {
                                                 icon = ImageIcon;
                                                 color = "text-orange-400";
                                                 bg = "bg-orange-500/10";
                                                 action = "VIEW ASSET";
-                                            } else if (targetNode.type === 'terminal') {
+                                            } else if (displayNode.type === 'terminal') {
                                                 icon = Terminal;
                                                 color = "text-green-400";
                                                 bg = "bg-green-500/10";
                                                 action = "HACK TERMINAL";
-                                            } else if (targetNode.type === 'message') {
+                                            } else if (displayNode.type === 'message') {
                                                 icon = MessageSquare;
                                                 color = "text-violet-400";
                                                 bg = "bg-violet-500/10";
