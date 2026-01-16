@@ -39,6 +39,35 @@ export const IdentifyNode = memo(({ id, data, selected }) => {
                             onChange={(e) => handleChange('reasoning', e.target.value)}
                         />
                     </div>
+
+                    <div className="flex gap-2 pt-2 border-t border-red-900/20">
+                        <div className="w-1/2">
+                            <p className="text-[10px] text-zinc-500 mb-1">Reward (Success)</p>
+                            <div className="flex items-center gap-1">
+                                <Plus className="w-3 h-3 text-green-500" />
+                                <InputField
+                                    type="number"
+                                    placeholder="0"
+                                    value={data.score}
+                                    onChange={(e) => handleChange('score', parseInt(e.target.value) || 0)}
+                                    className="bg-black/50 text-green-400 font-bold"
+                                />
+                            </div>
+                        </div>
+                        <div className="w-1/2">
+                            <p className="text-[10px] text-zinc-500 mb-1">Penalty (Failure)</p>
+                            <div className="flex items-center gap-1">
+                                <Trash2 className="w-3 h-3 text-red-500" />
+                                <InputField
+                                    type="number"
+                                    placeholder="0"
+                                    value={data.penalty}
+                                    onChange={(e) => handleChange('penalty', parseInt(e.target.value) || 0)}
+                                    className="bg-black/50 text-red-400 font-bold"
+                                />
+                            </div>
+                        </div>
+                    </div>
                 </div>
             </NodeWrapper>
             {/* No output handle needed usually as this ends the game? 

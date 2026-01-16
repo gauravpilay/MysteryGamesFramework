@@ -443,8 +443,16 @@ const GamePreview = ({ nodes, edges, onClose, gameMetadata }) => {
         }
 
         if (isCorrect) {
+            if (activeAccusationNode && activeAccusationNode.data.score) {
+                setScore(s => s + activeAccusationNode.data.score);
+                addLog(`CASE CLOSED: +${activeAccusationNode.data.score} Points`);
+            }
             setAccusationResult('success');
         } else {
+            if (activeAccusationNode && activeAccusationNode.data.penalty) {
+                setScore(s => Math.max(0, s - activeAccusationNode.data.penalty));
+                addLog(`WRONG ACCUSATION: -${activeAccusationNode.data.penalty} Points`);
+            }
             setAccusationResult('failure');
         }
     };
