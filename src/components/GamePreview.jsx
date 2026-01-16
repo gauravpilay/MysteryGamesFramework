@@ -818,13 +818,39 @@ const GamePreview = ({ nodes, edges, onClose, gameMetadata }) => {
                                                     if (item.isAction) {
                                                         icon = MousePointerClick;
                                                         title = item.label;
-                                                        actionLabel = "DECISION";
-                                                        if (item.variant === 'danger') {
-                                                            color = "text-red-400";
-                                                            bg = "bg-red-500/10";
-                                                        } else if (item.variant === 'primary') {
-                                                            color = "text-blue-400";
-                                                            bg = "bg-blue-500/10";
+                                                        actionLabel = ""; // User requested cleaner look
+                                                        switch (item.variant) {
+                                                            case 'danger':
+                                                                color = "text-red-400";
+                                                                bg = "bg-gradient-to-r from-red-950/80 to-red-900/20 border-red-500/50 hover:from-red-900 hover:to-red-900/40";
+                                                                break;
+                                                            case 'primary':
+                                                                color = "text-blue-400";
+                                                                bg = "bg-gradient-to-r from-blue-950/80 to-blue-900/20 border-blue-500/50 hover:from-blue-900 hover:to-blue-900/40";
+                                                                break;
+                                                            case 'success':
+                                                                color = "text-emerald-400";
+                                                                bg = "bg-gradient-to-r from-emerald-950/80 to-emerald-900/20 border-emerald-500/50 hover:from-emerald-900 hover:to-emerald-900/40";
+                                                                break;
+                                                            case 'warning':
+                                                                color = "text-amber-400";
+                                                                bg = "bg-gradient-to-r from-amber-950/80 to-amber-900/20 border-amber-500/50 hover:from-amber-900 hover:to-amber-900/40";
+                                                                break;
+                                                            case 'mystic':
+                                                                color = "text-violet-400";
+                                                                bg = "bg-gradient-to-r from-violet-950/80 to-violet-900/20 border-violet-500/50 hover:from-violet-900 hover:to-violet-900/40";
+                                                                break;
+                                                            case 'tech':
+                                                                color = "text-cyan-400";
+                                                                bg = "bg-gradient-to-r from-cyan-950/80 to-cyan-900/20 border-cyan-500/50 hover:from-cyan-900 hover:to-cyan-900/40";
+                                                                break;
+                                                            case 'outline':
+                                                                color = "text-zinc-300";
+                                                                bg = "bg-transparent border-zinc-600 hover:bg-zinc-800";
+                                                                break;
+                                                            default:
+                                                                // Default 
+                                                                break;
                                                         }
                                                     }
 
@@ -851,20 +877,22 @@ const GamePreview = ({ nodes, edges, onClose, gameMetadata }) => {
                                                             disabled={!item.target}
                                                             className={`w-full text-left border p-4 rounded-xl transition-all group relative overflow-hidden flex items-center gap-4 
                                                             ${!item.target ? 'cursor-not-allowed border-zinc-900 opacity-60' : 'hover:shadow-lg hover:shadow-indigo-500/10 cursor-pointer'}
-                                                            ${item.isAction && item.target
-                                                                    ? `${bg} ${color.replace('text', 'border')} hover:brightness-110`
+                                                            ${item.isAction && item.target && item.variant !== 'default'
+                                                                    ? `${bg} ${item.variant !== 'outline' ? color.replace('text', 'border') : ''} hover:shadow-[0_0_15px_-5px_var(--tw-shadow-color)] shadow-current`
                                                                     : "bg-zinc-900/50 border-zinc-800 hover:border-indigo-500/50 hover:bg-zinc-900"
                                                                 }`}
                                                         >
-                                                            <div className={`p-3 rounded-lg ${item.isAction ? 'bg-black/20' : bg} border border-white/5 ${item.target && 'group-hover:scale-110'} transition-transform shrink-0`}>
+                                                            <div className={`p-3 rounded-lg ${item.isAction ? 'bg-black/40 shadow-inner' : bg} border border-white/5 ${item.target && 'group-hover:scale-110'} transition-transform shrink-0`}>
                                                                 <Icon className={`w-5 h-5 ${item.isAction ? 'text-white' : color}`} />
                                                             </div>
 
                                                             <div className="flex-1 min-w-0">
-                                                                <div className={`text-[10px] font-bold tracking-widest uppercase mb-1 ${item.isAction ? 'text-white/70' : color} opacity-70 group-hover:opacity-100 transition-opacity`}>
-                                                                    {actionLabel}
-                                                                </div>
-                                                                <div className={`font-bold truncate text-lg transition-colors ${item.isAction ? 'text-white' : 'text-zinc-200 group-hover:text-white'}`}>
+                                                                {actionLabel && (
+                                                                    <div className={`text-[10px] font-bold tracking-widest uppercase mb-1 ${item.isAction ? 'text-white/70' : color} opacity-70 group-hover:opacity-100 transition-opacity`}>
+                                                                        {actionLabel}
+                                                                    </div>
+                                                                )}
+                                                                <div className={`font-bold truncate text-lg transition-colors ${item.isAction ? 'text-white drop-shadow-md' : 'text-zinc-200 group-hover:text-white'}`}>
                                                                     {title}
                                                                 </div>
                                                             </div>

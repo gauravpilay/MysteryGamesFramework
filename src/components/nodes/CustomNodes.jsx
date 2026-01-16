@@ -78,13 +78,17 @@ const NodeWrapper = ({ children, title, icon: Icon, colorClass = "border-zinc-70
                                 />
                                 <div className="flex justify-between items-center mt-1">
                                     <select
-                                        className="bg-black/50 border border-zinc-800 text-[10px] text-zinc-400 rounded px-1 py-0.5"
+                                        className="bg-black/50 border border-zinc-800 text-[10px] text-zinc-400 rounded px-1 py-0.5 max-w-[80px]"
                                         value={action.variant || 'default'}
                                         onChange={(e) => updateAction(action.id, { variant: e.target.value })}
                                     >
                                         <option value="default">Def</option>
                                         <option value="primary">Blue</option>
                                         <option value="danger">Red</option>
+                                        <option value="success">Green</option>
+                                        <option value="warning">Yel</option>
+                                        <option value="mystic">Purp</option>
+                                        <option value="tech">Cyan</option>
                                     </select>
                                     <button onClick={() => deleteAction(action.id)} className="text-zinc-600 hover:text-red-500">
                                         <Trash2 className="w-3 h-3" />
@@ -483,11 +487,14 @@ export const ActionNode = memo(({ id, data, selected }) => {
                                 value={data.variant || 'default'}
                                 onChange={(e) => handleChange('variant', e.target.value)}
                             >
-                                <option value="default">Default</option>
+                                <option value="default">Default (Zinc)</option>
                                 <option value="primary">Primary (Blue)</option>
                                 <option value="danger">Danger (Red)</option>
+                                <option value="success">Success (Green)</option>
+                                <option value="warning">Warning (Yellow)</option>
+                                <option value="mystic">Mystic (Purple)</option>
+                                <option value="tech">Tech (Cyan)</option>
                                 <option value="outline">Outline</option>
-                                <option value="ghost">Ghost (Minimal)</option>
                             </select>
                         </div>
                         <div className="w-1/2">
