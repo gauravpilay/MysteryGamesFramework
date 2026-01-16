@@ -946,7 +946,7 @@ const GamePreview = ({ nodes, edges, onClose, gameMetadata }) => {
 
                             {/* Media Layout */}
                             {activeModalNode.type === 'media' && (
-                                <div className="p-0 bg-black h-full flex flex-col">
+                                <div className="p-0 bg-black flex flex-col w-full h-full min-h-0">
                                     <div className="relative p-6 border-b border-orange-500/30 flex items-start justify-between bg-zinc-900 overflow-hidden shrink-0">
                                         {/* Background Decoration */}
                                         <div className="absolute inset-0 bg-gradient-to-r from-orange-900/20 via-transparent to-transparent pointer-events-none" />
@@ -976,10 +976,9 @@ const GamePreview = ({ nodes, edges, onClose, gameMetadata }) => {
                                         </Button>
                                     </div>
 
-                                    <div className="flex-1 overflow-y-auto p-4 md:p-8 flex flex-col items-center">
+                                    <div className="flex-1 overflow-y-auto p-4 md:p-8 flex flex-col items-center min-h-0">
                                         {activeModalNode.data.mediaType === 'video' ? (
-                                            <div className="w-full max-w-3xl aspect-video bg-black rounded-lg overflow-hidden border border-zinc-800 shadow-2xl mb-6">
-                                                {/* Simple heuristic for YouTube embeds */}
+                                            <div className="w-full max-w-3xl aspect-video bg-black rounded-lg overflow-hidden border border-zinc-800 shadow-2xl mb-6 shrink-0">
                                                 {(activeModalNode.data.url?.includes('youtube.com') || activeModalNode.data.url?.includes('youtu.be')) ? (
                                                     <iframe
                                                         src={activeModalNode.data.url.replace("watch?v=", "embed/").replace("youtu.be/", "www.youtube.com/embed/")}
@@ -993,22 +992,22 @@ const GamePreview = ({ nodes, edges, onClose, gameMetadata }) => {
                                                 )}
                                             </div>
                                         ) : (
-                                            <div className="w-full max-w-3xl mb-6">
+                                            <div className="w-full max-w-3xl mb-6 flex justify-center shrink-0">
                                                 <img
                                                     src={activeModalNode.data.url}
                                                     alt="Asset"
-                                                    className="w-full h-auto rounded-lg border border-zinc-800 shadow-2xl"
+                                                    className="max-w-full max-h-[60vh] h-auto w-auto mx-auto rounded-lg border border-zinc-800 shadow-2xl block"
                                                 />
                                             </div>
                                         )}
 
-                                        <div className="w-full max-w-3xl bg-zinc-900/80 p-6 rounded-xl border border-zinc-800 backdrop-blur-sm">
+                                        <div className="w-full max-w-3xl bg-zinc-900/80 p-6 rounded-xl border border-zinc-800 backdrop-blur-sm shrink-0">
                                             <h3 className="text-orange-200 font-bold mb-2">{activeModalNode.data.label}</h3>
                                             <p className="text-zinc-300 leading-relaxed">{activeModalNode.data.text}</p>
                                         </div>
                                     </div>
 
-                                    <div className="p-4 border-t border-zinc-800 bg-zinc-900/50 flex justify-end shrink-0">
+                                    <div className="p-4 border-t border-zinc-800 bg-zinc-900/50 flex justify-end shrink-0 z-20">
                                         <Button
                                             className="bg-orange-600 hover:bg-orange-700 text-white"
                                             onClick={() => {
