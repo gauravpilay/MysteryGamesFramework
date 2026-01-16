@@ -3,6 +3,59 @@ import { Button, Card } from './ui/shared';
 import { X, User, Search, Terminal, MessageSquare, FileText, ArrowRight, ShieldAlert, CheckCircle, AlertTriangle, Volume2, VolumeX, Image as ImageIcon, Briefcase, Star } from 'lucide-react';
 import { motion, AnimatePresence } from 'framer-motion';
 
+const BackgroundEffect = () => (
+    <div className="fixed inset-0 pointer-events-none z-0 overflow-hidden">
+        <style>
+            {`
+            @keyframes scanline {
+                0% { transform: translateY(-100%); }
+                100% { transform: translateY(100%); }
+            }
+            .animate-scanline {
+                animation: scanline 8s linear infinite;
+            }
+            `}
+        </style>
+        {/* Dark Gradient Background */}
+        <div className="absolute inset-0 bg-[radial-gradient(circle_at_center,_var(--tw-gradient-stops))] from-zinc-900 via-black to-black opacity-80"></div>
+
+        {/* Animated Grid */}
+        <div className="absolute inset-0 opacity-[0.03]" style={{
+            backgroundImage: 'linear-gradient(to right, #4f46e5 1px, transparent 1px), linear-gradient(to bottom, #4f46e5 1px, transparent 1px)',
+            backgroundSize: '40px 40px'
+        }}></div>
+
+        {/* Scanline Animation */}
+        <div className="absolute inset-0 bg-gradient-to-b from-transparent via-indigo-500/5 to-transparent h-screen w-full animate-scanline opacity-20 pointer-events-none mix-blend-overlay"></div>
+
+        {/* Vignette */}
+        <div className="absolute inset-0 bg-[radial-gradient(circle,_transparent_50%,_black_100%)] opacity-80"></div>
+    </div>
+);
+
+const TypewriterText = ({ text }) => {
+    const [displayedText, setDisplayedText] = useState('');
+    const index = useRef(0);
+
+    useEffect(() => {
+        setDisplayedText('');
+        index.current = 0;
+
+        const timer = setInterval(() => {
+            if (index.current < text.length) {
+                setDisplayedText((prev) => prev + text.charAt(index.current));
+                index.current++;
+            } else {
+                clearInterval(timer);
+            }
+        }, 15); // Speed
+
+        return () => clearInterval(timer);
+    }, [text]);
+
+    return <span>{displayedText}<span className="animate-pulse text-indigo-500">_</span></span>;
+};
+
 const GamePreview = ({ nodes, edges, onClose, gameMetadata }) => {
     // Game State
     const [currentNodeId, setCurrentNodeId] = useState(null);
@@ -357,22 +410,19 @@ const GamePreview = ({ nodes, edges, onClose, gameMetadata }) => {
         return `Proceed to ${node.data.label}`;
     }
 
+
+
     // Render Node Content (Background / Story)
     const renderContent = () => {
-        if (!currentNode) return <div className="text-zinc-500">Initializing Neural Link...</div>;
+        if (!currentNode) return <div className="text-zinc-500 animate-pulse">Initializing Neural Link...</div>;
 
         const { type, data } = currentNode;
 
-        // If we are currently "at" a non-story node (like we just clicked it), 
-        // we might want to show the LAST story node or a generic background.
-        // For now, let's just render the story content if it's a story node, otherwise show a placeholder.
         if (type !== 'story') {
-            // If we are at a terminal/evidence node, the popup handles the interaction.
-            // The main view can just show "Interaction in progress..."
             return (
                 <div className="flex flex-col items-center justify-center h-64 opacity-50">
-                    <div className="animate-pulse text-zinc-500 text-sm tracking-widest uppercase">
-                        secure link established // accessing subsystem
+                    <div className="animate-pulse text-zinc-500 text-sm tracking-widest uppercase font-mono">
+                        secure link established // accessing subsystem...
                     </div>
                 </div>
             )
@@ -382,33 +432,38 @@ const GamePreview = ({ nodes, edges, onClose, gameMetadata }) => {
         const isBriefing = data.label.toLowerCase().includes('briefing') || history.length === 0;
 
         return (
-            <div className="space-y-8 animate-in fade-in slide-in-from-bottom-4 duration-700">
+            <div className="space-y-8 animate-in fade-in slide-in-from-bottom-4 duration-700 relative z-10">
                 {isBriefing && (
                     <div className="text-center mb-8">
                         <motion.div
                             initial={{ scale: 0.9, opacity: 0 }}
                             animate={{ scale: 1, opacity: 1 }}
                             transition={{ duration: 0.5 }}
-                            className="inline-block px-3 py-1 bg-red-500/10 border border-red-500/50 text-red-500 text-xs font-bold tracking-[0.2em] mb-4"
+                            className="inline-block px-3 py-1 bg-red-500/10 border border-red-500/50 text-red-500 text-xs font-bold tracking-[0.2em] mb-4 shadow-[0_0_15px_rgba(239,68,68,0.3)] backdrop-blur-sm"
                         >
                             TOP SECRET // CLEARANCE LEVEL 5
                         </motion.div>
-                        <h1 className="text-4xl md:text-5xl font-black text-transparent bg-clip-text bg-gradient-to-b from-white to-zinc-500 uppercase tracking-tighter">
+                        <motion.h1
+                            initial={{ y: 20, opacity: 0 }}
+                            animate={{ y: 0, opacity: 1 }}
+                            transition={{ delay: 0.2, duration: 0.8 }}
+                            className="text-4xl md:text-6xl font-black text-transparent bg-clip-text bg-gradient-to-b from-white via-zinc-200 to-zinc-600 uppercase tracking-tighter drop-shadow-2xl"
+                        >
                             {data.label}
-                        </h1>
+                        </motion.h1>
                     </div>
                 )}
 
                 {!isBriefing && (
                     <div className="flex items-center gap-3 text-blue-400 mb-2">
-                        <FileText className="w-6 h-6" />
-                        <h2 className="text-xl font-bold text-white">{data.label}</h2>
+                        <FileText className="w-6 h-6 animate-pulse" />
+                        <h2 className="text-xl font-bold text-white tracking-wide">{data.label}</h2>
                     </div>
                 )}
 
-                <Card className={`bg-zinc-900/50 border-zinc-800 p-8 ${isBriefing ? 'border-t-4 border-t-red-600 shadow-2xl shadow-red-900/20' : ''}`}>
-                    <p className={`text-zinc-200 leading-loose whitespace-pre-wrap ${isBriefing ? 'text-lg md:text-xl font-light' : 'text-lg'}`}>
-                        {data.text || data.content}
+                <Card className={`bg-zinc-900/50 border-zinc-800 p-8 backdrop-blur-md ${isBriefing ? 'border-t-4 border-t-red-600 shadow-[0_20px_50px_-12px_rgba(0,0,0,0.5)]' : ''} hover:border-zinc-700 transition-colors duration-500`}>
+                    <p className={`text-zinc-200 leading-loose whitespace-pre-wrap ${isBriefing ? 'text-lg md:text-xl font-light font-mono' : 'text-lg'}`}>
+                        {isBriefing ? <TypewriterText text={data.text || data.content || ""} /> : (data.text || data.content)}
                     </p>
                 </Card>
             </div>
@@ -459,6 +514,7 @@ const GamePreview = ({ nodes, edges, onClose, gameMetadata }) => {
 
     return (
         <div className="fixed inset-0 z-50 bg-black flex flex-col font-sans">
+            <BackgroundEffect />
             {/* Audio Player (Hidden) */}
             <audio ref={audioRef} />
 
@@ -662,10 +718,12 @@ const GamePreview = ({ nodes, edges, onClose, gameMetadata }) => {
                                             const Icon = icon;
 
                                             return (
-                                                <button
+                                                <motion.button
                                                     key={edge.id}
+                                                    whileHover={{ scale: 1.02, x: 5 }}
+                                                    whileTap={{ scale: 0.98 }}
                                                     onClick={() => handleOptionClick(edge.target)}
-                                                    className="w-full text-left bg-zinc-900/50 border border-zinc-800 hover:border-indigo-500/50 p-4 rounded-xl transition-all group hover:bg-zinc-900 relative overflow-hidden flex items-center gap-4 hover:shadow-lg hover:shadow-indigo-500/10 active:scale-[0.99]"
+                                                    className="w-full text-left bg-zinc-900/50 border border-zinc-800 hover:border-indigo-500/50 p-4 rounded-xl transition-all group hover:bg-zinc-900 relative overflow-hidden flex items-center gap-4 hover:shadow-lg hover:shadow-indigo-500/10"
                                                 >
                                                     <div className={`p-3 rounded-lg ${bg} border border-white/5 group-hover:scale-110 transition-transform shrink-0`}>
                                                         <Icon className={`w-5 h-5 ${color}`} />
@@ -681,7 +739,7 @@ const GamePreview = ({ nodes, edges, onClose, gameMetadata }) => {
                                                     </div>
 
                                                     <ArrowRight className="w-5 h-5 text-zinc-600 group-hover:text-indigo-400 transform group-hover:translate-x-1 transition-all shrink-0" />
-                                                </button>
+                                                </motion.button>
                                             );
                                         })}
                                     </div>
