@@ -12,8 +12,8 @@ import 'reactflow/dist/style.css';
 import { useParams, useNavigate } from 'react-router-dom';
 import { Button } from '../components/ui/shared';
 import { Logo } from '../components/ui/Logo';
-import { Save, ArrowLeft, X, FileText, User, Search, GitMerge, Terminal, MessageSquare, CircleHelp, Play, Settings, Music, Image as ImageIcon, MousePointerClick } from 'lucide-react';
-import { StoryNode, SuspectNode, EvidenceNode, LogicNode, TerminalNode, MessageNode, MusicNode, MediaNode, ActionNode } from '../components/nodes/CustomNodes';
+import { Save, ArrowLeft, X, FileText, User, Search, GitMerge, Terminal, MessageSquare, CircleHelp, Play, Settings, Music, Image as ImageIcon, MousePointerClick, Fingerprint } from 'lucide-react';
+import { StoryNode, SuspectNode, EvidenceNode, LogicNode, TerminalNode, MessageNode, MusicNode, MediaNode, ActionNode, IdentifyNode } from '../components/nodes/CustomNodes';
 import { TutorialOverlay } from '../components/ui/TutorialOverlay';
 import GamePreview from '../components/GamePreview';
 import { AnimatePresence } from 'framer-motion';
@@ -67,6 +67,11 @@ const NODE_HELP = {
         title: "Action Button",
         desc: "A interactive button for player choices. Use this to create branching paths or interaction points.",
         examples: ["Open Door", "Talk to Witness", "Examine Object"]
+    },
+    identify: {
+        title: "Identify Culprit",
+        desc: "The final challenge. Prompts the player to select the guilty suspect from the list. Success ends the game.",
+        examples: ["Final Accusation", "Solve the Case"]
     }
 };
 
@@ -80,6 +85,7 @@ const PALETTE_ITEMS = [
     { type: 'music', label: 'Background Audio', icon: Music, className: "hover:border-pink-500/50", iconClass: "text-pink-400" },
     { type: 'media', label: 'Media Asset', icon: ImageIcon, className: "hover:border-orange-500/50", iconClass: "text-orange-400" },
     { type: 'action', label: 'Action Button', icon: MousePointerClick, className: "hover:border-indigo-500/50", iconClass: "text-indigo-400" },
+    { type: 'identify', label: 'Identify Culprit', icon: Fingerprint, className: "hover:border-red-600/50", iconClass: "text-red-600" },
 ];
 
 const Editor = () => {
@@ -132,7 +138,8 @@ const Editor = () => {
         message: MessageNode,
         music: MusicNode,
         media: MediaNode,
-        action: ActionNode
+        action: ActionNode,
+        identify: IdentifyNode
     }), []);
 
     const [editingEdge, setEditingEdge] = useState(null); // { id: string, label: string }

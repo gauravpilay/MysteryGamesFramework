@@ -78,6 +78,7 @@ const GamePreview = ({ nodes, edges, onClose, gameMetadata }) => {
     // Accusation State
     const [showAccuseModal, setShowAccuseModal] = useState(false);
     const [accusationResult, setAccusationResult] = useState(null); // 'success' | 'failure' | null | 'timeout'
+    const [activeAccusationNode, setActiveAccusationNode] = useState(null);
 
     // Logic/Outputs State
     const [nodeOutputs, setNodeOutputs] = useState({});
@@ -371,6 +372,10 @@ const GamePreview = ({ nodes, edges, onClose, gameMetadata }) => {
         if (nextNode && ['suspect', 'evidence', 'terminal', 'message', 'media'].includes(nextNode.type)) {
             setActiveModalNode(nextNode);
             setInventory(prev => new Set([...prev, nextNodeId, ...intermediateIds]));
+        } else if (nextNode && nextNode.type === 'identify') {
+            setActiveAccusationNode(nextNode);
+            setShowAccuseModal(true);
+            setAccusationResult(null);
         } else {
             setActiveModalNode(null);
             // Ensure intermediate nodes are tracked in inventory if needed (usually just history is sufficient)
@@ -415,18 +420,26 @@ const GamePreview = ({ nodes, edges, onClose, gameMetadata }) => {
 
     const handleAccuse = (suspect) => {
         // Logic to check if correct.
-        // We look for a property `isKiller` or `isCulprit` in data.
-        // For the sample case, let's assume if we don't find explicit data, we check against a hardcoded name for the sample.
+        let isCorrect = false;
 
-        let isCorrect = suspect.data.isKiller === true || suspect.data.isCulprit === true;
+        if (activeAccusationNode && activeAccusationNode.data) {
+            // Updated Logic: Check against the Identify Node's 'correctCulpritName'
+            const correctName = (activeAccusationNode.data.culpritName || "").toLowerCase().trim();
+            const suspectName = (suspect.data.name || "").toLowerCase().trim();
 
-        // Hardcoded check for the sample case "The Digital Insider"
-        // In our sample data, we didn't explicitly set isKiller on "Ken Sato" v2, but let's assume he is based on story.
-        // Or if the user hasn't set it, we default to failure to prevent false positives? 
-        // Better: Check if ANY suspect has isKiller set. If not, maybe the logic is missing.
-        // For valid gameplay, let's assume "Ken Sato" is the culprit for the sample case if no flag exists.
-        if (suspect.data.name?.includes('Ken Sato') && !nodes.some(n => n.data.isKiller)) {
-            isCorrect = true;
+            if (correctName && suspectName.includes(correctName)) {
+                isCorrect = true;
+            } else if (correctName === suspectName) {
+                isCorrect = true;
+            }
+        } else {
+            // Fallback Legacy Logic
+            isCorrect = suspect.data.isKiller === true || suspect.data.isCulprit === true;
+
+            // Hardcoded check for the sample case "The Digital Insider"
+            if (suspect.data.name?.includes('Ken Sato') && !nodes.some(n => n.data.isKiller)) {
+                isCorrect = true;
+            }
         }
 
         if (isCorrect) {
@@ -1312,9 +1325,15 @@ const GamePreview = ({ nodes, edges, onClose, gameMetadata }) => {
                                             <CheckCircle className="w-12 h-12 text-green-500" />
                                         </div>
                                         <h2 className="text-4xl font-black text-white mb-4">CASE CLOSED</h2>
-                                        <p className="text-xl text-zinc-300 max-w-xl">
+                                        <p className="text-xl text-zinc-300 max-w-xl mb-6">
                                             Excellent work, Detective. The culprit has been identified and apprehended thanks to your diligence.
                                         </p>
+                                        {activeAccusationNode && activeAccusationNode.data.reasoning && (
+                                            <div className="bg-green-900/20 border border-green-500/30 p-4 rounded-lg max-w-xl w-full text-left">
+                                                <h4 className="text-green-400 text-xs font-bold uppercase tracking-wider mb-2">Case Resolution</h4>
+                                                <p className="text-zinc-200 text-sm leading-relaxed whitespace-pre-wrap">{activeAccusationNode.data.reasoning}</p>
+                                            </div>
+                                        )}
                                         <Button
                                             className="mt-8 bg-white text-black hover:bg-zinc-200"
                                             onClick={onClose}

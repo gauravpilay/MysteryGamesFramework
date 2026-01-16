@@ -1,6 +1,57 @@
 import React, { memo } from 'react';
 import { Handle, Position } from 'reactflow';
-import { FileText, User, Search, GitMerge, Terminal, MessageSquare, Music, Image as ImageIcon, Star, MousePointerClick, Trash2, Plus, Copy } from 'lucide-react';
+import { FileText, User, Search, GitMerge, Terminal, MessageSquare, Music, Image as ImageIcon, Star, MousePointerClick, Trash2, Plus, Copy, Fingerprint } from 'lucide-react';
+
+// ... existing code ...
+
+export const IdentifyNode = memo(({ id, data, selected }) => {
+    const handleChange = (key, val) => {
+        data.onChange && data.onChange(id, { ...data, [key]: val });
+    };
+
+    return (
+        <>
+            <Handle type="target" position={Position.Top} className="!bg-zinc-500 !w-3 !h-3 !border-2 !border-black" />
+            <Handle type="target" position={Position.Top} className="!bg-zinc-500 !w-3 !h-3 !border-2 !border-black" />
+            <NodeWrapper id={id} title="Identify Culprit" icon={Fingerprint} selected={selected} headerClass="bg-red-950/50 text-red-200" colorClass="border-red-900/50" data={data} onLabelChange={(v) => handleChange('label', v)}>
+                <div className="space-y-2">
+                    <div className="p-2 bg-red-950/20 border border-red-900/30 rounded text-center">
+                        <p className="text-[10px] text-red-300 font-bold uppercase tracking-wider mb-1">Mission Critical</p>
+                        <p className="text-[10px] text-zinc-400">Triggers Accusation Sequence</p>
+                    </div>
+
+                    <div>
+                        <p className="text-[10px] text-zinc-500 mb-1">Correct Culprit Name (Must match Suspect Node)</p>
+                        <InputField
+                            placeholder="e.g. Col. Mustard"
+                            value={data.culpritName}
+                            onChange={(e) => handleChange('culpritName', e.target.value)}
+                            className="border-red-900/30 focus:border-red-500"
+                        />
+                    </div>
+
+                    <div>
+                        <p className="text-[10px] text-zinc-500 mb-1">Solution Reasoning</p>
+                        <TextArea
+                            placeholder="Explain why they are guilty..."
+                            rows={3}
+                            value={data.reasoning}
+                            onChange={(e) => handleChange('reasoning', e.target.value)}
+                        />
+                    </div>
+                </div>
+            </NodeWrapper>
+            {/* No output handle needed usually as this ends the game? 
+                 Actually, maybe you want success/failure outputs?
+                 For now, let's assume it leads to Game Over screens, but maybe for advanced use we add outputs.
+                 Let's add generic output just in case they want to chain 'Aftermath'.
+             */}
+            {(!data.actions || data.actions.length === 0) && (
+                <Handle type="source" position={Position.Bottom} className="!bg-red-500 !w-3 !h-3 !border-2 !border-black" />
+            )}
+        </>
+    );
+});
 import { Card, Button } from '../ui/shared';
 
 const NodeWrapper = ({ children, title, icon: Icon, colorClass = "border-zinc-700", headerClass = "bg-zinc-900", selected, data, onLabelChange, id }) => {
