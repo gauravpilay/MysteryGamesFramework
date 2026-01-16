@@ -49,7 +49,9 @@ const TypewriterText = ({ text, onComplete }) => {
 
         const timer = setInterval(() => {
             if (index.current < text.length) {
-                setDisplayedText((prev) => prev + text.charAt(index.current));
+                // Use slice to ensure we explicitly show characters 0 to N
+                // This prevents 'skipped' characters if state updates batch or lag
+                setDisplayedText(text.slice(0, index.current + 1));
                 index.current++;
             } else {
                 clearInterval(timer);
