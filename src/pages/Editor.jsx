@@ -181,15 +181,44 @@ const Editor = () => {
         event.dataTransfer.dropEffect = 'move';
     }, []);
 
+    // Generic Duplicate Handler
+    const onDuplicateNode = useCallback((id) => {
+        setNodes((nds) => {
+            const nodeToDuplicate = nds.find((n) => n.id === id);
+            if (!nodeToDuplicate) return nds;
+
+            const newNode = {
+                ...nodeToDuplicate,
+                id: crypto.randomUUID(),
+                position: {
+                    x: nodeToDuplicate.position.x + 50,
+                    y: nodeToDuplicate.position.y + 50,
+                },
+                data: {
+                    ...nodeToDuplicate.data,
+                    label: `${nodeToDuplicate.data.label} (Copy)`,
+                    onChange: onNodeUpdate, // Ensure handlers are attached
+                    onDuplicate: onDuplicateNode,
+                },
+                selected: false, // Don't auto-select to avoid confusion or keep false
+            };
+            return [...nds.map(node => ({ ...node, selected: false })), { ...newNode, selected: true }];
+        });
+    }, [onNodeUpdate, setNodes]);
+
     // Reattach handlers on load where they might be missing (deserialization)
     useEffect(() => {
         if (nodes.length > 0 && !nodes[0].data.onChange) {
             setNodes((nds) => nds.map(node => ({
                 ...node,
-                data: { ...node.data, onChange: onNodeUpdate }
+                data: {
+                    ...node.data,
+                    onChange: onNodeUpdate,
+                    onDuplicate: onDuplicateNode
+                }
             })));
         }
-    }, [nodes, onNodeUpdate, setNodes]);
+    }, [nodes, onNodeUpdate, onDuplicateNode, setNodes]);
 
     const onDrop = useCallback((event) => {
         event.preventDefault();
@@ -205,11 +234,15 @@ const Editor = () => {
             id: crypto.randomUUID(),
             type,
             position,
-            data: { label: `${type} node`, onChange: onNodeUpdate },
+            data: {
+                label: `${type} node`,
+                onChange: onNodeUpdate,
+                onDuplicate: onDuplicateNode
+            },
         };
 
         setNodes((nds) => nds.concat(newNode));
-    }, [reactFlowInstance, onNodeUpdate, setNodes]);
+    }, [reactFlowInstance, onNodeUpdate, onDuplicateNode, setNodes]);
 
     // Initial Load
     useEffect(() => {
@@ -244,7 +277,7 @@ const Editor = () => {
         // Note: react-flow nodes might contain circular refs or functions in data, usually pure data is fine.
         // The editor uses 'onChange' callback in data, we must NOT save that to Firestore as it breaks JSON/serialization
         const cleanNodes = nodes.map(n => {
-            const { onChange, ...restData } = n.data;
+            const { onChange, onDuplicate, ...restData } = n.data;
             return { ...n, data: restData };
         });
 
@@ -276,7 +309,7 @@ const Editor = () => {
         const zip = new JSZip();
 
         // Clean nodes data of functions
-        const cleanNodes = nodes.map(n => ({ ...n, data: { ...n.data, onChange: undefined } }));
+        const cleanNodes = nodes.map(n => ({ ...n, data: { ...n.data, onChange: undefined, onDuplicate: undefined } }));
         const gameData = { nodes: cleanNodes, edges, meta: { generatedAt: new Date(), timeLimit } };
 
         const folder = zip.folder("mystery-game-build");

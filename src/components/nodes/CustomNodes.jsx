@@ -1,6 +1,6 @@
 import React, { memo } from 'react';
 import { Handle, Position } from 'reactflow';
-import { FileText, User, Search, GitMerge, Terminal, MessageSquare, Music, Image as ImageIcon, Star, MousePointerClick, Trash2, Plus } from 'lucide-react';
+import { FileText, User, Search, GitMerge, Terminal, MessageSquare, Music, Image as ImageIcon, Star, MousePointerClick, Trash2, Plus, Copy } from 'lucide-react';
 import { Card, Button } from '../ui/shared';
 
 const NodeWrapper = ({ children, title, icon: Icon, colorClass = "border-zinc-700", headerClass = "bg-zinc-900", selected, data, onLabelChange, id }) => {
@@ -47,6 +47,15 @@ const NodeWrapper = ({ children, title, icon: Icon, colorClass = "border-zinc-70
             <div className={`flex items-center gap-2 px-3 py-2 border-b border-zinc-800 rounded-t-xl ${headerClass}`}>
                 <Icon className="w-4 h-4" />
                 <span className="text-xs font-bold uppercase tracking-wider flex-1">{title}</span>
+                {data.onDuplicate && (
+                    <button
+                        className="p-1 hover:bg-black/20 rounded text-white/50 hover:text-white transition-colors"
+                        onClick={(e) => { e.stopPropagation(); data.onDuplicate(id); }}
+                        title="Duplicate Node"
+                    >
+                        <Copy className="w-3 h-3" />
+                    </button>
+                )}
             </div>
             {onLabelChange && (
                 <div className="px-3 pt-3 pb-1 border-b border-zinc-900/50">
