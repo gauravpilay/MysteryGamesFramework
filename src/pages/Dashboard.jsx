@@ -4,7 +4,7 @@ import { db } from '../lib/firebase';
 import { collection, addDoc, deleteDoc, updateDoc, doc, onSnapshot, query } from 'firebase/firestore';
 import { Button, Card, Input, Label } from '../components/ui/shared';
 import { Logo } from '../components/ui/Logo';
-import { Plus, FolderOpen, LogOut, Search, Trash2, Rocket, Copy } from 'lucide-react';
+import { Plus, FolderOpen, LogOut, Search, Trash2, Rocket, Copy, Users } from 'lucide-react';
 import { useNavigate } from 'react-router-dom';
 import { motion, AnimatePresence } from 'framer-motion';
 
@@ -448,6 +448,10 @@ const Dashboard = () => {
                         {/* Search is hidden for cleaner separate view for now, or can be re-added below */}
                         {isAdmin && (
                             <>
+                                <Button variant="secondary" onClick={() => navigate('/admin/users')} className="mr-2">
+                                    <Users className="w-4 h-4 mr-2" />
+                                    Manage Users
+                                </Button>
                                 <Button variant="secondary" onClick={generateSampleCase} type="button">
                                     <Rocket className="w-4 h-4 mr-2" />
                                     Seed Sample

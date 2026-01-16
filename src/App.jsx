@@ -4,6 +4,7 @@ import Login from './pages/Login';
 import Dashboard from './pages/Dashboard';
 import Editor from './pages/Editor';
 import Player from './pages/Player';
+import UserManagement from './pages/UserManagement';
 import { AuthProvider, useAuth } from './lib/auth';
 
 const PrivateRoute = ({ children }) => {
@@ -39,6 +40,14 @@ function App() {
             element={
               <PrivateRoute>
                 <Player />
+              </PrivateRoute>
+            }
+          />
+          <Route
+            path="/admin/users"
+            element={
+              <PrivateRoute>
+                <UserManagement />
               </PrivateRoute>
             }
           />
