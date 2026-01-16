@@ -519,7 +519,7 @@ const GamePreview = ({ nodes, edges, onClose, gameMetadata }) => {
             <audio ref={audioRef} />
 
             {/* Header */}
-            <div className="h-16 border-b border-zinc-800 bg-zinc-950 flex items-center justify-between px-6 shrink-0">
+            <div className="h-16 border-b border-zinc-800 bg-zinc-950 flex items-center justify-between px-6 shrink-0 relative z-[100]">
                 <div className="flex items-center gap-3">
                     <div className="bg-red-600 px-2 py-1 rounded text-xs font-bold text-white uppercase tracking-widest animate-pulse">
                         Case Active
@@ -529,11 +529,11 @@ const GamePreview = ({ nodes, edges, onClose, gameMetadata }) => {
                         <Star className="w-3 h-3 text-yellow-500 fill-yellow-500" />
                         <span className="text-zinc-200 font-bold font-mono text-sm">{score}</span>
                     </div>
-                    {/* ... Time Remaining logic ... */}
+                    {/* Timer Logic */}
                     {missionStarted && (
-                        <div className={`fixed top-4 left-1/2 -translate-x-1/2 px-6 py-2 rounded-lg border-2 shadow-2xl z-50 flex items-center gap-3 backdrop-blur-md ${timeLeft < 60 ? 'bg-red-950/80 border-red-500 text-red-500 animate-pulse' : 'bg-zinc-950/80 border-indigo-500/50 text-indigo-400'}`}>
-                            <span className="text-xs font-bold uppercase tracking-widest opacity-70">Time Remaining</span>
-                            <span className="font-mono text-2xl font-black tracking-widest">{formatTime(timeLeft)}</span>
+                        <div className={`fixed bottom-8 md:top-4 md:bottom-auto left-1/2 -translate-x-1/2 px-4 py-1.5 md:px-6 md:py-2 rounded-lg border-2 shadow-2xl z-[110] flex items-center gap-2 md:gap-3 backdrop-blur-md transition-all duration-300 ${timeLeft < 60 ? 'bg-red-950/80 border-red-500 text-red-500 animate-pulse' : 'bg-zinc-950/80 border-indigo-500/50 text-indigo-400'}`}>
+                            <span className="hidden md:inline text-xs font-bold uppercase tracking-widest opacity-70">Time Remaining</span>
+                            <span className="font-mono text-xl md:text-2xl font-black tracking-widest">{formatTime(timeLeft)}</span>
                         </div>
                     )}
                     <span className="text-zinc-500 text-sm font-mono">ID: {currentNode?.id || '---'}</span>
