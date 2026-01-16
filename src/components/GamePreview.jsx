@@ -117,21 +117,29 @@ const GamePreview = ({ nodes, edges, onClose, gameMetadata }) => {
     useEffect(() => {
         // Find a suitable start node.
         // 1. Try to find a node ID containing 'start'
-        // 2. Or a Story node with no incoming edges
+        // 2. Or ANY node with no incoming edges (Root)
         // 3. Or just the first node
         let start = nodes.find(n => n.id.toLowerCase().includes('start'));
         if (!start) {
             const tempEdges = new Set(edges.map(e => e.target));
-            start = nodes.find(n => !tempEdges.has(n.id) && n.type === 'story');
+            // Prioritize finding a true root node
+            start = nodes.find(n => !tempEdges.has(n.id));
         }
         if (!start && nodes.length > 0) start = nodes[0];
 
         if (start) {
             setCurrentNodeId(start.id);
+
+            // If start node is a modal type, open it immediately
+            if (['media', 'suspect', 'terminal', 'evidence', 'message'].includes(start.type)) {
+                setActiveModalNode(start);
+                setInventory(prev => new Set([...prev, start.id]));
+            }
+
             addLog(`System initialized. Session started at ${new Date().toLocaleTimeString()}`);
             addLog(`Loaded ${nodes.length} nodes and ${edges.length} connections.`);
         }
-    }, []);
+    }, [nodes, edges]);
 
     // Scoring Logic (Visit-based)
     useEffect(() => {
@@ -461,9 +469,9 @@ const GamePreview = ({ nodes, edges, onClose, gameMetadata }) => {
                     </div>
                 )}
 
-                <Card className={`bg-zinc-900/50 border-zinc-800 p-8 backdrop-blur-md ${isBriefing ? 'border-t-4 border-t-red-600 shadow-[0_20px_50px_-12px_rgba(0,0,0,0.5)]' : ''} hover:border-zinc-700 transition-colors duration-500`}>
-                    <p className={`text-zinc-200 leading-loose whitespace-pre-wrap ${isBriefing ? 'text-lg md:text-xl font-light font-mono' : 'text-lg'}`}>
-                        {isBriefing ? <TypewriterText text={data.text || data.content || ""} /> : (data.text || data.content)}
+                <Card className="bg-zinc-900/50 border-zinc-800 p-8 backdrop-blur-md border-t-4 border-t-red-600 shadow-[0_20px_50px_-12px_rgba(0,0,0,0.5)] hover:border-zinc-700 transition-colors duration-500">
+                    <p className="text-zinc-200 leading-loose whitespace-pre-wrap text-lg md:text-xl font-light font-mono">
+                        <TypewriterText text={data.text || data.content || ""} />
                     </p>
                 </Card>
             </div>
