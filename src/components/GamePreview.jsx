@@ -1,6 +1,6 @@
 import React, { useState, useEffect, useMemo, useRef } from 'react';
 import { Button, Card } from './ui/shared';
-import { X, User, Search, Terminal, MessageSquare, FileText, ArrowRight, ShieldAlert, CheckCircle, AlertTriangle, Volume2, VolumeX, Image as ImageIcon, Briefcase, Star, MousePointerClick } from 'lucide-react';
+import { X, User, Search, Terminal, MessageSquare, FileText, ArrowRight, ShieldAlert, CheckCircle, AlertTriangle, Volume2, VolumeX, Image as ImageIcon, Briefcase, Star, MousePointerClick, Bell } from 'lucide-react';
 import { motion, AnimatePresence } from 'framer-motion';
 
 const BackgroundEffect = () => (
@@ -369,7 +369,7 @@ const GamePreview = ({ nodes, edges, onClose, gameMetadata }) => {
         setCurrentNodeId(nextNodeId);
 
         // If it's a type that requires a popup, set it as active modal AND add to inventory
-        if (nextNode && ['suspect', 'evidence', 'terminal', 'message', 'media'].includes(nextNode.type)) {
+        if (nextNode && ['suspect', 'evidence', 'terminal', 'message', 'media', 'notification'].includes(nextNode.type)) {
             setActiveModalNode(nextNode);
             setInventory(prev => new Set([...prev, nextNodeId, ...intermediateIds]));
         } else if (nextNode && nextNode.type === 'identify') {
@@ -1266,6 +1266,39 @@ const GamePreview = ({ nodes, edges, onClose, gameMetadata }) => {
                                             }}
                                         >
                                             Continue <ArrowRight className="w-4 h-4 ml-2" />
+                                        </Button>
+                                    </div>
+                                </div>
+                            )}
+
+                            {/* Notification Layout */}
+                            {activeModalNode.type === 'notification' && (
+                                <div className="p-8 bg-zinc-900 border-t-4 border-sky-500 h-full flex flex-col items-center justify-center text-center">
+                                    <div className="w-20 h-20 rounded-full bg-sky-500/10 border border-sky-500/20 text-sky-400 flex items-center justify-center mb-8 shadow-[0_0_30px_rgba(14,165,233,0.15)] animate-pulse">
+                                        <Bell className="w-10 h-10" />
+                                    </div>
+                                    <h2 className="text-2xl font-black text-white mb-6 tracking-tight uppercase">{activeModalNode.data.label || 'System Notification'}</h2>
+                                    <p className="text-zinc-300 text-lg leading-relaxed mb-10 max-w-lg font-medium">
+                                        {activeModalNode.data.message}
+                                    </p>
+                                    <Button
+                                        className={`w-full max-w-sm py-6 text-lg font-bold tracking-wider uppercase transition-all transform hover:scale-105 ${activeModalNode.data.buttonStyle === 'danger' ? 'bg-red-600 hover:bg-red-700 shadow-red-900/20' :
+                                                activeModalNode.data.buttonStyle === 'primary' ? 'bg-blue-600 hover:bg-blue-700 shadow-blue-900/20' :
+                                                    activeModalNode.data.buttonStyle === 'success' ? 'bg-emerald-600 hover:bg-emerald-700 shadow-emerald-900/20' :
+                                                        activeModalNode.data.buttonStyle === 'warning' ? 'bg-amber-500 hover:bg-amber-600 text-black shadow-amber-900/20' :
+                                                            'bg-white text-black hover:bg-zinc-200 shadow-white/10'
+                                            } shadow-xl`}
+                                        onClick={() => {
+                                            const next = edges.find(e => e.source === activeModalNode.id);
+                                            setActiveModalNode(null);
+                                            if (next) handleOptionClick(next.target);
+                                        }}
+                                    >
+                                        {activeModalNode.data.buttonText || "Continue"}
+                                    </Button>
+                                    <div className="absolute top-4 right-4">
+                                        <Button variant="ghost" onClick={() => setActiveModalNode(null)}>
+                                            <X className="w-6 h-6 text-zinc-500 hover:text-white" />
                                         </Button>
                                     </div>
                                 </div>

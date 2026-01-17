@@ -1,6 +1,6 @@
 import React, { memo } from 'react';
 import { Handle, Position } from 'reactflow';
-import { FileText, User, Search, GitMerge, Terminal, MessageSquare, Music, Image as ImageIcon, Star, MousePointerClick, Trash2, Plus, Copy, Fingerprint } from 'lucide-react';
+import { FileText, User, Search, GitMerge, Terminal, MessageSquare, Music, Image as ImageIcon, Star, MousePointerClick, Trash2, Plus, Copy, Fingerprint, Bell } from 'lucide-react';
 
 // ... existing code ...
 
@@ -638,6 +638,54 @@ export const ActionNode = memo(({ id, data, selected }) => {
             </NodeWrapper>
             {(!data.actions || data.actions.length === 0) && (
                 <Handle type="source" position={Position.Bottom} className="!bg-indigo-500 !w-3 !h-3 !border-2 !border-black" />
+            )}
+        </>
+    );
+});
+
+export const NotificationNode = memo(({ id, data, selected }) => {
+    const handleChange = (key, val) => {
+        data.onChange && data.onChange(id, { ...data, [key]: val });
+    };
+
+    return (
+        <>
+            <Handle type="target" position={Position.Top} className="!bg-zinc-500 !w-3 !h-3 !border-2 !border-black" />
+            <Handle type="target" position={Position.Top} className="!bg-zinc-500 !w-3 !h-3 !border-2 !border-black" />
+            <NodeWrapper id={id} title="Notification" icon={Bell} selected={selected} headerClass="bg-sky-950/30 text-sky-200" colorClass="border-sky-900/30" data={data} onLabelChange={(v) => handleChange('label', v)}>
+                <div className="space-y-2">
+                    <TextArea
+                        placeholder="Notification Message..."
+                        rows={3}
+                        value={data.message}
+                        onChange={(e) => handleChange('message', e.target.value)}
+                    />
+                    <div className="pt-2 border-t border-sky-900/20">
+                        <p className="text-[10px] text-zinc-500 mb-1">Button Configuration</p>
+                        <div className="flex gap-2">
+                            <InputField
+                                placeholder="Button Text (e.g. Continue)"
+                                value={data.buttonText}
+                                onChange={(e) => handleChange('buttonText', e.target.value)}
+                                className="w-2/3"
+                            />
+                            <select
+                                className="w-1/3 bg-black border border-zinc-800 rounded px-2 py-1 text-xs text-zinc-300 focus:border-indigo-500 outline-none"
+                                value={data.buttonStyle || 'default'}
+                                onChange={(e) => handleChange('buttonStyle', e.target.value)}
+                            >
+                                <option value="default">Default</option>
+                                <option value="primary">Blue</option>
+                                <option value="danger">Red</option>
+                                <option value="success">Green</option>
+                                <option value="warning">Yellow</option>
+                            </select>
+                        </div>
+                    </div>
+                </div>
+            </NodeWrapper>
+            {(!data.actions || data.actions.length === 0) && (
+                <Handle type="source" position={Position.Bottom} className="!bg-sky-500 !w-3 !h-3 !border-2 !border-black" />
             )}
         </>
     );
