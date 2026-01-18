@@ -354,17 +354,17 @@ const Dashboard = () => {
             className="group relative cursor-pointer"
         >
             <Card className={`h-full p-6 transition-all duration-300 transform rounded-xl min-h-[200px] flex flex-col ${project.status === 'published'
-                ? 'bg-gradient-to-br from-zinc-900 via-indigo-950/20 to-zinc-900 border border-indigo-500/40 shadow-[0_0_20px_rgba(99,102,241,0.1)] hover:shadow-[0_0_40px_rgba(99,102,241,0.3)] hover:border-indigo-400 hover:-translate-y-2 hover:scale-[1.02]'
-                : 'bg-zinc-900/50 border border-dashed border-red-500/30 hover:border-red-500 hover:bg-red-950/10 hover:shadow-[0_0_20px_rgba(239,68,68,0.2)] hover:-translate-y-1'
+                ? 'bg-gradient-to-br from-indigo-950/40 via-purple-900/20 to-black border border-indigo-500 shadow-[0_0_25px_rgba(99,102,241,0.25)] hover:shadow-[0_0_50px_rgba(99,102,241,0.5)] hover:border-indigo-400 hover:-translate-y-2 hover:scale-[1.02]'
+                : 'bg-gradient-to-br from-amber-950/20 to-zinc-950 border border-amber-500/60 hover:border-amber-400 hover:bg-amber-900/10 hover:shadow-[0_0_30px_rgba(245,158,11,0.25)] hover:-translate-y-1'
                 }`}>
                 <div className="flex items-start justify-between mb-5">
-                    <div className={`p-3 rounded-lg ${project.status === 'published' ? 'bg-indigo-500/20 text-indigo-400 shadow-[0_0_15px_rgba(99,102,241,0.25)]' : 'bg-zinc-800 text-zinc-400'} transition-colors`}>
+                    <div className={`p-3 rounded-lg ${project.status === 'published' ? 'bg-indigo-500 text-white shadow-[0_0_15px_rgba(99,102,241,0.5)]' : 'bg-amber-500/20 text-amber-400 border border-amber-500/30'} transition-colors`}>
                         <FolderOpen className="w-6 h-6" />
                     </div>
                     {isAdmin && (
                         <div className="flex items-center gap-2 relative z-20">
                             <button
-                                className={`px-2.5 py-1 text-xs font-bold rounded-md uppercase tracking-wider transition-colors ${project.status === 'published' ? 'bg-indigo-900/40 text-indigo-300 hover:bg-indigo-800/60 border border-indigo-500/30' : 'bg-red-900/20 text-red-400 border border-red-500/20 hover:bg-red-900/40'}`}
+                                className={`px-2.5 py-1 text-xs font-bold rounded-md uppercase tracking-wider transition-colors ${project.status === 'published' ? 'bg-indigo-500 text-white shadow-lg' : 'bg-amber-500 text-black shadow-lg hover:bg-amber-400'}`}
                                 onClick={(e) => togglePublish(e, project)}
                                 title={project.status === 'published' ? 'Unpublish' : 'Publish to Users'}
                             >
