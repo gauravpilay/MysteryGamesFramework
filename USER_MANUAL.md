@@ -16,6 +16,7 @@ Welcome to the Mystery Games Framework Editor! This manual provides a detailed e
 10. [Identify Culprit](#10-identify-culprit)
 11. [Notification](#11-notification)
 12. [Question](#12-question)
+13. [Tutorial: Building Your First Mystery](#13-tutorial-building-your-first-mystery)
 
 ---
 
@@ -149,6 +150,59 @@ The **Question Node** presents a quiz or specific question to the player.
     *   "Riddle: What has keys but no locks?"
     *   "Knowledge Check: What was the time of death?"
     *   "Code Decryption challenge"
+
+---
+
+### 13. Tutorial: Building Your First Mystery
+
+In this example, we will build a short mystery game: **"The Cyber Heist"**.
+
+**Premise:** A corporate server has been hacked from the inside. The player must identify the mole before the data is leaked.
+
+#### Step 1: Setting the Scene (Story Node)
+1.  Drag a **Story Node** to the canvas.
+    *   **Label:** "Mission Briefing"
+    *   **Content:** "HQ here. We have a breach at CorpTech. Someone inside bypassed the firewall at 03:00 AM. You have 15 minutes to find the culprit."
+2.  Drag a **Background Audio Node** and connect it to the Story Node.
+    *   **Track:** Select "Suspense Theme" to set the mood immediately.
+
+#### Step 2: The Hub & Suspects
+1.  Create a new **Story Node** called "Main Lobby". Connect the Briefing node to this one. This will serve as your central hub.
+2.  Drag three **Suspect Nodes** onto the canvas:
+    *   **Suspect A:** "SysAdmin Dave" (Alibi: Sleeping at home)
+    *   **Suspect B:** "Manager Alice" (Alibi: Working late in office)
+    *   **Suspect C:** "Intern Bob" (Alibi: At a party)
+3.  Connect the "Main Lobby" node to each Suspect Node.
+    *   **Edge Labels:** Click on the connecting lines and label them "Interrogate Dave", "Question Alice", etc.
+
+#### Step 3: Leaving Clues (Evidence & Logic)
+We want the player to find a log file that contradicts Alice's alibi.
+1.  Create a **Terminal Node** called "Server Room PC".
+    *   **Challenge:** "Enter password" (Set answer to 'admin123').
+2.  Connect "Main Lobby" to this Terminal Node with label "Inspect Server Room".
+3.  Create an **Evidence Node** called "Access Logs".
+    *   **Description:** "The logs show a login from Alice's terminal at 03:05 AM."
+4.  Connect the Terminal Node to this Evidence Node. This means the player must hack the PC to get the evidence.
+
+#### Step 4: Connecting the Dots (Logic Node)
+Now, let's make Alice reveal more info *only if* the player has the evidence.
+1.  Drag a **Logic Node** near Alice.
+    *   **Condition:** Check if player has "Access Logs" (Evidence).
+2.  Create a connection from "Suspect Alice" to this Logic Node.
+    *   **Label:** "Press for details"
+3.  **True Path:** Connect the Logic Node (Handle: True) to a new **Story Node** called "Alice Confesses".
+    *   **Content:** "Fine! I was here, but I didn't steal the data! I saw Bob sneaking into the server room!"
+4.  **False Path:** Connect the Logic Node (Handle: False) to a new **Story Node** called "Alice Denies".
+    *   **Content:** "I told you, I was working. I don't know anything else."
+
+#### Step 5: The Climax (Identify Culprit)
+1.  Create a **Story Node** called "Final Deduction".
+    *   **Content:** "You have gathered enough clues. Who is the mole?"
+2.  Connect your various paths back to this node (or make it accessible from the Hub).
+3.  Drag an **Identify Culprit Node** and connect it to the Final Deduction node.
+    *   **Configuration:** Mark "Intern Bob" as the correct answer (based on Alice's witness account).
+
+**Congratulations!** You have built a dynamic mystery game with branching dialogue, inventory-based logic, and a challenging conclusion.
 
 ---
 
