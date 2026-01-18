@@ -1,6 +1,6 @@
 import React, { useState, useEffect, useMemo, useRef } from 'react';
 import { Button, Card } from './ui/shared';
-import { X, User, Search, Terminal, MessageSquare, FileText, ArrowRight, ShieldAlert, CheckCircle, AlertTriangle, Volume2, VolumeX, Image as ImageIcon, Briefcase, Star, MousePointerClick, Bell } from 'lucide-react';
+import { X, User, Search, Terminal, MessageSquare, FileText, ArrowRight, ShieldAlert, CheckCircle, AlertTriangle, Volume2, VolumeX, Image as ImageIcon, Briefcase, Star, MousePointerClick, Bell, HelpCircle } from 'lucide-react';
 import { motion, AnimatePresence } from 'framer-motion';
 
 const BackgroundEffect = () => (
@@ -90,6 +90,7 @@ const GamePreview = ({ nodes, edges, onClose, gameMetadata }) => {
     // Scoring State
     const [score, setScore] = useState(0);
     const [scoredNodes, setScoredNodes] = useState(new Set());
+    const [userAnswers, setUserAnswers] = useState(new Set()); // Set of selected option IDs for Question Nodes
 
     // Timer Logic
     useEffect(() => {
@@ -369,8 +370,9 @@ const GamePreview = ({ nodes, edges, onClose, gameMetadata }) => {
         setCurrentNodeId(nextNodeId);
 
         // If it's a type that requires a popup, set it as active modal AND add to inventory
-        if (nextNode && ['suspect', 'evidence', 'terminal', 'message', 'media', 'notification'].includes(nextNode.type)) {
+        if (nextNode && ['suspect', 'evidence', 'terminal', 'message', 'media', 'notification', 'question'].includes(nextNode.type)) {
             setActiveModalNode(nextNode);
+            if (nextNode.type === 'question') setUserAnswers(new Set()); // Reset answers
             setInventory(prev => new Set([...prev, nextNodeId, ...intermediateIds]));
         } else if (nextNode && nextNode.type === 'identify') {
             setActiveAccusationNode(nextNode);
@@ -457,6 +459,48 @@ const GamePreview = ({ nodes, edges, onClose, gameMetadata }) => {
         }
     };
 
+    const handleQuestionSubmit = () => {
+        if (!activeModalNode || activeModalNode.type !== 'question') return;
+
+        const options = activeModalNode.data.options || [];
+        const correctIds = new Set(options.filter(o => o.isCorrect).map(o => o.id));
+        const selectedIds = userAnswers;
+
+        // Check if sets are equal
+        const isCorrect = correctIds.size === selectedIds.size &&
+            [...correctIds].every(id => selectedIds.has(id));
+
+        if (isCorrect) {
+            addLog(`QUESTION SOLVED: ${activeModalNode.data.label}`);
+            // Award points
+            if (activeModalNode.data.score && !scoredNodes.has(activeModalNode.id)) {
+                setScore(s => s + activeModalNode.data.score);
+                setScoredNodes(prev => new Set([...prev, activeModalNode.id]));
+                addLog(`QUIZ REWARD: +${activeModalNode.data.score} Points`);
+            }
+
+            // Advance
+            const nodeOptions = edges.filter(e => e.source === activeModalNode.id);
+            setActiveModalNode(null);
+            if (nodeOptions.length > 0) {
+                handleOptionClick(nodeOptions[0].target);
+            }
+        } else {
+            addLog(`QUESTION FAILED: Incorrect Answer.`);
+            // Visual feedback could be added here
+            const btn = document.getElementById('quiz-submit-btn');
+            if (btn) {
+                const originalText = btn.innerText;
+                btn.innerText = "Incorrect - Try Again";
+                btn.classList.add("bg-red-600");
+                setTimeout(() => {
+                    btn.innerText = originalText;
+                    btn.classList.remove("bg-red-600");
+                }, 1500);
+            }
+        }
+    };
+
     const getAvatarColor = (name) => {
         const colors = [
             'from-red-500 to-orange-500',
@@ -478,6 +522,7 @@ const GamePreview = ({ nodes, edges, onClose, gameMetadata }) => {
         if (node.type === 'evidence') return `Examine Evidence: ${node.data.label}`;
         if (node.type === 'terminal') return `Access Terminal: ${node.data.label}`;
         if (node.type === 'message') return `Read Message: ${node.data.label}`;
+        if (node.type === 'question') return `Answer: ${node.data.label}`;
         if (node.type === 'action') return node.data.label || "Interact";
         return `Proceed to ${node.data.label}`;
     }
@@ -829,6 +874,12 @@ const GamePreview = ({ nodes, edges, onClose, gameMetadata }) => {
                                                             color = "text-violet-400";
                                                             bg = "bg-violet-500/10";
                                                             actionLabel = "INCOMING";
+                                                            actionLabel = "INCOMING";
+                                                        } else if (displayNode.type === 'question') {
+                                                            icon = HelpCircle;
+                                                            color = "text-fuchsia-400";
+                                                            bg = "bg-fuchsia-500/10";
+                                                            actionLabel = "QUIZ";
                                                         } else if (displayNode.type === 'action') {
                                                             icon = MousePointerClick;
                                                             color = "text-indigo-400";
@@ -1283,10 +1334,10 @@ const GamePreview = ({ nodes, edges, onClose, gameMetadata }) => {
                                     </p>
                                     <Button
                                         className={`w-full max-w-sm py-6 text-lg font-bold tracking-wider uppercase transition-all transform hover:scale-105 ${activeModalNode.data.buttonStyle === 'danger' ? 'bg-red-600 hover:bg-red-700 shadow-red-900/20' :
-                                                activeModalNode.data.buttonStyle === 'primary' ? 'bg-blue-600 hover:bg-blue-700 shadow-blue-900/20' :
-                                                    activeModalNode.data.buttonStyle === 'success' ? 'bg-emerald-600 hover:bg-emerald-700 shadow-emerald-900/20' :
-                                                        activeModalNode.data.buttonStyle === 'warning' ? 'bg-amber-500 hover:bg-amber-600 text-black shadow-amber-900/20' :
-                                                            'bg-white text-black hover:bg-zinc-200 shadow-white/10'
+                                            activeModalNode.data.buttonStyle === 'primary' ? 'bg-blue-600 hover:bg-blue-700 shadow-blue-900/20' :
+                                                activeModalNode.data.buttonStyle === 'success' ? 'bg-emerald-600 hover:bg-emerald-700 shadow-emerald-900/20' :
+                                                    activeModalNode.data.buttonStyle === 'warning' ? 'bg-amber-500 hover:bg-amber-600 text-black shadow-amber-900/20' :
+                                                        'bg-white text-black hover:bg-zinc-200 shadow-white/10'
                                             } shadow-xl`}
                                         onClick={() => {
                                             const next = edges.find(e => e.source === activeModalNode.id);
@@ -1299,6 +1350,62 @@ const GamePreview = ({ nodes, edges, onClose, gameMetadata }) => {
                                     <div className="absolute top-4 right-4">
                                         <Button variant="ghost" onClick={() => setActiveModalNode(null)}>
                                             <X className="w-6 h-6 text-zinc-500 hover:text-white" />
+                                        </Button>
+                                    </div>
+                                </div>
+                            )}
+
+                            {/* Question Layout */}
+                            {activeModalNode.type === 'question' && (
+                                <div className="p-8 bg-zinc-900 border-t-4 border-fuchsia-500 h-full flex flex-col">
+                                    <div className="flex items-center justify-between mb-6">
+                                        <div className="flex items-center gap-3 text-fuchsia-400">
+                                            <HelpCircle className="w-8 h-8" />
+                                            <h2 className="text-2xl font-bold text-white uppercase tracking-tight">Challenge / Quiz</h2>
+                                        </div>
+                                        <Button variant="ghost" onClick={() => setActiveModalNode(null)}><X className="w-6 h-6" /></Button>
+                                    </div>
+
+                                    <div className="flex-1 overflow-y-auto">
+                                        <p className="text-xl text-white font-medium leading-relaxed mb-8">
+                                            {activeModalNode.data.question}
+                                        </p>
+
+                                        <div className="space-y-3">
+                                            {(activeModalNode.data.options || []).map((opt) => {
+                                                const isSelected = userAnswers.has(opt.id);
+                                                return (
+                                                    <div
+                                                        key={opt.id}
+                                                        onClick={() => {
+                                                            const newSet = new Set(activeModalNode.data.selectionType === 'multi' ? userAnswers : []);
+                                                            if (newSet.has(opt.id)) newSet.delete(opt.id);
+                                                            else newSet.add(opt.id);
+                                                            setUserAnswers(newSet);
+                                                        }}
+                                                        className={`p-4 rounded-lg border text-lg cursor-pointer transition-all flex items-center gap-4 ${isSelected
+                                                            ? 'bg-fuchsia-500/20 border-fuchsia-500 text-white shadow-lg shadow-fuchsia-500/10'
+                                                            : 'bg-black border-zinc-800 text-zinc-400 hover:border-zinc-600 hover:bg-zinc-900'
+                                                            }`}
+                                                    >
+                                                        <div className={`w-6 h-6 rounded-full border-2 flex items-center justify-center ${isSelected ? 'border-fuchsia-500 bg-fuchsia-500' : 'border-zinc-600'}`}>
+                                                            {isSelected && <div className="w-2 h-2 rounded-full bg-white" />}
+                                                        </div>
+                                                        {opt.text}
+                                                    </div>
+                                                );
+                                            })}
+                                        </div>
+                                    </div>
+
+                                    <div className="mt-8 pt-4 border-t border-zinc-800 flex justify-end">
+                                        <Button
+                                            id="quiz-submit-btn"
+                                            className="bg-fuchsia-600 hover:bg-fuchsia-700 text-white px-8 py-6 text-lg font-bold tracking-wider"
+                                            onClick={handleQuestionSubmit}
+                                            disabled={userAnswers.size === 0}
+                                        >
+                                            Submit Answer
                                         </Button>
                                     </div>
                                 </div>

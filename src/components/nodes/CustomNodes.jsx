@@ -1,6 +1,6 @@
 import React, { memo } from 'react';
 import { Handle, Position } from 'reactflow';
-import { FileText, User, Search, GitMerge, Terminal, MessageSquare, Music, Image as ImageIcon, Star, MousePointerClick, Trash2, Plus, Copy, Fingerprint, Bell } from 'lucide-react';
+import { FileText, User, Search, GitMerge, Terminal, MessageSquare, Music, Image as ImageIcon, Star, MousePointerClick, Trash2, Plus, Copy, Fingerprint, Bell, HelpCircle } from 'lucide-react';
 
 // ... existing code ...
 
@@ -686,6 +686,103 @@ export const NotificationNode = memo(({ id, data, selected }) => {
             </NodeWrapper>
             {(!data.actions || data.actions.length === 0) && (
                 <Handle type="source" position={Position.Bottom} className="!bg-sky-500 !w-3 !h-3 !border-2 !border-black" />
+            )}
+        </>
+    );
+});
+
+export const QuestionNode = memo(({ id, data, selected }) => {
+    const handleChange = (key, val) => {
+        data.onChange && data.onChange(id, { ...data, [key]: val });
+    };
+
+    const addOption = () => {
+        const currentOptions = data.options || [];
+        handleChange('options', [...currentOptions, { id: crypto.randomUUID(), text: '', isCorrect: false }]);
+    };
+
+    const updateOption = (optId, updates) => {
+        const currentOptions = data.options || [];
+        handleChange('options', currentOptions.map(o => o.id === optId ? { ...o, ...updates } : o));
+    };
+
+    const deleteOption = (optId) => {
+        const currentOptions = data.options || [];
+        handleChange('options', currentOptions.filter(o => o.id !== optId));
+    };
+
+    return (
+        <>
+            <Handle type="target" position={Position.Top} className="!bg-zinc-500 !w-3 !h-3 !border-2 !border-black" />
+            <Handle type="target" position={Position.Top} className="!bg-zinc-500 !w-3 !h-3 !border-2 !border-black" />
+            <NodeWrapper id={id} title="Question" icon={HelpCircle} selected={selected} headerClass="bg-fuchsia-950/30 text-fuchsia-200" colorClass="border-fuchsia-900/30" data={data} onLabelChange={(v) => handleChange('label', v)}>
+                <div className="space-y-2">
+                    <TextArea
+                        placeholder="Ask a question..."
+                        rows={2}
+                        value={data.question}
+                        onChange={(e) => handleChange('question', e.target.value)}
+                    />
+
+                    <div className="flex gap-2">
+                        <div className="w-1/2">
+                            <p className="text-[10px] text-zinc-500 mb-1">Type</p>
+                            <select
+                                className="w-full bg-black border border-zinc-800 rounded px-2 py-1 text-xs text-zinc-300 focus:border-indigo-500 outline-none"
+                                value={data.selectionType || 'single'}
+                                onChange={(e) => handleChange('selectionType', e.target.value)}
+                            >
+                                <option value="single">Single Select</option>
+                                <option value="multi">Multi Select</option>
+                            </select>
+                        </div>
+                        <div className="w-1/2">
+                            <p className="text-[10px] text-zinc-500 mb-1">Points</p>
+                            <InputField
+                                type="number"
+                                placeholder="0"
+                                value={data.points}
+                                onChange={(e) => handleChange('points', parseInt(e.target.value) || 0)}
+                                className="bg-black/50"
+                            />
+                        </div>
+                    </div>
+
+                    <div className="pt-2 border-t border-fuchsia-900/20">
+                        <div className="flex justify-between items-center mb-2">
+                            <p className="text-[10px] text-zinc-500 font-bold uppercase">Answers / Options</p>
+                            <button onClick={addOption} className="text-[10px] text-indigo-400 hover:text-indigo-300 flex items-center gap-1">
+                                <Plus className="w-3 h-3" /> Add
+                            </button>
+                        </div>
+
+                        <div className="space-y-1">
+                            {(data.options || []).map((opt) => (
+                                <div key={opt.id} className="flex items-center gap-2">
+                                    <input
+                                        type="checkbox"
+                                        checked={opt.isCorrect}
+                                        onChange={(e) => updateOption(opt.id, { isCorrect: e.target.checked })}
+                                        className="rounded border-zinc-700 bg-zinc-900 text-indigo-500 focus:ring-0 w-3 h-3"
+                                        title="Mark as correct"
+                                    />
+                                    <InputField
+                                        placeholder="Option text"
+                                        value={opt.text}
+                                        onChange={(e) => updateOption(opt.id, { text: e.target.value })}
+                                        className="!py-0.5"
+                                    />
+                                    <button onClick={() => deleteOption(opt.id)} className="text-zinc-600 hover:text-red-500">
+                                        <Trash2 className="w-3 h-3" />
+                                    </button>
+                                </div>
+                            ))}
+                        </div>
+                    </div>
+                </div>
+            </NodeWrapper>
+            {(!data.actions || data.actions.length === 0) && (
+                <Handle type="source" position={Position.Bottom} className="!bg-fuchsia-500 !w-3 !h-3 !border-2 !border-black" />
             )}
         </>
     );
