@@ -328,6 +328,17 @@ export const EvidenceNode = memo(({ id, data, selected }) => {
                             </div>
                         )}
                     </div>
+                    {/* Logic ID */}
+                    <div>
+                        <p className="text-[10px] text-zinc-500 mb-1">Logic ID (For branching)</p>
+                        <InputField
+                            placeholder="e.g. found_weapon"
+                            value={data.variableId}
+                            onChange={(e) => handleChange('variableId', e.target.value)}
+                            className="font-mono text-yellow-500/80"
+                        />
+                        {data.condition && <p className="text-[8px] text-zinc-600 mt-0.5">Legacy: {data.condition}</p>}
+                    </div>
                 </div>
             </NodeWrapper>
             {(!data.actions || data.actions.length === 0) && (
@@ -461,11 +472,22 @@ export const TerminalNode = memo(({ id, data, selected }) => {
                             className="bg-black/50"
                         />
                     </div>
+                    {/* Logic ID */}
+                    <div>
+                        <p className="text-[10px] text-zinc-500 mb-1">Logic ID (Set on Success)</p>
+                        <InputField
+                            placeholder="e.g. mainframe_hacked"
+                            value={data.variableId}
+                            onChange={(e) => handleChange('variableId', e.target.value)}
+                            className="font-mono text-green-500/80"
+                        />
+                    </div>
                 </div>
             </NodeWrapper>
             {(!data.actions || data.actions.length === 0) && (
                 <Handle type="source" position={Position.Bottom} className="!bg-green-500 !w-3 !h-3 !border-2 !border-black" />
-            )}
+            )
+            }
         </>
     );
 });
@@ -746,6 +768,17 @@ export const QuestionNode = memo(({ id, data, selected }) => {
                                 className="bg-black/50"
                             />
                         </div>
+                    </div>
+
+                    {/* Logic ID */}
+                    <div>
+                        <p className="text-[10px] text-zinc-500 mb-1">Logic ID (Set on Correct)</p>
+                        <InputField
+                            placeholder="e.g. quiz_passed"
+                            value={data.variableId}
+                            onChange={(e) => handleChange('variableId', e.target.value)}
+                            className="font-mono text-fuchsia-500/80"
+                        />
                     </div>
 
                     <div className="pt-2 border-t border-fuchsia-900/20">

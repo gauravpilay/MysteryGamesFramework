@@ -389,7 +389,7 @@ const Editor = () => {
     return (
         <div className="flex h-screen w-screen flex-col bg-black text-white overflow-hidden">
             {/* Toolbar */}
-            <div id="editor-toolbar" className="h-16 border-b border-zinc-800 bg-black/80 flex items-center justify-between px-4 z-10 backdrop-blur-md">
+            <div id="editor-toolbar" className="h-16 border-b border-zinc-800 bg-black/80 flex items-center justify-between px-4 z-50 backdrop-blur-md relative">
                 <div className="flex items-center gap-4">
                     <Button variant="ghost" size="sm" onClick={() => navigate('/')}>
                         <ArrowLeft className="w-4 h-4 mr-2" />

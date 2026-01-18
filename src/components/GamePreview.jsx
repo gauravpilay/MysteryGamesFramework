@@ -255,7 +255,7 @@ const GamePreview = ({ nodes, edges, onClose, gameMetadata }) => {
 
         // 1. Evidence: Auto-collect
         if (currentNode.type === 'evidence') {
-            const flag = currentNode.data.condition || currentNode.id;
+            const flag = currentNode.data.variableId || currentNode.data.condition || currentNode.id;
             if (!inventory.has(flag)) {
                 setInventory(prev => new Set([...prev, flag]));
                 addLog(`EVIDENCE ACQUIRED: ${currentNode.data.label}`);
@@ -286,7 +286,11 @@ const GamePreview = ({ nodes, edges, onClose, gameMetadata }) => {
                     const sVal = String(actualValue).toLowerCase();
                     const tVal = String(value || '').toLowerCase();
 
-                    if (operator === '!=') isTrue = sVal != tVal;
+                    if (!value && (operator === '==' || !operator)) {
+                        // Implicit "Is True/Exists" check if no value provided
+                        isTrue = true;
+                    }
+                    else if (operator === '!=') isTrue = sVal != tVal;
                     else if (operator === '>') isTrue = parseFloat(actualValue) > parseFloat(value);
                     else if (operator === '<') isTrue = parseFloat(actualValue) < parseFloat(value);
                     else if (operator === 'contains') isTrue = sVal.includes(tVal);
@@ -300,6 +304,9 @@ const GamePreview = ({ nodes, edges, onClose, gameMetadata }) => {
                 addLog(`LOGIC CHECK: ${condition || 'Default'} = ${isTrue}`);
             }
 
+            // Find edges
+            const trueEdge = options.find(e => e.sourceHandle === 'true' || e.label === 'True' || e.label === 'true');
+            const falseEdge = options.find(e => e.sourceHandle === 'false' || e.label === 'False' || e.label === 'false');
             // WHILE (Wait) Handling
             if (logicType === 'while' && !isTrue) {
                 // If it's a WHILE loop and condition is met (or not met?), assume 'While True' = Perform Loop?
@@ -309,16 +316,23 @@ const GamePreview = ({ nodes, edges, onClose, gameMetadata }) => {
                 return;
             }
 
-            // Find edges
-            const trueEdge = options.find(e => e.sourceHandle === 'true' || e.label === 'True' || e.label === 'true');
-            const falseEdge = options.find(e => e.sourceHandle === 'false' || e.label === 'False' || e.label === 'false');
-
             let nextEdge = isTrue ? trueEdge : falseEdge;
 
             // Fallback for unlabeled edges
             if (!nextEdge && options.length > 0) {
-                if (options.length === 1) nextEdge = options[0];
-                else nextEdge = isTrue ? options[0] : options[1];
+                if (options.length === 1) {
+                    // Only one path? If True, take it. If False, stop (dead end or wait).
+                    // Or, arguably, single path implies "Always Go" unless 'while' blocks it.
+                    // But for branch logic, 1 path usually means "True Path", no "False Path".
+                    nextEdge = isTrue ? options[0] : null;
+                }
+                else {
+                    // Two paths. Convention: First connected is True (often Top/Left handles), Second is False.
+                    // ReactFlow edges order isn't guaranteed by position, but usually insertion order.
+                    // We try to stick to Handles if possible. LogicNode usually has 'true' (top/green) and 'false' (bottom/red).
+                    // If handles are missing, we default to Index 0 = True, Index 1 = False.
+                    nextEdge = isTrue ? options[0] : options[1];
+                }
             }
 
             if (nextEdge) {
@@ -373,7 +387,18 @@ const GamePreview = ({ nodes, edges, onClose, gameMetadata }) => {
         if (nextNode && ['suspect', 'evidence', 'terminal', 'message', 'media', 'notification', 'question'].includes(nextNode.type)) {
             setActiveModalNode(nextNode);
             if (nextNode.type === 'question') setUserAnswers(new Set()); // Reset answers
-            setInventory(prev => new Set([...prev, nextNodeId, ...intermediateIds]));
+
+            // Collect IDs: Node IDs + any custom logic variableIds
+            const idsToAdd = [nextNodeId, ...intermediateIds];
+
+            // Check connected nodes for custom IDs
+            [nextNode, ...intermediateIds.map(id => nodes.find(n => n.id === id))].forEach(n => {
+                if (n && n.data?.variableId) idsToAdd.push(n.data.variableId);
+                // Legacy support for condition on evidence
+                if (n && n.type === 'evidence' && n.data.condition) idsToAdd.push(n.data.condition);
+            });
+
+            setInventory(prev => new Set([...prev, ...idsToAdd]));
         } else if (nextNode && nextNode.type === 'identify') {
             setActiveAccusationNode(nextNode);
             setShowAccuseModal(true);
@@ -401,7 +426,9 @@ const GamePreview = ({ nodes, edges, onClose, gameMetadata }) => {
             if (nodeOptions.length > 0) {
                 // Add to inventory that we beat this terminal
                 // Add to inventory that we beat this terminal
-                setInventory(prev => new Set([...prev, activeModalNode.id]));
+                const successIds = [activeModalNode.id];
+                if (activeModalNode.data.variableId) successIds.push(activeModalNode.data.variableId);
+                setInventory(prev => new Set([...prev, ...successIds]));
                 setNodeOutputs(prev => ({ ...prev, [activeModalNode.id]: input, [activeModalNode.data.label]: input }));
 
                 // Award Score for Terminal Hack
