@@ -438,7 +438,7 @@ const Editor = () => {
                         </Button>
                     </div>
 
-                    <div className={`space-y-3 ${isPaletteCollapsed ? 'px-2' : 'px-4'}`}>
+                    <div className={`space-y-3 flex-1 overflow-y-auto ${isPaletteCollapsed ? 'px-2' : 'px-4'}`}>
                         {PALETTE_ITEMS.map((item) => (
                             <div
                                 key={item.type}
