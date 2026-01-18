@@ -12,7 +12,7 @@ import 'reactflow/dist/style.css';
 import { useParams, useNavigate } from 'react-router-dom';
 import { Button } from '../components/ui/shared';
 import { Logo } from '../components/ui/Logo';
-import { Save, ArrowLeft, X, FileText, User, Search, GitMerge, Terminal, MessageSquare, CircleHelp, Play, Settings, Music, Image as ImageIcon, MousePointerClick, Fingerprint, Bell, HelpCircle } from 'lucide-react';
+import { Save, ArrowLeft, X, FileText, User, Search, GitMerge, Terminal, MessageSquare, CircleHelp, Play, Settings, Music, Image as ImageIcon, MousePointerClick, Fingerprint, Bell, HelpCircle, ChevronLeft, ChevronRight } from 'lucide-react';
 import { StoryNode, SuspectNode, EvidenceNode, LogicNode, TerminalNode, MessageNode, MusicNode, MediaNode, ActionNode, IdentifyNode, NotificationNode, QuestionNode } from '../components/nodes/CustomNodes';
 import { TutorialOverlay } from '../components/ui/TutorialOverlay';
 import GamePreview from '../components/GamePreview';
@@ -112,6 +112,7 @@ const Editor = () => {
     const [showPreview, setShowPreview] = useState(false);
     const [showSettings, setShowSettings] = useState(false);
     const [timeLimit, setTimeLimit] = useState(15); // Default 15 minutes
+    const [isPaletteCollapsed, setIsPaletteCollapsed] = useState(false);
 
     const tutorialSteps = [
         {
@@ -420,35 +421,54 @@ const Editor = () => {
 
             <div className="flex flex-1 overflow-hidden">
                 {/* Sidebar */}
-                <aside id="node-sidebar" className="w-64 border-r border-zinc-800 bg-zinc-950 p-4 flex flex-col gap-4 z-10">
-                    <div className="text-xs font-bold text-zinc-500 uppercase tracking-wider mb-2">Node Palette</div>
+                {/* Sidebar */}
+                <aside id="node-sidebar" className={`${isPaletteCollapsed ? 'w-16' : 'w-64'} border-r border-zinc-800 bg-zinc-950 flex flex-col gap-4 z-10 transition-all duration-300 ease-in-out`}>
+                    <div className={`flex items-center ${isPaletteCollapsed ? 'justify-center p-2' : 'justify-between p-4'} border-b border-zinc-800/50`}>
+                        {!isPaletteCollapsed && (
+                            <div className="text-xs font-bold text-zinc-500 uppercase tracking-wider">Node Palette</div>
+                        )}
+                        <Button
+                            variant="ghost"
+                            size="icon"
+                            className="h-6 w-6 text-zinc-500 hover:text-white"
+                            onClick={() => setIsPaletteCollapsed(!isPaletteCollapsed)}
+                            title={isPaletteCollapsed ? "Expand Palette" : "Collapse Palette"}
+                        >
+                            {isPaletteCollapsed ? <ChevronRight className="w-4 h-4" /> : <ChevronLeft className="w-4 h-4" />}
+                        </Button>
+                    </div>
 
-                    <div className="space-y-3">
+                    <div className={`space-y-3 ${isPaletteCollapsed ? 'px-2' : 'px-4'}`}>
                         {PALETTE_ITEMS.map((item) => (
                             <div
                                 key={item.type}
                                 onDragStart={(event) => onDragStart(event, item.type)}
                                 draggable
-                                className={`flex items-center gap-3 p-3 rounded bg-zinc-900 border border-zinc-800 cursor-grab hover:bg-zinc-800 transition-all active:cursor-grabbing group relative ${item.className}`}
+                                className={`flex items-center ${isPaletteCollapsed ? 'justify-center w-10 h-10 p-0 mx-auto' : 'gap-3 p-3'} rounded bg-zinc-900 border border-zinc-800 cursor-grab hover:bg-zinc-800 transition-all active:cursor-grabbing group relative ${item.className}`}
+                                title={isPaletteCollapsed ? item.label : undefined}
                             >
                                 <item.icon className={`w-4 h-4 ${item.iconClass}`} />
-                                <span className="text-sm font-medium">{item.label}</span>
-                                <button
-                                    onClick={(e) => { e.stopPropagation(); setHelpModalData(NODE_HELP[item.type]); }}
-                                    className="ml-auto opacity-0 group-hover:opacity-100 transition-opacity p-1 hover:bg-zinc-800 rounded-full text-zinc-500 hover:text-white"
-                                    title="View Documentation"
-                                >
-                                    <CircleHelp className="w-4 h-4" />
-                                </button>
+                                {!isPaletteCollapsed && <span className="text-sm font-medium">{item.label}</span>}
+                                {!isPaletteCollapsed && (
+                                    <button
+                                        onClick={(e) => { e.stopPropagation(); setHelpModalData(NODE_HELP[item.type]); }}
+                                        className="ml-auto opacity-0 group-hover:opacity-100 transition-opacity p-1 hover:bg-zinc-800 rounded-full text-zinc-500 hover:text-white"
+                                        title="View Documentation"
+                                    >
+                                        <CircleHelp className="w-4 h-4" />
+                                    </button>
+                                )}
                             </div>
                         ))}
                     </div>
 
-                    <div className="mt-auto p-4 bg-zinc-900/50 rounded-lg border border-zinc-800/50">
-                        <p className="text-[10px] text-zinc-500">
-                            Drag nodes to canvas. Connect handles to create flow logic. Save frequently.
-                        </p>
-                    </div>
+                    {!isPaletteCollapsed && (
+                        <div className="mt-auto p-4 bg-zinc-900/50 border-t border-zinc-800/50">
+                            <p className="text-[10px] text-zinc-500">
+                                Drag nodes to canvas. Connect handles to create flow logic. Save frequently.
+                            </p>
+                        </div>
+                    )}
                 </aside>
 
                 {/* Canvas */}
