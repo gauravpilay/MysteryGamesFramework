@@ -4,7 +4,7 @@ import { db } from '../lib/firebase';
 import { collection, addDoc, deleteDoc, updateDoc, doc, onSnapshot, query } from 'firebase/firestore';
 import { Button, Card, Input, Label } from '../components/ui/shared';
 import { Logo } from '../components/ui/Logo';
-import { Plus, FolderOpen, LogOut, Search, Trash2, Rocket, Copy, Users } from 'lucide-react';
+import { Plus, FolderOpen, LogOut, Search, Trash2, Rocket, Copy, Users, BookOpen } from 'lucide-react';
 import { useNavigate } from 'react-router-dom';
 import { motion, AnimatePresence } from 'framer-motion';
 
@@ -452,10 +452,16 @@ const Dashboard = () => {
                                     <Users className="w-4 h-4 mr-2" />
                                     Manage Users
                                 </Button>
-                                <Button variant="secondary" onClick={generateSampleCase} type="button">
-                                    <Rocket className="w-4 h-4 mr-2" />
-                                    Seed Sample
+                                <Button variant="secondary" onClick={() => window.open('/USER_MANUAL.pdf', '_blank')} className="mr-2">
+                                    <BookOpen className="w-4 h-4 mr-2" />
+                                    User Manual
                                 </Button>
+                                {user?.email === 'gaurav.pilay@gmail.com' && (
+                                    <Button variant="secondary" onClick={generateSampleCase} type="button">
+                                        <Rocket className="w-4 h-4 mr-2" />
+                                        Seed Sample
+                                    </Button>
+                                )}
                                 <Button onClick={() => setShowNewModal(true)}>
                                     <Plus className="w-4 h-4 mr-2" />
                                     New Case
