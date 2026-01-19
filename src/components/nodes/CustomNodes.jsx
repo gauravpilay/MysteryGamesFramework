@@ -2,7 +2,7 @@ import React, { memo, useState } from 'react';
 import { storage } from '../../lib/firebase';
 import { ref, uploadBytes, getDownloadURL } from 'firebase/storage';
 import { Handle, Position } from 'reactflow';
-import { FileText, User, Search, GitMerge, Terminal, MessageSquare, Music, Image as ImageIcon, Star, MousePointerClick, Trash2, Plus, Copy, Fingerprint, Bell, HelpCircle } from 'lucide-react';
+import { FileText, User, Search, GitMerge, Terminal, MessageSquare, Music, Image as ImageIcon, Star, MousePointerClick, Trash2, Plus, Copy, Fingerprint, Bell, HelpCircle, ToggleLeft } from 'lucide-react';
 
 // ... existing code ...
 
@@ -858,6 +858,61 @@ export const QuestionNode = memo(({ id, data, selected }) => {
             </NodeWrapper>
             {(!data.actions || data.actions.length === 0) && (
                 <Handle type="source" position={Position.Bottom} className="!bg-fuchsia-500 !w-3 !h-3 !border-2 !border-black" />
+            )}
+        </>
+    );
+});
+
+export const SetterNode = memo(({ id, data, selected }) => {
+    const handleChange = (key, val) => {
+        data.onChange && data.onChange(id, { ...data, [key]: val });
+    };
+
+    return (
+        <>
+            <Handle type="target" position={Position.Top} className="!bg-zinc-500 !w-3 !h-3 !border-2 !border-black" />
+            <Handle type="target" position={Position.Top} className="!bg-zinc-500 !w-3 !h-3 !border-2 !border-black" />
+            <NodeWrapper id={id} title="Set State / Variable" icon={ToggleLeft} selected={selected} headerClass="bg-cyan-950/30 text-cyan-200" colorClass="border-cyan-900/30" data={data} onLabelChange={(v) => handleChange('label', v)}>
+                <div className="space-y-2">
+                    <div>
+                        <p className="text-[10px] text-zinc-500 mb-1">Variable / Logic ID</p>
+                        <InputField
+                            placeholder="e.g. has_key_card"
+                            value={data.variableId}
+                            onChange={(e) => handleChange('variableId', e.target.value)}
+                            className="font-mono text-cyan-400"
+                        />
+                    </div>
+
+                    <div className="flex gap-2">
+                        <div className="w-1/2">
+                            <p className="text-[10px] text-zinc-500 mb-1">Operation</p>
+                            <select
+                                className="w-full bg-black border border-zinc-800 rounded px-2 py-1 text-xs text-zinc-300 focus:border-indigo-500 outline-none"
+                                value={data.operation || 'set'}
+                                onChange={(e) => handleChange('operation', e.target.value)}
+                            >
+                                <option value="set">Set To</option>
+                                <option value="toggle">Toggle (Bool)</option>
+                                <option value="increment">Increment (+)</option>
+                                <option value="decrement">Decrement (-)</option>
+                            </select>
+                        </div>
+                        <div className="w-1/2">
+                            <p className="text-[10px] text-zinc-500 mb-1">Value</p>
+                            <InputField
+                                placeholder="true"
+                                value={data.value}
+                                onChange={(e) => handleChange('value', e.target.value)}
+                                disabled={['toggle', 'increment', 'decrement'].includes(data.operation) && data.operation !== 'set'}
+                                className={['toggle', 'increment', 'decrement'].includes(data.operation) && data.operation !== 'set' ? "opacity-50 cursor-not-allowed" : ""}
+                            />
+                        </div>
+                    </div>
+                </div>
+            </NodeWrapper>
+            {(!data.actions || data.actions.length === 0) && (
+                <Handle type="source" position={Position.Bottom} className="!bg-cyan-500 !w-3 !h-3 !border-2 !border-black" />
             )}
         </>
     );

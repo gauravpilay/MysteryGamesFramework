@@ -12,8 +12,8 @@ import 'reactflow/dist/style.css';
 import { useParams, useNavigate } from 'react-router-dom';
 import { Button } from '../components/ui/shared';
 import { Logo } from '../components/ui/Logo';
-import { Save, ArrowLeft, X, FileText, User, Search, GitMerge, Terminal, MessageSquare, CircleHelp, Play, Settings, Music, Image as ImageIcon, MousePointerClick, Fingerprint, Bell, HelpCircle, ChevronLeft, ChevronRight } from 'lucide-react';
-import { StoryNode, SuspectNode, EvidenceNode, LogicNode, TerminalNode, MessageNode, MusicNode, MediaNode, ActionNode, IdentifyNode, NotificationNode, QuestionNode } from '../components/nodes/CustomNodes';
+import { Save, ArrowLeft, X, FileText, User, Search, GitMerge, Terminal, MessageSquare, CircleHelp, Play, Settings, Music, Image as ImageIcon, MousePointerClick, Fingerprint, Bell, HelpCircle, ChevronLeft, ChevronRight, ToggleLeft } from 'lucide-react';
+import { StoryNode, SuspectNode, EvidenceNode, LogicNode, TerminalNode, MessageNode, MusicNode, MediaNode, ActionNode, IdentifyNode, NotificationNode, QuestionNode, SetterNode } from '../components/nodes/CustomNodes';
 import { TutorialOverlay } from '../components/ui/TutorialOverlay';
 import GamePreview from '../components/GamePreview';
 import { AnimatePresence } from 'framer-motion';
@@ -82,6 +82,11 @@ const NODE_HELP = {
         title: "Question / Quiz",
         desc: "Ask the player a question with single or multiple correct answers. Rewarding points for correct answers.",
         examples: ["Riddle", "Knowledge Check", "Code Decryption"]
+    },
+    setter: {
+        title: "Set Variable",
+        desc: "Updates a hidden variable or logic ID in the game state. Use to manually trigger flags or track progress.",
+        examples: ["Unlock Door Flag", "Set Score", "Mark Chapter Complete"]
     }
 };
 
@@ -97,6 +102,7 @@ const PALETTE_ITEMS = [
     { type: 'action', label: 'Action Button', icon: MousePointerClick, className: "hover:border-indigo-500/50", iconClass: "text-indigo-400" },
     { type: 'notification', label: 'Notification', icon: Bell, className: "hover:border-sky-500/50", iconClass: "text-sky-400" },
     { type: 'question', label: 'Question', icon: HelpCircle, className: "hover:border-fuchsia-500/50", iconClass: "text-fuchsia-400" },
+    { type: 'setter', label: 'Set Variable', icon: ToggleLeft, className: "hover:border-cyan-500/50", iconClass: "text-cyan-400" },
     { type: 'identify', label: 'Identify Culprit', icon: Fingerprint, className: "hover:border-red-600/50", iconClass: "text-red-600" },
 ];
 
@@ -154,7 +160,8 @@ const Editor = () => {
         action: ActionNode,
         identify: IdentifyNode,
         notification: NotificationNode,
-        question: QuestionNode
+        question: QuestionNode,
+        setter: SetterNode
     }), []);
 
     const [editingEdge, setEditingEdge] = useState(null); // { id: string, label: string }

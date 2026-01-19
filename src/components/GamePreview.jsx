@@ -213,7 +213,7 @@ const GamePreview = ({ nodes, edges, onClose, gameMetadata }) => {
             if (!targetNode) return null;
 
             // Atomic Node (Terminal, Visible Node) -> Return as is
-            if (!['logic', 'music'].includes(targetNode.type)) {
+            if (!['logic', 'music', 'setter'].includes(targetNode.type)) {
                 return edge;
             }
 
@@ -279,10 +279,10 @@ const GamePreview = ({ nodes, edges, onClose, gameMetadata }) => {
                 return null; // Dead end logic path (Hidden option)
             }
 
-            if (targetNode.type === 'music') {
-                // Music always passes through
-                const musicEdges = edges.filter(e => e.source === targetNode.id);
-                if (musicEdges.length > 0) return resolveEdgeTarget(musicEdges[0]);
+            if (targetNode.type === 'music' || targetNode.type === 'setter') {
+                // Music/Setter always passes through
+                const outEdges = edges.filter(e => e.source === targetNode.id);
+                if (outEdges.length > 0) return resolveEdgeTarget(outEdges[0]);
                 return null;
             }
 
@@ -411,6 +411,42 @@ const GamePreview = ({ nodes, edges, onClose, gameMetadata }) => {
             }
         }
 
+        // 3. Setter: Auto-update and redirect
+        if (currentNode.type === 'setter') {
+            const { variableId, operation, value } = currentNode.data;
+            if (variableId) {
+                let valToSet = value;
+                if (String(value).toLowerCase() === 'true') valToSet = true;
+                if (String(value).toLowerCase() === 'false') valToSet = false;
+
+                let currentVal = nodeOutputs[variableId];
+                if (currentVal === undefined && inventory.has(variableId)) currentVal = true;
+
+                let finalVal = valToSet;
+                if (operation === 'toggle') finalVal = !currentVal;
+                else if (operation === 'increment') finalVal = (parseInt(currentVal) || 0) + (parseInt(value) || 1);
+                else if (operation === 'decrement') finalVal = (parseInt(currentVal) || 0) - (parseInt(value) || 1);
+
+                setNodeOutputs(prev => ({ ...prev, [variableId]: finalVal }));
+
+                // Sync Inventory
+                if (finalVal === true) setInventory(prev => new Set([...prev, variableId]));
+                else if (finalVal === false) setInventory(prev => {
+                    const next = new Set(prev);
+                    next.delete(variableId);
+                    return next;
+                });
+
+                addLog(`SETTER (Auto): ${variableId} = ${finalVal}`);
+            }
+
+            // Move Next
+            const outEdges = options;
+            if (outEdges.length > 0) {
+                setTimeout(() => setCurrentNodeId(outEdges[0].target), 0);
+            }
+        }
+
         // Reset content ready state on new node
         setIsContentReady(false);
 
@@ -422,14 +458,14 @@ const GamePreview = ({ nodes, edges, onClose, gameMetadata }) => {
     // ...
 
     // Helper to evaluate logic for a given node
-    const evaluateLogic = (node) => {
+    const evaluateLogic = (node, inv = inventory, out = nodeOutputs) => {
         const { logicType, variable, operator, value, condition } = node.data;
         let isTrue = false;
 
         if (variable) {
             let actualValue = undefined;
-            if (nodeOutputs[variable] !== undefined) actualValue = nodeOutputs[variable];
-            else if (inventory.has(variable)) actualValue = true;
+            if (out[variable] !== undefined) actualValue = out[variable];
+            else if (inv.has(variable)) actualValue = true;
 
             if (actualValue === undefined) {
                 isTrue = false;
@@ -446,7 +482,12 @@ const GamePreview = ({ nodes, edges, onClose, gameMetadata }) => {
             }
             addLog(`LOGIC (${logicType}): ${variable} [${actualValue}] ${operator} ${value} = ${isTrue}`);
         } else {
-            isTrue = checkLogicCondition(condition);
+            // Check legacy condition against inventory (using safe inv reference)
+            if (!condition || condition === 'always_true') isTrue = true;
+            else if (condition === 'always_false') isTrue = false;
+            else if (condition.startsWith('has:')) isTrue = inv.has(condition.split(':')[1]);
+            else isTrue = inv.has(condition);
+
             addLog(`LOGIC CHECK: ${condition || 'Default'} = ${isTrue}`);
         }
         return isTrue;
@@ -457,12 +498,17 @@ const GamePreview = ({ nodes, edges, onClose, gameMetadata }) => {
         const maxLoops = 20; // Safety brake
         const intermediateIds = [];
 
+        // Simulation State for immediate consistency in same-tick logic chains
+        const localInventory = new Set(inventory);
+        const localOutputs = { ...nodeOutputs };
+        let stateChanged = false;
+
         // Recursive resolution function (iterative implementation)
         const resolveNextNode = (startId) => {
             let currId = startId;
             let currNode = nodes.find(n => n.id === currId);
 
-            while (currNode && (currNode.type === 'music' || currNode.type === 'logic') && loopCount < maxLoops) {
+            while (currNode && (['music', 'logic', 'setter'].includes(currNode.type)) && loopCount < maxLoops) {
                 loopCount++;
                 intermediateIds.push(currNode.id);
 
@@ -476,19 +522,51 @@ const GamePreview = ({ nodes, edges, onClose, gameMetadata }) => {
                     if (outEdges.length > 0) {
                         currId = outEdges[0].target;
                         currNode = nodes.find(n => n.id === currId);
-                    } else {
-                        break; // Dead end
+                    } else break;
+                }
+                // Handle Setter
+                else if (currNode.type === 'setter') {
+                    const { variableId, operation, value } = currNode.data;
+                    if (variableId) {
+                        stateChanged = true;
+                        let valToSet = value;
+
+                        // Parse boolean strings
+                        if (String(value).toLowerCase() === 'true') valToSet = true;
+                        if (String(value).toLowerCase() === 'false') valToSet = false;
+
+                        // Check current value
+                        const currentVal = localOutputs[variableId] !== undefined ? localOutputs[variableId] : (localInventory.has(variableId) ? true : undefined);
+
+                        if (operation === 'toggle') {
+                            valToSet = !currentVal;
+                        } else if (operation === 'increment') {
+                            valToSet = (parseInt(currentVal) || 0) + (parseInt(value) || 1);
+                        } else if (operation === 'decrement') {
+                            valToSet = (parseInt(currentVal) || 0) - (parseInt(value) || 1);
+                        }
+
+                        // Update Local State
+                        localOutputs[variableId] = valToSet;
+                        // Sync Inventory for boolean flags
+                        if (valToSet === true) localInventory.add(variableId);
+                        else if (valToSet === false) localInventory.delete(variableId);
+
+                        addLog(`SETTER: ${variableId} = ${valToSet} (${operation})`);
                     }
+
+                    const outEdges = edges.filter(e => e.source === currNode.id);
+                    if (outEdges.length > 0) {
+                        currId = outEdges[0].target;
+                        currNode = nodes.find(n => n.id === currId);
+                    } else break;
                 }
                 // Handle Logic
                 else if (currNode.type === 'logic') {
-                    const isTrue = evaluateLogic(currNode);
+                    const isTrue = evaluateLogic(currNode, localInventory, localOutputs);
                     const nodeOptions = edges.filter(e => e.source === currNode.id);
 
                     if (currNode.data.logicType === 'while' && !isTrue) {
-                        // While Wait logic: If condition not met, stop here? 
-                        // Or if 'while' means 'loop until true', we should stop traversing and wait.
-                        // For now, let's treat it as a stop.
                         break;
                     }
 
@@ -497,7 +575,6 @@ const GamePreview = ({ nodes, edges, onClose, gameMetadata }) => {
 
                     let nextEdge = isTrue ? trueEdge : falseEdge;
 
-                    // Fallback
                     if (!nextEdge && nodeOptions.length > 0) {
                         nextEdge = isTrue ? nodeOptions[0] : (nodeOptions.length > 1 ? nodeOptions[1] : null);
                     }
@@ -517,6 +594,12 @@ const GamePreview = ({ nodes, edges, onClose, gameMetadata }) => {
         const result = resolveNextNode(targetId);
         const nextNodeId = result.nodeId;
         const nextNode = result.node;
+
+        // Commit State Changes
+        if (stateChanged) {
+            setInventory(localInventory);
+            setNodeOutputs(localOutputs);
+        }
 
         // Add current and intermediates to history
         setHistory(prev => {
