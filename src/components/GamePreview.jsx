@@ -198,11 +198,129 @@ const GamePreview = ({ nodes, edges, onClose, gameMetadata }) => {
 
 
 
-    // Navigation Options (Outgoing Edges)
+    // Navigation Options (Outgoing Edges) with Logic Look-ahead
+    // We compute this whenever state changes to "see through" logic nodes
     const options = useMemo(() => {
         if (!currentNodeId) return [];
-        return edges.filter(e => e.source === currentNodeId);
-    }, [currentNodeId, edges]);
+
+        const rawEdges = edges.filter(e => e.source === currentNodeId);
+        const resolvedOptions = [];
+        const processedLogicNodes = new Set(); // Prevent infinite recursion
+
+        // Recursive helper to look through logic nodes for the *effective* target
+        const resolveEdgeTarget = (edge) => {
+            const targetNode = nodes.find(n => n.id === edge.target);
+            if (!targetNode) return null;
+
+            // Atomic Node (Terminal, Visible Node) -> Return as is
+            if (!['logic', 'music'].includes(targetNode.type)) {
+                return edge;
+            }
+
+            // Logic/Music Node -> Evaluate and continue
+            if (targetNode.type === 'logic') {
+                if (processedLogicNodes.has(targetNode.id)) return null; // Cycle guard
+                processedLogicNodes.add(targetNode.id);
+
+                // Use our evaluateLogic helper
+                // Note: We need to define evaluateLogic BEFORE this useMemo or use a separate helper
+                // Since evaluateLogic uses state variables, we might need to inline part of it or move it up.
+                // Ideally, evaluateLogic should be pure or we extract the logic.
+
+                // Re-implementing simplified logic evaluation here to avoid hoisting issues 
+                // (since evaluateLogic is defined below in original code)
+                const { variable, operator, value, condition } = targetNode.data;
+                let isTrue = false;
+
+                if (variable) {
+                    let actualValue = undefined;
+                    if (nodeOutputs[variable] !== undefined) actualValue = nodeOutputs[variable];
+                    else if (inventory.has(variable)) actualValue = true;
+
+                    if (actualValue === undefined) isTrue = false;
+                    else {
+                        const sVal = String(actualValue).toLowerCase();
+                        const tVal = String(value || '').toLowerCase();
+                        if (!value && (operator === '==' || !operator)) isTrue = true;
+                        else if (operator === '!=') isTrue = sVal != tVal;
+                        else if (operator === '>') isTrue = parseFloat(actualValue) > parseFloat(value);
+                        else if (operator === '<') isTrue = parseFloat(actualValue) < parseFloat(value);
+                        else if (operator === 'contains') isTrue = sVal.includes(tVal);
+                        else isTrue = sVal == tVal;
+                    }
+                } else {
+                    // Check logic condition using the component Helper if possible, or reimplement
+                    // Note: checkLogicCondition is stable and defined early in component? 
+                    // No, checkLogicCondition is defined in render. We must rely on dependency.
+                    if (!condition || condition === 'always_true') isTrue = true;
+                    else if (condition === 'always_false') isTrue = false;
+                    else if (inventory.has(condition)) isTrue = true;
+                    // Full checkLogicCondition is complex, we'll assume inventory basic check here for preview performance
+                    // or rely on a simplified version. Most commonly it's inventory check.
+                    // The user asked for "keys are set", which is inventory or set variable.
+
+                    // Handle 'visited:' and 'has:' prefixes briefly
+                    if (condition.startsWith('visited:')) isTrue = history.includes(condition.split(':')[1]);
+                    else if (condition.startsWith('has:')) isTrue = inventory.has(condition.split(':')[1]);
+                }
+
+                // Find next edge based on result
+                const logicEdges = edges.filter(e => e.source === targetNode.id);
+                const trueEdge = logicEdges.find(e => e.sourceHandle === 'true' || e.label === 'True' || e.label === 'true');
+                const falseEdge = logicEdges.find(e => e.sourceHandle === 'false' || e.label === 'False' || e.label === 'false');
+
+                let nextEdge = isTrue ? trueEdge : falseEdge;
+                // Fallback
+                if (!nextEdge && logicEdges.length > 0) {
+                    nextEdge = isTrue ? logicEdges[0] : (logicEdges.length > 1 ? logicEdges[1] : null);
+                }
+
+                if (nextEdge) return resolveEdgeTarget(nextEdge);
+                return null; // Dead end logic path (Hidden option)
+            }
+
+            if (targetNode.type === 'music') {
+                // Music always passes through
+                const musicEdges = edges.filter(e => e.source === targetNode.id);
+                if (musicEdges.length > 0) return resolveEdgeTarget(musicEdges[0]);
+                return null;
+            }
+
+            return edge;
+        };
+
+        // Process all immediate edges
+        rawEdges.forEach(edge => {
+            // We use a clean set for each branch to allow diamond patterns, 
+            // but prevent loops within one branch.
+            processedLogicNodes.clear();
+            const resolved = resolveEdgeTarget(edge);
+            if (resolved) {
+                // We create a "Virtual Edge" that looks like it comes from Current -> Resolved Target
+                // We preserve the original label if the resolved edge doesn't have one? 
+                // Mostly we just want the target ID.
+                // We use the ID of the resolved edge to ensure keys are unique? No, resolved edge might be far away.
+                // We want to verify uniqueness of TARGETS.
+                resolvedOptions.push({
+                    ...edge, // Keep original source info (handles etc)
+                    target: resolved.target, // Point to the final destination
+                    id: edge.id + '_resolved_' + resolved.id // Unique ID
+                });
+            }
+        });
+
+        // Filter duplicates (multiple logic paths leading to same node)
+        const uniqueTargets = [];
+        const seenTargets = new Set();
+        resolvedOptions.forEach(opt => {
+            if (!seenTargets.has(opt.target)) {
+                seenTargets.add(opt.target);
+                uniqueTargets.push(opt);
+            }
+        });
+
+        return uniqueTargets;
+    }, [currentNodeId, edges, inventory, nodeOutputs, history, nodes]);
 
     // Helper to evaluate logic conditions
     const checkLogicCondition = (condition) => {
@@ -262,57 +380,16 @@ const GamePreview = ({ nodes, edges, onClose, gameMetadata }) => {
             }
         }
 
-        // 2. Logic: Auto-redirect
+        // 2. Logic: Auto-redirect (Start Node Fallback)
         if (currentNode.type === 'logic') {
-            const { logicType, variable, operator, value, condition } = currentNode.data;
-            let isTrue = false;
-
-            // New Structured Logic
-            if (variable) {
-                // Determine actual value
-                let actualValue = undefined;
-
-                // 1. Check Node Outputs (by Label or ID)
-                if (nodeOutputs[variable] !== undefined) actualValue = nodeOutputs[variable];
-                // 2. Check Inventory (Boolean existence)
-                else if (inventory.has(variable)) actualValue = true;
-
-                // Evaluate
-                if (actualValue === undefined) {
-                    // Variable not found
-                    isTrue = false;
-                } else {
-                    // Operators
-                    const sVal = String(actualValue).toLowerCase();
-                    const tVal = String(value || '').toLowerCase();
-
-                    if (!value && (operator === '==' || !operator)) {
-                        // Implicit "Is True/Exists" check if no value provided
-                        isTrue = true;
-                    }
-                    else if (operator === '!=') isTrue = sVal != tVal;
-                    else if (operator === '>') isTrue = parseFloat(actualValue) > parseFloat(value);
-                    else if (operator === '<') isTrue = parseFloat(actualValue) < parseFloat(value);
-                    else if (operator === 'contains') isTrue = sVal.includes(tVal);
-                    else isTrue = sVal == tVal; // Default ==
-                }
-
-                addLog(`LOGIC (${logicType}): ${variable} [${actualValue}] ${operator} ${value} = ${isTrue}`);
-            } else {
-                // Legacy Condition String
-                isTrue = checkLogicCondition(condition);
-                addLog(`LOGIC CHECK: ${condition || 'Default'} = ${isTrue}`);
-            }
+            const isTrue = evaluateLogic(currentNode);
 
             // Find edges
             const trueEdge = options.find(e => e.sourceHandle === 'true' || e.label === 'True' || e.label === 'true');
             const falseEdge = options.find(e => e.sourceHandle === 'false' || e.label === 'False' || e.label === 'false');
+
             // WHILE (Wait) Handling
-            if (logicType === 'while' && !isTrue) {
-                // If it's a WHILE loop and condition is met (or not met?), assume 'While True' = Perform Loop?
-                // Or 'While' = 'Wait Until True'?
-                // Let's implement 'Wait Until True' behavior. 
-                // Does NOT traverse. Just waits for state update.
+            if (currentNode.data.logicType === 'while' && !isTrue) {
                 return;
             }
 
@@ -320,23 +397,15 @@ const GamePreview = ({ nodes, edges, onClose, gameMetadata }) => {
 
             // Fallback for unlabeled edges
             if (!nextEdge && options.length > 0) {
-                if (options.length === 1) {
-                    // Only one path? If True, take it. If False, stop (dead end or wait).
-                    // Or, arguably, single path implies "Always Go" unless 'while' blocks it.
-                    // But for branch logic, 1 path usually means "True Path", no "False Path".
-                    nextEdge = isTrue ? options[0] : null;
-                }
-                else {
-                    // Two paths. Convention: First connected is True (often Top/Left handles), Second is False.
-                    // ReactFlow edges order isn't guaranteed by position, but usually insertion order.
-                    // We try to stick to Handles if possible. LogicNode usually has 'true' (top/green) and 'false' (bottom/red).
-                    // If handles are missing, we default to Index 0 = True, Index 1 = False.
-                    nextEdge = isTrue ? options[0] : options[1];
-                }
+                // If logic handled recursively in option click, this usually won't run, 
+                // but for initial load or special cases:
+                nextEdge = isTrue ? options[0] : (options.length > 1 ? options[1] : null);
             }
 
             if (nextEdge) {
-                setTimeout(() => setCurrentNodeId(nextEdge.target), 1500);
+                // Immediate transition to avoid rendering the logic node screen
+                // We use a minimal timeout to ensure state stability but effectively instant
+                setTimeout(() => setCurrentNodeId(nextEdge.target), 0);
             } else {
                 addLog(`LOGIC STOP: No path for result ${isTrue}`);
             }
@@ -352,32 +421,106 @@ const GamePreview = ({ nodes, edges, onClose, gameMetadata }) => {
 
     // ...
 
+    // Helper to evaluate logic for a given node
+    const evaluateLogic = (node) => {
+        const { logicType, variable, operator, value, condition } = node.data;
+        let isTrue = false;
+
+        if (variable) {
+            let actualValue = undefined;
+            if (nodeOutputs[variable] !== undefined) actualValue = nodeOutputs[variable];
+            else if (inventory.has(variable)) actualValue = true;
+
+            if (actualValue === undefined) {
+                isTrue = false;
+            } else {
+                const sVal = String(actualValue).toLowerCase();
+                const tVal = String(value || '').toLowerCase();
+
+                if (!value && (operator === '==' || !operator)) isTrue = true;
+                else if (operator === '!=') isTrue = sVal != tVal;
+                else if (operator === '>') isTrue = parseFloat(actualValue) > parseFloat(value);
+                else if (operator === '<') isTrue = parseFloat(actualValue) < parseFloat(value);
+                else if (operator === 'contains') isTrue = sVal.includes(tVal);
+                else isTrue = sVal == tVal;
+            }
+            addLog(`LOGIC (${logicType}): ${variable} [${actualValue}] ${operator} ${value} = ${isTrue}`);
+        } else {
+            isTrue = checkLogicCondition(condition);
+            addLog(`LOGIC CHECK: ${condition || 'Default'} = ${isTrue}`);
+        }
+        return isTrue;
+    };
+
     const handleOptionClick = (targetId) => {
-        let nextNodeId = targetId;
-        let nextNode = nodes.find(n => n.id === nextNodeId);
+        let loopCount = 0;
+        const maxLoops = 20; // Safety brake
         const intermediateIds = [];
 
-        // Handle seamless transition for Music nodes
-        while (nextNode && nextNode.type === 'music') {
-            if (nextNode.data.url) {
-                setAudioSource(nextNode.data.url);
-                addLog(`AUDIO: Background track started.`);
-            }
-            intermediateIds.push(nextNodeId);
+        // Recursive resolution function (iterative implementation)
+        const resolveNextNode = (startId) => {
+            let currId = startId;
+            let currNode = nodes.find(n => n.id === currId);
 
-            // Find next node
-            const outEdges = edges.filter(e => e.source === nextNode.id);
-            if (outEdges.length > 0) {
-                nextNodeId = outEdges[0].target;
-                nextNode = nodes.find(n => n.id === nextNodeId);
-            } else {
-                break;
+            while (currNode && (currNode.type === 'music' || currNode.type === 'logic') && loopCount < maxLoops) {
+                loopCount++;
+                intermediateIds.push(currNode.id);
+
+                // Handle Music
+                if (currNode.type === 'music') {
+                    if (currNode.data.url) {
+                        setAudioSource(currNode.data.url);
+                        addLog(`AUDIO: Background track started.`);
+                    }
+                    const outEdges = edges.filter(e => e.source === currNode.id);
+                    if (outEdges.length > 0) {
+                        currId = outEdges[0].target;
+                        currNode = nodes.find(n => n.id === currId);
+                    } else {
+                        break; // Dead end
+                    }
+                }
+                // Handle Logic
+                else if (currNode.type === 'logic') {
+                    const isTrue = evaluateLogic(currNode);
+                    const nodeOptions = edges.filter(e => e.source === currNode.id);
+
+                    if (currNode.data.logicType === 'while' && !isTrue) {
+                        // While Wait logic: If condition not met, stop here? 
+                        // Or if 'while' means 'loop until true', we should stop traversing and wait.
+                        // For now, let's treat it as a stop.
+                        break;
+                    }
+
+                    const trueEdge = nodeOptions.find(e => e.sourceHandle === 'true' || e.label === 'True' || e.label === 'true');
+                    const falseEdge = nodeOptions.find(e => e.sourceHandle === 'false' || e.label === 'False' || e.label === 'false');
+
+                    let nextEdge = isTrue ? trueEdge : falseEdge;
+
+                    // Fallback
+                    if (!nextEdge && nodeOptions.length > 0) {
+                        nextEdge = isTrue ? nodeOptions[0] : (nodeOptions.length > 1 ? nodeOptions[1] : null);
+                    }
+
+                    if (nextEdge) {
+                        currId = nextEdge.target;
+                        currNode = nodes.find(n => n.id === currId);
+                    } else {
+                        addLog(`LOGIC STOP: No path for result ${isTrue}`);
+                        break; // Dead end
+                    }
+                }
             }
-        }
+            return { nodeId: currId, node: currNode };
+        };
+
+        const result = resolveNextNode(targetId);
+        const nextNodeId = result.nodeId;
+        const nextNode = result.node;
 
         // Add current and intermediates to history
         setHistory(prev => {
-            const newHistory = [...prev, currentNodeId];
+            const newHistory = [...prev, currentNodeId]; // Log where we came from
             return [...newHistory, ...intermediateIds];
         });
 
@@ -746,7 +889,8 @@ const GamePreview = ({ nodes, edges, onClose, gameMetadata }) => {
                         ) : (
                             /* Actions / Choices */
                             // Only show actions if content is ready (text finished typing)
-                            isContentReady && (
+                            // AND if it's not a Logic/Music node (which should be auto-traversing)
+                            isContentReady && !['logic', 'music'].includes(currentNode.type) && (
                                 <div className="mt-8 animate-in fade-in zoom-in-95 duration-500">
                                     {options.some(e => nodes.find(n => n.id === e.target)?.type === 'suspect') ? (
                                         // Grid Layout for Suspects
