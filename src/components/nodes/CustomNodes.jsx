@@ -1,4 +1,6 @@
-import React, { memo } from 'react';
+import React, { memo, useState } from 'react';
+import { storage } from '../../lib/firebase';
+import { ref, uploadBytes, getDownloadURL } from 'firebase/storage';
 import { Handle, Position } from 'reactflow';
 import { FileText, User, Search, GitMerge, Terminal, MessageSquare, Music, Image as ImageIcon, Star, MousePointerClick, Trash2, Plus, Copy, Fingerprint, Bell, HelpCircle } from 'lucide-react';
 
@@ -282,6 +284,31 @@ export const EvidenceNode = memo(({ id, data, selected }) => {
     const handleChange = (key, val) => {
         data.onChange && data.onChange(id, { ...data, [key]: val });
     };
+    const [isUploading, setIsUploading] = useState(false);
+
+    const handleFileUpload = async (e) => {
+        const file = e.target.files[0];
+        if (!file) return;
+
+        if (!storage) {
+            alert("Firebase Storage not initialized.");
+            return;
+        }
+
+        setIsUploading(true);
+        try {
+            const storageRef = ref(storage, `evidence/${Date.now()}_${file.name}`);
+            await uploadBytes(storageRef, file);
+            const url = await getDownloadURL(storageRef);
+            handleChange('image', url);
+        } catch (error) {
+            console.error("Upload failed", error);
+            alert("Upload failed. Check console.");
+        } finally {
+            setIsUploading(false);
+        }
+    };
+
     return (
         <>
             <Handle type="target" position={Position.Top} className="!bg-zinc-500 !w-3 !h-3 !border-2 !border-black" />
@@ -310,19 +337,15 @@ export const EvidenceNode = memo(({ id, data, selected }) => {
                                     type="file"
                                     accept="image/*"
                                     className="absolute inset-0 w-full h-full opacity-0 cursor-pointer z-10"
-                                    onChange={(e) => {
-                                        const file = e.target.files[0];
-                                        if (file) {
-                                            const reader = new FileReader();
-                                            reader.onloadend = () => handleChange('image', reader.result);
-                                            reader.readAsDataURL(file);
-                                        }
-                                    }}
+                                    onChange={handleFileUpload}
+                                    disabled={isUploading}
                                 />
                                 <div className="p-3 border border-dashed border-zinc-700 rounded text-center text-zinc-500 group-hover:bg-zinc-900/50 group-hover:border-zinc-500 transition-colors cursor-pointer">
                                     <div className="flex flex-col items-center gap-1">
                                         <ImageIcon className="w-4 h-4 mb-1" />
-                                        <span className="text-[10px] uppercase font-bold tracking-wider">Upload Evidence Image</span>
+                                        <span className="text-[10px] uppercase font-bold tracking-wider">
+                                            {isUploading ? "Uploading..." : "Upload Evidence Image"}
+                                        </span>
                                     </div>
                                 </div>
                             </div>
@@ -549,6 +572,31 @@ export const MediaNode = memo(({ id, data, selected }) => {
         data.onChange && data.onChange(id, { ...data, [key]: val });
     };
 
+    const [isUploading, setIsUploading] = useState(false);
+
+    const handleFileUpload = async (e) => {
+        const file = e.target.files[0];
+        if (!file) return;
+
+        if (!storage) {
+            alert("Firebase Storage not initialized.");
+            return;
+        }
+
+        setIsUploading(true);
+        try {
+            const storageRef = ref(storage, `media/${Date.now()}_${file.name}`);
+            await uploadBytes(storageRef, file);
+            const url = await getDownloadURL(storageRef);
+            handleChange('url', url);
+        } catch (error) {
+            console.error("Upload failed", error);
+            alert("Upload failed. Check console.");
+        } finally {
+            setIsUploading(false);
+        }
+    };
+
     return (
         <>
             <Handle type="target" position={Position.Top} className="!bg-zinc-500 !w-3 !h-3 !border-2 !border-black" />
@@ -578,17 +626,11 @@ export const MediaNode = memo(({ id, data, selected }) => {
                                 type="file"
                                 accept="image/*"
                                 className="absolute inset-0 w-full h-full opacity-0 cursor-pointer"
-                                onChange={(e) => {
-                                    const file = e.target.files[0];
-                                    if (file) {
-                                        const reader = new FileReader();
-                                        reader.onloadend = () => handleChange('url', reader.result);
-                                        reader.readAsDataURL(file);
-                                    }
-                                }}
+                                onChange={handleFileUpload}
+                                disabled={isUploading}
                             />
                             <div className="border border-dashed border-zinc-700 p-1 text-center text-[10px] text-zinc-500 rounded group-hover:bg-zinc-800 transition-colors">
-                                Or click to upload file
+                                {isUploading ? "Uploading..." : "Or click to upload file"}
                             </div>
                         </div>
                     )}

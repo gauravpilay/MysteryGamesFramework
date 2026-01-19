@@ -297,15 +297,46 @@ const Editor = () => {
 
         // Strip functions before saving
         // Note: react-flow nodes might contain circular refs or functions in data, usually pure data is fine.
-        // The editor uses 'onChange' callback in data, we must NOT save that to Firestore as it breaks JSON/serialization
-        const cleanNodes = nodes.map(n => {
-            const { onChange, onDuplicate, ...restData } = n.data;
-            return { ...n, data: restData };
-        });
+        // function to recursively clean object for Firestore
+        const cleanForFirestore = (obj) => {
+            if (obj === null || obj === undefined) return null;
+            if (typeof obj !== 'object') return obj;
+
+            // Handle Arrays
+            if (Array.isArray(obj)) {
+                // Firestore does not support arrays of arrays. Flatten or filter.
+                // It also doesn't like undefined in arrays (JSON turns them to null, which is fine, but let's be safe)
+                return obj.map(item => cleanForFirestore(item)).filter(i => i !== undefined);
+            }
+
+            // Handle Objects
+            const newObj = {};
+            for (const key in obj) {
+                if (Object.prototype.hasOwnProperty.call(obj, key)) {
+                    // Skip functions/callbacks explicitly
+                    if (typeof obj[key] === 'function') continue;
+                    // Skip internal react flow properties if strictly needed, but usually they are fine
+                    // Skip specific problematic keys logic
+                    if (key === 'onChange' || key === 'onDuplicate') continue;
+
+                    const cleaned = cleanForFirestore(obj[key]);
+                    if (cleaned !== undefined) {
+                        newObj[key] = cleaned;
+                    }
+                }
+            }
+            return newObj;
+        };
+
+        const cleanNodes = nodes.map(n => cleanForFirestore(n));
+        const cleanEdges = edges.map(e => cleanForFirestore(e));
 
         try {
-            const flow = { nodes: cleanNodes, edges, meta: { timeLimit } };
+            const flow = { nodes: cleanNodes, edges: cleanEdges, meta: { timeLimit } };
             const docRef = doc(db, "cases", projectId);
+
+            // Log for debugging if it fails again
+            console.log("Saving payload:", flow);
 
             await updateDoc(docRef, {
                 ...flow,
