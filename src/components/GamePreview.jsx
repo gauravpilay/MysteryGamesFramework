@@ -1231,9 +1231,7 @@ const GamePreview = ({ nodes, edges, onClose, gameMetadata }) => {
                                 <>
                                     <div className="h-32 bg-gradient-to-r from-zinc-900 to-black relative shrink-0">
                                         <div className={`absolute inset-0 bg-gradient-to-br ${getAvatarColor(activeModalNode.data.name)} opacity-20`}></div>
-                                        <Button variant="ghost" className="absolute top-4 right-4 text-white hover:bg-white/10 z-10" onClick={() => setActiveModalNode(null)}>
-                                            <X className="w-6 h-6" />
-                                        </Button>
+
                                         <div className="absolute -bottom-10 left-8 flex items-end">
                                             <div className={`w-24 h-24 rounded-2xl bg-gradient-to-br ${getAvatarColor(activeModalNode.data.name)} p-1 shadow-xl border-4 border-zinc-950`}>
                                                 <div className="w-full h-full bg-black/20 rounded-xl flex items-center justify-center">
@@ -1309,7 +1307,7 @@ const GamePreview = ({ nodes, edges, onClose, gameMetadata }) => {
                                             <Search className="w-8 h-8" />
                                             <h2 className="text-2xl font-bold text-white uppercase">Evidence Logged</h2>
                                         </div>
-                                        <Button variant="ghost" onClick={() => setActiveModalNode(null)}><X className="w-6 h-6" /></Button>
+
                                     </div>
 
                                     <Card className="p-8 bg-black border-yellow-900/30 mb-6">
@@ -1347,22 +1345,7 @@ const GamePreview = ({ nodes, edges, onClose, gameMetadata }) => {
                                             <Terminal className="w-5 h-5" />
                                             <span className="font-bold tracking-widest">SECURE TERMINAL // {activeModalNode.data.label}</span>
                                         </div>
-                                        <Button
-                                            variant="ghost"
-                                            className="text-green-500 hover:text-green-400"
-                                            onClick={() => {
-                                                // If closing without solving, go back to previous node
-                                                if (!inventory.has(activeModalNode.id)) {
-                                                    const prevNodeId = history[history.length - 1];
-                                                    if (prevNodeId) setCurrentNodeId(prevNodeId);
-                                                    // Pop the history to keep it clean (optional, but good for "Back" logic)
-                                                    setHistory(prev => prev.slice(0, -1));
-                                                }
-                                                setActiveModalNode(null);
-                                            }}
-                                        >
-                                            <X className="w-5 h-5" />
-                                        </Button>
+
                                     </div>
 
                                     <div className="flex-1 p-6 overflow-y-auto space-y-4">
@@ -1392,7 +1375,7 @@ const GamePreview = ({ nodes, edges, onClose, gameMetadata }) => {
                                             <MessageSquare className="w-6 h-6" />
                                             <h2 className="text-xl font-bold text-white uppercase">Incoming Transmission</h2>
                                         </div>
-                                        <Button variant="ghost" onClick={() => setActiveModalNode(null)}><X className="w-6 h-6" /></Button>
+
                                     </div>
 
                                     <div className="bg-zinc-950 p-6 rounded-lg border border-zinc-800 relative">
@@ -1437,14 +1420,7 @@ const GamePreview = ({ nodes, edges, onClose, gameMetadata }) => {
                                             </div>
                                         </div>
 
-                                        <Button
-                                            variant="ghost"
-                                            size="icon"
-                                            className="text-zinc-500 hover:text-white hover:bg-white/10 relative z-10"
-                                            onClick={() => setActiveModalNode(null)}
-                                        >
-                                            <X className="w-6 h-6" />
-                                        </Button>
+
                                     </div>
 
                                     <div className="flex-1 overflow-y-auto p-4 md:p-8 flex flex-col items-center min-h-0">
@@ -1518,11 +1494,7 @@ const GamePreview = ({ nodes, edges, onClose, gameMetadata }) => {
                                     >
                                         {activeModalNode.data.buttonText || "Continue"}
                                     </Button>
-                                    <div className="absolute top-4 right-4">
-                                        <Button variant="ghost" onClick={() => setActiveModalNode(null)}>
-                                            <X className="w-6 h-6 text-zinc-500 hover:text-white" />
-                                        </Button>
-                                    </div>
+
                                 </div>
                             )}
 
@@ -1534,7 +1506,7 @@ const GamePreview = ({ nodes, edges, onClose, gameMetadata }) => {
                                             <HelpCircle className="w-8 h-8" />
                                             <h2 className="text-2xl font-bold text-white uppercase tracking-tight">Challenge / Quiz</h2>
                                         </div>
-                                        <Button variant="ghost" onClick={() => setActiveModalNode(null)}><X className="w-6 h-6" /></Button>
+
                                     </div>
 
                                     <div className="flex-1 overflow-y-auto">
