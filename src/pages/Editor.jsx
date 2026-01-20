@@ -12,7 +12,7 @@ import 'reactflow/dist/style.css';
 import { useParams, useNavigate } from 'react-router-dom';
 import { Button } from '../components/ui/shared';
 import { Logo } from '../components/ui/Logo';
-import { Save, ArrowLeft, X, FileText, User, Search, GitMerge, Terminal, MessageSquare, CircleHelp, Play, Settings, Music, Image as ImageIcon, MousePointerClick, Fingerprint, Bell, HelpCircle, ChevronLeft, ChevronRight, ToggleLeft, Lock } from 'lucide-react';
+import { Save, ArrowLeft, X, FileText, User, Search, GitMerge, Terminal, MessageSquare, CircleHelp, Play, Settings, Music, Image as ImageIcon, MousePointerClick, Fingerprint, Bell, HelpCircle, ChevronLeft, ChevronRight, ToggleLeft, Lock, Sun, Moon } from 'lucide-react';
 import { StoryNode, SuspectNode, EvidenceNode, LogicNode, TerminalNode, MessageNode, MusicNode, MediaNode, ActionNode, IdentifyNode, NotificationNode, QuestionNode, SetterNode } from '../components/nodes/CustomNodes';
 import { TutorialOverlay } from '../components/ui/TutorialOverlay';
 import GamePreview from '../components/GamePreview';
@@ -120,6 +120,7 @@ const Editor = () => {
     const [timeLimit, setTimeLimit] = useState(15); // Default 15 minutes
     const [isPaletteCollapsed, setIsPaletteCollapsed] = useState(false);
     const [isLocked, setIsLocked] = useState(false);
+    const [isDarkMode, setIsDarkMode] = useState(true);
 
     const tutorialSteps = [
         {
@@ -438,9 +439,9 @@ const Editor = () => {
     };
 
     return (
-        <div className="flex h-screen w-screen flex-col bg-black text-white overflow-hidden">
+        <div className={`flex h-screen w-screen flex-col overflow-hidden transition-colors duration-300 ${isDarkMode ? 'bg-black text-white' : 'bg-zinc-50 text-zinc-900'}`}>
             {/* Toolbar */}
-            <div id="editor-toolbar" className="h-16 border-b border-zinc-800 bg-black/80 flex items-center justify-between px-4 z-50 backdrop-blur-md relative">
+            <div id="editor-toolbar" className={`h-16 border-b flex items-center justify-between px-4 z-50 backdrop-blur-md relative transition-colors duration-300 ${isDarkMode ? 'border-zinc-800 bg-black/80' : 'border-zinc-200 bg-white/80'}`}>
                 <div className="flex items-center gap-4">
                     <Button variant="ghost" size="sm" onClick={() => navigate('/')}>
                         <ArrowLeft className="w-4 h-4 mr-2" />
@@ -448,7 +449,7 @@ const Editor = () => {
                     </Button>
                     <div className="flex items-center gap-2">
                         <Logo className="w-6 h-6" />
-                        <span className="font-bold text-zinc-400">Mission Architect</span>
+                        <span className={`font-bold ${isDarkMode ? 'text-zinc-400' : 'text-zinc-600'}`}>Mission Architect</span>
                         {isLocked && (
                             <div className="flex items-center gap-1.5 px-2 py-1 bg-red-500/10 border border-red-500/50 rounded text-red-400 text-xs font-bold uppercase tracking-wider ml-4">
                                 <Lock className="w-3 h-3" />
@@ -458,11 +459,14 @@ const Editor = () => {
                     </div>
                 </div>
                 <div id="editor-actions" className="flex items-center gap-2">
+                    <Button variant="ghost" size="icon" onClick={() => setIsDarkMode(!isDarkMode)} title={isDarkMode ? "Switch to Light Mode" : "Switch to Dark Mode"}>
+                        {isDarkMode ? <Sun className="w-5 h-5 text-zinc-400" /> : <Moon className="w-5 h-5 text-zinc-600" />}
+                    </Button>
                     <Button variant="ghost" size="icon" onClick={() => setShowTutorial(true)} title="How to use">
-                        <CircleHelp className="w-5 h-5 text-indigo-400" />
+                        <CircleHelp className={`w-5 h-5 ${isDarkMode ? 'text-indigo-400' : 'text-indigo-600'}`} />
                     </Button>
                     <Button variant="ghost" size="icon" onClick={() => setShowSettings(true)} title="Game Settings" disabled={isLocked}>
-                        <Settings className="w-5 h-5 text-zinc-400" />
+                        <Settings className={`w-5 h-5 ${isDarkMode ? 'text-zinc-400' : 'text-zinc-600'}`} />
                     </Button>
                     <Button id="save-btn" variant="secondary" size="sm" onClick={saveProject} disabled={isLocked}>
                         <Save className="w-4 h-4 mr-2" />
@@ -479,15 +483,15 @@ const Editor = () => {
             <div className="flex flex-1 overflow-hidden">
                 {/* Sidebar */}
                 {/* Sidebar */}
-                <aside id="node-sidebar" className={`${isPaletteCollapsed ? 'w-16' : 'w-64'} border-r border-zinc-800 bg-zinc-950 flex flex-col gap-4 z-10 transition-all duration-300 ease-in-out ${isLocked ? 'opacity-50 pointer-events-none grayscale' : ''}`}>
-                    <div className={`flex items-center ${isPaletteCollapsed ? 'justify-center p-2' : 'justify-between p-4'} border-b border-zinc-800/50`}>
+                <aside id="node-sidebar" className={`${isPaletteCollapsed ? 'w-16' : 'w-64'} border-r flex flex-col gap-4 z-10 transition-all duration-300 ease-in-out ${isLocked ? 'opacity-50 pointer-events-none grayscale' : ''} ${isDarkMode ? 'border-zinc-800 bg-zinc-950' : 'border-zinc-200 bg-white'}`}>
+                    <div className={`flex items-center ${isPaletteCollapsed ? 'justify-center p-2' : 'justify-between p-4'} border-b ${isDarkMode ? 'border-zinc-800/50' : 'border-zinc-200'}`}>
                         {!isPaletteCollapsed && (
                             <div className="text-xs font-bold text-zinc-500 uppercase tracking-wider">Node Palette</div>
                         )}
                         <Button
                             variant="ghost"
                             size="icon"
-                            className="h-6 w-6 text-zinc-500 hover:text-white"
+                            className={`h-6 w-6 text-zinc-500 ${isDarkMode ? 'hover:text-white' : 'hover:text-zinc-900'}`}
                             onClick={() => setIsPaletteCollapsed(!isPaletteCollapsed)}
                             title={isPaletteCollapsed ? "Expand Palette" : "Collapse Palette"}
                         >
@@ -501,15 +505,15 @@ const Editor = () => {
                                 key={item.type}
                                 onDragStart={(event) => onDragStart(event, item.type)}
                                 draggable
-                                className={`flex items-center ${isPaletteCollapsed ? 'justify-center w-10 h-10 p-0 mx-auto' : 'gap-3 p-3'} rounded bg-zinc-900 border border-zinc-800 cursor-grab hover:bg-zinc-800 transition-all active:cursor-grabbing group relative ${item.className}`}
+                                className={`flex items-center ${isPaletteCollapsed ? 'justify-center w-10 h-10 p-0 mx-auto' : 'gap-3 p-3'} rounded border cursor-grab transition-all active:cursor-grabbing group relative ${item.className} ${isDarkMode ? 'bg-zinc-900 border-zinc-800 hover:bg-zinc-800' : 'bg-zinc-50 border-zinc-200 hover:bg-zinc-100'}`}
                                 title={isPaletteCollapsed ? item.label : undefined}
                             >
                                 <item.icon className={`w-4 h-4 ${item.iconClass}`} />
-                                {!isPaletteCollapsed && <span className="text-sm font-medium">{item.label}</span>}
+                                {!isPaletteCollapsed && <span className={`text-sm font-medium ${isDarkMode ? 'text-zinc-200' : 'text-zinc-700'}`}>{item.label}</span>}
                                 {!isPaletteCollapsed && (
                                     <button
                                         onClick={(e) => { e.stopPropagation(); setHelpModalData(NODE_HELP[item.type]); }}
-                                        className="ml-auto opacity-0 group-hover:opacity-100 transition-opacity p-1 hover:bg-zinc-800 rounded-full text-zinc-500 hover:text-white"
+                                        className={`ml-auto opacity-0 group-hover:opacity-100 transition-opacity p-1 rounded-full text-zinc-500 ${isDarkMode ? 'hover:bg-zinc-800 hover:text-white' : 'hover:bg-zinc-200 hover:text-black'}`}
                                         title="View Documentation"
                                     >
                                         <CircleHelp className="w-4 h-4" />
@@ -520,7 +524,7 @@ const Editor = () => {
                     </div>
 
                     {!isPaletteCollapsed && (
-                        <div className="mt-auto p-4 bg-zinc-900/50 border-t border-zinc-800/50">
+                        <div className={`mt-auto p-4 border-t ${isDarkMode ? 'bg-zinc-900/50 border-zinc-800/50' : 'bg-zinc-50 border-zinc-200'}`}>
                             <p className="text-[10px] text-zinc-500">
                                 Drag nodes to canvas. Connect handles to create flow logic. Save frequently.
                             </p>
@@ -548,12 +552,16 @@ const Editor = () => {
                         nodeTypes={nodeTypes}
                         deleteKeyCode={['Backspace', 'Delete']}
                         fitView
-                        className="bg-zinc-950"
+                        className={isDarkMode ? "bg-zinc-950" : "bg-zinc-50"}
                         proOptions={{ hideAttribution: true }}
                     >
-                        <Background color="#27272a" gap={20} size={1} />
-                        <Controls className="bg-zinc-900 border border-zinc-800 text-zinc-400 fill-zinc-400" />
-                        <MiniMap className="bg-zinc-900 border border-zinc-800" nodeColor="#6366f1" maskColor="rgba(0, 0, 0, 0.7)" />
+                        <Background color={isDarkMode ? "#27272a" : "#e4e4e7"} gap={20} size={1} />
+                        <Controls className={`${isDarkMode ? 'bg-zinc-900 border-zinc-800 text-zinc-400 fill-zinc-400' : 'bg-white border-zinc-200 text-zinc-600 fill-zinc-600'}`} />
+                        <MiniMap
+                            className={`${isDarkMode ? 'bg-zinc-900 border-zinc-800' : 'bg-white border-zinc-200'}`}
+                            nodeColor="#6366f1"
+                            maskColor={isDarkMode ? "rgba(0, 0, 0, 0.7)" : "rgba(255, 255, 255, 0.7)"}
+                        />
                     </ReactFlow>
                 </div>
             </div>
