@@ -801,14 +801,17 @@ export const QuestionNode = memo(({ id, data, selected }) => {
                             </select>
                         </div>
                         <div className="w-1/2">
-                            <p className="text-[10px] text-zinc-500 mb-1">Points</p>
-                            <InputField
-                                type="number"
-                                placeholder="0"
-                                value={data.points}
-                                onChange={(e) => handleChange('points', parseInt(e.target.value) || 0)}
-                                className="bg-black/50"
-                            />
+                            <p className="text-[10px] text-zinc-500 mb-1">Reward Points</p>
+                            <div className="flex items-center gap-1">
+                                <Star className="w-3 h-3 text-yellow-500" />
+                                <InputField
+                                    type="number"
+                                    placeholder="Award Pts"
+                                    value={data.score}
+                                    onChange={(e) => handleChange('score', parseInt(e.target.value) || 0)}
+                                    className="bg-black/50"
+                                />
+                            </div>
                         </div>
                     </div>
 
