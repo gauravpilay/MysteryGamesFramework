@@ -1,6 +1,6 @@
 import React, { useState, useEffect, useMemo, useRef } from 'react';
 import { Button, Card } from './ui/shared';
-import { X, User, Search, Terminal, MessageSquare, FileText, ArrowRight, ShieldAlert, CheckCircle, AlertTriangle, Volume2, VolumeX, Image as ImageIcon, Briefcase, Star, MousePointerClick, Bell, HelpCircle, Clock } from 'lucide-react';
+import { X, User, Search, Terminal, MessageSquare, FileText, ArrowRight, ShieldAlert, CheckCircle, AlertTriangle, Volume2, VolumeX, Image as ImageIcon, Briefcase, Star, MousePointerClick, Bell, HelpCircle, Clock, ZoomIn } from 'lucide-react';
 import { motion, AnimatePresence } from 'framer-motion';
 
 const BackgroundEffect = () => (
@@ -79,6 +79,7 @@ const GamePreview = ({ nodes, edges, onClose, gameMetadata }) => {
     const [showAccuseModal, setShowAccuseModal] = useState(false);
     const [accusationResult, setAccusationResult] = useState(null); // 'success' | 'failure' | null | 'timeout'
     const [activeAccusationNode, setActiveAccusationNode] = useState(null);
+    const [zoomedImage, setZoomedImage] = useState(null);
 
     // Logic/Outputs State
     const [nodeOutputs, setNodeOutputs] = useState({});
@@ -1414,8 +1415,14 @@ const GamePreview = ({ nodes, edges, onClose, gameMetadata }) => {
 
                                     <Card className="p-8 bg-black border-yellow-900/30 mb-6">
                                         {activeModalNode.data.image && (
-                                            <div className="w-full mb-6 rounded-lg overflow-hidden border border-yellow-900/50 shadow-2xl">
+                                            <div className="w-full mb-6 rounded-lg overflow-hidden border border-yellow-900/50 shadow-2xl relative group">
                                                 <img src={activeModalNode.data.image} alt="Evidence" className="w-full h-auto object-contain max-h-[400px]" />
+                                                <div className="absolute inset-0 bg-black/50 opacity-0 group-hover:opacity-100 transition-opacity flex items-center justify-center cursor-pointer" onClick={() => setZoomedImage(activeModalNode.data.image)}>
+                                                    <div className="flex items-center gap-2 bg-black/80 text-white px-4 py-2 rounded-full border border-white/20 backdrop-blur-md transform scale-95 group-hover:scale-100 transition-transform">
+                                                        <ZoomIn className="w-5 h-5" />
+                                                        <span className="text-sm font-bold uppercase tracking-wider">Investigate</span>
+                                                    </div>
+                                                </div>
                                             </div>
                                         )}
                                         <h3 className="text-2xl font-bold text-yellow-200 mb-4">{activeModalNode.data.label}</h3>
@@ -1656,6 +1663,32 @@ const GamePreview = ({ nodes, edges, onClose, gameMetadata }) => {
                                 </div>
                             )}
 
+                        </motion.div>
+                    </div>
+                )}
+            </AnimatePresence>
+
+            {/* Image Zoom Lightbox */}
+            <AnimatePresence>
+                {zoomedImage && (
+                    <div className="fixed inset-0 z-[200] bg-black/95 backdrop-blur-sm flex items-center justify-center onClick={() => setZoomedImage(null)}">
+                        <button
+                            onClick={() => setZoomedImage(null)}
+                            className="absolute top-6 right-6 p-2 bg-zinc-800 text-zinc-400 hover:text-white rounded-full z-[210] transition-colors"
+                        >
+                            <X className="w-6 h-6" />
+                        </button>
+                        <motion.div
+                            initial={{ scale: 0.9, opacity: 0 }}
+                            animate={{ scale: 1, opacity: 1 }}
+                            exit={{ scale: 0.9, opacity: 0 }}
+                            className="max-w-[95vw] max-h-[95vh] relative"
+                        >
+                            <img
+                                src={zoomedImage}
+                                alt="Zoomed Asset"
+                                className="max-w-full max-h-[90vh] object-contain rounded border border-zinc-800 shadow-2xl"
+                            />
                         </motion.div>
                     </div>
                 )}
