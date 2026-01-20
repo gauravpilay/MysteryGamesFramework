@@ -835,9 +835,9 @@ const GamePreview = ({ nodes, edges, onClose, gameMetadata }) => {
                 )}
 
                 {!isBriefing && (
-                    <div className="flex items-center gap-3 text-blue-400 mb-2">
-                        <FileText className="w-6 h-6 animate-pulse" />
-                        <h2 className="text-xl font-bold text-white tracking-wide">{data.label}</h2>
+                    <div className="flex items-center justify-center gap-4 mb-6">
+                        <FileText className="w-12 h-12 text-indigo-400 animate-pulse" />
+                        <h2 className="text-4xl md:text-5xl font-black text-transparent bg-clip-text bg-gradient-to-r from-white via-zinc-200 to-zinc-500 uppercase tracking-tighter drop-shadow-2xl">{data.label}</h2>
                     </div>
                 )}
 
@@ -1060,10 +1060,20 @@ const GamePreview = ({ nodes, edges, onClose, gameMetadata }) => {
                                                     let edge = options.find(e => e.sourceHandle === action.id);
 
                                                     // Intelligent Fallback:
-                                                    // If this is the ONLY action, and the user hasn't re-wired the connection (so it's still using the default null sourceHandle),
-                                                    // but a connection EXISTS, we assume they want that connection to apply to this action.
-                                                    if (!edge && actions.length === 1) {
-                                                        edge = options.find(e => !e.sourceHandle);
+                                                    // Map to default edge if not explicitly wired.
+                                                    if (!edge) {
+                                                        // Broad check for "null" handle
+                                                        const defaultEdge = options.find(e =>
+                                                            (!e.sourceHandle || e.sourceHandle === 'null') &&
+                                                            !usedEdges.has(e.id)
+                                                        );
+
+                                                        if (defaultEdge) {
+                                                            edge = defaultEdge;
+                                                        } else if (actions.length === 1 && options.length === 1 && !usedEdges.has(options[0].id)) {
+                                                            // Desperation Fallback: 1 Action, 1 Edge -> Just Link Them
+                                                            edge = options[0];
+                                                        }
                                                     }
 
                                                     if (edge) usedEdges.add(edge.id);
@@ -1078,14 +1088,17 @@ const GamePreview = ({ nodes, edges, onClose, gameMetadata }) => {
                                                 });
 
                                                 // 2. Remaining Edges (Default/Standard Exits)
-                                                const standardItems = options
-                                                    .filter(e => !usedEdges.has(e.id))
-                                                    .map(edge => ({
-                                                        isAction: false,
-                                                        id: edge.id,
-                                                        target: edge.target,
-                                                        edgeId: edge.id
-                                                    }));
+                                                // STRICT MODE: If custom actions exist, hide generic buttons.
+                                                const standardItems = (actions.length > 0)
+                                                    ? []
+                                                    : options
+                                                        .filter(e => !usedEdges.has(e.id))
+                                                        .map(edge => ({
+                                                            isAction: false,
+                                                            id: edge.id,
+                                                            target: edge.target,
+                                                            edgeId: edge.id
+                                                        }));
 
                                                 const allItems = [...actionItems, ...standardItems];
 
@@ -1166,38 +1179,43 @@ const GamePreview = ({ nodes, edges, onClose, gameMetadata }) => {
                                                     if (item.isAction) {
                                                         icon = MousePointerClick;
                                                         title = item.label;
-                                                        actionLabel = ""; // User requested cleaner look
+                                                        actionLabel = "";
+                                                        // Base style for all actions: Heavy, Solid, Glowy
+                                                        const baseShadow = "transition-all duration-300 hover:scale-[1.02] border-none";
+
                                                         switch (item.variant) {
                                                             case 'danger':
-                                                                color = "text-red-400";
-                                                                bg = "bg-gradient-to-r from-red-950/80 to-red-900/20 border-red-500/50 hover:from-red-900 hover:to-red-900/40";
+                                                                color = "text-white";
+                                                                bg = `bg-red-600 hover:bg-red-700 shadow-[0_0_30px_rgba(220,38,38,0.4)] hover:shadow-[0_0_50px_rgba(220,38,38,0.6)] ${baseShadow}`;
                                                                 break;
                                                             case 'primary':
-                                                                color = "text-blue-400";
-                                                                bg = "bg-gradient-to-r from-blue-950/80 to-blue-900/20 border-blue-500/50 hover:from-blue-900 hover:to-blue-900/40";
+                                                                color = "text-white";
+                                                                bg = `bg-blue-600 hover:bg-blue-700 shadow-[0_0_30px_rgba(37,99,235,0.4)] hover:shadow-[0_0_50px_rgba(37,99,235,0.6)] ${baseShadow}`;
                                                                 break;
                                                             case 'success':
-                                                                color = "text-emerald-400";
-                                                                bg = "bg-gradient-to-r from-emerald-950/80 to-emerald-900/20 border-emerald-500/50 hover:from-emerald-900 hover:to-emerald-900/40";
+                                                                color = "text-white";
+                                                                bg = `bg-emerald-600 hover:bg-emerald-700 shadow-[0_0_30px_rgba(16,185,129,0.4)] hover:shadow-[0_0_50px_rgba(16,185,129,0.6)] ${baseShadow}`;
                                                                 break;
                                                             case 'warning':
-                                                                color = "text-amber-400";
-                                                                bg = "bg-gradient-to-r from-amber-950/80 to-amber-900/20 border-amber-500/50 hover:from-amber-900 hover:to-amber-900/40";
+                                                                color = "text-black";
+                                                                bg = `bg-amber-500 hover:bg-amber-400 shadow-[0_0_30px_rgba(245,158,11,0.4)] hover:shadow-[0_0_50px_rgba(245,158,11,0.6)] ${baseShadow}`;
                                                                 break;
                                                             case 'mystic':
-                                                                color = "text-violet-400";
-                                                                bg = "bg-gradient-to-r from-violet-950/80 to-violet-900/20 border-violet-500/50 hover:from-violet-900 hover:to-violet-900/40";
+                                                                color = "text-white";
+                                                                bg = `bg-purple-600 hover:bg-purple-700 shadow-[0_0_30px_rgba(147,51,234,0.4)] hover:shadow-[0_0_50px_rgba(147,51,234,0.6)] ${baseShadow}`;
                                                                 break;
                                                             case 'tech':
-                                                                color = "text-cyan-400";
-                                                                bg = "bg-gradient-to-r from-cyan-950/80 to-cyan-900/20 border-cyan-500/50 hover:from-cyan-900 hover:to-cyan-900/40";
+                                                                color = "text-black";
+                                                                bg = `bg-cyan-400 hover:bg-cyan-300 shadow-[0_0_30px_rgba(34,211,238,0.4)] hover:shadow-[0_0_50px_rgba(34,211,238,0.6)] ${baseShadow}`;
                                                                 break;
                                                             case 'outline':
-                                                                color = "text-zinc-300";
-                                                                bg = "bg-transparent border-zinc-600 hover:bg-zinc-800";
+                                                                color = "text-zinc-100";
+                                                                bg = "bg-transparent border-2 border-zinc-500 hover:border-white hover:bg-white/10 tracking-widest uppercase font-bold";
                                                                 break;
                                                             default:
-                                                                // Default 
+                                                                // Default Solid
+                                                                color = "text-white";
+                                                                bg = `bg-zinc-700 hover:bg-zinc-600 shadow-[0_0_30px_rgba(82,82,91,0.4)] hover:shadow-[0_0_50px_rgba(82,82,91,0.6)] ${baseShadow}`;
                                                                 break;
                                                         }
                                                     }
@@ -1223,15 +1241,15 @@ const GamePreview = ({ nodes, edges, onClose, gameMetadata }) => {
                                                             whileTap={item.target ? { scale: 0.98 } : {}}
                                                             onClick={() => item.target && handleOptionClick(item.target)}
                                                             disabled={!item.target}
-                                                            className={`w-full text-left border p-4 rounded-xl transition-all group relative overflow-hidden flex items-center gap-4 
-                                                            ${!item.target ? 'cursor-not-allowed border-zinc-900 opacity-60' : 'hover:shadow-lg hover:shadow-indigo-500/10 cursor-pointer'}
-                                                            ${item.isAction && item.target && item.variant !== 'default'
-                                                                    ? `${bg} ${item.variant !== 'outline' ? color.replace('text', 'border') : ''} hover:shadow-[0_0_15px_-5px_var(--tw-shadow-color)] shadow-current`
-                                                                    : "bg-zinc-900/50 border-zinc-800 hover:border-indigo-500/50 hover:bg-zinc-900"
+                                                            className={`w-full text-left border rounded-xl transition-all group relative overflow-hidden flex items-center gap-4 
+                                                            ${!item.target ? 'cursor-not-allowed border-zinc-900 opacity-60 p-4' : 'cursor-pointer'}
+                                                            ${item.isAction && item.target
+                                                                    ? `${bg} p-6 border-transparent`
+                                                                    : "bg-zinc-900/50 border-zinc-800 hover:border-indigo-500/50 hover:bg-zinc-900 shadow-none hover:shadow-lg hover:shadow-indigo-500/10 p-4"
                                                                 }`}
                                                         >
-                                                            <div className={`p-3 rounded-lg ${item.isAction ? 'bg-black/40 shadow-inner' : bg} border border-white/5 ${item.target && 'group-hover:scale-110'} transition-transform shrink-0`}>
-                                                                <Icon className={`w-5 h-5 ${item.isAction ? 'text-white' : color}`} />
+                                                            <div className={`rounded-lg ${item.isAction ? 'bg-black/20' : bg} ${item.isAction ? 'p-2' : 'p-3'} border border-white/5 ${item.target && 'group-hover:scale-110'} transition-transform shrink-0`}>
+                                                                <Icon className={`${item.isAction ? 'w-6 h-6' : 'w-5 h-5'} ${item.isAction ? 'text-white' : color}`} />
                                                             </div>
 
                                                             <div className="flex-1 min-w-0">
@@ -1240,7 +1258,7 @@ const GamePreview = ({ nodes, edges, onClose, gameMetadata }) => {
                                                                         {actionLabel}
                                                                     </div>
                                                                 )}
-                                                                <div className={`font-bold truncate text-lg transition-colors ${item.isAction ? 'text-white drop-shadow-md' : 'text-zinc-200 group-hover:text-white'}`}>
+                                                                <div className={`truncate transition-colors ${item.isAction ? 'text-white drop-shadow-md text-xl font-bold uppercase tracking-[0.15em]' : 'text-zinc-200 group-hover:text-white text-lg font-bold'}`}>
                                                                     {title}
                                                                 </div>
                                                             </div>
