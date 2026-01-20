@@ -12,11 +12,11 @@ import 'reactflow/dist/style.css';
 import { useParams, useNavigate } from 'react-router-dom';
 import { Button } from '../components/ui/shared';
 import { Logo } from '../components/ui/Logo';
-import { Save, ArrowLeft, X, FileText, User, Search, GitMerge, Terminal, MessageSquare, CircleHelp, Play, Settings, Music, Image as ImageIcon, MousePointerClick, Fingerprint, Bell, HelpCircle, ChevronLeft, ChevronRight, ToggleLeft, Lock, Sun, Moon, Stethoscope, Unlock, Binary, Grid3x3 } from 'lucide-react';
+import { Save, ArrowLeft, X, FileText, User, Search, GitMerge, Terminal, MessageSquare, CircleHelp, Play, Settings, Music, Image as ImageIcon, MousePointerClick, Fingerprint, Bell, HelpCircle, ChevronLeft, ChevronRight, ToggleLeft, Lock, Sun, Moon, Stethoscope, Unlock, Binary, Grid3x3, CheckCircle, AlertTriangle } from 'lucide-react';
 import { StoryNode, SuspectNode, EvidenceNode, LogicNode, TerminalNode, MessageNode, MusicNode, MediaNode, ActionNode, IdentifyNode, NotificationNode, QuestionNode, SetterNode, LockpickNode, DecryptionNode, KeypadNode } from '../components/nodes/CustomNodes';
 import { TutorialOverlay } from '../components/ui/TutorialOverlay';
 import GamePreview from '../components/GamePreview';
-import { AnimatePresence } from 'framer-motion';
+import { AnimatePresence, motion } from 'framer-motion';
 import JSZip from 'jszip';
 import { db } from '../lib/firebase';
 import { doc, getDoc, updateDoc, increment } from 'firebase/firestore';
@@ -142,6 +142,7 @@ const Editor = () => {
     const [isLocked, setIsLocked] = useState(false);
     const [isDarkMode, setIsDarkMode] = useState(true);
     const [caseTitle, setCaseTitle] = useState("");
+    const [validationReport, setValidationReport] = useState(null);
 
     const tutorialSteps = [
         {
@@ -424,41 +425,32 @@ const Editor = () => {
         const errors = [];
         const warnings = [];
 
-        // 1. Check for Orphan Nodes (No incoming edges, unless it's a specific 'Start' like Story node at times)
-        // Actually, better to check for Disconnected Components, but simple check first.
         nodes.forEach(node => {
             const incoming = edges.filter(e => e.target === node.id);
             const outgoing = edges.filter(e => e.source === node.id);
 
             // Orphan Check
             if (incoming.length === 0 && outgoing.length === 0) {
-                warnings.push(`Node '${node.data.label}' is completely disconnected.`);
+                warnings.push({ id: crypto.randomUUID(), type: 'warning', message: `Node '${node.data.label}' is completely disconnected.`, nodeId: node.id });
             }
 
-            // Dead End Check (No outgoing, not terminal)
-            // 'identify' is usually a terminal action, so skip it. 'terminal' node might also be end.
             const terminalTypes = ['identify', 'terminal'];
             if (outgoing.length === 0 && !terminalTypes.includes(node.type)) {
-                // If it's a story node at the end, it might be okay, but usually should loop back or end.
-                // We'll mark as warning.
-                warnings.push(`Node '${node.data.label}' is a dead end (no outgoing connections).`);
+                warnings.push({ id: crypto.randomUUID(), type: 'warning', message: `Node '${node.data.label}' is a dead end (no outgoing connections).`, nodeId: node.id });
             }
 
             // Logic Check
             if (node.type === 'logic') {
                 if (outgoing.length < 2) {
-                    errors.push(`Logic Node '${node.data.label}' should have at least 2 paths (True/False).`);
+                    errors.push({ id: crypto.randomUUID(), type: 'error', message: `Logic Node '${node.data.label}' should have at least 2 paths (True/False).`, nodeId: node.id });
                 }
             }
         });
 
-        if (nodes.length === 0) errors.push("Graph is empty.");
+        if (nodes.length === 0) errors.push({ id: crypto.randomUUID(), type: 'error', message: "Graph is empty.", nodeId: null });
 
-        // Visual Report
-        const report = [...errors.map(e => `❌ ${e}`), ...warnings.map(w => `⚠️ ${w}`)].join('\n');
-
-        if (report) {
-            alert(`Graph Health Check:\n\n${report}`);
+        if (errors.length > 0 || warnings.length > 0) {
+            setValidationReport({ errors, warnings });
         } else {
             alert("✅ Graph looks healthy! No obvious structural issues found.");
         }
@@ -817,6 +809,96 @@ const Editor = () => {
                                 </ul>
                             </div>
                         </div>
+                    </div>
+                )}
+            </AnimatePresence>
+
+            {/* Validation Report Modal */}
+            <AnimatePresence>
+                {validationReport && (
+                    <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/50 backdrop-blur-sm" onClick={() => setValidationReport(null)}>
+                        <motion.div
+                            initial={{ opacity: 0, scale: 0.95 }}
+                            animate={{ opacity: 1, scale: 1 }}
+                            exit={{ opacity: 0, scale: 0.95 }}
+                            onClick={(e) => e.stopPropagation()}
+                            className="bg-zinc-950 border border-zinc-800 rounded-xl max-w-2xl w-full max-h-[80vh] flex flex-col shadow-2xl relative overflow-hidden"
+                        >
+                            <div className="p-4 border-b border-zinc-800 flex items-center justify-between bg-zinc-900/50">
+                                <div className="flex items-center gap-3">
+                                    <Stethoscope className="w-5 h-5 text-emerald-500" />
+                                    <h2 className="text-lg font-bold text-white">Graph Health Report</h2>
+                                </div>
+                                <Button variant="ghost" size="icon" onClick={() => setValidationReport(null)}>
+                                    <X className="w-5 h-5" />
+                                </Button>
+                            </div>
+
+                            <div className="flex-1 overflow-y-auto p-4 space-y-6">
+                                {validationReport.errors.length === 0 && validationReport.warnings.length === 0 && (
+                                    <div className="text-center py-12 text-zinc-500">
+                                        <CheckCircle className="w-12 h-12 mx-auto mb-4 text-emerald-500 opacity-50" />
+                                        <p>No issues found.</p>
+                                    </div>
+                                )}
+
+                                {validationReport.errors.length > 0 && (
+                                    <div>
+                                        <h3 className="text-red-400 text-xs font-bold uppercase tracking-wider mb-3 flex items-center gap-2">
+                                            <AlertTriangle className="w-4 h-4" /> Errors ({validationReport.errors.length})
+                                        </h3>
+                                        <div className="space-y-2">
+                                            {validationReport.errors.map(err => (
+                                                <div
+                                                    key={err.id}
+                                                    onClick={() => {
+                                                        if (err.nodeId && reactFlowInstance) {
+                                                            const node = nodes.find(n => n.id === err.nodeId);
+                                                            if (node) {
+                                                                reactFlowInstance.setCenter(node.position.x, node.position.y, { zoom: 1.5, duration: 800 });
+                                                                setValidationReport(null);
+                                                            }
+                                                        }
+                                                    }}
+                                                    className="bg-red-950/20 border border-red-900/30 p-3 rounded-lg flex items-start justify-between cursor-pointer hover:bg-red-950/40 transition-colors group"
+                                                >
+                                                    <span className="text-red-200 text-sm">{err.message}</span>
+                                                    {err.nodeId && <Search className="w-4 h-4 text-red-500 opacity-0 group-hover:opacity-100 transition-opacity" />}
+                                                </div>
+                                            ))}
+                                        </div>
+                                    </div>
+                                )}
+
+                                {validationReport.warnings.length > 0 && (
+                                    <div>
+                                        <h3 className="text-amber-400 text-xs font-bold uppercase tracking-wider mb-3 flex items-center gap-2">
+                                            <AlertTriangle className="w-4 h-4" /> Warnings ({validationReport.warnings.length})
+                                        </h3>
+                                        <div className="space-y-2">
+                                            {validationReport.warnings.map(warn => (
+                                                <div
+                                                    key={warn.id}
+                                                    onClick={() => {
+                                                        if (warn.nodeId && reactFlowInstance) {
+                                                            const node = nodes.find(n => n.id === warn.nodeId);
+                                                            if (node) {
+                                                                reactFlowInstance.setCenter(node.position.x, node.position.y, { zoom: 1.5, duration: 800 });
+                                                                setValidationReport(null);
+                                                            }
+                                                        }
+                                                    }}
+                                                    className="bg-amber-950/20 border border-amber-900/30 p-3 rounded-lg flex items-start justify-between cursor-pointer hover:bg-amber-950/40 transition-colors group"
+                                                >
+                                                    <span className="text-amber-200 text-sm">{warn.message}</span>
+                                                    {warn.nodeId && <Search className="w-4 h-4 text-amber-500 opacity-0 group-hover:opacity-100 transition-opacity" />}
+                                                </div>
+                                            ))}
+                                        </div>
+                                    </div>
+                                )}
+                            </div>
+                        </motion.div>
                     </div>
                 )}
             </AnimatePresence>
