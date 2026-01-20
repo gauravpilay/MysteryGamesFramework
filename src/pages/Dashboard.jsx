@@ -450,7 +450,19 @@ const Dashboard = () => {
     );
 
     return (
-        <div className="min-h-screen bg-black text-zinc-100 font-sans selection:bg-indigo-500/30">
+        <div className="min-h-screen bg-black text-zinc-100 font-sans selection:bg-indigo-500/30 relative overflow-x-hidden">
+            {/* Background Image */}
+            <div className="fixed inset-0 pointer-events-none z-0">
+                <div
+                    className="absolute right-0 top-0 bottom-0 w-3/4 bg-cover bg-center opacity-20 grayscale hover:grayscale-0 transition-all duration-1000"
+                    style={{
+                        backgroundImage: "url('https://images.unsplash.com/photo-1550751827-4bd374c3f58b?q=80&w=2070&auto=format&fit=crop')",
+                        maskImage: "linear-gradient(to left, black 0%, transparent 100%)",
+                        WebkitMaskImage: "linear-gradient(to left, black 0%, transparent 100%)"
+                    }}
+                />
+            </div>
+
             {/* Header */}
             <header className="sticky top-0 z-10 border-b border-zinc-800 bg-black/80 backdrop-blur-md">
                 <div className="container mx-auto px-6 h-16 flex items-center justify-between">
@@ -476,7 +488,7 @@ const Dashboard = () => {
             </header>
 
             {/* Main Content */}
-            <main className="container mx-auto px-6 py-10 space-y-12">
+            <main className="container mx-auto px-6 py-10 space-y-12 relative z-10">
                 {/* Header Section */}
                 <div className="flex items-center justify-between">
                     <div>
