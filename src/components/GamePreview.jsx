@@ -921,7 +921,7 @@ const GamePreview = ({ nodes, edges, onClose, gameMetadata }) => {
                             </span>
                         </div>
                     </div>
-                    <span className="text-zinc-500 text-sm font-mono">ID: {currentNode?.id || '---'}</span>
+
                 </div>
                 <div className="flex items-center gap-3">
                     {/* Audio Toggle */}
