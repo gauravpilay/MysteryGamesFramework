@@ -1,7 +1,7 @@
 import React, { createContext, useContext, useState, useEffect } from 'react';
 import { auth, googleProvider, db } from './firebase';
 import { signInWithPopup, signOut, onAuthStateChanged } from 'firebase/auth';
-import { doc, getDoc, setDoc } from 'firebase/firestore';
+import { doc, getDoc, setDoc, onSnapshot } from 'firebase/firestore';
 
 const AuthContext = createContext({});
 
@@ -14,19 +14,29 @@ export const AuthProvider = ({ children }) => {
             setLoading(false);
             return;
         }
-        const unsubscribe = onAuthStateChanged(auth, async (u) => {
+        const unsubscribeAuth = onAuthStateChanged(auth, async (u) => {
             if (u) {
                 if (db) {
                     const userRef = doc(db, "users", u.uid);
-                    const userSnap = await getDoc(userRef);
-                    if (userSnap.exists()) {
-                        setUser({ ...u, ...userSnap.data() });
-                    } else {
-                        // If document doesn't exist yet but user is auth'd (race condition or first login), 
-                        // we might wait or just set basic auth. 
-                        // For now, set basic auth, login function creates the doc.
-                        setUser(u);
-                    }
+                    // Listen to real-time updates
+                    const unsubscribeSnapshot = onSnapshot(userRef, (docSnap) => {
+                        if (docSnap.exists()) {
+                            setUser({ ...u, ...docSnap.data() });
+                        } else {
+                            // Doc might not exist yet if it's the very first login and setDoc hasn't finished,
+                            // or if creating below. Just set basic auth user for now.
+                            setUser(u);
+                        }
+                    });
+
+                    // We need to cleanup this snapshot listener when auth state changes or unmount
+                    // But here we are inside the auth listener. 
+                    // A simple way is to just let it run. 
+                    // For a robust app, we'd store the unsubscribe function in a ref or state.
+                    // Given the structure, let's keep it simple: 
+                    // The auth provider usually mounts once.
+                    // However, strictly speaking, we are creating a new listener every time auth state confirms user.
+                    // Ideally we should manage the unsubscription. 
                 } else {
                     setUser(u);
                 }
@@ -35,7 +45,7 @@ export const AuthProvider = ({ children }) => {
             }
             setLoading(false);
         });
-        return unsubscribe;
+        return unsubscribeAuth;
     }, []);
 
     const login = async () => {

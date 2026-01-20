@@ -19,7 +19,8 @@ import GamePreview from '../components/GamePreview';
 import { AnimatePresence } from 'framer-motion';
 import JSZip from 'jszip';
 import { db } from '../lib/firebase';
-import { doc, getDoc, updateDoc } from 'firebase/firestore';
+import { doc, getDoc, updateDoc, increment } from 'firebase/firestore';
+import { useAuth } from '../lib/auth';
 
 // ... (other imports)
 
@@ -107,6 +108,7 @@ const PALETTE_ITEMS = [
 ];
 
 const Editor = () => {
+    const { user } = useAuth();
     const { projectId } = useParams();
     const navigate = useNavigate();
     const reactFlowWrapper = useRef(null);
@@ -305,6 +307,24 @@ const Editor = () => {
         };
         loadCaseData();
     }, [projectId, setNodes, setEdges]);
+
+    // Time Tracking Effect
+    useEffect(() => {
+        if (!user || isLocked) return;
+
+        const interval = setInterval(async () => {
+            try {
+                const userRef = doc(db, "users", user.uid);
+                await updateDoc(userRef, {
+                    totalTimeLogged: increment(1)
+                });
+            } catch (error) {
+                console.error("Error tracking time:", error);
+            }
+        }, 60000); // Update every minute
+
+        return () => clearInterval(interval);
+    }, [user?.uid, isLocked]);
 
     // ... (Update handlers remain same)
 

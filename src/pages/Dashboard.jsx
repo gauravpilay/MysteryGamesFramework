@@ -4,7 +4,7 @@ import { db } from '../lib/firebase';
 import { collection, addDoc, deleteDoc, updateDoc, doc, onSnapshot, query } from 'firebase/firestore';
 import { Button, Card, Input, Label } from '../components/ui/shared';
 import { Logo } from '../components/ui/Logo';
-import { Plus, FolderOpen, LogOut, Search, Trash2, Rocket, Copy, Users, BookOpen, Lock, Unlock } from 'lucide-react';
+import { Plus, FolderOpen, LogOut, Search, Trash2, Rocket, Copy, Users, BookOpen, Lock, Unlock, Activity, FileText, CheckCircle, Clock } from 'lucide-react';
 import { useNavigate } from 'react-router-dom';
 import { motion, AnimatePresence } from 'framer-motion';
 
@@ -380,10 +380,7 @@ const Dashboard = () => {
             onClick={() => openProject(project.id)}
             className="group relative cursor-pointer"
         >
-            <Card className={`h-full p-6 transition-all duration-300 transform rounded-xl min-h-[200px] flex flex-col ${project.status === 'published'
-                ? 'bg-gradient-to-br from-indigo-950/40 via-purple-900/20 to-black border border-indigo-500 shadow-[0_0_25px_rgba(99,102,241,0.25)] hover:shadow-[0_0_50px_rgba(99,102,241,0.5)] hover:border-indigo-400 hover:-translate-y-2 hover:scale-[1.02]'
-                : 'bg-gradient-to-br from-amber-950/20 to-zinc-950 border border-amber-500/60 hover:border-amber-400 hover:bg-amber-900/10 hover:shadow-[0_0_30px_rgba(245,158,11,0.25)] hover:-translate-y-1'
-                }`}>
+            <Card className={`h-full p-6 transition-all duration-500 transform rounded-xl min-h-[220px] flex flex-col border glass-card group-hover:-translate-y-2 group-hover:shadow-[0_0_40px_rgba(99,102,241,0.2)] ${project.status === 'published' ? 'border-indigo-500/30 shadow-[0_0_20px_rgba(99,102,241,0.1)]' : 'border-zinc-800 shadow-none'}`}>
                 <div className="flex items-start justify-between mb-5">
                     <div className={`p-3 rounded-lg ${project.status === 'published' ? 'bg-indigo-500 text-white shadow-[0_0_15px_rgba(99,102,241,0.5)]' : 'bg-amber-500/20 text-amber-400 border border-amber-500/30'} transition-colors relative`}>
                         <FolderOpen className="w-6 h-6" />
@@ -451,16 +448,23 @@ const Dashboard = () => {
 
     return (
         <div className="min-h-screen bg-black text-zinc-100 font-sans selection:bg-indigo-500/30 relative overflow-x-hidden">
-            {/* Background Image */}
+            {/* Background Image & Grid */}
             <div className="fixed inset-0 pointer-events-none z-0">
+                {/* City Background */}
                 <div
-                    className="absolute right-0 top-0 bottom-0 w-3/4 bg-cover bg-center opacity-20 grayscale hover:grayscale-0 transition-all duration-1000"
+                    className="absolute right-0 top-0 bottom-0 w-3/4 bg-cover bg-center opacity-25 grayscale mix-blend-screen"
                     style={{
                         backgroundImage: "url('https://images.unsplash.com/photo-1550751827-4bd374c3f58b?q=80&w=2070&auto=format&fit=crop')",
-                        maskImage: "linear-gradient(to left, black 0%, transparent 100%)",
-                        WebkitMaskImage: "linear-gradient(to left, black 0%, transparent 100%)"
+                        maskImage: "linear-gradient(to left, black 20%, transparent 100%)",
+                        WebkitMaskImage: "linear-gradient(to left, black 20%, transparent 100%)"
                     }}
                 />
+                {/* Animated Grid Overlay */}
+                <div className="absolute inset-0 perspective-grid opacity-20"></div>
+
+                {/* Ambient Glows */}
+                <div className="absolute top-1/4 left-1/4 w-96 h-96 bg-indigo-600/10 rounded-full blur-[100px] animate-pulse"></div>
+                <div className="absolute bottom-1/4 right-1/4 w-96 h-96 bg-purple-600/10 rounded-full blur-[100px] animate-pulse delay-700"></div>
             </div>
 
             {/* Header */}
@@ -489,56 +493,100 @@ const Dashboard = () => {
 
             {/* Main Content */}
             <main className="container mx-auto px-6 py-10 space-y-12 relative z-10">
-                {/* Header Section */}
-                <div className="flex items-center justify-between">
-                    <div>
-                        <h1 className="text-2xl font-bold bg-clip-text text-transparent bg-gradient-to-r from-white to-zinc-500">Dashboard</h1>
-                        <p className="text-zinc-500 text-sm mt-1">Manage your active investigations</p>
+                {/* Hero Section */}
+                <div className="relative">
+                    <h1 className="text-4xl md:text-5xl font-extrabold tracking-tight mb-2">
+                        <span className="bg-clip-text text-transparent bg-gradient-to-r from-indigo-400 via-purple-400 to-white">
+                            Welcome Back, Detective
+                        </span>
+                    </h1>
+                    <p className="text-zinc-400 text-lg max-w-2xl">
+                        Your expertise is required. Review your active case files or initiate a new investigation below. The city is counting on you.
+                    </p>
+                </div>
+
+                {/* Action Controls & Search */}
+                <div className="flex items-center justify-end gap-3 pb-2">
+                    <div className="relative group">
+                        <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-zinc-500 group-focus-within:text-indigo-500 transition-colors" />
+                        <input
+                            type="text"
+                            placeholder="Search cases..."
+                            className="pl-9 pr-4 py-2 bg-zinc-900 border border-zinc-800 rounded-lg text-sm text-zinc-200 focus:outline-none focus:border-indigo-500 focus:ring-1 focus:ring-indigo-500 w-64 transition-all"
+                            value={searchQuery}
+                            onChange={(e) => setSearchQuery(e.target.value)}
+                        />
                     </div>
-                    <div className="flex items-center gap-3">
-                        <div className="relative group">
-                            <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-zinc-500 group-focus-within:text-indigo-500 transition-colors" />
-                            <input
-                                type="text"
-                                placeholder="Search cases..."
-                                className="pl-9 pr-4 py-2 bg-zinc-900 border border-zinc-800 rounded-lg text-sm text-zinc-200 focus:outline-none focus:border-indigo-500 focus:ring-1 focus:ring-indigo-500 w-64 transition-all"
-                                value={searchQuery}
-                                onChange={(e) => setSearchQuery(e.target.value)}
-                            />
+                    {isAdmin && (
+                        <>
+                            <Button variant="secondary" onClick={() => navigate('/admin/users')} className="mr-2">
+                                <Users className="w-4 h-4 mr-2" />
+                                Manage Users
+                            </Button>
+                            <Button variant="secondary" onClick={() => window.open('/USER_MANUAL.pdf', '_blank')} className="mr-2">
+                                <BookOpen className="w-4 h-4 mr-2" />
+                                User Manual
+                            </Button>
+                            {/* Seed Sample Button Hidden
+                            {isAdmin && (
+                                <Button variant="secondary" onClick={generateSampleCase} type="button">
+                                    <Rocket className="w-4 h-4 mr-2" />
+                                    Seed Sample
+                                </Button>
+                            )}
+                            */}
+                            <Button onClick={() => setShowNewModal(true)}>
+                                <Plus className="w-4 h-4 mr-2" />
+                                New Case
+                            </Button>
+                        </>
+                    )}
+                </div>
+
+                {/* Stats Row */}
+                <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+                    <div className="glass-card p-4 rounded-xl flex items-center gap-4">
+                        <div className="p-3 rounded-full bg-indigo-500/10 text-indigo-400">
+                            <Activity className="w-6 h-6" />
                         </div>
-                        {isAdmin && (
-                            <>
-                                <Button variant="secondary" onClick={() => navigate('/admin/users')} className="mr-2">
-                                    <Users className="w-4 h-4 mr-2" />
-                                    Manage Users
-                                </Button>
-                                <Button variant="secondary" onClick={() => window.open('/USER_MANUAL.pdf', '_blank')} className="mr-2">
-                                    <BookOpen className="w-4 h-4 mr-2" />
-                                    User Manual
-                                </Button>
-                                {/* Seed Sample Button Hidden
-                                {isAdmin && (
-                                    <Button variant="secondary" onClick={generateSampleCase} type="button">
-                                        <Rocket className="w-4 h-4 mr-2" />
-                                        Seed Sample
-                                    </Button>
-                                )}
-                                */}
-                                <Button onClick={() => setShowNewModal(true)}>
-                                    <Plus className="w-4 h-4 mr-2" />
-                                    New Case
-                                </Button>
-                            </>
-                        )}
+                        <div>
+                            <p className="text-zinc-500 text-xs font-bold uppercase tracking-wider">Active Cases</p>
+                            <p className="text-2xl font-bold text-white">{publishedProjects.length}</p>
+                        </div>
                     </div>
+                    <div className="glass-card p-4 rounded-xl flex items-center gap-4">
+                        <div className="p-3 rounded-full bg-amber-500/10 text-amber-400">
+                            <FileText className="w-6 h-6" />
+                        </div>
+                        <div>
+                            <p className="text-zinc-500 text-xs font-bold uppercase tracking-wider">Draft Files</p>
+                            <p className="text-2xl font-bold text-white">{draftProjects.length}</p>
+                        </div>
+                    </div>
+                    <div className="glass-card p-4 rounded-xl flex items-center gap-4">
+                        <div className="p-3 rounded-full bg-emerald-500/10 text-emerald-400">
+                            <Clock className="w-6 h-6" />
+                        </div>
+                        <div>
+                            <p className="text-zinc-500 text-xs font-bold uppercase tracking-wider">Total Time Logged</p>
+                            <p className="text-2xl font-bold text-white">
+                                {user?.totalTimeLogged ? `${Math.floor(user.totalTimeLogged / 60)}h ${user.totalTimeLogged % 60}m` : '0h 0m'}
+                            </p>
+                        </div>
+                    </div>
+                </div>
+
+                {/* Separator */}
+                <div className="border-t border-zinc-800/50 my-2"></div>
+
+                {/* Case Directory Header */}
+                <div className="flex items-center gap-2 mb-2">
+                    <div className="w-1 h-6 bg-indigo-500 rounded-full shadow-[0_0_10px_rgba(99,102,241,0.5)]"></div>
+                    <h2 className="text-xl font-bold text-white tracking-wide">Case Directory</h2>
                 </div>
 
                 {/* Published Section */}
                 <section>
-                    <div className="flex items-center gap-2 mb-6">
-                        <div className="w-2 h-2 rounded-full bg-indigo-500 shadow-[0_0_10px_rgba(99,102,241,0.5)]"></div>
-                        <h2 className="text-lg font-bold text-white tracking-wide uppercase text-sm">Active Investigations</h2>
-                    </div>
                     <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-6">
                         <AnimatePresence>
                             {publishedProjects.map(p => <ProjectCard key={p.id} project={p} />)}
@@ -552,10 +600,10 @@ const Dashboard = () => {
                 </section>
 
                 {/* Drafts Section (Admin Only) */}
-                {isAdmin && (
+                {isAdmin && draftProjects.length > 0 && (
                     <section>
-                        <div className="flex items-center gap-2 mb-6 border-t border-zinc-800/50 pt-8">
-                            <div className="w-2 h-2 rounded-full bg-zinc-500"></div>
+                        <div className="flex items-center gap-2 mb-6 border-t border-zinc-800/50 pt-8 mt-12">
+                            <div className="w-2 h-2 rounded-full bg-amber-500"></div>
                             <h2 className="text-lg font-bold text-zinc-400 tracking-wide uppercase text-sm">Draft Case Files</h2>
                         </div>
                         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-6">
