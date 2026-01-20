@@ -1,6 +1,6 @@
 import React, { useState, useEffect, useMemo, useRef } from 'react';
 import { Button, Card } from './ui/shared';
-import { X, User, Search, Terminal, MessageSquare, FileText, ArrowRight, ShieldAlert, CheckCircle, AlertTriangle, Volume2, VolumeX, Image as ImageIcon, Briefcase, Star, MousePointerClick, Bell, HelpCircle } from 'lucide-react';
+import { X, User, Search, Terminal, MessageSquare, FileText, ArrowRight, ShieldAlert, CheckCircle, AlertTriangle, Volume2, VolumeX, Image as ImageIcon, Briefcase, Star, MousePointerClick, Bell, HelpCircle, Clock } from 'lucide-react';
 import { motion, AnimatePresence } from 'framer-motion';
 
 const BackgroundEffect = () => (
@@ -170,6 +170,13 @@ const GamePreview = ({ nodes, edges, onClose, gameMetadata }) => {
 
         if (start) {
             setCurrentNodeId(start.id);
+
+            // Auto-Start Mission if not explicitly a "Briefing" node
+            // This ensures the timer starts for games beginning with other node types (media, terminal, etc.)
+            const isBriefing = (start.data?.label || '').toLowerCase().includes('briefing');
+            if (!isBriefing) {
+                setMissionStarted(true);
+            }
 
             // If start node is a modal type, open it immediately
             if (['media', 'suspect', 'terminal', 'evidence', 'message'].includes(start.type)) {
@@ -902,12 +909,18 @@ const GamePreview = ({ nodes, edges, onClose, gameMetadata }) => {
                         <span className="text-zinc-200 font-bold font-mono text-sm">{score}</span>
                     </div>
                     {/* Timer Logic */}
-                    {missionStarted && (
-                        <div className={`fixed bottom-8 md:top-4 md:bottom-auto left-1/2 -translate-x-1/2 px-4 py-1.5 md:px-6 md:py-2 rounded-lg border-2 shadow-2xl z-[110] flex items-center gap-2 md:gap-3 backdrop-blur-md transition-all duration-300 ${timeLeft < 60 ? 'bg-red-950/80 border-red-500 text-red-500 animate-pulse' : 'bg-zinc-950/80 border-indigo-500/50 text-indigo-400'}`}>
-                            <span className="hidden md:inline text-xs font-bold uppercase tracking-widest opacity-70">Time Remaining</span>
-                            <span className="font-mono text-xl md:text-2xl font-black tracking-widest">{formatTime(timeLeft)}</span>
+                    {/* Timer Logic - Always Visible & Prominent */}
+                    <div className={`fixed top-2 md:top-4 left-1/2 -translate-x-1/2 px-6 py-2 md:px-8 md:py-3 rounded-xl border-2 shadow-[0_0_20px_rgba(0,0,0,0.5)] z-[120] flex items-center gap-3 backdrop-blur-xl transition-all duration-300 ${timeLeft < 60 || !missionStarted ? 'bg-red-950/90 border-red-500 text-red-500' : 'bg-black/90 border-indigo-500 text-indigo-400'}`}>
+                        <Clock className={`w-5 h-5 md:w-6 md:h-6 ${timeLeft < 60 ? 'animate-pulse' : ''}`} />
+                        <div className="flex flex-col items-center leading-none">
+                            <span className="text-[10px] md:text-xs font-black uppercase tracking-[0.2em] opacity-80 mb-1">
+                                {missionStarted ? "Time Remaining" : "Mission Timer"}
+                            </span>
+                            <span className="font-mono text-2xl md:text-3xl font-black tracking-widest drop-shadow-lg">
+                                {formatTime(timeLeft)}
+                            </span>
                         </div>
-                    )}
+                    </div>
                     <span className="text-zinc-500 text-sm font-mono">ID: {currentNode?.id || '---'}</span>
                 </div>
                 <div className="flex items-center gap-3">
