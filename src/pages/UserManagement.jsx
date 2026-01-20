@@ -1,7 +1,7 @@
 import React, { useEffect, useState } from "react";
 import { useAuth } from "../lib/auth";
 import { db } from "../lib/firebase";
-import { collection, getDocs, doc, updateDoc } from "firebase/firestore";
+import { collection, getDocs, doc, updateDoc, deleteField } from "firebase/firestore";
 import { Button, Card } from "../components/ui/shared";
 import {
     Table,
@@ -11,7 +11,7 @@ import {
     TableHeader,
     TableRow
 } from "../components/ui/table";
-import { Shield, ShieldAlert, User, ArrowLeft, MoreHorizontal, Check, X } from "lucide-react";
+import { Shield, ShieldAlert, User, ArrowLeft, MoreHorizontal, Check, X, FolderLock, Lock } from "lucide-react";
 import { useNavigate } from "react-router-dom";
 
 const UserManagement = () => {
@@ -20,6 +20,12 @@ const UserManagement = () => {
     const [users, setUsers] = useState([]);
     const [loading, setLoading] = useState(true);
     const [error, setError] = useState("");
+
+    // Case Management State
+    const [cases, setCases] = useState([]);
+    const [managingUser, setManagingUser] = useState(null);
+    const [tempAssignedIds, setTempAssignedIds] = useState([]);
+    const [isCustomAccess, setIsCustomAccess] = useState(false);
 
     // Only allow access if current user is Admin
     // Note: In a real app, you'd also enforce this with Firestore Rules.
@@ -71,6 +77,82 @@ const UserManagement = () => {
             fetchUsers();
         }
     }, [user]);
+
+    // Fetch Cases for the Access Manager
+    useEffect(() => {
+        const fetchCases = async () => {
+            if (!db) {
+                // Mock Cases
+                setCases([
+                    { id: 'c1', title: 'Operation Blackout' },
+                    { id: 'c2', title: 'The Vanishing Diamond' }
+                ]);
+                return;
+            }
+            try {
+                const querySnapshot = await getDocs(collection(db, "cases"));
+                setCases(querySnapshot.docs.map(doc => ({
+                    id: doc.id,
+                    ...doc.data()
+                })));
+            } catch (err) {
+                console.error("Error fetching cases:", err);
+            }
+        };
+
+        if (user?.role === 'Admin') fetchCases();
+    }, [user]);
+
+    const handleManageAccess = (targetUser) => {
+        setManagingUser(targetUser);
+        if (targetUser.assignedCaseIds) {
+            setIsCustomAccess(true);
+            setTempAssignedIds(targetUser.assignedCaseIds);
+        } else {
+            setIsCustomAccess(false);
+            // Pre-select all just for visual transition if they switch to restricted
+            setTempAssignedIds(cases.map(c => c.id));
+        }
+    };
+
+    const handleSaveAccess = async () => {
+        if (!managingUser) return;
+
+        const userId = managingUser.id;
+
+        // Optimistic UI update
+        const updatedUser = {
+            ...managingUser,
+            assignedCaseIds: isCustomAccess ? tempAssignedIds : undefined
+        };
+        setUsers(users.map(u => u.id === userId ? updatedUser : u));
+        setManagingUser(null);
+
+        if (!db) return; // Mock mode logic ends here
+
+        try {
+            const userRef = doc(db, "users", userId);
+            if (!isCustomAccess) {
+                await updateDoc(userRef, { assignedCaseIds: deleteField() });
+            } else {
+                await updateDoc(userRef, { assignedCaseIds: tempAssignedIds });
+            }
+        } catch (err) {
+            console.error("Error updating access:", err);
+            setError("Failed to save access settings.");
+            // Revert on error would go here
+        }
+    };
+
+    const toggleCaseAssignment = (caseId) => {
+        setTempAssignedIds(prev => {
+            if (prev.includes(caseId)) {
+                return prev.filter(id => id !== caseId);
+            } else {
+                return [...prev, caseId];
+            }
+        });
+    };
 
     const handleRoleChange = async (userId, newRole) => {
         if (!db) {
@@ -129,7 +211,8 @@ const UserManagement = () => {
                             <TableRow>
                                 <TableHead className="text-zinc-400">Email</TableHead>
                                 <TableHead className="text-zinc-400">Current Role</TableHead>
-                                <TableHead className="text-right text-zinc-400">Actions</TableHead>
+                                <TableHead className="text-right text-zinc-400">Case Access</TableHead>
+                                <TableHead className="text-right text-zinc-400">Role Actions</TableHead>
                             </TableRow>
                         </TableHeader>
                         <TableBody>
@@ -147,7 +230,20 @@ const UserManagement = () => {
                                             {u.role || 'User'}
                                         </span>
                                     </TableCell>
-                                    <TableCell className="text-right">
+
+                                    <TableCell className="text-right w-[140px]">
+                                        <Button
+                                            size="sm"
+                                            variant="ghost"
+                                            className="text-zinc-400 hover:text-white"
+                                            onClick={() => handleManageAccess(u)}
+                                            title="Manage Case Access"
+                                        >
+                                            <FolderLock className="w-4 h-4 mr-2" />
+                                            Access
+                                        </Button>
+                                    </TableCell>
+                                    <TableCell className="text-right w-[180px]">
                                         <div className="flex justify-end gap-2">
                                             {u.role !== 'Admin' ? (
                                                 <Button
@@ -155,16 +251,16 @@ const UserManagement = () => {
                                                     className="bg-red-500/10 hover:bg-red-500/20 text-red-400 border-red-500/50"
                                                     onClick={() => handleRoleChange(u.id, 'Admin')}
                                                 >
-                                                    Promote to Admin
+                                                    Promote
                                                 </Button>
                                             ) : (
                                                 <Button
                                                     size="sm"
                                                     className="bg-zinc-800 hover:bg-zinc-700 text-zinc-300"
                                                     onClick={() => handleRoleChange(u.id, 'User')}
-                                                    disabled={u.id === user.uid} // Prevent self, demotion logic if needed
+                                                    disabled={u.id === user.uid}
                                                 >
-                                                    Demote to User
+                                                    Demote
                                                 </Button>
                                             )}
                                         </div>
@@ -175,7 +271,84 @@ const UserManagement = () => {
                     </Table>
                 </Card>
             </main>
-        </div>
+
+            {/* Access Management Modal */}
+            {managingUser && (
+                <div className="fixed inset-0 z-[60] flex items-center justify-center bg-black/80 backdrop-blur-sm p-4">
+                    <div className="w-full max-w-md bg-zinc-950 border border-zinc-800 rounded-xl shadow-2xl overflow-hidden flex flex-col max-h-[80vh]">
+                        <div className="p-6 border-b border-zinc-800 bg-zinc-900/50">
+                            <div className="flex items-center justify-between">
+                                <h3 className="text-lg font-bold text-white">Manage Case Access</h3>
+                                <Button variant="ghost" size="icon" onClick={() => setManagingUser(null)} className="h-8 w-8">
+                                    <X className="w-4 h-4" />
+                                </Button>
+                            </div>
+                            <p className="text-sm text-zinc-500 mt-1">
+                                Configure visible cases for <span className="text-zinc-300 font-mono">{managingUser.email}</span>
+                            </p>
+                        </div>
+
+                        <div className="p-6 overflow-y-auto">
+                            <div className="flex items-center justify-between bg-zinc-900/50 p-3 rounded-lg border border-zinc-800 mb-6">
+                                <div className="flex items-center gap-2">
+                                    {isCustomAccess ? (
+                                        <Lock className="w-4 h-4 text-amber-500" />
+                                    ) : (
+                                        <Shield className="w-4 h-4 text-green-500" />
+                                    )}
+                                    <span className="text-sm font-medium">
+                                        {isCustomAccess ? "Restricted Access" : "All Cases (Default)"}
+                                    </span>
+                                </div>
+                                <Button
+                                    size="sm"
+                                    variant="secondary"
+                                    onClick={() => setIsCustomAccess(!isCustomAccess)}
+                                >
+                                    {isCustomAccess ? "Reset to All" : "Customize"}
+                                </Button>
+                            </div>
+
+                            {isCustomAccess && (
+                                <div className="space-y-2">
+                                    <p className="text-xs text-zinc-500 uppercase tracking-wider font-bold mb-3">Select Visible Cases</p>
+                                    {cases.length === 0 ? (
+                                        <div className="text-center py-4 text-zinc-500 text-sm">No cases available.</div>
+                                    ) : (
+                                        cases.map(c => (
+                                            <div
+                                                key={c.id}
+                                                className={`flex items-center justify-between p-3 rounded-md border cursor-pointer transition-colors ${tempAssignedIds.includes(c.id)
+                                                        ? 'bg-indigo-500/10 border-indigo-500/50'
+                                                        : 'bg-zinc-900/30 border-zinc-800 hover:border-zinc-700'
+                                                    }`}
+                                                onClick={() => toggleCaseAssignment(c.id)}
+                                            >
+                                                <span className="text-sm font-medium text-zinc-300 truncate pr-4">{c.title || 'Untitled Case'}</span>
+                                                {tempAssignedIds.includes(c.id) && (
+                                                    <Check className="w-4 h-4 text-indigo-400" />
+                                                )}
+                                            </div>
+                                        ))
+                                    )}
+                                </div>
+                            )}
+
+                            {!isCustomAccess && (
+                                <div className="text-center py-8 text-zinc-500 text-sm">
+                                    <p>This user has access to all current and future cases.</p>
+                                </div>
+                            )}
+                        </div>
+
+                        <div className="p-4 border-t border-zinc-800 bg-zinc-900/50 flex justify-end gap-3">
+                            <Button variant="ghost" onClick={() => setManagingUser(null)}>Cancel</Button>
+                            <Button onClick={handleSaveAccess}>Save Changes</Button>
+                        </div>
+                    </div>
+                </div>
+            )}
+        </div >
     );
 };
 

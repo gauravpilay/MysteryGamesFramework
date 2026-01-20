@@ -340,9 +340,15 @@ const Dashboard = () => {
         }
     };
 
-    // Filter projects for view
-    const publishedProjects = projects.filter(p => p.status === 'published');
-    const draftProjects = projects.filter(p => p.status !== 'published');
+    // Filter projects based on user assignment
+    const accessibleProjects = projects.filter(p => {
+        if (isAdmin) return true; // Admins always see everything
+        if (!user?.assignedCaseIds) return true; // Default is access to all
+        return user.assignedCaseIds.includes(p.id);
+    });
+
+    const publishedProjects = accessibleProjects.filter(p => p.status === 'published');
+    const draftProjects = accessibleProjects.filter(p => p.status !== 'published');
 
     const ProjectCard = ({ project }) => (
         <motion.div
