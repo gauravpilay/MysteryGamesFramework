@@ -14,6 +14,7 @@ const Dashboard = () => {
     const { user, logout } = useAuth();
     const navigate = useNavigate();
     const [projects, setProjects] = useState([]);
+    const [searchQuery, setSearchQuery] = useState('');
     const [showNewModal, setShowNewModal] = useState(false);
     const [deleteId, setDeleteId] = useState(null); // State for delete confirmation
     const [duplicateId, setDuplicateId] = useState(null); // State for duplicate confirmation
@@ -355,8 +356,13 @@ const Dashboard = () => {
         }
     };
 
-    // Filter projects based on user assignment
+    // Filter projects based on user assignment and search query
     const accessibleProjects = projects.filter(p => {
+        const matchesSearch = p.title.toLowerCase().includes(searchQuery.toLowerCase()) ||
+            (p.description && p.description.toLowerCase().includes(searchQuery.toLowerCase()));
+
+        if (!matchesSearch) return false;
+
         if (isAdmin) return true; // Admins always see everything
         if (!user?.assignedCaseIds) return true; // Default is access to all
         return user.assignedCaseIds.includes(p.id);
@@ -478,7 +484,16 @@ const Dashboard = () => {
                         <p className="text-zinc-500 text-sm mt-1">Manage your active investigations</p>
                     </div>
                     <div className="flex items-center gap-3">
-                        {/* Search is hidden for cleaner separate view for now, or can be re-added below */}
+                        <div className="relative group">
+                            <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-zinc-500 group-focus-within:text-indigo-500 transition-colors" />
+                            <input
+                                type="text"
+                                placeholder="Search cases..."
+                                className="pl-9 pr-4 py-2 bg-zinc-900 border border-zinc-800 rounded-lg text-sm text-zinc-200 focus:outline-none focus:border-indigo-500 focus:ring-1 focus:ring-indigo-500 w-64 transition-all"
+                                value={searchQuery}
+                                onChange={(e) => setSearchQuery(e.target.value)}
+                            />
+                        </div>
                         {isAdmin && (
                             <>
                                 <Button variant="secondary" onClick={() => navigate('/admin/users')} className="mr-2">
@@ -489,12 +504,14 @@ const Dashboard = () => {
                                     <BookOpen className="w-4 h-4 mr-2" />
                                     User Manual
                                 </Button>
+                                {/* Seed Sample Button Hidden
                                 {isAdmin && (
                                     <Button variant="secondary" onClick={generateSampleCase} type="button">
                                         <Rocket className="w-4 h-4 mr-2" />
                                         Seed Sample
                                     </Button>
                                 )}
+                                */}
                                 <Button onClick={() => setShowNewModal(true)}>
                                     <Plus className="w-4 h-4 mr-2" />
                                     New Case
