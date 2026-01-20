@@ -1,8 +1,124 @@
 import React, { memo, useState } from 'react';
+import { Handle, Position } from 'reactflow';
+import { FileText, User, Search, GitMerge, Terminal, MessageSquare, Music, Image as ImageIcon, Star, MousePointerClick, Trash2, Plus, Copy, Fingerprint, Bell, HelpCircle, ToggleLeft, Unlock, Binary, Grid3x3 } from 'lucide-react';
 import { storage } from '../../lib/firebase';
 import { ref, uploadBytes, getDownloadURL } from 'firebase/storage';
-import { Handle, Position } from 'reactflow';
-import { FileText, User, Search, GitMerge, Terminal, MessageSquare, Music, Image as ImageIcon, Star, MousePointerClick, Trash2, Plus, Copy, Fingerprint, Bell, HelpCircle, ToggleLeft } from 'lucide-react';
+
+// ... (existing code for SetterNode) ...
+
+export const LockpickNode = memo(({ id, data, selected }) => {
+    const handleChange = (key, val) => {
+        data.onChange && data.onChange(id, { ...data, [key]: val });
+    };
+
+    return (
+        <>
+            <Handle type="target" position={Position.Top} className="!bg-zinc-500 !w-3 !h-3 !border-2 !border-black" />
+            <Handle type="target" position={Position.Top} className="!bg-zinc-500 !w-3 !h-3 !border-2 !border-black" />
+            <NodeWrapper id={id} title="Lockpick Minigame" icon={Unlock} selected={selected} headerClass="bg-amber-950/30 text-amber-200" colorClass="border-amber-900/30" data={data} onLabelChange={(v) => handleChange('label', v)}>
+                <div className="space-y-2">
+                    <p className="text-[10px] text-zinc-500 mb-1">Difficulty (Pins)</p>
+                    <div className="flex gap-2">
+                        <select
+                            className="w-full bg-black border border-zinc-800 rounded px-2 py-1 text-xs text-zinc-300 focus:border-indigo-500 outline-none"
+                            value={data.difficulty || 'easy'}
+                            onChange={(e) => handleChange('difficulty', e.target.value)}
+                        >
+                            <option value="easy">Easy (3 Pins)</option>
+                            <option value="medium">Medium (5 Pins)</option>
+                            <option value="hard">Hard (7 Pins)</option>
+                        </select>
+                    </div>
+                    <div>
+                        <p className="text-[10px] text-zinc-500 mb-1">Unlock Reward (Logic Variable)</p>
+                        <InputField
+                            placeholder="e.g. door_unlocked"
+                            value={data.variableId}
+                            onChange={(e) => handleChange('variableId', e.target.value)}
+                            className="font-mono text-amber-500/80"
+                        />
+                    </div>
+                </div>
+            </NodeWrapper>
+            <Handle type="source" position={Position.Bottom} className="!bg-amber-500 !w-3 !h-3 !border-2 !border-black" />
+        </>
+    );
+});
+
+export const DecryptionNode = memo(({ id, data, selected }) => {
+    const handleChange = (key, val) => {
+        data.onChange && data.onChange(id, { ...data, [key]: val });
+    };
+
+    return (
+        <>
+            <Handle type="target" position={Position.Top} className="!bg-zinc-500 !w-3 !h-3 !border-2 !border-black" />
+            <Handle type="target" position={Position.Top} className="!bg-zinc-500 !w-3 !h-3 !border-2 !border-black" />
+            <NodeWrapper id={id} title="Cyber Decryption" icon={Binary} selected={selected} headerClass="bg-lime-950/30 text-lime-200" colorClass="border-lime-900/30" data={data} onLabelChange={(v) => handleChange('label', v)}>
+                <div className="space-y-2">
+                    <p className="text-[10px] text-zinc-500 mb-1">Target Phrase (To Be Decoded)</p>
+                    <InputField
+                        placeholder="e.g. SECRET"
+                        value={data.targetPhrase}
+                        onChange={(e) => handleChange('targetPhrase', e.target.value)}
+                        className="font-mono text-lime-500 uppercase"
+                    />
+                    <p className="text-[10px] text-zinc-500 mb-1">Time Limit (Seconds)</p>
+                    <InputField
+                        type="number"
+                        placeholder="30"
+                        value={data.timeLimit}
+                        onChange={(e) => handleChange('timeLimit', parseInt(e.target.value) || 30)}
+                    />
+                    <div>
+                        <p className="text-[10px] text-zinc-500 mb-1">Success Variable</p>
+                        <InputField
+                            placeholder="e.g. data_decrypted"
+                            value={data.variableId}
+                            onChange={(e) => handleChange('variableId', e.target.value)}
+                            className="font-mono text-lime-500/80"
+                        />
+                    </div>
+                </div>
+            </NodeWrapper>
+            <Handle type="source" position={Position.Bottom} className="!bg-lime-500 !w-3 !h-3 !border-2 !border-black" />
+        </>
+    );
+});
+
+export const KeypadNode = memo(({ id, data, selected }) => {
+    const handleChange = (key, val) => {
+        data.onChange && data.onChange(id, { ...data, [key]: val });
+    };
+
+    return (
+        <>
+            <Handle type="target" position={Position.Top} className="!bg-zinc-500 !w-3 !h-3 !border-2 !border-black" />
+            <Handle type="target" position={Position.Top} className="!bg-zinc-500 !w-3 !h-3 !border-2 !border-black" />
+            <NodeWrapper id={id} title="Security Keypad" icon={Grid3x3} selected={selected} headerClass="bg-slate-950/30 text-slate-200" colorClass="border-slate-900/30" data={data} onLabelChange={(v) => handleChange('label', v)}>
+                <div className="space-y-2">
+                    <p className="text-[10px] text-zinc-500 mb-1">Passcode (Numeric)</p>
+                    <InputField
+                        placeholder="e.g. 1234"
+                        value={data.passcode}
+                        onChange={(e) => handleChange('passcode', e.target.value)}
+                        className="font-mono text-slate-300 tracking-widest text-center"
+                    />
+                    <div>
+                        <p className="text-[10px] text-zinc-500 mb-1">Success Variable</p>
+                        <InputField
+                            placeholder="e.g. vault_open"
+                            value={data.variableId}
+                            onChange={(e) => handleChange('variableId', e.target.value)}
+                            className="font-mono text-slate-500/80"
+                        />
+                    </div>
+                </div>
+            </NodeWrapper>
+            <Handle type="source" position={Position.Bottom} className="!bg-slate-500 !w-3 !h-3 !border-2 !border-black" />
+        </>
+    );
+});
 
 // ... existing code ...
 

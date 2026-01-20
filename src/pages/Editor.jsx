@@ -12,8 +12,8 @@ import 'reactflow/dist/style.css';
 import { useParams, useNavigate } from 'react-router-dom';
 import { Button } from '../components/ui/shared';
 import { Logo } from '../components/ui/Logo';
-import { Save, ArrowLeft, X, FileText, User, Search, GitMerge, Terminal, MessageSquare, CircleHelp, Play, Settings, Music, Image as ImageIcon, MousePointerClick, Fingerprint, Bell, HelpCircle, ChevronLeft, ChevronRight, ToggleLeft, Lock, Sun, Moon, Stethoscope } from 'lucide-react';
-import { StoryNode, SuspectNode, EvidenceNode, LogicNode, TerminalNode, MessageNode, MusicNode, MediaNode, ActionNode, IdentifyNode, NotificationNode, QuestionNode, SetterNode } from '../components/nodes/CustomNodes';
+import { Save, ArrowLeft, X, FileText, User, Search, GitMerge, Terminal, MessageSquare, CircleHelp, Play, Settings, Music, Image as ImageIcon, MousePointerClick, Fingerprint, Bell, HelpCircle, ChevronLeft, ChevronRight, ToggleLeft, Lock, Sun, Moon, Stethoscope, Unlock, Binary, Grid3x3 } from 'lucide-react';
+import { StoryNode, SuspectNode, EvidenceNode, LogicNode, TerminalNode, MessageNode, MusicNode, MediaNode, ActionNode, IdentifyNode, NotificationNode, QuestionNode, SetterNode, LockpickNode, DecryptionNode, KeypadNode } from '../components/nodes/CustomNodes';
 import { TutorialOverlay } from '../components/ui/TutorialOverlay';
 import GamePreview from '../components/GamePreview';
 import { AnimatePresence } from 'framer-motion';
@@ -88,6 +88,21 @@ const NODE_HELP = {
         title: "Set Variable",
         desc: "Updates a hidden variable or logic ID in the game state. Use to manually trigger flags or track progress.",
         examples: ["Unlock Door Flag", "Set Score", "Mark Chapter Complete"]
+    },
+    lockpick: {
+        title: "Lockpick Minigame",
+        desc: "A reflex-based locking picking game. Player must click at the right moment to unlock pins.",
+        examples: ["Locked Door", "Safe Cracking", "Briefcase Lock"]
+    },
+    decryption: {
+        title: "Decryption Puzzle",
+        desc: "A cyber-themed decoding puzzle. Player must reveal the hidden phrase within a time limit.",
+        examples: ["Encrypted Server", "Scrambled Dossier", "Alien Signal"]
+    },
+    keypad: {
+        title: "Security Keypad",
+        desc: "A numeric keypad interface. Requires the player to enter a specific code found elsewhere.",
+        examples: ["Vault Door", "Armory Access", "Phone Unlock"]
     }
 };
 
@@ -105,6 +120,9 @@ const PALETTE_ITEMS = [
     { type: 'question', label: 'Question', icon: HelpCircle, className: "hover:border-fuchsia-500/50", iconClass: "text-fuchsia-400" },
     { type: 'setter', label: 'Set Variable', icon: ToggleLeft, className: "hover:border-cyan-500/50", iconClass: "text-cyan-400" },
     { type: 'identify', label: 'Identify Culprit', icon: Fingerprint, className: "hover:border-red-600/50", iconClass: "text-red-600" },
+    { type: 'lockpick', label: 'Lockpick Game', icon: Unlock, className: "hover:border-amber-500/50", iconClass: "text-amber-400" },
+    { type: 'decryption', label: 'Decryption', icon: Binary, className: "hover:border-lime-500/50", iconClass: "text-lime-400" },
+    { type: 'keypad', label: 'Keypad Lock', icon: Grid3x3, className: "hover:border-slate-500/50", iconClass: "text-slate-400" },
 ];
 
 const Editor = () => {
@@ -166,7 +184,10 @@ const Editor = () => {
         identify: IdentifyNode,
         notification: NotificationNode,
         question: QuestionNode,
-        setter: SetterNode
+        setter: SetterNode,
+        lockpick: LockpickNode,
+        decryption: DecryptionNode,
+        keypad: KeypadNode
     }), []);
 
     const [editingEdge, setEditingEdge] = useState(null); // { id: string, label: string }

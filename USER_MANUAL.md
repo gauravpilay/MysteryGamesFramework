@@ -18,7 +18,10 @@ Welcome to the Mystery Games Framework Editor! This manual provides a detailed e
 12. [Identify Culprit](#12-identify-culprit)
 13. [Notification](#13-notification)
 14. [Question](#14-question)
-15. [Tutorial: Building Your First Mystery](#15-tutorial-building-your-first-mystery)
+15. [Lockpick Minigame](#15-lockpick-minigame)
+16. [Decryption Minigame](#16-decryption-minigame)
+17. [Keypad Lock](#17-keypad-lock)
+18. [Tutorial: Building Your First Mystery](#18-tutorial-building-your-first-mystery)
 
 ---
 
@@ -196,9 +199,37 @@ The **Question Node** presents a quiz or specific question to the player.
     *   "Knowledge Check: What was the time of death?"
     *   "Code Decryption challenge"
 
----
+### 15. Lockpick Minigame
+**Icon:** Unlock (Amber)
 
-### 15. Tutorial: Building Your First Mystery
+The **Lockpick Node** launches an interactive minigame requiring player reflexes.
+
+*   **When to use:** Use this to simulate picking a physical lock on a door, chest, or safe. The player must click at the right moment to align tumblers.
+*   **Features:**
+    *   **Difficulty:** Choose between Easy, Medium, or Hard to adjust speed and complexity.
+    *   **Success Variable:** Automatically sets a logic variable (e.g., `door_unlocked`) to 'True' when beaten.
+
+### 16. Decryption Minigame
+**Icon:** Binary (Lime)
+
+The **Decryption Node** presents a "hacker style" puzzle interface.
+
+*   **When to use:** Use this for computer hacking sequences. Characters rain down or scramble, and the player must lock in the correct code.
+*   **Features:**
+    *   **Target Phrase:** Set the secret word (e.g., "PASSWORD") that must be decoded.
+    *   **Time Limit:** Set the urgency of the hack in seconds.
+
+### 17. Keypad Lock
+**Icon:** Grid3x3 (Slate)
+
+The **Keypad Node** requires a specific numeric code to proceed.
+
+*   **When to use:** Perfect for secure doors, safes, or phone unlocks where the player must have found a code elsewhere in the game.
+*   **Features:**
+    *   **Passcode:** Set the exact numeric code required (e.g., "0451").
+    *   **Success Variable:** Completing the code triggers this variable for use in Logic Nodes.
+
+### 18. Tutorial: Building Your First Mystery
 
 In this example, we will build a short mystery game: **"The Cyber Heist"**.
 

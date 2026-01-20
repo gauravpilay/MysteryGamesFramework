@@ -65,6 +65,203 @@ const TypewriterText = ({ text, onComplete }) => {
     return <span>{displayedText}<span className="animate-pulse text-indigo-500">_</span></span>;
 };
 
+// -- MINIGAME COMPONENTS --
+
+const LockpickMinigame = ({ node, onSuccess, onFail }) => {
+    const [pins, setPins] = useState(Array(parseInt(node.data.difficulty === 'hard' ? 7 : node.data.difficulty === 'medium' ? 5 : 3)).fill(false));
+    const [currentPin, setCurrentPin] = useState(0);
+    const [barPos, setBarPos] = useState(0);
+    const [movingRight, setMovingRight] = useState(true);
+    const requestRef = useRef();
+
+    // Game Loop for Bar Movement
+    useEffect(() => {
+        const speed = node.data.difficulty === 'hard' ? 2 : 1.5;
+        const animate = () => {
+            setBarPos(prev => {
+                let next = prev + (movingRight ? speed : -speed);
+                if (next >= 100) { setMovingRight(false); next = 100; }
+                if (next <= 0) { setMovingRight(true); next = 0; }
+                return next;
+            });
+            requestRef.current = requestAnimationFrame(animate);
+        };
+        requestRef.current = requestAnimationFrame(animate);
+        return () => cancelAnimationFrame(requestRef.current);
+    }, [movingRight, node.data.difficulty]);
+
+    const handlePick = () => {
+        // Sweet spot is centered around 50% usually, or random? Random is better.
+        // For simplicity, let's say the target zone moves or is static.
+        // Static center is easiest for V1.
+        const targetStart = 40;
+        const targetEnd = 60;
+
+        if (barPos >= targetStart && barPos <= targetEnd) {
+            const newPins = [...pins];
+            newPins[currentPin] = true;
+            setPins(newPins);
+            if (currentPin + 1 >= pins.length) {
+                setTimeout(onSuccess, 500);
+            } else {
+                setCurrentPin(p => p + 1);
+            }
+        } else {
+            // Failure reset
+            setPins(pins.map(() => false));
+            setCurrentPin(0);
+            onFail();
+        }
+    };
+
+    return (
+        <div className="p-8 bg-zinc-900 h-full flex flex-col items-center justify-center border-t-4 border-amber-500">
+            <h2 className="text-2xl font-black text-amber-500 uppercase tracking-widest mb-8 flex items-center gap-3">
+                <div className="p-2 border border-amber-500 rounded-lg"><Clock className="w-6 h-6" /></div>
+                Lockpick Interface
+            </h2>
+
+            <div className="flex gap-4 mb-12">
+                {pins.map((isSet, i) => (
+                    <div key={i} className={`w-8 h-12 rounded-t-lg transition-all duration-300 ${isSet ? 'bg-amber-500 mt-0 shadow-[0_0_15px_rgba(245,158,11,0.6)]' : 'bg-zinc-800 mt-8 border-b-4 border-zinc-900'} border-x border-t border-white/10`}></div>
+                ))}
+            </div>
+
+            <div className="w-full max-w-lg h-12 bg-black rounded-full border border-zinc-700 relative overflow-hidden mb-8" onClick={handlePick}>
+                {/* Target Zone */}
+                <div className="absolute top-0 bottom-0 left-[40%] right-[40%] bg-green-500/20 border-x border-green-500/50 flex items-center justify-center">
+                    <div className="w-1 h-full bg-green-500/50"></div>
+                </div>
+
+                {/* Moving Bar */}
+                <div
+                    className="absolute top-0 bottom-0 w-2 bg-white shadow-[0_0_15px_white]"
+                    style={{ left: `${barPos}%` }}
+                ></div>
+            </div>
+
+            <p className="text-zinc-500 text-sm font-mono tracking-widest mb-4">CLICK WHEN ALIGNED</p>
+        </div>
+    );
+};
+
+const KeypadMinigame = ({ node, onSuccess }) => {
+    const [input, setInput] = useState("");
+    const [error, setError] = useState(false);
+
+    const handlePress = (key) => {
+        if (key === 'C') {
+            setInput("");
+            setError(false);
+        } else if (key === 'Enter') {
+            if (input === node.data.passcode) {
+                onSuccess();
+            } else {
+                setError(true);
+                setTimeout(() => {
+                    setInput("");
+                    setError(false);
+                }, 1000);
+            }
+        } else {
+            if (input.length < 8) setInput(prev => prev + key);
+        }
+    };
+
+    return (
+        <div className="p-8 bg-zinc-900 h-full flex flex-col items-center justify-center border-t-4 border-slate-500">
+            <div className="bg-zinc-950 p-8 rounded-2xl border border-zinc-800 shadow-2xl">
+                <div className={`bg-black h-16 mb-6 rounded border font-mono text-3xl flex items-center justify-end px-4 tracking-widest ${error ? 'border-red-500 text-red-500 animate-pulse' : 'border-emerald-900/50 text-emerald-500'}`}>
+                    {error ? "ACCESS DENIED" : input.replace(/./g, '•') || "ENTER CODE"}
+                </div>
+
+                <div className="grid grid-cols-3 gap-3">
+                    {['1', '2', '3', '4', '5', '6', '7', '8', '9', 'C', '0', 'Enter'].map(key => (
+                        <button
+                            key={key}
+                            onClick={() => handlePress(key)}
+                            className={`w-16 h-16 rounded text-xl font-bold transition-all active:scale-95
+                                ${key === 'Enter' ? 'bg-emerald-600 hover:bg-emerald-500 text-white' :
+                                    key === 'C' ? 'bg-red-900/50 hover:bg-red-800 text-red-200' :
+                                        'bg-zinc-800 hover:bg-zinc-700 text-zinc-300 border border-zinc-700'}`}
+                        >
+                            {key === 'Enter' ? '⏎' : key}
+                        </button>
+                    ))}
+                </div>
+            </div>
+        </div>
+    );
+};
+
+const DecryptionMinigame = ({ node, onSuccess }) => {
+    const target = (node.data.targetPhrase || "PASSWORD").toUpperCase();
+    const [revealed, setRevealed] = useState(Array(target.length).fill(false));
+    const [chars, setChars] = useState(Array(target.length).fill('A'));
+
+    // Cycle characters
+    useEffect(() => {
+        const interval = setInterval(() => {
+            setChars(prev => prev.map((char, i) => {
+                if (revealed[i]) return target[i];
+                return String.fromCharCode(65 + Math.floor(Math.random() * 26));
+            }));
+        }, 50); // Fast cycle
+        return () => clearInterval(interval);
+    }, [revealed, target]);
+
+    const handleLock = (index) => {
+        // In this minigame, you have to click the column to lock it? 
+        // Or wait for it to be right? That's impossible at 50ms.
+        // Let's make it: Click any "Lock" button stops a column. 
+        // Actually simpler: "Matrix Code Match". 
+        // User clicks "Inject Code" button when the *Highlighted* letter matches the target letter below it.
+        // Let's do a simple "Click to Reveal" but with a cooldown or "Hacking Progress".
+
+        // Revised Logic: User types the letter to lock it (Typing Game). 
+        // Most intuitive for desktop/laptop.
+    };
+
+    // Typing listener
+    useEffect(() => {
+        const handleKeyDown = (e) => {
+            const char = e.key.toUpperCase();
+            // Find first unrevealed index
+            const nextIndex = revealed.findIndex(r => !r);
+            if (nextIndex !== -1 && char === target[nextIndex]) {
+                setRevealed(prev => {
+                    const next = [...prev];
+                    next[nextIndex] = true;
+                    // Check success
+                    if (next.every(r => r)) setTimeout(onSuccess, 500);
+                    return next;
+                });
+            }
+        };
+        window.addEventListener('keydown', handleKeyDown);
+        return () => window.removeEventListener('keydown', handleKeyDown);
+    }, [revealed, target, onSuccess]);
+
+    return (
+        <div className="p-8 bg-black h-full flex flex-col items-center justify-center font-mono border-t-4 border-lime-500">
+            <h2 className="text-lime-500 mb-8 tracking-widest animate-pulse">DECRYPTION IN PROGRESS...</h2>
+
+            <div className="flex gap-2">
+                {chars.map((char, i) => (
+                    <div key={i} className={`w-12 h-16 flex items-center justify-center text-3xl border rounded transition-colors duration-200
+                        ${revealed[i] ? 'bg-lime-900/20 border-lime-500 text-lime-400 shadow-[0_0_15px_rgba(132,204,22,0.4)]' : 'bg-zinc-900 border-zinc-800 text-zinc-600'}`}>
+                        {revealed[i] ? target[i] : char}
+                    </div>
+                ))}
+            </div>
+
+            <p className="mt-12 text-zinc-500 text-xs tracking-widest">
+                TYPE THE CHARACTERS TO LOCK SIGNAL
+            </p>
+        </div>
+    );
+};
+
 const GamePreview = ({ nodes, edges, onClose, gameMetadata }) => {
     // Game State
     const [currentNodeId, setCurrentNodeId] = useState(null);
@@ -618,9 +815,10 @@ const GamePreview = ({ nodes, edges, onClose, gameMetadata }) => {
         setCurrentNodeId(nextNodeId);
 
         // If it's a type that requires a popup, set it as active modal AND add to inventory
-        if (nextNode && ['suspect', 'evidence', 'terminal', 'message', 'media', 'notification', 'question'].includes(nextNode.type)) {
+        if (nextNode && ['suspect', 'evidence', 'terminal', 'message', 'media', 'notification', 'question', 'lockpick', 'decryption', 'keypad'].includes(nextNode.type)) {
             setActiveModalNode(nextNode);
             if (nextNode.type === 'question') setUserAnswers(new Set()); // Reset answers
+            if (nextNode.type === 'lockpick') { /* Initialize specific state if needed here, mostly handled in component */ }
 
             // Collect IDs: Node IDs + any custom logic variableIds
             const idsToAdd = [nextNodeId, ...intermediateIds];
@@ -1679,6 +1877,59 @@ const GamePreview = ({ nodes, edges, onClose, gameMetadata }) => {
                                         </Button>
                                     </div>
                                 </div>
+                            )}
+
+                            {/* Lockpick Minigame Layout */}
+                            {activeModalNode.type === 'lockpick' && (
+                                <LockpickMinigame
+                                    node={activeModalNode}
+                                    onSuccess={() => {
+                                        const next = edges.find(e => e.source === activeModalNode.id);
+                                        // Set Success Variable
+                                        if (activeModalNode.data.variableId) {
+                                            setInventory(prev => new Set([...prev, activeModalNode.data.variableId]));
+                                            setNodeOutputs(prev => ({ ...prev, [activeModalNode.data.variableId]: true }));
+                                        }
+                                        setActiveModalNode(null);
+                                        if (next) handleOptionClick(next.target);
+                                    }}
+                                    onFail={() => {
+                                        // Maybe damage score or just retry? For now, retry is standard.
+                                        addLog("LOCKPICK FAILED: Tumblers reset.");
+                                    }}
+                                />
+                            )}
+
+                            {/* Keypad Minigame Layout */}
+                            {activeModalNode.type === 'keypad' && (
+                                <KeypadMinigame
+                                    node={activeModalNode}
+                                    onSuccess={() => {
+                                        const next = edges.find(e => e.source === activeModalNode.id);
+                                        if (activeModalNode.data.variableId) {
+                                            setInventory(prev => new Set([...prev, activeModalNode.data.variableId]));
+                                            setNodeOutputs(prev => ({ ...prev, [activeModalNode.data.variableId]: true }));
+                                        }
+                                        setActiveModalNode(null);
+                                        if (next) handleOptionClick(next.target);
+                                    }}
+                                />
+                            )}
+
+                            {/* Decryption Minigame Layout */}
+                            {activeModalNode.type === 'decryption' && (
+                                <DecryptionMinigame
+                                    node={activeModalNode}
+                                    onSuccess={() => {
+                                        const next = edges.find(e => e.source === activeModalNode.id);
+                                        if (activeModalNode.data.variableId) {
+                                            setInventory(prev => new Set([...prev, activeModalNode.data.variableId]));
+                                            setNodeOutputs(prev => ({ ...prev, [activeModalNode.data.variableId]: true }));
+                                        }
+                                        setActiveModalNode(null);
+                                        if (next) handleOptionClick(next.target);
+                                    }}
+                                />
                             )}
 
                         </motion.div>
