@@ -4,7 +4,7 @@ import { db } from '../lib/firebase';
 import { collection, addDoc, deleteDoc, updateDoc, doc, onSnapshot, query } from 'firebase/firestore';
 import { Button, Card, Input, Label } from '../components/ui/shared';
 import { Logo } from '../components/ui/Logo';
-import { Plus, FolderOpen, LogOut, Search, Trash2, Rocket, Copy, Users, BookOpen } from 'lucide-react';
+import { Plus, FolderOpen, LogOut, Search, Trash2, Rocket, Copy, Users, BookOpen, Lock, Unlock } from 'lucide-react';
 import { useNavigate } from 'react-router-dom';
 import { motion, AnimatePresence } from 'framer-motion';
 
@@ -332,6 +332,21 @@ const Dashboard = () => {
         }
     };
 
+    const toggleLock = async (e, project) => {
+        e.preventDefault();
+        e.stopPropagation();
+        if (!isAdmin) return;
+
+        const newLockStatus = !project.isLocked;
+        try {
+            await updateDoc(doc(db, "cases", project.id), {
+                isLocked: newLockStatus
+            });
+        } catch (error) {
+            console.error("Error updating lock status:", error);
+        }
+    };
+
     const openProject = (id) => {
         if (isAdmin) {
             navigate(`/editor/${id}`);
@@ -364,8 +379,13 @@ const Dashboard = () => {
                 : 'bg-gradient-to-br from-amber-950/20 to-zinc-950 border border-amber-500/60 hover:border-amber-400 hover:bg-amber-900/10 hover:shadow-[0_0_30px_rgba(245,158,11,0.25)] hover:-translate-y-1'
                 }`}>
                 <div className="flex items-start justify-between mb-5">
-                    <div className={`p-3 rounded-lg ${project.status === 'published' ? 'bg-indigo-500 text-white shadow-[0_0_15px_rgba(99,102,241,0.5)]' : 'bg-amber-500/20 text-amber-400 border border-amber-500/30'} transition-colors`}>
+                    <div className={`p-3 rounded-lg ${project.status === 'published' ? 'bg-indigo-500 text-white shadow-[0_0_15px_rgba(99,102,241,0.5)]' : 'bg-amber-500/20 text-amber-400 border border-amber-500/30'} transition-colors relative`}>
                         <FolderOpen className="w-6 h-6" />
+                        {project.isLocked && (
+                            <div className="absolute -top-1 -right-1 bg-red-500 text-white rounded-full p-0.5 border border-black" title="Locked">
+                                <Lock className="w-3 h-3" />
+                            </div>
+                        )}
                     </div>
                     {isAdmin && (
                         <div className="flex items-center gap-2 relative z-20">
@@ -375,6 +395,13 @@ const Dashboard = () => {
                                 title={project.status === 'published' ? 'Unpublish' : 'Publish to Users'}
                             >
                                 {project.status === 'published' ? 'Live' : 'Draft'}
+                            </button>
+                            <button
+                                className={`p-1.5 rounded-md hover:bg-zinc-800 transition-colors ${project.isLocked ? 'text-red-400' : 'text-zinc-500 hover:text-indigo-400'}`}
+                                onClick={(e) => toggleLock(e, project)}
+                                title={project.isLocked ? "Unlock Case" : "Lock Case"}
+                            >
+                                {project.isLocked ? <Lock className="w-4 h-4" /> : <Unlock className="w-4 h-4" />}
                             </button>
                             <button
                                 className="p-1.5 rounded-md hover:bg-zinc-800 text-zinc-500 hover:text-indigo-400 transition-colors"

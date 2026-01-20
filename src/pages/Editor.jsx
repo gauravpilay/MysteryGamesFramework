@@ -12,7 +12,7 @@ import 'reactflow/dist/style.css';
 import { useParams, useNavigate } from 'react-router-dom';
 import { Button } from '../components/ui/shared';
 import { Logo } from '../components/ui/Logo';
-import { Save, ArrowLeft, X, FileText, User, Search, GitMerge, Terminal, MessageSquare, CircleHelp, Play, Settings, Music, Image as ImageIcon, MousePointerClick, Fingerprint, Bell, HelpCircle, ChevronLeft, ChevronRight, ToggleLeft } from 'lucide-react';
+import { Save, ArrowLeft, X, FileText, User, Search, GitMerge, Terminal, MessageSquare, CircleHelp, Play, Settings, Music, Image as ImageIcon, MousePointerClick, Fingerprint, Bell, HelpCircle, ChevronLeft, ChevronRight, ToggleLeft, Lock } from 'lucide-react';
 import { StoryNode, SuspectNode, EvidenceNode, LogicNode, TerminalNode, MessageNode, MusicNode, MediaNode, ActionNode, IdentifyNode, NotificationNode, QuestionNode, SetterNode } from '../components/nodes/CustomNodes';
 import { TutorialOverlay } from '../components/ui/TutorialOverlay';
 import GamePreview from '../components/GamePreview';
@@ -119,6 +119,7 @@ const Editor = () => {
     const [showSettings, setShowSettings] = useState(false);
     const [timeLimit, setTimeLimit] = useState(15); // Default 15 minutes
     const [isPaletteCollapsed, setIsPaletteCollapsed] = useState(false);
+    const [isLocked, setIsLocked] = useState(false);
 
     const tutorialSteps = [
         {
@@ -169,24 +170,27 @@ const Editor = () => {
 
     // Update handler
     const onNodeUpdate = useCallback((id, newData) => {
+        if (isLocked) return;
         setNodes((nds) => nds.map((node) => {
             if (node.id === id) {
                 return { ...node, data: { ...newData, onChange: onNodeUpdate } };
             }
             return node;
         }));
-    }, [setNodes]);
+    }, [setNodes, isLocked]);
 
     const onConnect = useCallback((params) => {
+        if (isLocked) return;
         // Create edge immediately without prompt
         setEdges((eds) => addEdge({ ...params, type: 'default' }, eds));
-    }, [setEdges]);
+    }, [setEdges, isLocked]);
 
     const onEdgeClick = useCallback((event, edge) => {
         event.stopPropagation();
+        if (isLocked) return;
         setEditingEdge(edge);
         setTempLabel(edge.label || "");
-    }, []);
+    }, [isLocked]);
 
     const saveEdgeLabel = () => {
         if (!editingEdge) return;
@@ -212,6 +216,7 @@ const Editor = () => {
 
     // Generic Duplicate Handler
     const onDuplicateNode = useCallback((id) => {
+        if (isLocked) return;
         setNodes((nds) => {
             const nodeToDuplicate = nds.find((n) => n.id === id);
             if (!nodeToDuplicate) return nds;
@@ -233,7 +238,7 @@ const Editor = () => {
             };
             return [...nds.map(node => ({ ...node, selected: false })), { ...newNode, selected: true }];
         });
-    }, [onNodeUpdate, setNodes]);
+    }, [onNodeUpdate, setNodes, isLocked]);
 
     // Reattach handlers on load where they might be missing (deserialization)
     useEffect(() => {
@@ -251,6 +256,7 @@ const Editor = () => {
 
     const onDrop = useCallback((event) => {
         event.preventDefault();
+        if (isLocked) return;
         const type = event.dataTransfer.getData('application/reactflow');
         if (typeof type === 'undefined' || !type) return;
 
@@ -271,7 +277,7 @@ const Editor = () => {
         };
 
         setNodes((nds) => nds.concat(newNode));
-    }, [reactFlowInstance, onNodeUpdate, onDuplicateNode, setNodes]);
+    }, [reactFlowInstance, onNodeUpdate, onDuplicateNode, setNodes, isLocked]);
 
     // Initial Load
     useEffect(() => {
@@ -284,8 +290,10 @@ const Editor = () => {
                 if (docSnap.exists()) {
                     const data = docSnap.data();
                     if (data.nodes) setNodes(data.nodes);
+                    if (data.nodes) setNodes(data.nodes);
                     if (data.edges) setEdges(data.edges);
                     if (data.meta && data.meta.timeLimit) setTimeLimit(data.meta.timeLimit);
+                    if (data.isLocked !== undefined) setIsLocked(data.isLocked);
                 } else {
                     console.error("No such document!");
                     // potentially navigate back or show error
@@ -301,6 +309,10 @@ const Editor = () => {
 
     const saveProject = async () => {
         if (!db || !projectId) return;
+        if (isLocked) {
+            alert("Case is locked. Editing is disabled.");
+            return;
+        }
 
         // Strip functions before saving
         // Note: react-flow nodes might contain circular refs or functions in data, usually pure data is fine.
@@ -420,6 +432,7 @@ const Editor = () => {
     };
 
     const onDragStart = (event, nodeType) => {
+        if (isLocked) return;
         event.dataTransfer.setData('application/reactflow', nodeType);
         event.dataTransfer.effectAllowed = 'move';
     };
@@ -436,16 +449,22 @@ const Editor = () => {
                     <div className="flex items-center gap-2">
                         <Logo className="w-6 h-6" />
                         <span className="font-bold text-zinc-400">Mission Architect</span>
+                        {isLocked && (
+                            <div className="flex items-center gap-1.5 px-2 py-1 bg-red-500/10 border border-red-500/50 rounded text-red-400 text-xs font-bold uppercase tracking-wider ml-4">
+                                <Lock className="w-3 h-3" />
+                                Locked (Read Only)
+                            </div>
+                        )}
                     </div>
                 </div>
                 <div id="editor-actions" className="flex items-center gap-2">
                     <Button variant="ghost" size="icon" onClick={() => setShowTutorial(true)} title="How to use">
                         <CircleHelp className="w-5 h-5 text-indigo-400" />
                     </Button>
-                    <Button variant="ghost" size="icon" onClick={() => setShowSettings(true)} title="Game Settings">
+                    <Button variant="ghost" size="icon" onClick={() => setShowSettings(true)} title="Game Settings" disabled={isLocked}>
                         <Settings className="w-5 h-5 text-zinc-400" />
                     </Button>
-                    <Button id="save-btn" variant="secondary" size="sm" onClick={saveProject}>
+                    <Button id="save-btn" variant="secondary" size="sm" onClick={saveProject} disabled={isLocked}>
                         <Save className="w-4 h-4 mr-2" />
                         Save
                     </Button>
@@ -460,7 +479,7 @@ const Editor = () => {
             <div className="flex flex-1 overflow-hidden">
                 {/* Sidebar */}
                 {/* Sidebar */}
-                <aside id="node-sidebar" className={`${isPaletteCollapsed ? 'w-16' : 'w-64'} border-r border-zinc-800 bg-zinc-950 flex flex-col gap-4 z-10 transition-all duration-300 ease-in-out`}>
+                <aside id="node-sidebar" className={`${isPaletteCollapsed ? 'w-16' : 'w-64'} border-r border-zinc-800 bg-zinc-950 flex flex-col gap-4 z-10 transition-all duration-300 ease-in-out ${isLocked ? 'opacity-50 pointer-events-none grayscale' : ''}`}>
                     <div className={`flex items-center ${isPaletteCollapsed ? 'justify-center p-2' : 'justify-between p-4'} border-b border-zinc-800/50`}>
                         {!isPaletteCollapsed && (
                             <div className="text-xs font-bold text-zinc-500 uppercase tracking-wider">Node Palette</div>
@@ -514,10 +533,15 @@ const Editor = () => {
                     <ReactFlow
                         nodes={nodes}
                         edges={edges}
-                        onNodesChange={onNodesChange}
-                        onEdgesChange={onEdgesChange}
-                        onConnect={onConnect}
+                        onNodesChange={isLocked ? undefined : onNodesChange}
+                        onEdgesChange={isLocked ? undefined : onEdgesChange}
+                        onConnect={isLocked ? undefined : onConnect}
                         onInit={setReactFlowInstance}
+                        nodesDraggable={!isLocked}
+                        nodesConnectable={!isLocked}
+                        elementsSelectable={!isLocked}
+                        nodesFocusable={!isLocked}
+                        edgesFocusable={!isLocked}
                         onDrop={onDrop}
                         onDragOver={onDragOver}
                         onEdgeClick={onEdgeClick}
