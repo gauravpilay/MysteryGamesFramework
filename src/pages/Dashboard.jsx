@@ -450,13 +450,23 @@ const Dashboard = () => {
         <div className="min-h-screen bg-black text-zinc-100 font-sans selection:bg-indigo-500/30 relative overflow-x-hidden">
             {/* Background Image & Grid */}
             <div className="fixed inset-0 pointer-events-none z-0">
-                {/* City Background */}
+                {/* Vibrant Background */}
                 <div
-                    className="absolute right-0 top-0 bottom-0 w-3/4 bg-cover bg-center opacity-25 grayscale mix-blend-screen"
+                    className="absolute right-0 top-0 bottom-0 w-3/4 bg-cover bg-center opacity-30 mix-blend-screen saturate-150 contrast-125"
                     style={{
-                        backgroundImage: "url('https://images.unsplash.com/photo-1550751827-4bd374c3f58b?q=80&w=2070&auto=format&fit=crop')",
-                        maskImage: "linear-gradient(to left, black 20%, transparent 100%)",
-                        WebkitMaskImage: "linear-gradient(to left, black 20%, transparent 100%)"
+                        backgroundImage: "url('https://images.unsplash.com/photo-1618005182384-a83a8bd57fbe?q=80&w=2564&auto=format&fit=crop')",
+                        maskImage: "linear-gradient(to left, black 10%, transparent 100%)",
+                        WebkitMaskImage: "linear-gradient(to left, black 10%, transparent 100%)"
+                    }}
+                />
+
+                {/* Electronic Circuits Overlay */}
+                <div
+                    className="absolute right-0 top-0 bottom-0 w-3/4 bg-cover bg-center opacity-20 mix-blend-color-dodge contrast-150 brightness-150"
+                    style={{
+                        backgroundImage: "url('https://images.unsplash.com/photo-1592659762303-90081d34b277?q=80&w=2070&auto=format&fit=crop')",
+                        maskImage: "linear-gradient(to left, black 10%, transparent 100%)",
+                        WebkitMaskImage: "linear-gradient(to left, black 10%, transparent 100%)"
                     }}
                 />
                 {/* Animated Grid Overlay */}
