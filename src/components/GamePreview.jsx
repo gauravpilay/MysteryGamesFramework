@@ -904,9 +904,15 @@ const GamePreview = ({ nodes, edges, onClose, gameMetadata }) => {
                         Case Active
                     </div>
                     {/* Score Display */}
-                    <div className="flex items-center gap-2 px-3 py-1 bg-zinc-900 border border-zinc-800 rounded">
-                        <Star className="w-3 h-3 text-yellow-500 fill-yellow-500" />
-                        <span className="text-zinc-200 font-bold font-mono text-sm">{score}</span>
+                    {/* Score Display - Prominent */}
+                    <div className="flex items-center gap-3 px-4 py-2 bg-yellow-950/20 border border-yellow-600/50 rounded-xl shadow-[0_0_15px_rgba(234,179,8,0.15)] hover:bg-yellow-900/20 transition-colors">
+                        <div className="p-1.5 bg-yellow-500/10 rounded-lg border border-yellow-500/20">
+                            <Star className="w-5 h-5 text-yellow-500 fill-yellow-500 drop-shadow-md" />
+                        </div>
+                        <div className="flex flex-col leading-none">
+                            <span className="text-[10px] text-yellow-600 font-black uppercase tracking-wider mb-0.5">Score</span>
+                            <span className="text-2xl font-black text-yellow-400 font-mono tracking-widest drop-shadow-sm">{score}</span>
+                        </div>
                     </div>
                     {/* Timer Logic */}
                     {/* Timer Logic - Always Visible & Prominent */}
