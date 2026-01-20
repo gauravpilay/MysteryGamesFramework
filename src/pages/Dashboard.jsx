@@ -557,32 +557,47 @@ const Dashboard = () => {
                 <div className="w-full h-px bg-gradient-to-r from-transparent via-indigo-500/50 to-transparent"></div>
 
                 {/* Stats Row */}
-                <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-                    <div className="glass-card p-4 rounded-xl flex items-center gap-4">
-                        <div className="p-3 rounded-full bg-indigo-500/10 text-indigo-400">
-                            <Activity className="w-6 h-6" />
+                {/* Stats Row - Vibrant & Prominent */}
+                <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
+                    {/* Active Cases - Blue Reactor */}
+                    <div className="relative group overflow-hidden rounded-2xl border border-indigo-500/30 bg-gradient-to-br from-indigo-900/40 to-black/60 p-6 flex items-center gap-6 shadow-[0_0_15px_rgba(99,102,241,0.15)] hover:shadow-[0_0_30px_rgba(99,102,241,0.3)] transition-all hover:scale-[1.02]">
+                        <div className="absolute top-0 right-0 p-4 opacity-10 group-hover:opacity-20 transition-opacity">
+                            <Activity className="w-24 h-24 text-indigo-500" />
                         </div>
-                        <div>
-                            <p className="text-zinc-500 text-xs font-bold uppercase tracking-wider">Active Cases</p>
-                            <p className="text-2xl font-bold text-white">{publishedProjects.length}</p>
+                        <div className="p-4 rounded-xl bg-indigo-500/20 text-indigo-400 shadow-inner ring-1 ring-white/10">
+                            <Activity className="w-8 h-8" />
                         </div>
-                    </div>
-                    <div className="glass-card p-4 rounded-xl flex items-center gap-4">
-                        <div className="p-3 rounded-full bg-amber-500/10 text-amber-400">
-                            <FileText className="w-6 h-6" />
-                        </div>
-                        <div>
-                            <p className="text-zinc-500 text-xs font-bold uppercase tracking-wider">Draft Files</p>
-                            <p className="text-2xl font-bold text-white">{draftProjects.length}</p>
+                        <div className="relative z-10">
+                            <p className="text-indigo-300 text-sm font-bold uppercase tracking-widest mb-1">Active Cases</p>
+                            <p className="text-4xl font-extrabold text-white drop-shadow-md">{publishedProjects.length}</p>
                         </div>
                     </div>
-                    <div className="glass-card p-4 rounded-xl flex items-center gap-4">
-                        <div className="p-3 rounded-full bg-emerald-500/10 text-emerald-400">
-                            <Clock className="w-6 h-6" />
+
+                    {/* Draft Files - Amber Data */}
+                    <div className="relative group overflow-hidden rounded-2xl border border-amber-500/30 bg-gradient-to-br from-amber-900/40 to-black/60 p-6 flex items-center gap-6 shadow-[0_0_15px_rgba(245,158,11,0.15)] hover:shadow-[0_0_30px_rgba(245,158,11,0.3)] transition-all hover:scale-[1.02]">
+                        <div className="absolute top-0 right-0 p-4 opacity-10 group-hover:opacity-20 transition-opacity">
+                            <FileText className="w-24 h-24 text-amber-500" />
                         </div>
-                        <div>
-                            <p className="text-zinc-500 text-xs font-bold uppercase tracking-wider">Total Time Logged</p>
-                            <p className="text-2xl font-bold text-white">
+                        <div className="p-4 rounded-xl bg-amber-500/20 text-amber-400 shadow-inner ring-1 ring-white/10">
+                            <FileText className="w-8 h-8" />
+                        </div>
+                        <div className="relative z-10">
+                            <p className="text-amber-300 text-sm font-bold uppercase tracking-widest mb-1">Draft Files</p>
+                            <p className="text-4xl font-extrabold text-white drop-shadow-md">{draftProjects.length}</p>
+                        </div>
+                    </div>
+
+                    {/* Total Time - Emerald Timer */}
+                    <div className="relative group overflow-hidden rounded-2xl border border-emerald-500/30 bg-gradient-to-br from-emerald-900/40 to-black/60 p-6 flex items-center gap-6 shadow-[0_0_15px_rgba(16,185,129,0.15)] hover:shadow-[0_0_30px_rgba(16,185,129,0.3)] transition-all hover:scale-[1.02]">
+                        <div className="absolute top-0 right-0 p-4 opacity-10 group-hover:opacity-20 transition-opacity">
+                            <Clock className="w-24 h-24 text-emerald-500" />
+                        </div>
+                        <div className="p-4 rounded-xl bg-emerald-500/20 text-emerald-400 shadow-inner ring-1 ring-white/10">
+                            <Clock className="w-8 h-8" />
+                        </div>
+                        <div className="relative z-10">
+                            <p className="text-emerald-300 text-sm font-bold uppercase tracking-widest mb-1">Total Time</p>
+                            <p className="text-4xl font-extrabold text-white drop-shadow-md">
                                 {user?.totalTimeLogged ? `${Math.floor(user.totalTimeLogged / 60)}h ${user.totalTimeLogged % 60}m` : '0h 0m'}
                             </p>
                         </div>
