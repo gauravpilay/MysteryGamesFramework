@@ -424,7 +424,7 @@ const Dashboard = () => {
                     )}
                 </div>
 
-                <h3 className="text-xl font-bold text-zinc-100 group-hover:text-white transition-colors truncate mb-3 tracking-tight">
+                <h3 className="text-xl font-bold bg-clip-text text-transparent bg-gradient-to-r from-zinc-100 to-zinc-500 group-hover:from-white group-hover:to-zinc-300 transition-all truncate mb-3 tracking-tight">
                     {project.title}
                 </h3>
 
