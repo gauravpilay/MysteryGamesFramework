@@ -1180,43 +1180,42 @@ const GamePreview = ({ nodes, edges, onClose, gameMetadata }) => {
                                                         icon = MousePointerClick;
                                                         title = item.label;
                                                         actionLabel = "";
-                                                        // Base style for all actions: Gradient, Bordered, Glowy on Hover
-                                                        // Note: We include the border color in the specific cases
-                                                        const baseShadow = "transition-all duration-300 hover:scale-[1.02] border";
+                                                        // Base style: Dynamic scale, glass border, rich shadow
+                                                        const baseShadow = "transition-all duration-300 hover:scale-[1.02] border backdrop-blur-sm shadow-lg";
 
                                                         switch (item.variant) {
-                                                            case 'danger':
-                                                                color = "text-red-400";
-                                                                bg = `bg-gradient-to-r from-red-950/80 to-red-900/20 border-red-500/50 hover:border-red-400 hover:from-red-900 hover:to-red-900/40 shadow-[0_0_15px_rgba(220,38,38,0.1)] hover:shadow-[0_0_25px_rgba(220,38,38,0.3)] ${baseShadow}`;
+                                                            case 'danger': // Intense Red Pulse
+                                                                color = "text-white";
+                                                                bg = `bg-gradient-to-r from-red-600 to-red-900 border-red-400/50 hover:border-red-400 hover:from-red-500 hover:to-red-800 hover:shadow-[0_0_30px_rgba(220,38,38,0.5)] ${baseShadow}`;
                                                                 break;
-                                                            case 'primary':
-                                                                color = "text-blue-400";
-                                                                bg = `bg-gradient-to-r from-blue-950/80 to-blue-900/20 border-blue-500/50 hover:border-blue-400 hover:from-blue-900 hover:to-blue-900/40 shadow-[0_0_15px_rgba(37,99,235,0.1)] hover:shadow-[0_0_25px_rgba(37,99,235,0.3)] ${baseShadow}`;
+                                                            case 'primary': // Electric Blue
+                                                                color = "text-white";
+                                                                bg = `bg-gradient-to-r from-blue-600 to-indigo-900 border-blue-400/50 hover:border-blue-400 hover:from-blue-500 hover:to-indigo-800 hover:shadow-[0_0_30px_rgba(37,99,235,0.5)] ${baseShadow}`;
                                                                 break;
-                                                            case 'success':
-                                                                color = "text-emerald-400";
-                                                                bg = `bg-gradient-to-r from-emerald-950/80 to-emerald-900/20 border-emerald-500/50 hover:border-emerald-400 hover:from-emerald-900 hover:to-emerald-900/40 shadow-[0_0_15px_rgba(16,185,129,0.1)] hover:shadow-[0_0_25px_rgba(16,185,129,0.3)] ${baseShadow}`;
+                                                            case 'success': // Cyber Green
+                                                                color = "text-white";
+                                                                bg = `bg-gradient-to-r from-emerald-500 to-green-900 border-emerald-400/50 hover:border-emerald-400 hover:from-emerald-400 hover:to-green-800 hover:shadow-[0_0_30px_rgba(16,185,129,0.5)] ${baseShadow}`;
                                                                 break;
-                                                            case 'warning':
-                                                                color = "text-amber-400";
-                                                                bg = `bg-gradient-to-r from-amber-950/80 to-amber-900/20 border-amber-500/50 hover:border-amber-400 hover:from-amber-900 hover:to-amber-900/40 shadow-[0_0_15px_rgba(245,158,11,0.1)] hover:shadow-[0_0_25px_rgba(245,158,11,0.3)] ${baseShadow}`;
+                                                            case 'warning': // Neon Amber
+                                                                color = "text-black";
+                                                                bg = `bg-gradient-to-r from-amber-400 to-orange-600 border-amber-300/50 hover:border-amber-300 hover:from-amber-300 hover:to-orange-500 hover:shadow-[0_0_30px_rgba(245,158,11,0.5)] ${baseShadow}`;
                                                                 break;
-                                                            case 'mystic':
-                                                                color = "text-violet-400";
-                                                                bg = `bg-gradient-to-r from-violet-950/80 to-violet-900/20 border-violet-500/50 hover:border-violet-400 hover:from-violet-900 hover:to-violet-900/40 shadow-[0_0_15px_rgba(147,51,234,0.1)] hover:shadow-[0_0_25px_rgba(147,51,234,0.3)] ${baseShadow}`;
+                                                            case 'mystic': // Deep Void Purple
+                                                                color = "text-white";
+                                                                bg = `bg-gradient-to-r from-violet-600 to-fuchsia-900 border-violet-400/50 hover:border-violet-400 hover:from-violet-500 hover:to-fuchsia-800 hover:shadow-[0_0_30px_rgba(139,92,246,0.5)] ${baseShadow}`;
                                                                 break;
-                                                            case 'tech':
-                                                                color = "text-cyan-400";
-                                                                bg = `bg-gradient-to-r from-cyan-950/80 to-cyan-900/20 border-cyan-500/50 hover:border-cyan-400 hover:from-cyan-900 hover:to-cyan-900/40 shadow-[0_0_15px_rgba(34,211,238,0.1)] hover:shadow-[0_0_25px_rgba(34,211,238,0.3)] ${baseShadow}`;
+                                                            case 'tech': // Holographic Cyan
+                                                                color = "text-black";
+                                                                bg = `bg-gradient-to-r from-cyan-400 to-blue-600 border-cyan-300/50 hover:border-cyan-300 hover:from-cyan-300 hover:to-blue-500 hover:shadow-[0_0_30px_rgba(34,211,238,0.5)] ${baseShadow}`;
                                                                 break;
-                                                            case 'outline':
+                                                            case 'outline': // Ghost Wireframe
                                                                 color = "text-zinc-300";
-                                                                bg = `bg-transparent border-zinc-600 hover:border-zinc-300 hover:bg-white/5 ${baseShadow}`;
+                                                                bg = `bg-transparent border border-zinc-500 hover:border-white hover:bg-white/5 hover:shadow-[0_0_15px_rgba(255,255,255,0.1)] ${baseShadow}`;
                                                                 break;
                                                             default:
-                                                                // Default Gradient
-                                                                color = "text-zinc-200";
-                                                                bg = `bg-gradient-to-r from-zinc-900 to-zinc-900/50 border-zinc-700 hover:border-zinc-500 hover:from-zinc-800 hover:to-zinc-800/50 shadow-none hover:shadow-lg ${baseShadow}`;
+                                                                // Metallic Zinc
+                                                                color = "text-zinc-100";
+                                                                bg = `bg-gradient-to-r from-zinc-700 to-zinc-900 border-zinc-500/50 hover:border-zinc-400 hover:from-zinc-600 hover:to-zinc-800 hover:shadow-[0_0_20px_rgba(113,113,122,0.3)] ${baseShadow}`;
                                                                 break;
                                                         }
                                                     }
