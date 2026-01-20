@@ -466,9 +466,9 @@ const Editor = () => {
                 <div className="absolute inset-0 z-0 pointer-events-none">
                     {/* Vibrant Background */}
                     <div
-                        className="absolute inset-0 bg-cover bg-center opacity-30 mix-blend-screen saturate-150 contrast-125 transition-opacity"
+                        className="absolute inset-0 bg-cover bg-center opacity-40 mix-blend-screen saturate-150 contrast-125 transition-all duration-1000"
                         style={{
-                            backgroundImage: "url('https://images.unsplash.com/photo-1618005182384-a83a8bd57fbe?q=80&w=2564&auto=format&fit=crop')",
+                            backgroundImage: "url('https://images.unsplash.com/photo-1574169208507-84376144848b?q=80&w=2529&auto=format&fit=crop')",
                         }}
                     />
                     {/* Electronic Circuits Overlay */}
