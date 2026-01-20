@@ -123,6 +123,7 @@ const Editor = () => {
     const [isPaletteCollapsed, setIsPaletteCollapsed] = useState(false);
     const [isLocked, setIsLocked] = useState(false);
     const [isDarkMode, setIsDarkMode] = useState(true);
+    const [caseTitle, setCaseTitle] = useState("");
 
     const tutorialSteps = [
         {
@@ -297,6 +298,7 @@ const Editor = () => {
                     if (data.edges) setEdges(data.edges);
                     if (data.meta && data.meta.timeLimit) setTimeLimit(data.meta.timeLimit);
                     if (data.isLocked !== undefined) setIsLocked(data.isLocked);
+                    if (data.title) setCaseTitle(data.title);
                 } else {
                     console.error("No such document!");
                     // potentially navigate back or show error
@@ -493,7 +495,12 @@ const Editor = () => {
                         <div className={`p-1.5 rounded-lg ${isDarkMode ? 'bg-indigo-500/20 text-indigo-400' : 'bg-indigo-100 text-indigo-600'}`}>
                             <GitMerge className="w-5 h-5" />
                         </div>
-                        <span className={`font-bold tracking-tight ${isDarkMode ? 'text-zinc-200' : 'text-zinc-700'}`}>Mission Architect</span>
+                        <div className="flex flex-col">
+                            <span className={`font-bold tracking-tight leading-none ${isDarkMode ? 'text-zinc-200' : 'text-zinc-700'}`}>
+                                {caseTitle || "Untitled Case"}
+                            </span>
+                            <span className="text-[10px] text-zinc-500 font-bold uppercase tracking-widest mt-0.5">Mission Architect</span>
+                        </div>
                         {isLocked && (
                             <div className="flex items-center gap-1.5 px-2.5 py-1 bg-red-500/10 border border-red-500/50 rounded-full text-red-400 text-[10px] font-bold uppercase tracking-wider ml-4 shadow-[0_0_10px_rgba(239,68,68,0.2)]">
                                 <Lock className="w-3 h-3" />
