@@ -1,26 +1,71 @@
 # Mystery Games Framework - Node Palette User Manual
 
-Welcome to the Mystery Games Framework Editor! This manual provides a detailed explanation of each node type available in the Node Palette. Use these nodes to construct your interactive mystery narratives.
+Welcome to the Mystery Games Framework Editor! This manual provides a detailed explanation of each node type available in the Node Palette, along with a guide to the workspace controls, new case features, and user management system.
 
 ## Table of Contents
 
-1. [Story Node](#1-story-node)
-2. [Suspect Node](#2-suspect-node)
-3. [Evidence Node](#3-evidence-node)
-4. [Logic Node](#4-logic-node)
-5. [Terminal Node](#5-terminal-node)
-6. [Message Node](#6-message-node)
-7. [Background Audio](#7-background-audio)
-8. [Media Asset](#8-media-asset)
-9. [Action Button](#9-action-button)
-10. [Identify Culprit](#10-identify-culprit)
-11. [Notification](#11-notification)
-12. [Question](#12-question)
-13. [Tutorial: Building Your First Mystery](#13-tutorial-building-your-first-mystery)
+1. [Dashboard & Workspace Controls](#1-dashboard--workspace-controls)
+2. [User Management & Access Control](#2-user-management--access-control)
+3. [Story Node](#3-story-node)
+4. [Suspect Node](#4-suspect-node)
+5. [Evidence Node](#5-evidence-node)
+6. [Logic Node](#6-logic-node)
+7. [Terminal Node](#7-terminal-node)
+8. [Message Node](#8-message-node)
+9. [Background Audio](#9-background-audio)
+10. [Media Asset](#10-media-asset)
+11. [Action Button](#11-action-button)
+12. [Identify Culprit](#12-identify-culprit)
+13. [Notification](#13-notification)
+14. [Question](#14-question)
+15. [Tutorial: Building Your First Mystery](#15-tutorial-building-your-first-mystery)
 
 ---
 
-### 1. Story Node
+### 1. Dashboard & Workspace Controls
+
+The **Dashboard** is your command center for managing all mystery cases. Depending on your role (Admin or User), different controls will be available.
+
+#### For Admins:
+*   **Active vs. Draft Views:**
+    *   **Active Investigations:** Cases that have been published and are live for users.
+    *   **Draft Case Files:** Work-in-progress cases visible only to Admins.
+*   **New Case:** Click the `+ New Case` button to create a blank slate for a new mystery.
+*   **Seed Sample:** Use the `Rocket` icon (if enabled) in the header to instantly generate a fully playable demo case ("Operation Blackout") to see the framework in action.
+*   **Case Controls (On each Card):**
+    *   **Publish/Unpublish:** Toggle a case between "Draft" and "Live" status.
+    *   **Duplicate:** Click the `Copy` icon to clone an entire case. Useful for creating templates or A/B testing variations.
+    *   **Delete:** Click the `Trash` icon to permanently remove a case.
+*   **Manage Users:** Access the User Management console via the `Manage Users` button.
+
+#### For Users:
+*   **View Assigned Cases:** You will only see cases that have been explicitly assigned to you by an Admin, or all public cases if your organization uses an "Open Access" policy.
+*   **Play Mode:** Clicking a case opens it in "Play Mode" rather than "Edit Mode".
+
+---
+
+### 2. User Management & Access Control
+
+The **User Management Console** allows Admins to control personnel and their clearance levels.
+
+#### Role Management
+*   **Promote/Demote:** You can toggle a user's role between `User` and `Admin`.
+    *   **Admin:** Full access to create, edit, delete, and publish cases. Can manage other users.
+    *   **User:** Can only play assigned cases. Cannot access the Editor or Admin controls.
+
+#### Case Access Control
+By default, users have access to **all** published cases ("Open Access"). However, for sensitive operations or tiered content, you can restrict access.
+
+1.  Click the **"Access"** button (Folder with Lock icon) next to a user in the table.
+2.  **Access Modes:**
+    *   **All Cases (Default):** The user automatically gains access to every current and future published case.
+    *   **Restricted Access:** Select this to manually pick which cases this user can see.
+3.  **Selection:** In Restricted mode, simply check or uncheck individual cases from the list.
+4.  **Save:** Click "Save Changes" to apply the new permissions immediately.
+
+---
+
+### 3. Story Node
 **Icon:** FileText (Blue)
 
 The **Story Node** is the primary narrative building block of your game. It is used to display text, dialogue, or descriptions to the player.
@@ -31,7 +76,7 @@ The **Story Node** is the primary narrative building block of your game. It is u
     *   "Conversation with a Witness"
     *   "Description of a spooky room"
 
-### 2. Suspect Node
+### 4. Suspect Node
 **Icon:** User (Red)
 
 The **Suspect Node** represents a character in the mystery.
@@ -42,7 +87,7 @@ The **Suspect Node** represents a character in the mystery.
     *   "The suspicious butler"
     *   "Veronica (The Victim's Sister)"
 
-### 3. Evidence Node
+### 5. Evidence Node
 **Icon:** Search (Yellow)
 
 The **Evidence Node** represents a collectible item found in the game world.
@@ -53,7 +98,7 @@ The **Evidence Node** represents a collectible item found in the game world.
     *   "Encrypted USB Drive"
     *   "Crumpled Note found in the trash"
 
-### 4. Logic Node
+### 6. Logic Node
 **Icon:** GitMerge (Emerald)
 
 The **Logic Node** controls the flow of the game based on specific conditions.
@@ -64,7 +109,7 @@ The **Logic Node** controls the flow of the game based on specific conditions.
     *   "Wait until the player has successfully hacked the terminal."
     *   "Branch the story: If the player accuses the Butler, go to Node A; otherwise, go to Node B."
 
-### 5. Terminal Node
+### 7. Terminal Node
 **Icon:** Terminal (Green)
 
 The **Terminal Node** presents a hacking interface or a command-line challenge to the player.
@@ -75,7 +120,7 @@ The **Terminal Node** presents a hacking interface or a command-line challenge t
     *   "Database Query Interface"
     *   "Security Override Sequence"
 
-### 6. Message Node
+### 8. Message Node
 **Icon:** MessageSquare (Violet)
 
 The **Message Node** simulates an incoming digital communication.
@@ -86,7 +131,7 @@ The **Message Node** simulates an incoming digital communication.
     *   "Briefing from HQ"
     *   "Threatening Text Message"
 
-### 7. Background Audio
+### 9. Background Audio
 **Icon:** Music (Pink)
 
 The **Background Audio Node** sets the mood of the scene.
@@ -97,7 +142,7 @@ The **Background Audio Node** sets the mood of the scene.
     *   "High-energy Action Music for a chase"
     *   "Eerie Silence"
 
-### 8. Media Asset
+### 10. Media Asset
 **Icon:** ImageIcon (Orange)
 
 The **Media Asset Node** displays a visual element to the player.
@@ -108,7 +153,7 @@ The **Media Asset Node** displays a visual element to the player.
     *   "High-res photo of the Crime Scene"
     *   "Scanned image of a secret document"
 
-### 9. Action Button
+### 11. Action Button
 **Icon:** MousePointerClick (Indigo)
 
 The **Action Button Node** creates an interactive choice for the player.
@@ -119,7 +164,7 @@ The **Action Button Node** creates an interactive choice for the player.
     *   "Talk to Witness"
     *   "Examine key under the mat"
 
-### 10. Identify Culprit
+### 12. Identify Culprit
 **Icon:** Fingerprint (Red-600)
 
 The **Identify Culprit Node** is a special challenge node, usually for the endgame.
@@ -129,7 +174,7 @@ The **Identify Culprit Node** is a special challenge node, usually for the endga
     *   "Final Accusation"
     *   "Who killed the victim?"
 
-### 11. Notification
+### 13. Notification
 **Icon:** Bell (Sky)
 
 The **Notification Node** shows a modal popup to alert the player.
@@ -140,7 +185,7 @@ The **Notification Node** shows a modal popup to alert the player.
     *   "System Alert: Security Breach"
     *   "Tutorial Tip: Click on items to examine them"
 
-### 12. Question
+### 14. Question
 **Icon:** HelpCircle (Fuchsia)
 
 The **Question Node** presents a quiz or specific question to the player.
@@ -153,7 +198,7 @@ The **Question Node** presents a quiz or specific question to the player.
 
 ---
 
-### 13. Tutorial: Building Your First Mystery
+### 15. Tutorial: Building Your First Mystery
 
 In this example, we will build a short mystery game: **"The Cyber Heist"**.
 
