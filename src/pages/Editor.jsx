@@ -459,40 +459,72 @@ const Editor = () => {
     };
 
     return (
-        <div className={`flex h-screen w-screen flex-col overflow-hidden transition-colors duration-300 ${isDarkMode ? 'bg-black text-white' : 'bg-zinc-50 text-zinc-900'}`}>
+        <div className={`flex h-screen w-screen flex-col overflow-hidden transition-colors duration-300 relative selection:bg-indigo-500/30 font-sans ${isDarkMode ? 'bg-black text-white' : 'bg-zinc-50 text-zinc-900'}`}>
+
+            {/* Ambient Background - Visible mainly in Dark Mode */}
+            {isDarkMode && (
+                <div className="absolute inset-0 z-0 pointer-events-none">
+                    {/* Vibrant Background */}
+                    <div
+                        className="absolute inset-0 bg-cover bg-center opacity-30 mix-blend-screen saturate-150 contrast-125 transition-opacity"
+                        style={{
+                            backgroundImage: "url('https://images.unsplash.com/photo-1618005182384-a83a8bd57fbe?q=80&w=2564&auto=format&fit=crop')",
+                        }}
+                    />
+                    {/* Electronic Circuits Overlay */}
+                    <div
+                        className="absolute inset-0 bg-cover bg-center opacity-10 mix-blend-color-dodge contrast-150 brightness-150 transition-opacity"
+                        style={{
+                            backgroundImage: "url('https://images.unsplash.com/photo-1592659762303-90081d34b277?q=80&w=2070&auto=format&fit=crop')",
+                        }}
+                    />
+                    <div className="absolute inset-0 perspective-grid opacity-20"></div>
+                </div>
+            )}
+
             {/* Toolbar */}
-            <div id="editor-toolbar" className={`h-16 border-b flex items-center justify-between px-4 z-50 backdrop-blur-md relative transition-colors duration-300 ${isDarkMode ? 'border-zinc-800 bg-black/80' : 'border-zinc-200 bg-white/80'}`}>
+            <div id="editor-toolbar" className={`h-16 border-b flex items-center justify-between px-4 z-50 backdrop-blur-md relative transition-all duration-300 shadow-sm ${isDarkMode ? 'border-white/10 bg-black/40' : 'border-zinc-200 bg-white/80'}`}>
                 <div className="flex items-center gap-4">
-                    <Button variant="ghost" size="sm" onClick={() => navigate('/')}>
+                    <Button variant="ghost" size="sm" onClick={() => navigate('/')} className={`${isDarkMode ? 'hover:bg-white/10 text-zinc-300 hover:text-white' : ''}`}>
                         <ArrowLeft className="w-4 h-4 mr-2" />
                         Back
                     </Button>
                     <div className="flex items-center gap-2">
-                        <Logo className="w-6 h-6" />
-                        <span className={`font-bold ${isDarkMode ? 'text-zinc-400' : 'text-zinc-600'}`}>Mission Architect</span>
+                        <div className={`p-1.5 rounded-lg ${isDarkMode ? 'bg-indigo-500/20 text-indigo-400' : 'bg-indigo-100 text-indigo-600'}`}>
+                            <GitMerge className="w-5 h-5" />
+                        </div>
+                        <span className={`font-bold tracking-tight ${isDarkMode ? 'text-zinc-200' : 'text-zinc-700'}`}>Mission Architect</span>
                         {isLocked && (
-                            <div className="flex items-center gap-1.5 px-2 py-1 bg-red-500/10 border border-red-500/50 rounded text-red-400 text-xs font-bold uppercase tracking-wider ml-4">
+                            <div className="flex items-center gap-1.5 px-2.5 py-1 bg-red-500/10 border border-red-500/50 rounded-full text-red-400 text-[10px] font-bold uppercase tracking-wider ml-4 shadow-[0_0_10px_rgba(239,68,68,0.2)]">
                                 <Lock className="w-3 h-3" />
-                                Locked (Read Only)
+                                Review Mode
                             </div>
                         )}
                     </div>
                 </div>
-                <div id="editor-actions" className="flex items-center gap-2">
-                    <Button variant="ghost" size="icon" onClick={() => setIsDarkMode(!isDarkMode)} title={isDarkMode ? "Switch to Light Mode" : "Switch to Dark Mode"}>
-                        {isDarkMode ? <Sun className="w-5 h-5 text-zinc-400" /> : <Moon className="w-5 h-5 text-zinc-600" />}
-                    </Button>
-                    <Button variant="ghost" size="icon" onClick={() => setShowTutorial(true)} title="How to use">
-                        <CircleHelp className={`w-5 h-5 ${isDarkMode ? 'text-indigo-400' : 'text-indigo-600'}`} />
-                    </Button>
-                    <Button variant="ghost" size="icon" onClick={() => setShowSettings(true)} title="Game Settings" disabled={isLocked}>
-                        <Settings className={`w-5 h-5 ${isDarkMode ? 'text-zinc-400' : 'text-zinc-600'}`} />
-                    </Button>
-                    <Button id="save-btn" variant="secondary" size="sm" onClick={saveProject} disabled={isLocked}>
+                <div id="editor-actions" className="flex items-center gap-3">
+                    <div className={`flex items-center gap-1 p-1 rounded-lg border ${isDarkMode ? 'bg-black/40 border-white/5' : 'bg-zinc-100 border-zinc-200'}`}>
+                        <Button variant="ghost" size="icon" onClick={() => setIsDarkMode(!isDarkMode)} title={isDarkMode ? "Switch to Light Mode" : "Switch to Dark Mode"} className="h-8 w-8">
+                            {isDarkMode ? <Sun className="w-4 h-4 text-amber-300" /> : <Moon className="w-4 h-4 text-indigo-600" />}
+                        </Button>
+                        <div className={`w-px h-4 ${isDarkMode ? 'bg-white/10' : 'bg-zinc-300'}`}></div>
+                        <Button variant="ghost" size="icon" onClick={() => setShowTutorial(true)} title="How to use" className="h-8 w-8">
+                            <CircleHelp className={`w-4 h-4 ${isDarkMode ? 'text-indigo-400' : 'text-indigo-600'}`} />
+                        </Button>
+                        <Button variant="ghost" size="icon" onClick={() => setShowSettings(true)} title="Game Settings" disabled={isLocked} className="h-8 w-8">
+                            <Settings className={`w-4 h-4 ${isDarkMode ? 'text-zinc-400' : 'text-zinc-600'}`} />
+                        </Button>
+                    </div>
+
+                    <Button id="save-btn" variant="secondary" size="sm" onClick={saveProject} disabled={isLocked} className="ml-2 font-medium">
                         <Save className="w-4 h-4 mr-2" />
                         Save
                     </Button>
-                    <Button variant="outline" size="sm" onClick={() => { saveProject(); setShowPreview(true); }}>
+                    <Button
+                        size="sm"
+                        onClick={() => { saveProject(); setShowPreview(true); }}
+                        className="bg-indigo-600 hover:bg-indigo-500 text-white shadow-[0_0_15px_rgba(79,70,229,0.4)] border-none font-bold tracking-wide"
+                    >
                         <Play className="w-4 h-4 mr-2" />
                         Preview
                     </Button>
@@ -500,18 +532,20 @@ const Editor = () => {
                 </div>
             </div>
 
-            <div className="flex flex-1 overflow-hidden">
+            <div className="flex flex-1 overflow-hidden relative z-10">
                 {/* Sidebar */}
-                {/* Sidebar */}
-                <aside id="node-sidebar" className={`${isPaletteCollapsed ? 'w-16' : 'w-64'} border-r flex flex-col gap-4 z-10 transition-all duration-300 ease-in-out ${isLocked ? 'opacity-50 pointer-events-none grayscale' : ''} ${isDarkMode ? 'border-zinc-800 bg-zinc-950' : 'border-zinc-200 bg-white'}`}>
-                    <div className={`flex items-center ${isPaletteCollapsed ? 'justify-center p-2' : 'justify-between p-4'} border-b ${isDarkMode ? 'border-zinc-800/50' : 'border-zinc-200'}`}>
+                <aside id="node-sidebar" className={`${isPaletteCollapsed ? 'w-16' : 'w-72'} border-r flex flex-col gap-4 z-20 transition-all duration-300 ease-[cubic-bezier(0.25,0.1,0.25,1)] backdrop-blur-xl ${isLocked ? 'opacity-80 pointer-events-none grayscale-[0.5]' : ''} ${isDarkMode ? 'border-white/10 bg-black/60' : 'border-zinc-200 bg-white/90'}`}>
+                    <div className={`flex items-center ${isPaletteCollapsed ? 'justify-center p-3' : 'justify-between p-5'} border-b ${isDarkMode ? 'border-white/5' : 'border-zinc-200'}`}>
                         {!isPaletteCollapsed && (
-                            <div className="text-xs font-bold text-zinc-500 uppercase tracking-wider">Node Palette</div>
+                            <div className="flex flex-col">
+                                <span className="text-xs font-extrabold text-zinc-400 uppercase tracking-widest">Toolkit</span>
+                                <span className="text-[10px] text-zinc-500 font-medium mt-0.5">Drag nodes to build</span>
+                            </div>
                         )}
                         <Button
                             variant="ghost"
                             size="icon"
-                            className={`h-6 w-6 text-zinc-500 ${isDarkMode ? 'hover:text-white' : 'hover:text-zinc-900'}`}
+                            className={`h-6 w-6 text-zinc-500 ${isDarkMode ? 'hover:text-white hover:bg-white/10' : 'hover:text-zinc-900'}`}
                             onClick={() => setIsPaletteCollapsed(!isPaletteCollapsed)}
                             title={isPaletteCollapsed ? "Expand Palette" : "Collapse Palette"}
                         >
@@ -519,24 +553,38 @@ const Editor = () => {
                         </Button>
                     </div>
 
-                    <div className={`space-y-3 flex-1 overflow-y-auto ${isPaletteCollapsed ? 'px-2' : 'px-4'}`}>
+                    <div className={`flex-1 overflow-y-auto ${isPaletteCollapsed ? 'px-2 space-y-2' : 'px-4 space-y-1.5'}`}>
                         {PALETTE_ITEMS.map((item) => (
                             <div
                                 key={item.type}
                                 onDragStart={(event) => onDragStart(event, item.type)}
                                 draggable
-                                className={`flex items-center ${isPaletteCollapsed ? 'justify-center w-10 h-10 p-0 mx-auto' : 'gap-3 p-3'} rounded border cursor-grab transition-all active:cursor-grabbing group relative ${item.className} ${isDarkMode ? 'bg-zinc-900 border-zinc-800 hover:bg-zinc-800' : 'bg-zinc-50 border-zinc-200 hover:bg-zinc-100'}`}
+                                className={`flex items-center ${isPaletteCollapsed ? 'justify-center w-10 h-10 p-0 mx-auto rounded-xl' : 'gap-3 p-3 rounded-lg'} cursor-grab transition-all active:cursor-grabbing group relative select-none
+                                    ${isDarkMode
+                                        ? 'bg-transparent hover:bg-white/10 text-zinc-400 hover:text-zinc-100 border border-transparent hover:border-white/10'
+                                        : 'bg-transparent hover:bg-zinc-100 text-zinc-600 hover:text-zinc-900'
+                                    }
+                                    ${item.className}
+                                `}
                                 title={isPaletteCollapsed ? item.label : undefined}
                             >
-                                <item.icon className={`w-4 h-4 ${item.iconClass}`} />
-                                {!isPaletteCollapsed && <span className={`text-sm font-medium ${isDarkMode ? 'text-zinc-200' : 'text-zinc-700'}`}>{item.label}</span>}
+                                <div className={`flex items-center justify-center rounded-md ${isPaletteCollapsed ? 'w-full h-full' : 'w-8 h-8'} ${isDarkMode ? 'bg-zinc-900 border border-white/5 group-hover:border-white/20' : 'bg-white shadow-sm border border-zinc-200'}`}>
+                                    <item.icon className={`w-4 h-4 ${item.iconClass}`} />
+                                </div>
+
+                                {!isPaletteCollapsed && (
+                                    <div className="flex-1 min-w-0">
+                                        <div className={`text-sm font-medium leading-none ${isDarkMode ? 'text-zinc-300 group-hover:text-white' : 'text-zinc-700'}`}>{item.label}</div>
+                                    </div>
+                                )}
+
                                 {!isPaletteCollapsed && (
                                     <button
                                         onClick={(e) => { e.stopPropagation(); setHelpModalData(NODE_HELP[item.type]); }}
-                                        className={`ml-auto opacity-0 group-hover:opacity-100 transition-opacity p-1 rounded-full text-zinc-500 ${isDarkMode ? 'hover:bg-zinc-800 hover:text-white' : 'hover:bg-zinc-200 hover:text-black'}`}
-                                        title="View Documentation"
+                                        className={`ml-2 opacity-0 group-hover:opacity-100 transition-all p-1.5 rounded-md hover:bg-indigo-500 hover:text-white text-zinc-500`}
+                                        title="Info"
                                     >
-                                        <CircleHelp className="w-4 h-4" />
+                                        <CircleHelp className="w-3.5 h-3.5" />
                                     </button>
                                 )}
                             </div>
@@ -544,10 +592,18 @@ const Editor = () => {
                     </div>
 
                     {!isPaletteCollapsed && (
-                        <div className={`mt-auto p-4 border-t ${isDarkMode ? 'bg-zinc-900/50 border-zinc-800/50' : 'bg-zinc-50 border-zinc-200'}`}>
-                            <p className="text-[10px] text-zinc-500">
-                                Drag nodes to canvas. Connect handles to create flow logic. Save frequently.
-                            </p>
+                        <div className={`mt-auto p-4 border-t ${isDarkMode ? 'bg-black/20 border-white/5' : 'bg-zinc-50 border-zinc-200'}`}>
+                            <div className="flex items-start gap-3">
+                                <div className="p-2 rounded bg-indigo-500/10 text-indigo-400 mt-0.5">
+                                    <Fingerprint className="w-4 h-4" />
+                                </div>
+                                <div>
+                                    <p className="text-xs font-bold text-zinc-300">Pro Tip</p>
+                                    <p className="text-[10px] text-zinc-500 leading-relaxed mt-1">
+                                        Use <span className="text-indigo-400">Logic Gates</span> to create complex branching narratives based on evidence found.
+                                    </p>
+                                </div>
+                            </div>
                         </div>
                     )}
                 </aside>
@@ -572,15 +628,15 @@ const Editor = () => {
                         nodeTypes={nodeTypes}
                         deleteKeyCode={['Backspace', 'Delete']}
                         fitView
-                        className={isDarkMode ? "bg-zinc-950" : "bg-zinc-50"}
+                        className={isDarkMode ? "bg-transparent" : "bg-zinc-50"}
                         proOptions={{ hideAttribution: true }}
                     >
-                        <Background color={isDarkMode ? "#27272a" : "#e4e4e7"} gap={20} size={1} />
-                        <Controls className={`${isDarkMode ? 'bg-zinc-900 border-zinc-800 text-zinc-400 fill-zinc-400' : 'bg-white border-zinc-200 text-zinc-600 fill-zinc-600'}`} />
+                        <Background color={isDarkMode ? "#52525b" : "#e4e4e7"} gap={24} size={1} className="opacity-20" />
+                        <Controls className={`${isDarkMode ? 'bg-black/60 border-white/10 text-zinc-400 fill-zinc-400 backdrop-blur-md rounded-lg p-1' : 'bg-white border-zinc-200 text-zinc-600 fill-zinc-600'}`} showInteractive={false} />
                         <MiniMap
-                            className={`${isDarkMode ? 'bg-zinc-900 border-zinc-800' : 'bg-white border-zinc-200'}`}
+                            className={`${isDarkMode ? 'bg-black/60 border-white/10 backdrop-blur-md rounded-lg overflow-hidden' : 'bg-white border-zinc-200'}`}
                             nodeColor="#6366f1"
-                            maskColor={isDarkMode ? "rgba(0, 0, 0, 0.7)" : "rgba(255, 255, 255, 0.7)"}
+                            maskColor={isDarkMode ? "rgba(0, 0, 0, 0.6)" : "rgba(255, 255, 255, 0.7)"}
                         />
                     </ReactFlow>
                 </div>

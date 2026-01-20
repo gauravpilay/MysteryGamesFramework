@@ -115,9 +115,22 @@ const NodeWrapper = ({ children, title, icon: Icon, colorClass = "border-zinc-70
         });
     };
 
+    // Extract color for glow effect
+    const glowColor = selected ? (colorClass.includes('red') ? 'rgba(239,68,68,0.5)' :
+        colorClass.includes('blue') ? 'rgba(59,130,246,0.5)' :
+            colorClass.includes('green') ? 'rgba(34,197,94,0.5)' :
+                colorClass.includes('yellow') ? 'rgba(234,179,8,0.5)' :
+                    colorClass.includes('purple') || colorClass.includes('violet') ? 'rgba(139,92,246,0.5)' :
+                        'rgba(99,102,241,0.5)') : 'transparent';
+
     return (
-        <Card
-            className={`w-64 shadow-lg transition-all ${selected ? 'ring-2 ring-indigo-500 shadow-indigo-500/20' : ''} ${colorClass} bg-black text-left`}
+        <div
+            className={`w-72 rounded-2xl border transition-all duration-300 relative group
+                ${selected ? 'scale-[1.02] z-50' : 'hover:border-zinc-500 z-10'}
+                ${colorClass} backdrop-blur-xl bg-black/80 shadow-2xl`}
+            style={{
+                boxShadow: selected ? `0 0 30px ${glowColor}, inset 0 0 20px ${glowColor}` : '0 10px 30px -10px rgba(0,0,0,0.5)'
+            }}
             onDrop={handleDrop}
             onDragOver={(e) => {
                 if (e.dataTransfer.types.includes('application/reactflow')) {
@@ -126,82 +139,93 @@ const NodeWrapper = ({ children, title, icon: Icon, colorClass = "border-zinc-70
                 }
             }}
         >
-            <div className={`flex items-center gap-2 px-3 py-2 border-b border-zinc-800 rounded-t-xl ${headerClass}`}>
-                <Icon className="w-4 h-4" />
-                <span className="text-xs font-bold uppercase tracking-wider flex-1">{title}</span>
+            {/* Tech Corners */}
+            <div className={`absolute -top-px -left-px w-3 h-3 border-t border-l rounded-tl-lg ${selected ? 'border-white' : 'border-zinc-600'} transition-colors`}></div>
+            <div className={`absolute -top-px -right-px w-3 h-3 border-t border-r rounded-tr-lg ${selected ? 'border-white' : 'border-zinc-600'} transition-colors`}></div>
+            <div className={`absolute -bottom-px -left-px w-3 h-3 border-b border-l rounded-bl-lg ${selected ? 'border-white' : 'border-zinc-600'} transition-colors`}></div>
+            <div className={`absolute -bottom-px -right-px w-3 h-3 border-b border-r rounded-br-lg ${selected ? 'border-white' : 'border-zinc-600'} transition-colors`}></div>
+
+            <div className={`flex items-center gap-3 px-4 py-3 rounded-t-2xl border-b border-white/5 ${headerClass} bg-opacity-20 backdrop-blur-sm relative overflow-hidden`}>
+                <div className="absolute inset-0 bg-gradient-to-r from-white/5 to-transparent opacity-50"></div>
+                <div className={`p-1.5 rounded-lg bg-black/40 shadow-inner border border-white/10 relative z-10`}>
+                    <Icon className="w-4 h-4" />
+                </div>
+                <span className="text-xs font-extrabold uppercase tracking-widest flex-1 relative z-10 drop-shadow-sm">{title}</span>
                 {data.onDuplicate && (
                     <button
-                        className="p-1 hover:bg-black/20 rounded text-white/50 hover:text-white transition-colors"
+                        className="p-1.5 hover:bg-white/10 rounded-md text-white/50 hover:text-white transition-all relative z-10"
                         onClick={(e) => { e.stopPropagation(); data.onDuplicate(id); }}
                         title="Duplicate Node"
                     >
-                        <Copy className="w-3 h-3" />
+                        <Copy className="w-3.5 h-3.5" />
                     </button>
                 )}
             </div>
             {onLabelChange && (
-                <div className="px-3 pt-3 pb-1 border-b border-zinc-900/50">
+                <div className="px-4 pt-4 pb-2">
                     <InputField
-                        placeholder="Node Label / Title"
+                        placeholder="Node Identifier"
                         value={data.label}
                         onChange={(e) => onLabelChange(e.target.value)}
-                        className="font-bold text-zinc-300"
+                        className="!bg-white/5 !border-white/10 !text-sm !font-bold text-white placeholder:text-zinc-600 focus:!bg-black focus:!border-indigo-500 transition-all rounded-lg"
                     />
                 </div>
             )}
-            <div className="p-3">
+            <div className="p-4 space-y-3">
                 {children}
 
                 {/* Nested Actions List */}
                 {data.actions && data.actions.length > 0 && (
-                    <div className="mt-4 border-t border-zinc-800 pt-3 space-y-2">
-                        <div className="flex items-center gap-2 mb-2">
+                    <div className="mt-4 pt-4 border-t border-white/5">
+                        <div className="flex items-center gap-2 mb-3 px-1">
                             <MousePointerClick className="w-3 h-3 text-indigo-400" />
-                            <span className="text-[10px] font-bold text-zinc-500 uppercase">Actions</span>
+                            <span className="text-[10px] font-bold text-zinc-500 uppercase tracking-wider">Interactive elements</span>
                         </div>
-                        {data.actions.map((action, i) => (
-                            <div key={action.id} className="relative bg-zinc-900/50 border border-zinc-800 rounded p-2 group">
-                                <InputField
-                                    value={action.label}
-                                    placeholder="Action Label"
-                                    onChange={(e) => updateAction(action.id, { label: e.target.value })}
-                                    className="mb-1 !bg-black"
-                                />
-                                <div className="flex justify-between items-center mt-1">
-                                    <select
-                                        className="bg-black/50 border border-zinc-800 text-[10px] text-zinc-400 rounded px-1 py-0.5 max-w-[80px]"
-                                        value={action.variant || 'default'}
-                                        onChange={(e) => updateAction(action.id, { variant: e.target.value })}
-                                    >
-                                        <option value="default">Def</option>
-                                        <option value="primary">Blue</option>
-                                        <option value="danger">Red</option>
-                                        <option value="success">Green</option>
-                                        <option value="warning">Yel</option>
-                                        <option value="mystic">Purp</option>
-                                        <option value="tech">Cyan</option>
-                                    </select>
-                                    <button onClick={() => deleteAction(action.id)} className="text-zinc-600 hover:text-red-500">
-                                        <Trash2 className="w-3 h-3" />
-                                    </button>
+                        <div className="space-y-2">
+                            {data.actions.map((action, i) => (
+                                <div key={action.id} className="relative bg-black/40 border border-white/5 rounded-lg p-2 group hover:border-indigo-500/30 transition-colors">
+                                    <InputField
+                                        value={action.label}
+                                        placeholder="Action Label"
+                                        onChange={(e) => updateAction(action.id, { label: e.target.value })}
+                                        className="mb-2 !bg-transparent !border-transparent hover:!bg-white/5 !px-1.5 !py-0.5 !text-xs !font-medium"
+                                    />
+                                    <div className="flex justify-between items-center px-1">
+                                        <select
+                                            className="bg-zinc-900 border border-zinc-700 text-[10px] text-zinc-400 rounded px-2 py-1 hover:border-zinc-500 transition-colors cursor-pointer outline-none"
+                                            value={action.variant || 'default'}
+                                            onChange={(e) => updateAction(action.id, { variant: e.target.value })}
+                                        >
+                                            <option value="default">Default</option>
+                                            <option value="primary">Primary</option>
+                                            <option value="danger">Danger</option>
+                                            <option value="success">Success</option>
+                                            <option value="warning">Warning</option>
+                                            <option value="mystic">Mystic</option>
+                                            <option value="tech">Tech</option>
+                                        </select>
+                                        <button onClick={() => deleteAction(action.id)} className="text-zinc-600 hover:text-red-400 p-1 hover:bg-red-500/10 rounded transition-colors">
+                                            <Trash2 className="w-3.5 h-3.5" />
+                                        </button>
+                                    </div>
+                                    <Handle
+                                        type="source"
+                                        position={Position.Right}
+                                        id={action.id}
+                                        className="!bg-indigo-500 !w-3 !h-3 !border-2 !border-black shadow-[0_0_10px_rgba(99,102,241,0.5)] transition-all hover:scale-150 hover:bg-white"
+                                        style={{ right: -16, top: '50%' }}
+                                    />
                                 </div>
-                                <Handle
-                                    type="source"
-                                    position={Position.Right}
-                                    id={action.id}
-                                    className="!bg-indigo-500 !w-2 !h-2 !border-black transition-all hover:scale-150"
-                                    style={{ right: -14, top: '50%' }}
-                                />
-                            </div>
-                        ))}
+                            ))}
+                        </div>
                     </div>
                 )}
-                {/* Drag Hint */}
-                <div className="mt-2 text-[8px] text-center text-zinc-700 uppercase tracking-widest border border-dashed border-zinc-800 rounded p-1">
-                    Drop Action Here
+
+                <div className="mt-3 text-[9px] text-center text-zinc-700 font-mono tracking-widest border border-dashed border-zinc-800/50 rounded-lg p-2 hover:border-zinc-700 hover:text-zinc-500 transition-colors cursor-default">
+                    DROP ACTION TO LINK
                 </div>
             </div>
-        </Card>
+        </div>
     );
 };
 
