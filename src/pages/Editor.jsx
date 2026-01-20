@@ -12,7 +12,7 @@ import 'reactflow/dist/style.css';
 import { useParams, useNavigate } from 'react-router-dom';
 import { Button } from '../components/ui/shared';
 import { Logo } from '../components/ui/Logo';
-import { Save, ArrowLeft, X, FileText, User, Search, GitMerge, Terminal, MessageSquare, CircleHelp, Play, Settings, Music, Image as ImageIcon, MousePointerClick, Fingerprint, Bell, HelpCircle, ChevronLeft, ChevronRight, ToggleLeft, Lock, Sun, Moon } from 'lucide-react';
+import { Save, ArrowLeft, X, FileText, User, Search, GitMerge, Terminal, MessageSquare, CircleHelp, Play, Settings, Music, Image as ImageIcon, MousePointerClick, Fingerprint, Bell, HelpCircle, ChevronLeft, ChevronRight, ToggleLeft, Lock, Sun, Moon, Stethoscope } from 'lucide-react';
 import { StoryNode, SuspectNode, EvidenceNode, LogicNode, TerminalNode, MessageNode, MusicNode, MediaNode, ActionNode, IdentifyNode, NotificationNode, QuestionNode, SetterNode } from '../components/nodes/CustomNodes';
 import { TutorialOverlay } from '../components/ui/TutorialOverlay';
 import GamePreview from '../components/GamePreview';
@@ -399,6 +399,50 @@ const Editor = () => {
         }
     };
 
+    const validateGraph = () => {
+        const errors = [];
+        const warnings = [];
+
+        // 1. Check for Orphan Nodes (No incoming edges, unless it's a specific 'Start' like Story node at times)
+        // Actually, better to check for Disconnected Components, but simple check first.
+        nodes.forEach(node => {
+            const incoming = edges.filter(e => e.target === node.id);
+            const outgoing = edges.filter(e => e.source === node.id);
+
+            // Orphan Check
+            if (incoming.length === 0 && outgoing.length === 0) {
+                warnings.push(`Node '${node.data.label}' is completely disconnected.`);
+            }
+
+            // Dead End Check (No outgoing, not terminal)
+            // 'identify' is usually a terminal action, so skip it. 'terminal' node might also be end.
+            const terminalTypes = ['identify', 'terminal'];
+            if (outgoing.length === 0 && !terminalTypes.includes(node.type)) {
+                // If it's a story node at the end, it might be okay, but usually should loop back or end.
+                // We'll mark as warning.
+                warnings.push(`Node '${node.data.label}' is a dead end (no outgoing connections).`);
+            }
+
+            // Logic Check
+            if (node.type === 'logic') {
+                if (outgoing.length < 2) {
+                    errors.push(`Logic Node '${node.data.label}' should have at least 2 paths (True/False).`);
+                }
+            }
+        });
+
+        if (nodes.length === 0) errors.push("Graph is empty.");
+
+        // Visual Report
+        const report = [...errors.map(e => `❌ ${e}`), ...warnings.map(w => `⚠️ ${w}`)].join('\n');
+
+        if (report) {
+            alert(`Graph Health Check:\n\n${report}`);
+        } else {
+            alert("✅ Graph looks healthy! No obvious structural issues found.");
+        }
+    };
+
     const generateBuild = async () => {
         saveProject();
         const zip = new JSZip();
@@ -517,6 +561,9 @@ const Editor = () => {
                         <div className={`w-px h-4 ${isDarkMode ? 'bg-white/10' : 'bg-zinc-300'}`}></div>
                         <Button variant="ghost" size="icon" onClick={() => setShowTutorial(true)} title="How to use" className="h-8 w-8">
                             <CircleHelp className={`w-4 h-4 ${isDarkMode ? 'text-indigo-400' : 'text-indigo-600'}`} />
+                        </Button>
+                        <Button variant="ghost" size="icon" onClick={validateGraph} title="Validate Graph Health" className="h-8 w-8">
+                            <Stethoscope className={`w-4 h-4 ${isDarkMode ? 'text-emerald-400' : 'text-emerald-600'}`} />
                         </Button>
                         <Button variant="ghost" size="icon" onClick={() => setShowSettings(true)} title="Game Settings" disabled={isLocked} className="h-8 w-8">
                             <Settings className={`w-4 h-4 ${isDarkMode ? 'text-zinc-400' : 'text-zinc-600'}`} />
