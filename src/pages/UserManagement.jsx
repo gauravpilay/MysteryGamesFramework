@@ -175,7 +175,31 @@ const UserManagement = () => {
     if (loading) return <div className="p-8 text-center text-zinc-500">Loading personnel records...</div>;
 
     return (
-        <div className="min-h-screen bg-black text-zinc-100 font-sans selection:bg-indigo-500/30">
+        <div className="min-h-screen bg-black text-zinc-100 font-sans selection:bg-indigo-500/30 relative overflow-hidden">
+            {/* Background Image & Grid */}
+            <div className="fixed inset-0 pointer-events-none z-0">
+                {/* Vibrant Background */}
+                <div
+                    className="absolute right-0 top-0 bottom-0 w-3/4 bg-cover bg-center opacity-30 mix-blend-screen saturate-150 contrast-125"
+                    style={{
+                        backgroundImage: "url('https://images.unsplash.com/photo-1618005182384-a83a8bd57fbe?q=80&w=2564&auto=format&fit=crop')",
+                        maskImage: "linear-gradient(to left, black 10%, transparent 100%)",
+                        WebkitMaskImage: "linear-gradient(to left, black 10%, transparent 100%)"
+                    }}
+                />
+
+                {/* Electronic Circuits Overlay */}
+                <div
+                    className="absolute right-0 top-0 bottom-0 w-3/4 bg-cover bg-center opacity-20 mix-blend-color-dodge contrast-150 brightness-150"
+                    style={{
+                        backgroundImage: "url('https://images.unsplash.com/photo-1592659762303-90081d34b277?q=80&w=2070&auto=format&fit=crop')",
+                        maskImage: "linear-gradient(to left, black 10%, transparent 100%)",
+                        WebkitMaskImage: "linear-gradient(to left, black 10%, transparent 100%)"
+                    }}
+                />
+                <div className="absolute inset-0 perspective-grid opacity-20"></div>
+            </div>
+
             {/* Header */}
             <header className="fixed top-0 left-0 right-0 h-16 bg-zinc-950/80 backdrop-blur-md border-b border-zinc-800 flex items-center justify-between px-6 z-50">
                 <div className="flex items-center gap-4">
@@ -205,50 +229,55 @@ const UserManagement = () => {
                     </div>
                 )}
 
-                <Card className="bg-zinc-900/50 border-zinc-800 overflow-hidden">
+                <div className="bg-zinc-900/40 border border-white/5 backdrop-blur-md rounded-2xl overflow-hidden shadow-2xl">
                     <Table>
-                        <TableHeader className="bg-zinc-900 border-b border-zinc-800">
-                            <TableRow>
-                                <TableHead className="text-zinc-400">Email</TableHead>
-                                <TableHead className="text-zinc-400">Current Role</TableHead>
-                                <TableHead className="text-right text-zinc-400">Case Access</TableHead>
-                                <TableHead className="text-right text-zinc-400">Role Actions</TableHead>
+                        <TableHeader className="bg-black/40 border-b border-white/5">
+                            <TableRow className="hover:bg-transparent">
+                                <TableHead className="text-zinc-400 font-bold uppercase text-xs tracking-wider py-4 pl-6">Personnel Email</TableHead>
+                                <TableHead className="text-zinc-400 font-bold uppercase text-xs tracking-wider py-4">Current Clearance</TableHead>
+                                <TableHead className="text-right text-zinc-400 font-bold uppercase text-xs tracking-wider py-4">Access Control</TableHead>
+                                <TableHead className="text-right text-zinc-400 font-bold uppercase text-xs tracking-wider py-4 pr-6">Permissions</TableHead>
                             </TableRow>
                         </TableHeader>
                         <TableBody>
                             {users.map((u) => (
-                                <TableRow key={u.id} className="border-b border-zinc-800/50 hover:bg-zinc-900/40">
-                                    <TableCell className="text-zinc-400 font-mono text-sm">
-                                        {u.email}
+                                <TableRow key={u.id} className="border-b border-white/5 hover:bg-white/5 transition-colors group">
+                                    <TableCell className="text-zinc-300 font-mono text-sm py-4 pl-6">
+                                        <div className="flex items-center gap-3">
+                                            <div className="w-8 h-8 rounded-full bg-gradient-to-br from-zinc-800 to-black border border-white/10 flex items-center justify-center text-xs font-bold text-zinc-500">
+                                                {u.email.charAt(0).toUpperCase()}
+                                            </div>
+                                            {u.email}
+                                        </div>
                                     </TableCell>
-                                    <TableCell>
-                                        <span className={`inline-flex items-center px-2 py-1 rounded text-xs font-bold uppercase tracking-wider ${u.role === 'Admin'
-                                            ? 'bg-red-500/20 text-red-400 border border-red-500/30'
-                                            : 'bg-indigo-500/20 text-indigo-400 border border-indigo-500/30'
+                                    <TableCell className="py-4">
+                                        <span className={`inline-flex items-center px-2.5 py-1 rounded-md text-xs font-bold uppercase tracking-wider shadow-sm ${u.role === 'Admin'
+                                            ? 'bg-red-500/10 text-red-400 border border-red-500/20 shadow-[0_0_10px_rgba(239,68,68,0.1)]'
+                                            : 'bg-emerald-500/10 text-emerald-400 border border-emerald-500/20 shadow-[0_0_10px_rgba(16,185,129,0.1)]'
                                             }`}>
-                                            {u.role === 'Admin' ? <ShieldAlert className="w-3 h-3 mr-1" /> : <User className="w-3 h-3 mr-1" />}
+                                            {u.role === 'Admin' ? <ShieldAlert className="w-3.5 h-3.5 mr-1.5" /> : <User className="w-3.5 h-3.5 mr-1.5" />}
                                             {u.role || 'User'}
                                         </span>
                                     </TableCell>
 
-                                    <TableCell className="text-right w-[140px]">
+                                    <TableCell className="text-right w-[160px] py-4">
                                         <Button
                                             size="sm"
                                             variant="ghost"
-                                            className="text-zinc-400 hover:text-white"
+                                            className="text-zinc-400 hover:text-indigo-400 hover:bg-indigo-500/10 transition-all font-medium text-xs uppercase tracking-wide border border-transparent hover:border-indigo-500/30"
                                             onClick={() => handleManageAccess(u)}
                                             title="Manage Case Access"
                                         >
                                             <FolderLock className="w-4 h-4 mr-2" />
-                                            Access
+                                            Case Files
                                         </Button>
                                     </TableCell>
-                                    <TableCell className="text-right w-[180px]">
-                                        <div className="flex justify-end gap-2">
+                                    <TableCell className="text-right w-[200px] py-4 pr-6">
+                                        <div className="flex justify-end gap-2 opacity-60 group-hover:opacity-100 transition-opacity">
                                             {u.role !== 'Admin' ? (
                                                 <Button
                                                     size="sm"
-                                                    className="bg-red-500/10 hover:bg-red-500/20 text-red-400 border-red-500/50"
+                                                    className="bg-red-500/10 hover:bg-red-500/40 text-red-400 border border-red-500/30 hover:shadow-[0_0_15px_rgba(239,68,68,0.3)] transition-all"
                                                     onClick={() => handleRoleChange(u.id, 'Admin')}
                                                 >
                                                     Promote
@@ -256,7 +285,7 @@ const UserManagement = () => {
                                             ) : (
                                                 <Button
                                                     size="sm"
-                                                    className="bg-zinc-800 hover:bg-zinc-700 text-zinc-300"
+                                                    className="bg-zinc-800 hover:bg-zinc-700 text-zinc-300 border border-zinc-700"
                                                     onClick={() => handleRoleChange(u.id, 'User')}
                                                     disabled={u.id === user.uid}
                                                 >
@@ -269,7 +298,7 @@ const UserManagement = () => {
                             ))}
                         </TableBody>
                     </Table>
-                </Card>
+                </div>
             </main>
 
             {/* Access Management Modal */}
@@ -319,8 +348,8 @@ const UserManagement = () => {
                                             <div
                                                 key={c.id}
                                                 className={`flex items-center justify-between p-3 rounded-md border cursor-pointer transition-colors ${tempAssignedIds.includes(c.id)
-                                                        ? 'bg-indigo-500/10 border-indigo-500/50'
-                                                        : 'bg-zinc-900/30 border-zinc-800 hover:border-zinc-700'
+                                                    ? 'bg-indigo-500/10 border-indigo-500/50'
+                                                    : 'bg-zinc-900/30 border-zinc-800 hover:border-zinc-700'
                                                     }`}
                                                 onClick={() => toggleCaseAssignment(c.id)}
                                             >
