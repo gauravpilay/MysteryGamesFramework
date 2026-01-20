@@ -462,7 +462,7 @@ const Dashboard = () => {
                                     <BookOpen className="w-4 h-4 mr-2" />
                                     User Manual
                                 </Button>
-                                {user?.email === 'gaurav.pilay@gmail.com' && (
+                                {isAdmin && (
                                     <Button variant="secondary" onClick={generateSampleCase} type="button">
                                         <Rocket className="w-4 h-4 mr-2" />
                                         Seed Sample
