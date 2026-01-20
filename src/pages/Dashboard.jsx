@@ -515,43 +515,46 @@ const Dashboard = () => {
                     </p>
                 </div>
 
-                {/* Action Controls & Search */}
-                <div className="flex items-center justify-end gap-3 pb-2">
-                    <div className="relative group">
-                        <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-zinc-500 group-focus-within:text-indigo-500 transition-colors" />
-                        <input
-                            type="text"
-                            placeholder="Search cases..."
-                            className="pl-9 pr-4 py-2 bg-zinc-900 border border-zinc-800 rounded-lg text-sm text-zinc-200 focus:outline-none focus:border-indigo-500 focus:ring-1 focus:ring-indigo-500 w-64 transition-all"
-                            value={searchQuery}
-                            onChange={(e) => setSearchQuery(e.target.value)}
-                        />
-                    </div>
-                    {isAdmin && (
-                        <>
-                            <Button variant="secondary" onClick={() => navigate('/admin/users')} className="mr-2">
-                                <Users className="w-4 h-4 mr-2" />
-                                Manage Users
-                            </Button>
-                            <Button variant="secondary" onClick={() => window.open('/USER_MANUAL.pdf', '_blank')} className="mr-2">
-                                <BookOpen className="w-4 h-4 mr-2" />
-                                User Manual
-                            </Button>
-                            {/* Seed Sample Button Hidden
-                            {isAdmin && (
-                                <Button variant="secondary" onClick={generateSampleCase} type="button">
-                                    <Rocket className="w-4 h-4 mr-2" />
-                                    Seed Sample
+                {/* Action Controls & Search Toolbar */}
+                <div className="bg-zinc-900/40 border border-white/5 backdrop-blur-md p-6 rounded-2xl flex items-center justify-between gap-6 shadow-xl">
+                    <h2 className="text-base font-bold text-zinc-400 uppercase tracking-widest hidden md:block pl-2">
+                        Control Center
+                    </h2>
+
+                    <div className="flex items-center gap-4 ml-auto">
+                        <div className="relative group">
+                            <Search className="absolute left-4 top-1/2 -translate-y-1/2 w-5 h-5 text-zinc-400 group-focus-within:text-indigo-400 transition-colors" />
+                            <input
+                                type="text"
+                                placeholder="Search case files..."
+                                className="pl-12 pr-6 py-3 bg-black/50 border border-zinc-700 rounded-xl text-base text-zinc-100 placeholder-zinc-500 focus:outline-none focus:border-indigo-500 focus:ring-1 focus:ring-indigo-500 w-80 transition-all shadow-inner"
+                                value={searchQuery}
+                                onChange={(e) => setSearchQuery(e.target.value)}
+                            />
+                        </div>
+
+                        {isAdmin && (
+                            <>
+                                <div className="h-8 w-px bg-zinc-700 mx-2"></div> {/* Vertical Divider */}
+                                <Button variant="secondary" onClick={() => navigate('/admin/users')} className="h-11 px-5 text-base">
+                                    <Users className="w-5 h-5 mr-2 text-indigo-400" />
+                                    Users
                                 </Button>
-                            )}
-                            */}
-                            <Button onClick={() => setShowNewModal(true)}>
-                                <Plus className="w-4 h-4 mr-2" />
-                                New Case
-                            </Button>
-                        </>
-                    )}
+                                <Button variant="secondary" onClick={() => window.open('/USER_MANUAL.pdf', '_blank')} className="h-11 px-5 text-base">
+                                    <BookOpen className="w-5 h-5 mr-2 text-indigo-400" />
+                                    Manual
+                                </Button>
+                                <Button onClick={() => setShowNewModal(true)} className="bg-indigo-600 hover:bg-indigo-500 text-white shadow-[0_0_15px_rgba(79,70,229,0.4)] border-none h-11 px-6 text-base font-bold tracking-wide">
+                                    <Plus className="w-5 h-5 mr-2" />
+                                    New Case
+                                </Button>
+                            </>
+                        )}
+                    </div>
                 </div>
+
+                {/* Separator Line */}
+                <div className="w-full h-px bg-gradient-to-r from-transparent via-indigo-500/50 to-transparent"></div>
 
                 {/* Stats Row */}
                 <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
@@ -587,7 +590,7 @@ const Dashboard = () => {
                 </div>
 
                 {/* Separator */}
-                <div className="border-t border-zinc-800/50 my-2"></div>
+
 
                 {/* Case Directory Header */}
                 <div className="flex items-center gap-2 mb-2">
