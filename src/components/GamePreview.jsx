@@ -1180,42 +1180,43 @@ const GamePreview = ({ nodes, edges, onClose, gameMetadata }) => {
                                                         icon = MousePointerClick;
                                                         title = item.label;
                                                         actionLabel = "";
-                                                        // Base style for all actions: Heavy, Solid, Glowy
-                                                        const baseShadow = "transition-all duration-300 hover:scale-[1.02] border-none";
+                                                        // Base style for all actions: Gradient, Bordered, Glowy on Hover
+                                                        // Note: We include the border color in the specific cases
+                                                        const baseShadow = "transition-all duration-300 hover:scale-[1.02] border";
 
                                                         switch (item.variant) {
                                                             case 'danger':
-                                                                color = "text-white";
-                                                                bg = `bg-red-600 hover:bg-red-700 shadow-[0_0_30px_rgba(220,38,38,0.4)] hover:shadow-[0_0_50px_rgba(220,38,38,0.6)] ${baseShadow}`;
+                                                                color = "text-red-400";
+                                                                bg = `bg-gradient-to-r from-red-950/80 to-red-900/20 border-red-500/50 hover:border-red-400 hover:from-red-900 hover:to-red-900/40 shadow-[0_0_15px_rgba(220,38,38,0.1)] hover:shadow-[0_0_25px_rgba(220,38,38,0.3)] ${baseShadow}`;
                                                                 break;
                                                             case 'primary':
-                                                                color = "text-white";
-                                                                bg = `bg-blue-600 hover:bg-blue-700 shadow-[0_0_30px_rgba(37,99,235,0.4)] hover:shadow-[0_0_50px_rgba(37,99,235,0.6)] ${baseShadow}`;
+                                                                color = "text-blue-400";
+                                                                bg = `bg-gradient-to-r from-blue-950/80 to-blue-900/20 border-blue-500/50 hover:border-blue-400 hover:from-blue-900 hover:to-blue-900/40 shadow-[0_0_15px_rgba(37,99,235,0.1)] hover:shadow-[0_0_25px_rgba(37,99,235,0.3)] ${baseShadow}`;
                                                                 break;
                                                             case 'success':
-                                                                color = "text-white";
-                                                                bg = `bg-emerald-600 hover:bg-emerald-700 shadow-[0_0_30px_rgba(16,185,129,0.4)] hover:shadow-[0_0_50px_rgba(16,185,129,0.6)] ${baseShadow}`;
+                                                                color = "text-emerald-400";
+                                                                bg = `bg-gradient-to-r from-emerald-950/80 to-emerald-900/20 border-emerald-500/50 hover:border-emerald-400 hover:from-emerald-900 hover:to-emerald-900/40 shadow-[0_0_15px_rgba(16,185,129,0.1)] hover:shadow-[0_0_25px_rgba(16,185,129,0.3)] ${baseShadow}`;
                                                                 break;
                                                             case 'warning':
-                                                                color = "text-black";
-                                                                bg = `bg-amber-500 hover:bg-amber-400 shadow-[0_0_30px_rgba(245,158,11,0.4)] hover:shadow-[0_0_50px_rgba(245,158,11,0.6)] ${baseShadow}`;
+                                                                color = "text-amber-400";
+                                                                bg = `bg-gradient-to-r from-amber-950/80 to-amber-900/20 border-amber-500/50 hover:border-amber-400 hover:from-amber-900 hover:to-amber-900/40 shadow-[0_0_15px_rgba(245,158,11,0.1)] hover:shadow-[0_0_25px_rgba(245,158,11,0.3)] ${baseShadow}`;
                                                                 break;
                                                             case 'mystic':
-                                                                color = "text-white";
-                                                                bg = `bg-purple-600 hover:bg-purple-700 shadow-[0_0_30px_rgba(147,51,234,0.4)] hover:shadow-[0_0_50px_rgba(147,51,234,0.6)] ${baseShadow}`;
+                                                                color = "text-violet-400";
+                                                                bg = `bg-gradient-to-r from-violet-950/80 to-violet-900/20 border-violet-500/50 hover:border-violet-400 hover:from-violet-900 hover:to-violet-900/40 shadow-[0_0_15px_rgba(147,51,234,0.1)] hover:shadow-[0_0_25px_rgba(147,51,234,0.3)] ${baseShadow}`;
                                                                 break;
                                                             case 'tech':
-                                                                color = "text-black";
-                                                                bg = `bg-cyan-400 hover:bg-cyan-300 shadow-[0_0_30px_rgba(34,211,238,0.4)] hover:shadow-[0_0_50px_rgba(34,211,238,0.6)] ${baseShadow}`;
+                                                                color = "text-cyan-400";
+                                                                bg = `bg-gradient-to-r from-cyan-950/80 to-cyan-900/20 border-cyan-500/50 hover:border-cyan-400 hover:from-cyan-900 hover:to-cyan-900/40 shadow-[0_0_15px_rgba(34,211,238,0.1)] hover:shadow-[0_0_25px_rgba(34,211,238,0.3)] ${baseShadow}`;
                                                                 break;
                                                             case 'outline':
-                                                                color = "text-zinc-100";
-                                                                bg = "bg-transparent border-2 border-zinc-500 hover:border-white hover:bg-white/10 tracking-widest uppercase font-bold";
+                                                                color = "text-zinc-300";
+                                                                bg = `bg-transparent border-zinc-600 hover:border-zinc-300 hover:bg-white/5 ${baseShadow}`;
                                                                 break;
                                                             default:
-                                                                // Default Solid
-                                                                color = "text-white";
-                                                                bg = `bg-zinc-700 hover:bg-zinc-600 shadow-[0_0_30px_rgba(82,82,91,0.4)] hover:shadow-[0_0_50px_rgba(82,82,91,0.6)] ${baseShadow}`;
+                                                                // Default Gradient
+                                                                color = "text-zinc-200";
+                                                                bg = `bg-gradient-to-r from-zinc-900 to-zinc-900/50 border-zinc-700 hover:border-zinc-500 hover:from-zinc-800 hover:to-zinc-800/50 shadow-none hover:shadow-lg ${baseShadow}`;
                                                                 break;
                                                         }
                                                     }
@@ -1241,30 +1242,30 @@ const GamePreview = ({ nodes, edges, onClose, gameMetadata }) => {
                                                             whileTap={item.target ? { scale: 0.98 } : {}}
                                                             onClick={() => item.target && handleOptionClick(item.target)}
                                                             disabled={!item.target}
-                                                            className={`w-full text-left border rounded-xl transition-all group relative overflow-hidden flex items-center gap-4 
-                                                            ${!item.target ? 'cursor-not-allowed border-zinc-900 opacity-60 p-4' : 'cursor-pointer'}
+                                                            className={`w-full text-center rounded-xl transition-all group relative overflow-hidden flex items-center gap-4 
+                                                            ${!item.target ? 'cursor-not-allowed border border-zinc-900 opacity-60 p-4' : 'cursor-pointer'}
                                                             ${item.isAction && item.target
-                                                                    ? `${bg} p-6 border-transparent`
-                                                                    : "bg-zinc-900/50 border-zinc-800 hover:border-indigo-500/50 hover:bg-zinc-900 shadow-none hover:shadow-lg hover:shadow-indigo-500/10 p-4"
+                                                                    ? `${bg} p-6`
+                                                                    : "bg-zinc-900/50 border border-zinc-800 hover:border-indigo-500/50 hover:bg-zinc-900 shadow-none hover:shadow-lg hover:shadow-indigo-500/10 p-4"
                                                                 }`}
                                                         >
-                                                            <div className={`rounded-lg ${item.isAction ? 'bg-black/20' : bg} ${item.isAction ? 'p-2' : 'p-3'} border border-white/5 ${item.target && 'group-hover:scale-110'} transition-transform shrink-0`}>
-                                                                <Icon className={`${item.isAction ? 'w-6 h-6' : 'w-5 h-5'} ${item.isAction ? 'text-white' : color}`} />
+                                                            <div className={`rounded-lg ${item.isAction ? 'bg-black/30' : bg} ${item.isAction ? 'p-2' : 'p-3'} border border-white/5 ${item.target && 'group-hover:scale-110'} transition-transform shrink-0`}>
+                                                                <Icon className={`${item.isAction ? 'w-6 h-6' : 'w-5 h-5'} ${color}`} />
                                                             </div>
 
-                                                            <div className="flex-1 min-w-0">
+                                                            <div className="flex-1 min-w-0 flex flex-col items-center justify-center">
                                                                 {actionLabel && (
-                                                                    <div className={`text-[10px] font-bold tracking-widest uppercase mb-1 ${item.isAction ? 'text-white/70' : color} opacity-70 group-hover:opacity-100 transition-opacity`}>
+                                                                    <div className={`text-[10px] font-bold tracking-widest uppercase mb-1 ${color} opacity-70 group-hover:opacity-100 transition-opacity`}>
                                                                         {actionLabel}
                                                                     </div>
                                                                 )}
-                                                                <div className={`truncate transition-colors ${item.isAction ? 'text-white drop-shadow-md text-xl font-bold uppercase tracking-[0.15em]' : 'text-zinc-200 group-hover:text-white text-lg font-bold'}`}>
+                                                                <div className={`truncate transition-colors ${item.isAction ? `${color} drop-shadow-md text-xl font-bold uppercase tracking-[0.15em]` : 'text-zinc-200 group-hover:text-white text-lg font-bold'}`}>
                                                                     {title}
                                                                 </div>
                                                             </div>
 
                                                             {item.target && (
-                                                                <ArrowRight className={`w-5 h-5 transform group-hover:translate-x-1 transition-all shrink-0 ${item.isAction ? 'text-white/70' : 'text-zinc-600 group-hover:text-indigo-400'}`} />
+                                                                <ArrowRight className={`w-5 h-5 transform group-hover:translate-x-1 transition-all shrink-0 ${item.isAction ? color : 'text-zinc-600 group-hover:text-indigo-400'}`} />
                                                             )}
                                                         </motion.button>
                                                     );
