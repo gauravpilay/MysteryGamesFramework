@@ -287,6 +287,7 @@ const GamePreview = ({ nodes, edges, onClose, gameMetadata }) => {
 
     // Scoring State
     const [score, setScore] = useState(0);
+    const [playerObjectiveScores, setPlayerObjectiveScores] = useState({}); // { objId: score }
     const [scoredNodes, setScoredNodes] = useState(new Set());
     const [userAnswers, setUserAnswers] = useState(new Set()); // Set of selected option IDs for Question Nodes
 
@@ -396,6 +397,15 @@ const GamePreview = ({ nodes, edges, onClose, gameMetadata }) => {
 
         if (!scoredNodes.has(currentNode.id)) {
             setScore(s => s + currentNode.data.score);
+
+            // Objective Scoring
+            if (currentNode.data.rewardObjectiveId) {
+                setPlayerObjectiveScores(prev => ({
+                    ...prev,
+                    [currentNode.data.rewardObjectiveId]: (prev[currentNode.data.rewardObjectiveId] || 0) + currentNode.data.score
+                }));
+            }
+
             setScoredNodes(prev => new Set([...prev, currentNode.id]));
             addLog(`SCORE REWARD: +${currentNode.data.score} Points`);
         }
@@ -866,6 +876,15 @@ const GamePreview = ({ nodes, edges, onClose, gameMetadata }) => {
                 // Award Score for Terminal Hack
                 if (activeModalNode.data.score && !scoredNodes.has(activeModalNode.id)) {
                     setScore(s => s + activeModalNode.data.score);
+
+                    // Objective Scoring
+                    if (activeModalNode.data.rewardObjectiveId) {
+                        setPlayerObjectiveScores(prev => ({
+                            ...prev,
+                            [activeModalNode.data.rewardObjectiveId]: (prev[activeModalNode.data.rewardObjectiveId] || 0) + activeModalNode.data.score
+                        }));
+                    }
+
                     setScoredNodes(prev => new Set([...prev, activeModalNode.id]));
                     addLog(`HACK REWARD: +${activeModalNode.data.score} Points`);
                 }
@@ -876,6 +895,19 @@ const GamePreview = ({ nodes, edges, onClose, gameMetadata }) => {
             }
         } else {
             addLog(`COMMAND FAILED: Access Denied.`);
+            // Penalty
+            const penalty = activeModalNode.data.penalty || 0;
+            if (penalty > 0) {
+                setScore(s => Math.max(0, s - penalty));
+                addLog(`HACK PROTECTION DETECTED: -${penalty} Points`);
+
+                if (activeModalNode.data.penaltyObjectiveId) {
+                    setPlayerObjectiveScores(prev => ({
+                        ...prev,
+                        [activeModalNode.data.penaltyObjectiveId]: (prev[activeModalNode.data.penaltyObjectiveId] || 0) - penalty
+                    }));
+                }
+            }
         }
     };
 
@@ -907,12 +939,27 @@ const GamePreview = ({ nodes, edges, onClose, gameMetadata }) => {
             if (activeAccusationNode && activeAccusationNode.data.score) {
                 setScore(s => s + activeAccusationNode.data.score);
                 addLog(`CASE CLOSED: +${activeAccusationNode.data.score} Points`);
+
+                if (activeAccusationNode.data.rewardObjectiveId) {
+                    setPlayerObjectiveScores(prev => ({
+                        ...prev,
+                        [activeAccusationNode.data.rewardObjectiveId]: (prev[activeAccusationNode.data.rewardObjectiveId] || 0) + activeAccusationNode.data.score
+                    }));
+                }
             }
             setAccusationResult('success');
         } else {
             if (activeAccusationNode && activeAccusationNode.data.penalty) {
-                setScore(s => Math.max(0, s - activeAccusationNode.data.penalty));
-                addLog(`WRONG ACCUSATION: -${activeAccusationNode.data.penalty} Points`);
+                const penalty = activeAccusationNode.data.penalty;
+                setScore(s => Math.max(0, s - penalty));
+                addLog(`WRONG ACCUSATION: -${penalty} Points`);
+
+                if (activeAccusationNode.data.penaltyObjectiveId) {
+                    setPlayerObjectiveScores(prev => ({
+                        ...prev,
+                        [activeAccusationNode.data.penaltyObjectiveId]: (prev[activeAccusationNode.data.penaltyObjectiveId] || 0) - penalty
+                    }));
+                }
             }
             setAccusationResult('failure');
         }
@@ -933,7 +980,16 @@ const GamePreview = ({ nodes, edges, onClose, gameMetadata }) => {
             addLog(`QUESTION SOLVED: ${activeModalNode.data.label}`);
             // Award points
             if (activeModalNode.data.score && !scoredNodes.has(activeModalNode.id)) {
-                setScore(s => s + activeModalNode.data.score);
+                setScore(s => s + (activeModalNode.data.score || 0));
+
+                // Objective Scoring (Reward)
+                if (activeModalNode.data.rewardObjectiveId) {
+                    setPlayerObjectiveScores(prev => ({
+                        ...prev,
+                        [activeModalNode.data.rewardObjectiveId]: (prev[activeModalNode.data.rewardObjectiveId] || 0) + (activeModalNode.data.score || 0)
+                    }));
+                }
+
                 setScoredNodes(prev => new Set([...prev, activeModalNode.id]));
                 addLog(`QUIZ REWARD: +${activeModalNode.data.score} Points`);
             }
@@ -946,6 +1002,19 @@ const GamePreview = ({ nodes, edges, onClose, gameMetadata }) => {
             }
         } else {
             addLog(`QUESTION FAILED: Incorrect Answer.`);
+            // Apply penalty if defined
+            const penalty = activeModalNode.data.penalty || 0;
+            if (penalty > 0) {
+                setScore(s => Math.max(0, s - penalty));
+                addLog(`QUIZ PENALTY: -${penalty} Points`);
+
+                if (activeModalNode.data.penaltyObjectiveId) {
+                    setPlayerObjectiveScores(prev => ({
+                        ...prev,
+                        [activeModalNode.data.penaltyObjectiveId]: (prev[activeModalNode.data.penaltyObjectiveId] || 0) - penalty
+                    }));
+                }
+            }
             // Visual feedback could be added here
             const btn = document.getElementById('quiz-submit-btn');
             if (btn) {
@@ -2015,16 +2084,23 @@ const GamePreview = ({ nodes, edges, onClose, gameMetadata }) => {
                                 )}
 
                                 {accusationResult === 'success' && (
-                                    <div className="flex flex-col items-center justify-center py-10 text-center animate-in zoom-in duration-500">
+                                    <div className="flex flex-col items-center justify-center py-10 text-center animate-in zoom-in duration-500 w-full">
                                         <div className="w-24 h-24 rounded-full bg-green-500/20 flex items-center justify-center mb-6 border-4 border-green-500">
                                             <CheckCircle className="w-12 h-12 text-green-500" />
                                         </div>
                                         <h2 className="text-4xl font-black text-white mb-4">CASE CLOSED</h2>
                                         <p className="text-xl text-zinc-300 max-w-xl mb-6">
-                                            Excellent work, Detective. The culprit has been identified and apprehended thanks to your diligence.
+                                            Excellent work, Detective. The culprit has been identified and apprehended.
                                         </p>
+
+                                        {/* Performance Report */}
+                                        <LearningReport
+                                            scores={playerObjectiveScores}
+                                            objectives={gameMetadata?.learningObjectives || []}
+                                        />
+
                                         {activeAccusationNode && activeAccusationNode.data.reasoning && (
-                                            <div className="bg-green-900/20 border border-green-500/30 p-4 rounded-lg max-w-xl w-full text-left">
+                                            <div className="bg-green-900/20 border border-green-500/30 p-4 rounded-lg max-w-xl w-full text-left mt-6">
                                                 <h4 className="text-green-400 text-xs font-bold uppercase tracking-wider mb-2">Case Resolution</h4>
                                                 <p className="text-zinc-200 text-sm leading-relaxed whitespace-pre-wrap">{activeAccusationNode.data.reasoning}</p>
                                             </div>
@@ -2039,7 +2115,7 @@ const GamePreview = ({ nodes, edges, onClose, gameMetadata }) => {
                                 )}
 
                                 {accusationResult === 'failure' && (
-                                    <div className="flex flex-col items-center justify-center py-10 text-center animate-in zoom-in duration-500">
+                                    <div className="flex flex-col items-center justify-center py-10 text-center animate-in zoom-in duration-500 w-full">
                                         <div className="w-24 h-24 rounded-full bg-red-500/20 flex items-center justify-center mb-6 border-4 border-red-500">
                                             <X className="w-12 h-12 text-red-500" />
                                         </div>
@@ -2047,6 +2123,13 @@ const GamePreview = ({ nodes, edges, onClose, gameMetadata }) => {
                                         <p className="text-xl text-zinc-300 max-w-xl">
                                             You accused the wrong person. The real perpetrator escaped while you were distracted.
                                         </p>
+
+                                        {/* Performance Report */}
+                                        <LearningReport
+                                            scores={playerObjectiveScores}
+                                            objectives={gameMetadata?.learningObjectives || []}
+                                        />
+
                                         <Button
                                             variant="outline"
                                             className="mt-8 border-zinc-700 hover:bg-zinc-800"
@@ -2058,7 +2141,7 @@ const GamePreview = ({ nodes, edges, onClose, gameMetadata }) => {
                                 )}
 
                                 {accusationResult === 'timeout' && (
-                                    <div className="flex flex-col items-center justify-center py-10 text-center animate-in zoom-in duration-500">
+                                    <div className="flex flex-col items-center justify-center py-10 text-center animate-in zoom-in duration-500 w-full">
                                         <div className="w-24 h-24 rounded-full bg-red-500/20 flex items-center justify-center mb-6 border-4 border-red-500">
                                             <AlertTriangle className="w-12 h-12 text-red-500" />
                                         </div>
@@ -2066,6 +2149,13 @@ const GamePreview = ({ nodes, edges, onClose, gameMetadata }) => {
                                         <p className="text-xl text-zinc-300 max-w-xl">
                                             The operational window has closed. The culprit has escaped jurisdiction.
                                         </p>
+
+                                        {/* Performance Report */}
+                                        <LearningReport
+                                            scores={playerObjectiveScores}
+                                            objectives={gameMetadata?.learningObjectives || []}
+                                        />
+
                                         <Button
                                             className="mt-8 bg-white text-black hover:bg-zinc-200"
                                             onClick={onClose}
@@ -2080,6 +2170,68 @@ const GamePreview = ({ nodes, edges, onClose, gameMetadata }) => {
                 )}
             </AnimatePresence>
         </div >
+    );
+};
+
+// Learning Report Component
+const LearningReport = ({ scores, objectives }) => {
+    if (!objectives || objectives.length === 0) return null;
+
+    // Aggregate scores by category
+    const categoryStats = objectives.map(cat => {
+        let catScore = 0;
+        let interactionCount = 0;
+
+        cat.objectives.forEach((obj, idx) => {
+            const objId = `${cat.id}:${idx}`;
+            if (scores[objId]) {
+                catScore += scores[objId];
+                interactionCount++;
+            }
+        });
+
+        return { ...cat, totalScore: catScore, interactionCount };
+    }).filter(c => c.interactionCount > 0 || c.totalScore !== 0);
+
+    if (categoryStats.length === 0) return null;
+
+    return (
+        <div className="w-full max-w-2xl bg-zinc-900/80 border border-zinc-800 rounded-xl p-6 mb-6 backdrop-blur-sm">
+            <h3 className="text-xl font-bold text-white uppercase tracking-wider mb-4 flex items-center gap-2">
+                <FileText className="w-5 h-5 text-indigo-500" />
+                Performance Report
+            </h3>
+
+            <div className="space-y-4">
+                {categoryStats.map(cat => (
+                    <div key={cat.id} className="relative">
+                        <div className="flex justify-between items-end mb-1">
+                            <span className="text-sm font-bold text-zinc-300 uppercase">{cat.category}</span>
+                            <span className={`font-mono font-bold ${cat.totalScore >= 0 ? 'text-green-400' : 'text-red-400'}`}>
+                                {cat.totalScore > 0 ? '+' : ''}{cat.totalScore} PTS
+                            </span>
+                        </div>
+                        <div className="h-2 bg-zinc-800 rounded-full overflow-hidden">
+                            <div
+                                className={`h-full rounded-full ${cat.totalScore >= 0 ? 'bg-indigo-500' : 'bg-red-500'}`}
+                                style={{ width: `${Math.min(100, Math.abs(cat.totalScore))}%` }}
+                            />
+                        </div>
+                        {/* Areas for Improvement / Feedback */}
+                        {cat.totalScore < 0 && (
+                            <p className="text-[10px] text-red-400 mt-1 italic">
+                                Area for Improvement: Review {cat.category} fundamentals. High error rate detected.
+                            </p>
+                        )}
+                        {cat.totalScore > 0 && (
+                            <p className="text-[10px] text-green-500/70 mt-1 italic">
+                                Strong performance in this sector.
+                            </p>
+                        )}
+                    </div>
+                ))}
+            </div>
+        </div>
     );
 };
 

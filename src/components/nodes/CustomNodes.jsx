@@ -186,6 +186,20 @@ export const IdentifyNode = memo(({ id, data, selected }) => {
                             </div>
                         </div>
                     </div>
+
+                    <div className="space-y-1 mt-2">
+                        <ObjectiveSelector
+                            value={data.rewardObjectiveId}
+                            onChange={(v) => handleChange('rewardObjectiveId', v)}
+                            objectives={data.learningObjectives}
+                        />
+                        <ObjectiveSelector
+                            value={data.penaltyObjectiveId}
+                            onChange={(v) => handleChange('penaltyObjectiveId', v)}
+                            objectives={data.learningObjectives}
+                            type="penalty"
+                        />
+                    </div>
                 </div>
             </NodeWrapper>
             {/* No output handle needed usually as this ends the game? 
@@ -380,14 +394,21 @@ export const StoryNode = memo(({ id, data, selected }) => {
                     value={data.text}
                     onChange={(e) => handleChange('text', e.target.value)}
                 />
-                <div className="flex items-center gap-2 mt-2 pt-2 border-t border-blue-900/20">
-                    <Star className="w-3 h-3 text-yellow-500" />
-                    <InputField
-                        type="number"
-                        placeholder="Points Awarded"
-                        value={data.score}
-                        onChange={(e) => handleChange('score', parseInt(e.target.value) || 0)}
-                        className="bg-black/50"
+                <div className="flex flex-col gap-1 mt-2 pt-2 border-t border-blue-900/20">
+                    <div className="flex items-center gap-2">
+                        <Star className="w-3 h-3 text-yellow-500" />
+                        <InputField
+                            type="number"
+                            placeholder="Points Awarded"
+                            value={data.score}
+                            onChange={(e) => handleChange('score', parseInt(e.target.value) || 0)}
+                            className="bg-black/50"
+                        />
+                    </div>
+                    <ObjectiveSelector
+                        value={data.rewardObjectiveId}
+                        onChange={(v) => handleChange('rewardObjectiveId', v)}
+                        objectives={data.learningObjectives}
                     />
                 </div>
             </NodeWrapper>
@@ -573,14 +594,21 @@ export const LogicNode = memo(({ id, data, selected }) => {
                     </div>
                 </div>
 
-                <div className="flex items-center gap-2 mt-3 pt-2 border-t border-emerald-900/20">
-                    <Star className="w-3 h-3 text-yellow-500" />
-                    <InputField
-                        type="number"
-                        placeholder="Points Awarded"
-                        value={data.score}
-                        onChange={(e) => handleChange('score', parseInt(e.target.value) || 0)}
-                        className="bg-black/50"
+                <div className="flex flex-col gap-1 mt-3 pt-2 border-t border-emerald-900/20">
+                    <div className="flex items-center gap-2">
+                        <Star className="w-3 h-3 text-yellow-500" />
+                        <InputField
+                            type="number"
+                            placeholder="Points Awarded"
+                            value={data.score}
+                            onChange={(e) => handleChange('score', parseInt(e.target.value) || 0)}
+                            className="bg-black/50"
+                        />
+                    </div>
+                    <ObjectiveSelector
+                        value={data.rewardObjectiveId}
+                        onChange={(v) => handleChange('rewardObjectiveId', v)}
+                        objectives={data.learningObjectives}
                     />
                 </div>
 
@@ -625,14 +653,37 @@ export const TerminalNode = memo(({ id, data, selected }) => {
                             onChange={(e) => handleChange('command', e.target.value)}
                         />
                     </div>
-                    <div className="flex items-center gap-2 pt-2 border-t border-zinc-800">
-                        <Star className="w-3 h-3 text-yellow-500" />
-                        <InputField
-                            type="number"
-                            placeholder="Hack Reward Points"
-                            value={data.score}
-                            onChange={(e) => handleChange('score', parseInt(e.target.value) || 0)}
-                            className="bg-black/50"
+                    <div className="mt-2 pt-2 border-t border-zinc-800 space-y-2">
+                        <div className="flex items-center gap-2">
+                            <Star className="w-3 h-3 text-yellow-500" />
+                            <InputField
+                                type="number"
+                                placeholder="Hack Reward Points"
+                                value={data.score}
+                                onChange={(e) => handleChange('score', parseInt(e.target.value) || 0)}
+                                className="bg-black/50"
+                            />
+                        </div>
+                        <ObjectiveSelector
+                            value={data.rewardObjectiveId}
+                            onChange={(v) => handleChange('rewardObjectiveId', v)}
+                            objectives={data.learningObjectives}
+                        />
+                        <div className="flex items-center gap-2">
+                            <Trash2 className="w-3 h-3 text-red-500" />
+                            <InputField
+                                type="number"
+                                placeholder="Penalty (Wrong Answer)"
+                                value={data.penalty}
+                                onChange={(e) => handleChange('penalty', parseInt(e.target.value) || 0)}
+                                className="bg-black/50 text-red-400"
+                            />
+                        </div>
+                        <ObjectiveSelector
+                            value={data.penaltyObjectiveId}
+                            onChange={(v) => handleChange('penaltyObjectiveId', v)}
+                            objectives={data.learningObjectives}
+                            type="penalty"
                         />
                     </div>
                     {/* Logic ID */}
@@ -954,6 +1005,34 @@ export const QuestionNode = memo(({ id, data, selected }) => {
                             </div>
                         </div>
                     </div>
+                    <div className="flex gap-2">
+                        <div className="w-1/2">
+                            <p className="text-[10px] text-zinc-500 mb-1">Penalty Points</p>
+                            <div className="flex items-center gap-1">
+                                <Trash2 className="w-3 h-3 text-red-500" />
+                                <InputField
+                                    type="number"
+                                    placeholder="Deduct Pts"
+                                    value={data.penalty}
+                                    onChange={(e) => handleChange('penalty', parseInt(e.target.value) || 0)}
+                                    className="bg-black/50 text-red-400"
+                                />
+                            </div>
+                        </div>
+                    </div>
+                    <div className="space-y-1 mt-1">
+                        <ObjectiveSelector
+                            value={data.rewardObjectiveId}
+                            onChange={(v) => handleChange('rewardObjectiveId', v)}
+                            objectives={data.learningObjectives}
+                        />
+                        <ObjectiveSelector
+                            value={data.penaltyObjectiveId}
+                            onChange={(v) => handleChange('penaltyObjectiveId', v)}
+                            objectives={data.learningObjectives}
+                            type="penalty"
+                        />
+                    </div>
 
                     {/* Logic ID */}
                     <div>
@@ -1060,3 +1139,28 @@ export const SetterNode = memo(({ id, data, selected }) => {
         </>
     );
 });
+
+const ObjectiveSelector = ({ value, onChange, objectives, type = 'reward' }) => {
+    if (!objectives || objectives.length === 0) return null;
+
+    return (
+        <div className="mt-1">
+            <select
+                className={`w-full bg-black border ${type === 'penalty' ? 'border-red-900/40 text-red-400' : 'border-emerald-900/40 text-emerald-400'} rounded px-2 py-1 text-[10px] focus:outline-none`}
+                value={value || ''}
+                onChange={(e) => onChange(e.target.value)}
+            >
+                <option value="">-- Associate Objective ({type}) --</option>
+                {objectives.map(cat => (
+                    <optgroup key={cat.id} label={cat.category}>
+                        {cat.objectives.map((obj, i) => (
+                            <option key={`${cat.id}:${i}`} value={`${cat.id}:${i}`}>
+                                {obj.substring(0, 40)}{obj.length > 40 ? '...' : ''}
+                            </option>
+                        ))}
+                    </optgroup>
+                ))}
+            </select>
+        </div>
+    );
+};

@@ -270,17 +270,18 @@ const Editor = () => {
 
     // Reattach handlers on load where they might be missing (deserialization)
     useEffect(() => {
-        if (nodes.length > 0 && !nodes[0].data.onChange) {
+        if (nodes.length > 0) {
             setNodes((nds) => nds.map(node => ({
                 ...node,
                 data: {
                     ...node.data,
                     onChange: onNodeUpdate,
-                    onDuplicate: onDuplicateNode
+                    onDuplicate: onDuplicateNode,
+                    learningObjectives // Inject global objectives
                 }
             })));
         }
-    }, [nodes, onNodeUpdate, onDuplicateNode, setNodes]);
+    }, [nodes.length, onNodeUpdate, onDuplicateNode, setNodes, learningObjectives]);
 
     const onDrop = useCallback((event) => {
         event.preventDefault();
@@ -300,7 +301,8 @@ const Editor = () => {
             data: {
                 label: `${type} node`,
                 onChange: onNodeUpdate,
-                onDuplicate: onDuplicateNode
+                onDuplicate: onDuplicateNode,
+                learningObjectives
             },
         };
 
