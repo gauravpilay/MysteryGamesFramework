@@ -205,34 +205,59 @@ const Dashboard = () => {
                     </p>
                 </div>
 
-                {/* Toolbar */}
-                <div className="bg-zinc-900/40 border border-white/5 backdrop-blur-md p-6 rounded-2xl flex items-center justify-between gap-6 shadow-xl">
-                    <h2 className="text-base font-bold text-zinc-400 uppercase tracking-widest hidden md:block pl-2">Control Center</h2>
-                    <div className="flex items-center gap-4 ml-auto">
-                        <div className="relative group">
-                            <Search className="absolute left-4 top-1/2 -translate-y-1/2 w-5 h-5 text-zinc-400 group-focus-within:text-indigo-400 transition-colors" />
-                            <input
-                                type="text"
-                                placeholder="Search case files..."
-                                className="pl-12 pr-6 py-3 bg-black/50 border border-zinc-700 rounded-xl text-base text-zinc-100 placeholder-zinc-500 focus:outline-none focus:border-indigo-500 focus:ring-1 focus:ring-indigo-500 w-80 transition-all shadow-inner"
-                                value={searchQuery}
-                                onChange={(e) => setSearchQuery(e.target.value)}
-                            />
+                {/* Command Center Console */}
+                <div className="relative group">
+                    <div className="absolute -inset-1 bg-gradient-to-r from-indigo-500/20 via-purple-500/20 to-indigo-500/20 rounded-2xl blur-xl opacity-50 group-hover:opacity-100 transition duration-1000 group-hover:duration-200"></div>
+                    <div className="relative bg-zinc-900/60 border border-white/10 backdrop-blur-xl rounded-2xl overflow-hidden shadow-2xl">
+                        {/* Top Bar Decoration */}
+                        <div className="h-1 w-full bg-gradient-to-r from-indigo-500 via-purple-500 to-indigo-500 opacity-50"></div>
+
+                        <div className="p-6 flex flex-col lg:flex-row items-center justify-between gap-6">
+                            <div className="flex items-center gap-6 w-full lg:w-auto">
+                                <div className="hidden sm:flex flex-col">
+                                    <h2 className="text-xs font-black text-indigo-400 uppercase tracking-[0.2em]">Command Console</h2>
+                                    <div className="flex items-center gap-2 text-[10px] text-zinc-500 font-mono mt-1">
+                                        <span className="w-1.5 h-1.5 rounded-full bg-emerald-500 animate-pulse"></span>
+                                        SYSTEM READY // {new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}
+                                    </div>
+                                </div>
+
+                                <div className="h-10 w-px bg-zinc-800 hidden sm:block"></div>
+
+                                <div className="relative flex-1 lg:w-80 group/search">
+                                    <Search className="absolute left-4 top-1/2 -translate-y-1/2 w-4 h-4 text-zinc-500 group-focus-within/search:text-indigo-400 transition-colors" />
+                                    <input
+                                        type="text"
+                                        placeholder="Filter Intelligence Files..."
+                                        className="w-full pl-11 pr-4 py-2.5 bg-black/40 border border-zinc-800 rounded-xl text-sm text-zinc-100 placeholder-zinc-600 focus:outline-none focus:border-indigo-500/50 focus:ring-4 focus:ring-indigo-500/5 transition-all"
+                                        value={searchQuery}
+                                        onChange={(e) => setSearchQuery(e.target.value)}
+                                    />
+                                </div>
+                            </div>
+
+                            <div className="flex items-center gap-3 w-full lg:w-auto overflow-x-auto pb-2 lg:pb-0 no-scrollbar">
+                                {isAdmin && (
+                                    <>
+                                        <div className="flex gap-2 p-1 bg-black/40 rounded-xl border border-white/5">
+                                            <Button variant="ghost" size="sm" onClick={() => navigate('/admin/users')} className="h-9 px-4 text-xs font-bold hover:bg-white/5">
+                                                <Users className="w-3.5 h-3.5 mr-2 text-indigo-400" /> Personnel
+                                            </Button>
+                                            <Button variant="ghost" size="sm" onClick={() => window.open('/USER_MANUAL.pdf', '_blank')} className="h-9 px-4 text-xs font-bold hover:bg-white/5">
+                                                <BookOpen className="w-3.5 h-3.5 mr-2 text-indigo-400" /> Manual
+                                            </Button>
+                                        </div>
+                                        <div className="h-6 w-px bg-zinc-800 mx-1 hidden lg:block"></div>
+                                        <Button
+                                            onClick={() => setShowNewModal(true)}
+                                            className="bg-indigo-600 hover:bg-indigo-500 text-white shadow-lg shadow-indigo-600/20 border-none h-10 px-6 text-sm font-bold tracking-wide shrink-0 transition-all hover:scale-[1.02] active:scale-[0.98]"
+                                        >
+                                            <Plus className="w-4 h-4 mr-2" /> Open New Case
+                                        </Button>
+                                    </>
+                                )}
+                            </div>
                         </div>
-                        {isAdmin && (
-                            <>
-                                <div className="h-8 w-px bg-zinc-700 mx-2"></div>
-                                <Button variant="secondary" onClick={() => navigate('/admin/users')} className="h-11 px-5 text-base">
-                                    <Users className="w-5 h-5 mr-2 text-indigo-400" /> Users
-                                </Button>
-                                <Button variant="secondary" onClick={() => window.open('/USER_MANUAL.pdf', '_blank')} className="h-11 px-5 text-base">
-                                    <BookOpen className="w-5 h-5 mr-2 text-indigo-400" /> Manual
-                                </Button>
-                                <Button onClick={() => setShowNewModal(true)} className="bg-indigo-600 hover:bg-indigo-500 text-white shadow-[0_0_15px_rgba(79,70,229,0.4)] border-none h-11 px-6 text-base font-bold tracking-wide">
-                                    <Plus className="w-5 h-5 mr-2" /> New Case
-                                </Button>
-                            </>
-                        )}
                     </div>
                 </div>
 
