@@ -31,5 +31,9 @@ service cloud.firestore {
       // For now, we trust the Client to filter, but enforce 'published' status for safety.
       allow read: if request.auth != null && resource.data.status == 'published';
     }
+    // GAME RESULTS COLLECTION
+    match /game_results/{resultId} {
+      allow read, write: if request.auth != null;
+    }
   }
 }

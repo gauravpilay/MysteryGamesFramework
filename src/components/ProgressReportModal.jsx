@@ -29,8 +29,7 @@ const ProgressReportModal = ({ onClose }) => {
                         // Fetch Results
                         const q = query(
                             collection(db, "game_results"),
-                            where("userId", "==", user.email),
-                            orderBy("playedAt", "desc")
+                            where("userId", "==", user.email)
                         );
                         const snapshot = await getDocs(q);
                         data = snapshot.docs.map(d => ({ id: d.id, ...d.data() }));
@@ -67,15 +66,9 @@ const ProgressReportModal = ({ onClose }) => {
                     }
                 }
 
-                // 2. Merge with LocalStorage
-                try {
-                    const localData = JSON.parse(localStorage.getItem('mystery_game_results') || '[]');
-                    const userLocal = localData.filter(d => d.userId === user.email);
-                    data = [...data, ...userLocal];
-                    data.sort((a, b) => new Date(b.playedAt) - new Date(a.playedAt));
-                } catch (e) {
-                    console.error("Local storage read failed", e);
-                }
+                // 2. Sort Data (Client-side)
+                // Local Storage merging disabled. Only showing Cloud results.
+                data.sort((a, b) => new Date(b.playedAt) - new Date(a.playedAt));
 
                 setRawData(data);
                 setObjMap(map);
@@ -305,31 +298,35 @@ const ProgressReportModal = ({ onClose }) => {
                                     </h3>
 
                                     <div className="grid grid-cols-1 md:grid-cols-2 gap-8">
-                                        {Object.entries(stats.objectiveStats).map(([key, data]) => {
-                                            // Key is usually category_id:idx OR a readable name.
-                                            let readableName = objMap[key] || key;
-
-                                            // Enhanced Fallback Logic
-                                            if (!objMap[key]) {
-                                                if (key.includes(':')) {
-                                                    const [prefix, suffix] = key.split(':');
-                                                    // Check if prefix is a known Category ID
-                                                    if (objMap[prefix]) {
-                                                        const idx = parseInt(suffix) + 1;
-                                                        readableName = `${objMap[prefix]}: Objective ${idx}`;
-                                                    } else {
-                                                        // Attempt cleanup if it looks technical
-                                                        readableName = prefix.split('_').map(s => s.charAt(0).toUpperCase() + s.slice(1)).join(' ');
+                                        {Object.entries(
+                                            Object.entries(stats.objectiveStats).reduce((acc, [key, data]) => {
+                                                let name = objMap[key] || key;
+                                                if (!objMap[key]) {
+                                                    if (key.includes(':')) {
+                                                        const [prefix, suffix] = key.split(':');
+                                                        if (objMap[prefix]) {
+                                                            name = `${objMap[prefix]}: Objective ${parseInt(suffix) + 1}`;
+                                                        } else {
+                                                            name = prefix.split('_').map(s => s.charAt(0).toUpperCase() + s.slice(1)).join(' ');
+                                                        }
+                                                    } else if (key.length > 20 && !key.includes(' ')) {
+                                                        name = "Unknown Objective";
                                                     }
-                                                } else if (key.length > 20 && !key.includes(' ')) {
-                                                    // Likely a raw UUID that failed all lookups and has no spaces
-                                                    readableName = "Unknown Objective";
                                                 }
-                                            }
+                                                if (!acc[name]) {
+                                                    acc[name] = { ...data };
+                                                } else {
+                                                    acc[name].total += data.total;
+                                                    acc[name].count += data.count;
+                                                    acc[name].runs = [...acc[name].runs, ...data.runs];
+                                                }
+                                                return acc;
+                                            }, {})
+                                        ).map(([readableName, data]) => {
                                             const avgScore = Math.round(data.total / data.count);
 
                                             return (
-                                                <div key={key} className="space-y-2">
+                                                <div key={readableName} className="space-y-2">
                                                     <div className="flex justify-between items-center text-sm mb-1">
                                                         <span className="font-bold text-zinc-300">{readableName}</span>
                                                         <span className={`${avgScore > 0 ? 'text-emerald-400' : 'text-red-400'} font-mono font-bold`}>
