@@ -189,15 +189,9 @@ export const IdentifyNode = memo(({ id, data, selected }) => {
 
                     <div className="space-y-1 mt-2">
                         <ObjectiveSelector
-                            value={data.rewardObjectiveId}
-                            onChange={(v) => handleChange('rewardObjectiveId', v)}
+                            value={data.learningObjectiveId}
+                            onChange={(v) => handleChange('learningObjectiveId', v)}
                             objectives={data.learningObjectives}
-                        />
-                        <ObjectiveSelector
-                            value={data.penaltyObjectiveId}
-                            onChange={(v) => handleChange('penaltyObjectiveId', v)}
-                            objectives={data.learningObjectives}
-                            type="penalty"
                         />
                     </div>
                 </div>
@@ -406,8 +400,8 @@ export const StoryNode = memo(({ id, data, selected }) => {
                         />
                     </div>
                     <ObjectiveSelector
-                        value={data.rewardObjectiveId}
-                        onChange={(v) => handleChange('rewardObjectiveId', v)}
+                        value={data.learningObjectiveId}
+                        onChange={(v) => handleChange('learningObjectiveId', v)}
                         objectives={data.learningObjectives}
                     />
                 </div>
@@ -606,8 +600,8 @@ export const LogicNode = memo(({ id, data, selected }) => {
                         />
                     </div>
                     <ObjectiveSelector
-                        value={data.rewardObjectiveId}
-                        onChange={(v) => handleChange('rewardObjectiveId', v)}
+                        value={data.learningObjectiveId}
+                        onChange={(v) => handleChange('learningObjectiveId', v)}
                         objectives={data.learningObjectives}
                     />
                 </div>
@@ -665,8 +659,8 @@ export const TerminalNode = memo(({ id, data, selected }) => {
                             />
                         </div>
                         <ObjectiveSelector
-                            value={data.rewardObjectiveId}
-                            onChange={(v) => handleChange('rewardObjectiveId', v)}
+                            value={data.learningObjectiveId}
+                            onChange={(v) => handleChange('learningObjectiveId', v)}
                             objectives={data.learningObjectives}
                         />
                         <div className="flex items-center gap-2">
@@ -679,12 +673,6 @@ export const TerminalNode = memo(({ id, data, selected }) => {
                                 className="bg-black/50 text-red-400"
                             />
                         </div>
-                        <ObjectiveSelector
-                            value={data.penaltyObjectiveId}
-                            onChange={(v) => handleChange('penaltyObjectiveId', v)}
-                            objectives={data.learningObjectives}
-                            type="penalty"
-                        />
                     </div>
                     {/* Logic ID */}
                     <div>
@@ -1022,15 +1010,9 @@ export const QuestionNode = memo(({ id, data, selected }) => {
                     </div>
                     <div className="space-y-1 mt-1">
                         <ObjectiveSelector
-                            value={data.rewardObjectiveId}
-                            onChange={(v) => handleChange('rewardObjectiveId', v)}
+                            value={data.learningObjectiveId}
+                            onChange={(v) => handleChange('learningObjectiveId', v)}
                             objectives={data.learningObjectives}
-                        />
-                        <ObjectiveSelector
-                            value={data.penaltyObjectiveId}
-                            onChange={(v) => handleChange('penaltyObjectiveId', v)}
-                            objectives={data.learningObjectives}
-                            type="penalty"
                         />
                     </div>
 
@@ -1140,17 +1122,17 @@ export const SetterNode = memo(({ id, data, selected }) => {
     );
 });
 
-const ObjectiveSelector = ({ value, onChange, objectives, type = 'reward' }) => {
+const ObjectiveSelector = ({ value, onChange, objectives }) => {
     if (!objectives || objectives.length === 0) return null;
 
     return (
         <div className="mt-1">
             <select
-                className={`w-full bg-black border ${type === 'penalty' ? 'border-red-900/40 text-red-400' : 'border-emerald-900/40 text-emerald-400'} rounded px-2 py-1 text-[10px] focus:outline-none`}
+                className="w-full bg-black border border-zinc-800 text-zinc-300 rounded px-2 py-1 text-[10px] focus:outline-none focus:border-indigo-500"
                 value={value || ''}
                 onChange={(e) => onChange(e.target.value)}
             >
-                <option value="">-- Associate Objective ({type}) --</option>
+                <option value="">-- Associate Learning Objective --</option>
                 {objectives.map(cat => (
                     <optgroup key={cat.id} label={cat.category}>
                         {cat.objectives.map((obj, i) => (
