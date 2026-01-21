@@ -1,7 +1,8 @@
 import React, { useEffect, useState } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
 import { db } from '../lib/firebase';
-import { doc, getDoc } from 'firebase/firestore';
+import { doc, getDoc, addDoc, collection } from 'firebase/firestore';
+import { useAuth } from '../lib/auth';
 import GamePreview from '../components/GamePreview';
 
 const Player = () => {
@@ -29,6 +30,48 @@ const Player = () => {
         };
         loadCaseData();
     }, [projectId]);
+
+    const { user } = useAuth() || {}; // Handle potential null if not wrapped (though it should be)
+
+    const handleGameEnd = async (resultData) => {
+        if (!user || !user.email) {
+            navigate('/');
+            return;
+        }
+
+        const newResult = {
+            ...resultData,
+            userId: user.email,
+            caseId: projectId,
+            caseTitle: gameData?.title || 'Unknown Case',
+            playedAt: new Date().toISOString(),
+        };
+
+        if (db) {
+            try {
+                await addDoc(collection(db, "game_results"), newResult);
+            } catch (err) {
+                console.error("Failed to save game stats to DB, falling back to local storage", err);
+                saveToLocalStorage(newResult);
+            }
+        } else {
+            // Offline / Mock Mode
+            saveToLocalStorage(newResult);
+        }
+
+        navigate('/');
+    };
+
+    const saveToLocalStorage = (result) => {
+        try {
+            const existing = JSON.parse(localStorage.getItem('mystery_game_results') || '[]');
+            localStorage.setItem('mystery_game_results', JSON.stringify([result, ...existing]));
+        } catch (e) {
+            console.error("Local storage save failed", e);
+        }
+    };
+
+
 
     if (error) {
         return (
@@ -61,6 +104,7 @@ const Player = () => {
             edges={gameData.edges || []}
             gameMetadata={gameData.meta || {}}
             onClose={() => navigate('/')}
+            onGameEnd={handleGameEnd}
         />
     );
 };

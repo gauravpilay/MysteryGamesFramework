@@ -262,7 +262,7 @@ const DecryptionMinigame = ({ node, onSuccess }) => {
     );
 };
 
-const GamePreview = ({ nodes, edges, onClose, gameMetadata }) => {
+const GamePreview = ({ nodes, edges, onClose, gameMetadata, onGameEnd }) => {
     // Game State
     const [currentNodeId, setCurrentNodeId] = useState(null);
     const [isContentReady, setIsContentReady] = useState(false);
@@ -399,10 +399,27 @@ const GamePreview = ({ nodes, edges, onClose, gameMetadata }) => {
             setScore(s => s + currentNode.data.score);
 
             // Objective Scoring
+            // Objective Scoring
             if (currentNode.data.learningObjectiveId) {
+                let objName = currentNode.data.learningObjectiveId;
+
+                // Try to resolve ID to Name (e.g. "cat_1:0" -> "Critical Thinking")
+                // Handle various metadata structures (nested meta or direct)
+                const objectives = gameMetadata?.learningObjectives || gameMetadata?.meta?.learningObjectives;
+
+                if (objectives) {
+                    const [catId, idxStr] = objName.split(':');
+                    if (catId && idxStr !== undefined) {
+                        const cat = objectives.find(c => c.id === catId);
+                        if (cat && cat.objectives && cat.objectives[parseInt(idxStr)]) {
+                            objName = cat.objectives[parseInt(idxStr)];
+                        }
+                    }
+                }
+
                 setPlayerObjectiveScores(prev => ({
                     ...prev,
-                    [currentNode.data.learningObjectiveId]: (prev[currentNode.data.learningObjectiveId] || 0) + currentNode.data.score
+                    [objName]: (prev[objName] || 0) + currentNode.data.score
                 }));
             }
 
@@ -1041,6 +1058,23 @@ const GamePreview = ({ nodes, edges, onClose, gameMetadata }) => {
         let hash = 0;
         for (let i = 0; i < name.length; i++) hash = name.charCodeAt(i) + ((hash << 5) - hash);
         return colors[Math.abs(hash) % colors.length];
+    };
+
+    // Finalize Game and Report
+    const handleFinish = () => {
+        const timeSpent = initialTime - timeLeft;
+        const resultData = {
+            score,
+            objectiveScores: playerObjectiveScores,
+            outcome: accusationResult || 'aborted',
+            timeSpentSeconds: timeSpent
+        };
+
+        if (onGameEnd) {
+            onGameEnd(resultData);
+        } else {
+            onClose();
+        }
     };
 
     // Helper to get nice labels for buttons
@@ -2049,7 +2083,7 @@ const GamePreview = ({ nodes, edges, onClose, gameMetadata }) => {
                                 </h2>
                                 <Button variant="ghost" onClick={() => {
                                     if (accusationResult === 'success' || accusationResult === 'timeout') {
-                                        onClose();
+                                        handleFinish();
                                     } else {
                                         setShowAccuseModal(false);
                                     }
@@ -2113,7 +2147,7 @@ const GamePreview = ({ nodes, edges, onClose, gameMetadata }) => {
                                         )}
                                         <Button
                                             className="mt-8 bg-white text-black hover:bg-zinc-200"
-                                            onClick={onClose}
+                                            onClick={handleFinish}
                                         >
                                             Return to Headquarters
                                         </Button>
@@ -2136,13 +2170,21 @@ const GamePreview = ({ nodes, edges, onClose, gameMetadata }) => {
                                             objectives={gameMetadata?.learningObjectives || []}
                                         />
 
-                                        <Button
-                                            variant="outline"
-                                            className="mt-8 border-zinc-700 hover:bg-zinc-800"
-                                            onClick={() => setAccusationResult(null)}
-                                        >
-                                            Review Evidence Again
-                                        </Button>
+                                        <div className="flex gap-4 mt-8">
+                                            <Button
+                                                variant="outline"
+                                                className="border-zinc-700 hover:bg-zinc-800"
+                                                onClick={() => setAccusationResult(null)}
+                                            >
+                                                Review Evidence Again
+                                            </Button>
+                                            <Button
+                                                variant="destructive"
+                                                onClick={handleFinish}
+                                            >
+                                                Accept Failure
+                                            </Button>
+                                        </div>
                                     </div>
                                 )}
 
@@ -2164,7 +2206,7 @@ const GamePreview = ({ nodes, edges, onClose, gameMetadata }) => {
 
                                         <Button
                                             className="mt-8 bg-white text-black hover:bg-zinc-200"
-                                            onClick={onClose}
+                                            onClick={handleFinish}
                                         >
                                             Abort Mission
                                         </Button>

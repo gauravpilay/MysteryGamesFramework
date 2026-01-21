@@ -19,7 +19,7 @@ import GamePreview from '../components/GamePreview';
 import { AnimatePresence, motion } from 'framer-motion';
 import JSZip from 'jszip';
 import { db } from '../lib/firebase';
-import { doc, getDoc, updateDoc, increment } from 'firebase/firestore';
+import { doc, getDoc, updateDoc, increment, addDoc, collection } from 'firebase/firestore';
 import { useAuth } from '../lib/auth';
 
 // ... (other imports)
@@ -459,7 +459,8 @@ const Editor = () => {
         if (errors.length > 0 || warnings.length > 0) {
             setValidationReport({ errors, warnings });
         } else {
-            alert("✅ Graph looks healthy! No obvious structural issues found.");
+            // Show success report
+            setValidationReport({ errors: [], warnings: [] });
         }
     };
 
@@ -553,6 +554,28 @@ const Editor = () => {
             }
             return cat;
         }));
+    };
+
+    const handlePreviewGameEnd = async (resultData) => {
+        if (user && user.email) {
+            const newResult = {
+                ...resultData,
+                userId: user.email,
+                caseId: projectId || 'preview-session',
+                caseTitle: (caseTitle || 'Untitled Case') + ' (Preview)',
+                playedAt: new Date().toISOString(),
+                isPreview: true
+            };
+            try {
+                if (db) await addDoc(collection(db, "game_results"), newResult);
+            } catch (e) {
+                console.error("Preview save failed", e);
+                // Local Fallback
+                const existing = JSON.parse(localStorage.getItem('mystery_game_results') || '[]');
+                localStorage.setItem('mystery_game_results', JSON.stringify([newResult, ...existing]));
+            }
+        }
+        setShowPreview(false);
     };
 
     return (
@@ -751,7 +774,7 @@ const Editor = () => {
                     <TutorialOverlay steps={tutorialSteps} onClose={() => setShowTutorial(false)} />
                 )}
                 {showPreview && (
-                    <GamePreview nodes={nodes} edges={edges} onClose={() => setShowPreview(false)} gameMetadata={{ timeLimit }} />
+                    <GamePreview nodes={nodes} edges={edges} onClose={() => setShowPreview(false)} gameMetadata={{ timeLimit, learningObjectives }} onGameEnd={handlePreviewGameEnd} />
                 )}
                 {/* Settings Modal */}
                 {showSettings && (
