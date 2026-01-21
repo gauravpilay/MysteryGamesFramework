@@ -2047,7 +2047,13 @@ const GamePreview = ({ nodes, edges, onClose, gameMetadata }) => {
                                     <ShieldAlert className="w-8 h-8 text-red-600" />
                                     Identify The Culprit
                                 </h2>
-                                <Button variant="ghost" onClick={() => setShowAccuseModal(false)}>
+                                <Button variant="ghost" onClick={() => {
+                                    if (accusationResult === 'success' || accusationResult === 'timeout') {
+                                        onClose();
+                                    } else {
+                                        setShowAccuseModal(false);
+                                    }
+                                }}>
                                     <X className="w-6 h-6" />
                                 </Button>
                             </div>
