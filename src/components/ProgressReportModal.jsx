@@ -220,7 +220,7 @@ const ProgressReportModal = ({ onClose }) => {
             doc.setTextColor(63, 81, 181);
             doc.text("Learning Objectives Analysis", 14, 88);
 
-            const objectiveRows = Object.entries(
+            const objectiveData = Object.entries(
                 Object.entries(stats.objectiveStats).reduce((acc, [key, data]) => {
                     let name = objMap[key] || key;
                     if (!objMap[key]) {
@@ -240,14 +240,44 @@ const ProgressReportModal = ({ onClose }) => {
                     }
                     return acc;
                 }, {})
-            ).map(([name, data]) => [
+            );
+
+            // Visual Chart
+            let chartY = 105;
+            doc.setFontSize(9);
+            doc.setTextColor(140);
+            doc.text("INTELLIGENCE SKILL DISTRIBUTION MODEL", 14, chartY - 6);
+
+            objectiveData.forEach(([name, data], i) => {
+                const score = Math.round(data.total / data.count);
+                const maxBarWidth = pageWidth - 90;
+                const barWidth = maxBarWidth * (Math.abs(score) / 100);
+
+                doc.setTextColor(80);
+                doc.text(name.length > 25 ? name.substring(0, 22) + "..." : name, 14, chartY + (i * 8));
+
+                // Bar track
+                doc.setFillColor(242, 242, 247);
+                doc.rect(65, chartY + (i * 8) - 3, maxBarWidth, 3, 'F');
+
+                // Bar fill
+                doc.setFillColor(score >= 0 ? 79 : 220, score >= 0 ? 70 : 38, score >= 0 ? 229 : 38);
+                doc.rect(65, chartY + (i * 8) - 3, barWidth, 3, 'F');
+
+                doc.setFontSize(7);
+                doc.text(`${score}%`, pageWidth - 20, chartY + (i * 8));
+                doc.setFontSize(9);
+            });
+
+            const tableStartY = chartY + (objectiveData.length * 8) + 10;
+            const objectiveRows = objectiveData.map(([name, data]) => [
                 name,
                 `${Math.round(data.total / data.count)}%`,
                 data.count
             ]);
 
             autoTable(doc, {
-                startY: 93,
+                startY: tableStartY,
                 head: [['Objective', 'Avg Score', 'Data Points']],
                 body: objectiveRows,
                 headStyles: { fillColor: [63, 81, 181] },
@@ -291,12 +321,20 @@ const ProgressReportModal = ({ onClose }) => {
         }
 
         const fileName = `Performance_Record_${user.email.split('@')[0]}.pdf`;
-        doc.save(fileName);
+        doc.setProperties({ title: fileName });
 
-        // Also open in new tab for immediate view
+        // Robust download method
         const pdfBlob = doc.output('blob');
-        const pdfUrl = URL.createObjectURL(pdfBlob);
-        window.open(pdfUrl, '_blank');
+        const url = URL.createObjectURL(pdfBlob);
+        const link = document.createElement('a');
+        link.href = url;
+        link.download = fileName;
+        document.body.appendChild(link);
+        link.click();
+        document.body.removeChild(link);
+
+        // Also open in new tab for immediate view (optional but helpful)
+        window.open(url, '_blank');
     };
 
     return (
