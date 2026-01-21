@@ -42,6 +42,7 @@ const Player = () => {
         const newResult = {
             ...resultData,
             userId: user.email,
+            userDisplayName: user.displayName || user.email.split('@')[0],
             caseId: projectId,
             caseTitle: gameData?.title || 'Unknown Case',
             playedAt: new Date().toISOString(),

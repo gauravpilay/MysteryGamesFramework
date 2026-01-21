@@ -561,6 +561,7 @@ const Editor = () => {
             const newResult = {
                 ...resultData,
                 userId: user.email,
+                userDisplayName: user.displayName || user.email.split('@')[0],
                 caseId: projectId || 'preview-session',
                 caseTitle: (caseTitle || 'Untitled Case') + ' (Preview)',
                 playedAt: new Date().toISOString(),

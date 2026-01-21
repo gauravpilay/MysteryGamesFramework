@@ -1,7 +1,7 @@
 import React, { createContext, useContext, useState, useEffect } from 'react';
 import { auth, googleProvider, db } from './firebase';
 import { signInWithPopup, signOut, onAuthStateChanged } from 'firebase/auth';
-import { doc, getDoc, setDoc, onSnapshot } from 'firebase/firestore';
+import { doc, getDoc, setDoc, onSnapshot, updateDoc } from 'firebase/firestore';
 
 const AuthContext = createContext({});
 
@@ -21,10 +21,18 @@ export const AuthProvider = ({ children }) => {
                     // Listen to real-time updates
                     const unsubscribeSnapshot = onSnapshot(userRef, (docSnap) => {
                         if (docSnap.exists()) {
-                            setUser({ ...u, ...docSnap.data() });
+                            const data = docSnap.data();
+
+                            // Auto-sync missing profile info from Auth to Firestore
+                            if ((!data.displayName && u.displayName) || (!data.photoURL && u.photoURL)) {
+                                updateDoc(userRef, {
+                                    displayName: data.displayName || u.displayName,
+                                    photoURL: data.photoURL || u.photoURL
+                                }).catch(err => console.error("Profile sync failed", err));
+                            }
+
+                            setUser({ ...u, ...data });
                         } else {
-                            // Doc might not exist yet if it's the very first login and setDoc hasn't finished,
-                            // or if creating below. Just set basic auth user for now.
                             setUser(u);
                         }
                     });
@@ -76,6 +84,16 @@ export const AuthProvider = ({ children }) => {
                         role: "User",
                         createdAt: new Date().toISOString()
                     });
+                } else {
+                    // Update if missing
+                    const data = userSnap.data();
+                    const updates = {};
+                    if (!data.displayName && user.displayName) updates.displayName = user.displayName;
+                    if (!data.photoURL && user.photoURL) updates.photoURL = user.photoURL;
+
+                    if (Object.keys(updates).length > 0) {
+                        await updateDoc(userRef, updates);
+                    }
                 }
             }
         } catch (error) {

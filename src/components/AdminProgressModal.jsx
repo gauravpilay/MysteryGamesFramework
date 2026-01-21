@@ -34,12 +34,12 @@ const AdminProgressModal = ({ onClose }) => {
                             userList.push({
                                 id: email,
                                 email: email,
-                                displayName: email.split('@')[0],
+                                displayName: resultsSnap.docs.find(d => d.data().userId === email)?.data().userDisplayName || email.split('@')[0],
                                 role: 'User'
                             });
                         } else if (!existing.displayName) {
                             // Fill in display name if missing from record
-                            existing.displayName = email.split('@')[0];
+                            existing.displayName = resultsSnap.docs.find(d => d.data().userId === email)?.data().userDisplayName || email.split('@')[0];
                         }
                     });
                 } catch (e) {
@@ -163,6 +163,7 @@ const AdminProgressModal = ({ onClose }) => {
 
                 processed[email] = {
                     name: userName,
+                    displayName: userObj?.displayName || userName,
                     email: email,
                     stats: { totalPlayed, totalWins, totalTime },
                     byMission,
@@ -278,10 +279,10 @@ const AdminProgressModal = ({ onClose }) => {
                                         <div className="bg-zinc-900 p-6 flex items-center justify-between border-b border-zinc-800">
                                             <div className="flex items-center gap-4">
                                                 <div className="w-12 h-12 rounded-full bg-indigo-500 flex items-center justify-center text-xl font-bold text-white">
-                                                    {userData.name.charAt(0).toUpperCase()}
+                                                    {(userData.displayName || userData.name || userData.email).charAt(0).toUpperCase()}
                                                 </div>
                                                 <div>
-                                                    <h2 className="text-2xl font-bold text-white">{userData.name}</h2>
+                                                    <h2 className="text-2xl font-bold text-white">{userData.displayName || userData.name}</h2>
                                                     <p className="text-zinc-400 text-sm font-mono">{userData.email}</p>
                                                 </div>
                                             </div>
