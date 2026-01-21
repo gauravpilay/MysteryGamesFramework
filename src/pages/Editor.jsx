@@ -12,7 +12,7 @@ import 'reactflow/dist/style.css';
 import { useParams, useNavigate } from 'react-router-dom';
 import { Button } from '../components/ui/shared';
 import { Logo } from '../components/ui/Logo';
-import { Save, ArrowLeft, X, FileText, User, Search, GitMerge, Terminal, MessageSquare, CircleHelp, Play, Settings, Music, Image as ImageIcon, MousePointerClick, Fingerprint, Bell, HelpCircle, ChevronLeft, ChevronRight, ToggleLeft, Lock, Sun, Moon, Stethoscope, Unlock, Binary, Grid3x3, CheckCircle, AlertTriangle } from 'lucide-react';
+import { Save, ArrowLeft, X, FileText, User, Search, GitMerge, Terminal, MessageSquare, CircleHelp, Play, Settings, Music, Image as ImageIcon, MousePointerClick, Fingerprint, Bell, HelpCircle, ChevronLeft, ChevronRight, ToggleLeft, Lock, Sun, Moon, Stethoscope, Unlock, Binary, Grid3x3, CheckCircle, AlertTriangle, Plus, Trash2 } from 'lucide-react';
 import { StoryNode, SuspectNode, EvidenceNode, LogicNode, TerminalNode, MessageNode, MusicNode, MediaNode, ActionNode, IdentifyNode, NotificationNode, QuestionNode, SetterNode, LockpickNode, DecryptionNode, KeypadNode } from '../components/nodes/CustomNodes';
 import { TutorialOverlay } from '../components/ui/TutorialOverlay';
 import GamePreview from '../components/GamePreview';
@@ -143,6 +143,8 @@ const Editor = () => {
     const [isDarkMode, setIsDarkMode] = useState(true);
     const [caseTitle, setCaseTitle] = useState("");
     const [validationReport, setValidationReport] = useState(null);
+    const [learningObjectives, setLearningObjectives] = useState([]);
+    const [newCategoryName, setNewCategoryName] = useState("");
 
     const tutorialSteps = [
         {
@@ -318,7 +320,10 @@ const Editor = () => {
                     if (data.nodes) setNodes(data.nodes);
                     if (data.nodes) setNodes(data.nodes);
                     if (data.edges) setEdges(data.edges);
-                    if (data.meta && data.meta.timeLimit) setTimeLimit(data.meta.timeLimit);
+                    if (data.meta) {
+                        if (data.meta.timeLimit) setTimeLimit(data.meta.timeLimit);
+                        if (data.meta.learningObjectives) setLearningObjectives(data.meta.learningObjectives);
+                    }
                     if (data.isLocked !== undefined) setIsLocked(data.isLocked);
                     if (data.title) setCaseTitle(data.title);
                 } else {
@@ -396,7 +401,7 @@ const Editor = () => {
         const cleanEdges = edges.map(e => cleanForFirestore(e));
 
         try {
-            const flow = { nodes: cleanNodes, edges: cleanEdges, meta: { timeLimit } };
+            const flow = { nodes: cleanNodes, edges: cleanEdges, meta: { timeLimit, learningObjectives } };
             const docRef = doc(db, "cases", projectId);
 
             // Log for debugging if it fails again
@@ -462,7 +467,7 @@ const Editor = () => {
 
         // Clean nodes data of functions
         const cleanNodes = nodes.map(n => ({ ...n, data: { ...n.data, onChange: undefined, onDuplicate: undefined } }));
-        const gameData = { nodes: cleanNodes, edges, meta: { generatedAt: new Date(), timeLimit } };
+        const gameData = { nodes: cleanNodes, edges, meta: { generatedAt: new Date(), timeLimit, learningObjectives } };
 
         const folder = zip.folder("mystery-game-build");
         folder.file("game-data.json", JSON.stringify(gameData, null, 2));
@@ -515,6 +520,37 @@ const Editor = () => {
         if (isLocked) return;
         event.dataTransfer.setData('application/reactflow', nodeType);
         event.dataTransfer.effectAllowed = 'move';
+    };
+
+    const addCategory = () => {
+        if (!newCategoryName.trim()) return;
+        setLearningObjectives([...learningObjectives, { id: crypto.randomUUID(), category: newCategoryName.trim(), objectives: [] }]);
+        setNewCategoryName("");
+    };
+
+    const deleteCategory = (id) => {
+        setLearningObjectives(learningObjectives.filter(c => c.id !== id));
+    };
+
+    const addObjective = (catId, objective) => {
+        if (!objective.trim()) return;
+        setLearningObjectives(learningObjectives.map(cat => {
+            if (cat.id === catId) {
+                return { ...cat, objectives: [...cat.objectives, objective.trim()] };
+            }
+            return cat;
+        }));
+    };
+
+    const deleteObjective = (catId, index) => {
+        setLearningObjectives(learningObjectives.map(cat => {
+            if (cat.id === catId) {
+                const newObjs = [...cat.objectives];
+                newObjs.splice(index, 1);
+                return { ...cat, objectives: newObjs };
+            }
+            return cat;
+        }));
     };
 
     return (
@@ -718,7 +754,7 @@ const Editor = () => {
                 {/* Settings Modal */}
                 {showSettings && (
                     <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/80 backdrop-blur-sm">
-                        <div className="bg-zinc-950 border border-zinc-800 p-6 rounded-xl max-w-md w-full shadow-2xl">
+                        <div className="bg-zinc-950 border border-zinc-800 p-6 rounded-xl max-w-2xl w-full shadow-2xl max-h-[85vh] overflow-y-auto">
                             <h2 className="text-xl font-bold text-white mb-4 flex items-center gap-2">
                                 <Settings className="w-6 h-6 text-indigo-500" />
                                 Game Configuration
@@ -739,6 +775,66 @@ const Editor = () => {
                                     </div>
                                 </div>
                             </div>
+
+                            <div className="border-t border-zinc-800 pt-6">
+                                <h3 className="text-sm font-bold text-zinc-400 uppercase tracking-wider mb-4">Learning Objectives</h3>
+
+                                <div className="flex gap-2 mb-6">
+                                    <input
+                                        type="text"
+                                        placeholder="New Category Name (e.g. Cyber Security)"
+                                        value={newCategoryName}
+                                        onChange={(e) => setNewCategoryName(e.target.value)}
+                                        onKeyDown={(e) => e.key === 'Enter' && addCategory()}
+                                        className="flex-1 bg-black border border-zinc-700 rounded px-3 py-2 text-sm text-white focus:border-indigo-500 outline-none"
+                                    />
+                                    <Button size="sm" onClick={addCategory} disabled={!newCategoryName.trim()} className="shrink-0">
+                                        <Plus className="w-4 h-4 mr-1" /> Add Category
+                                    </Button>
+                                </div>
+
+                                <div className="space-y-4">
+                                    {learningObjectives.map((cat) => (
+                                        <div key={cat.id} className="bg-zinc-900/50 rounded-lg p-4 border border-zinc-800">
+                                            <div className="flex items-center justify-between mb-3 border-b border-zinc-800/50 pb-2">
+                                                <span className="font-bold text-indigo-400">{cat.category}</span>
+                                                <button onClick={() => deleteCategory(cat.id)} className="text-zinc-500 hover:text-red-400 transition-colors p-1" title="Delete Category">
+                                                    <Trash2 className="w-4 h-4" />
+                                                </button>
+                                            </div>
+
+                                            <ul className="space-y-2 mb-4 pl-1">
+                                                {cat.objectives.length === 0 && (
+                                                    <li className="text-xs text-zinc-600 italic">No objectives added yet.</li>
+                                                )}
+                                                {cat.objectives.map((obj, idx) => (
+                                                    <li key={idx} className="flex items-start gap-2 text-sm text-zinc-300 group">
+                                                        <div className="mt-1.5 w-1 h-1 rounded-full bg-zinc-600 shrink-0"></div>
+                                                        <span className="flex-1 leading-relaxed">{obj}</span>
+                                                        <button onClick={() => deleteObjective(cat.id, idx)} className="text-zinc-600 hover:text-red-400 opacity-0 group-hover:opacity-100 transition-all p-0.5">
+                                                            <X className="w-3.5 h-3.5" />
+                                                        </button>
+                                                    </li>
+                                                ))}
+                                            </ul>
+
+                                            <div className="flex gap-2">
+                                                <input
+                                                    type="text"
+                                                    placeholder="Add learning objective..."
+                                                    className="flex-1 bg-black border border-zinc-700 rounded px-2.5 py-1.5 text-xs text-white focus:border-indigo-500 outline-none"
+                                                    onKeyDown={(e) => {
+                                                        if (e.key === 'Enter') {
+                                                            addObjective(cat.id, e.target.value);
+                                                            e.target.value = '';
+                                                        }
+                                                    }}
+                                                />
+                                            </div>
+                                        </div>
+                                    ))}
+                                </div>
+                            </div>
                             <div className="mt-8 flex justify-end gap-2">
                                 <Button onClick={() => setShowSettings(false)}>
                                     Save & Close
@@ -749,72 +845,76 @@ const Editor = () => {
                 )}
 
                 {/* Edge Editor Modal */}
-                {editingEdge && (
-                    <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/80 backdrop-blur-sm">
-                        <div className="bg-zinc-950 border border-zinc-800 p-6 rounded-xl max-w-sm w-full shadow-2xl">
-                            <h2 className="text-xl font-bold text-white mb-4 flex items-center gap-2">
-                                <GitMerge className="w-6 h-6 text-indigo-500" />
-                                Edit Connection
-                            </h2>
-                            <div className="space-y-4">
-                                <div>
-                                    <label className="block text-xs font-bold text-zinc-500 uppercase tracking-wider mb-2">Action Label</label>
-                                    <input
-                                        type="text"
-                                        placeholder="e.g. Interrogate, Unlock"
-                                        value={tempLabel}
-                                        onChange={(e) => setTempLabel(e.target.value)}
-                                        className="w-full bg-black border border-zinc-700 rounded px-3 py-2 text-white outline-none focus:border-indigo-500"
-                                        autoFocus
-                                    />
-                                    <span className="text-zinc-500 text-xs mt-1 block">Text shown on the line connecting nodes.</span>
+                {
+                    editingEdge && (
+                        <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/80 backdrop-blur-sm">
+                            <div className="bg-zinc-950 border border-zinc-800 p-6 rounded-xl max-w-sm w-full shadow-2xl">
+                                <h2 className="text-xl font-bold text-white mb-4 flex items-center gap-2">
+                                    <GitMerge className="w-6 h-6 text-indigo-500" />
+                                    Edit Connection
+                                </h2>
+                                <div className="space-y-4">
+                                    <div>
+                                        <label className="block text-xs font-bold text-zinc-500 uppercase tracking-wider mb-2">Action Label</label>
+                                        <input
+                                            type="text"
+                                            placeholder="e.g. Interrogate, Unlock"
+                                            value={tempLabel}
+                                            onChange={(e) => setTempLabel(e.target.value)}
+                                            className="w-full bg-black border border-zinc-700 rounded px-3 py-2 text-white outline-none focus:border-indigo-500"
+                                            autoFocus
+                                        />
+                                        <span className="text-zinc-500 text-xs mt-1 block">Text shown on the line connecting nodes.</span>
+                                    </div>
                                 </div>
-                            </div>
-                            <div className="mt-8 flex justify-between">
-                                <Button variant="destructive" onClick={deleteEdge}>
-                                    Delete Link
-                                </Button>
-                                <div className="flex gap-2">
-                                    <Button variant="ghost" onClick={() => setEditingEdge(null)}>
-                                        Cancel
+                                <div className="mt-8 flex justify-between">
+                                    <Button variant="destructive" onClick={deleteEdge}>
+                                        Delete Link
                                     </Button>
-                                    <Button onClick={saveEdgeLabel}>
-                                        Save Label
-                                    </Button>
+                                    <div className="flex gap-2">
+                                        <Button variant="ghost" onClick={() => setEditingEdge(null)}>
+                                            Cancel
+                                        </Button>
+                                        <Button onClick={saveEdgeLabel}>
+                                            Save Label
+                                        </Button>
+                                    </div>
                                 </div>
                             </div>
                         </div>
-                    </div>
-                )}
-                {helpModalData && (
-                    <div className="fixed inset-0 z-[60] flex items-center justify-center p-4 bg-black/80 backdrop-blur-sm" onClick={() => setHelpModalData(null)}>
-                        <div className="bg-zinc-950 border border-zinc-800 p-6 rounded-xl max-w-md w-full shadow-2xl relative" onClick={(e) => e.stopPropagation()}>
-                            <button onClick={() => setHelpModalData(null)} className="absolute top-4 right-4 text-zinc-500 hover:text-white transition-colors">
-                                <X className="w-5 h-5" />
-                            </button>
-                            <h2 className="text-xl font-bold text-white mb-4 flex items-center gap-2">
-                                <CircleHelp className="w-6 h-6 text-indigo-500" />
-                                {helpModalData.title}
-                            </h2>
-                            <p className="text-zinc-300 leading-relaxed mb-6"> {helpModalData.desc} </p>
-                            <div className="bg-zinc-900/50 rounded-lg p-4 border border-zinc-800">
-                                <h3 className="text-xs font-bold text-zinc-500 uppercase tracking-wider mb-3">Example Usage</h3>
-                                <ul className="space-y-2">
-                                    {helpModalData.examples.map((ex, i) => (
-                                        <li key={i} className="flex items-start gap-2 text-sm text-zinc-400">
-                                            <span className="text-indigo-500 mt-1">•</span>
-                                            {ex}
-                                        </li>
-                                    ))}
-                                </ul>
+                    )
+                }
+                {
+                    helpModalData && (
+                        <div className="fixed inset-0 z-[60] flex items-center justify-center p-4 bg-black/80 backdrop-blur-sm" onClick={() => setHelpModalData(null)}>
+                            <div className="bg-zinc-950 border border-zinc-800 p-6 rounded-xl max-w-md w-full shadow-2xl relative" onClick={(e) => e.stopPropagation()}>
+                                <button onClick={() => setHelpModalData(null)} className="absolute top-4 right-4 text-zinc-500 hover:text-white transition-colors">
+                                    <X className="w-5 h-5" />
+                                </button>
+                                <h2 className="text-xl font-bold text-white mb-4 flex items-center gap-2">
+                                    <CircleHelp className="w-6 h-6 text-indigo-500" />
+                                    {helpModalData.title}
+                                </h2>
+                                <p className="text-zinc-300 leading-relaxed mb-6"> {helpModalData.desc} </p>
+                                <div className="bg-zinc-900/50 rounded-lg p-4 border border-zinc-800">
+                                    <h3 className="text-xs font-bold text-zinc-500 uppercase tracking-wider mb-3">Example Usage</h3>
+                                    <ul className="space-y-2">
+                                        {helpModalData.examples.map((ex, i) => (
+                                            <li key={i} className="flex items-start gap-2 text-sm text-zinc-400">
+                                                <span className="text-indigo-500 mt-1">•</span>
+                                                {ex}
+                                            </li>
+                                        ))}
+                                    </ul>
+                                </div>
                             </div>
                         </div>
-                    </div>
-                )}
-            </AnimatePresence>
+                    )
+                }
+            </AnimatePresence >
 
             {/* Validation Report Modal */}
-            <AnimatePresence>
+            < AnimatePresence >
                 {validationReport && (
                     <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/50 backdrop-blur-sm" onClick={() => setValidationReport(null)}>
                         <motion.div
@@ -901,8 +1001,8 @@ const Editor = () => {
                         </motion.div>
                     </div>
                 )}
-            </AnimatePresence>
-        </div>
+            </AnimatePresence >
+        </div >
     );
 };
 
