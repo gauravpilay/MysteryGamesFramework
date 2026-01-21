@@ -158,36 +158,32 @@ export const IdentifyNode = memo(({ id, data, selected }) => {
                         />
                     </div>
 
-                    <div className="flex gap-2 pt-2 border-t border-red-900/20">
-                        <div className="w-1/2">
-                            <p className="text-[10px] text-zinc-500 mb-1">Reward (Success)</p>
-                            <div className="flex items-center gap-1">
-                                <Plus className="w-3 h-3 text-green-500" />
+                    <div className="mt-3 p-2 bg-black/40 border border-red-900/20 rounded-lg space-y-2">
+                        <p className="text-[9px] font-bold text-red-400 uppercase tracking-wider flex items-center gap-1 mb-2">
+                            <Star className="w-3 h-3" /> Accusation Scoring
+                        </p>
+                        <div className="flex gap-2">
+                            <div className="flex-1 relative">
+                                <span className="absolute left-2 top-1.5 text-[8px] text-green-500/50 font-bold uppercase">Win</span>
                                 <InputField
                                     type="number"
                                     placeholder="0"
                                     value={data.score}
                                     onChange={(e) => handleChange('score', parseInt(e.target.value) || 0)}
-                                    className="bg-black/50 text-green-400 font-bold"
+                                    className="pl-8 text-right bg-green-950/10 border-green-900/30 text-green-400"
                                 />
                             </div>
-                        </div>
-                        <div className="w-1/2">
-                            <p className="text-[10px] text-zinc-500 mb-1">Penalty (Failure)</p>
-                            <div className="flex items-center gap-1">
-                                <Trash2 className="w-3 h-3 text-red-500" />
+                            <div className="flex-1 relative">
+                                <span className="absolute left-2 top-1.5 text-[8px] text-red-500/50 font-bold uppercase">Fail</span>
                                 <InputField
                                     type="number"
                                     placeholder="0"
                                     value={data.penalty}
                                     onChange={(e) => handleChange('penalty', parseInt(e.target.value) || 0)}
-                                    className="bg-black/50 text-red-400 font-bold"
+                                    className="pl-8 text-right bg-red-950/10 border-red-900/30 text-red-400"
                                 />
                             </div>
                         </div>
-                    </div>
-
-                    <div className="space-y-1 mt-2">
                         <ObjectiveSelector
                             value={data.learningObjectiveId}
                             onChange={(v) => handleChange('learningObjectiveId', v)}
@@ -388,15 +384,17 @@ export const StoryNode = memo(({ id, data, selected }) => {
                     value={data.text}
                     onChange={(e) => handleChange('text', e.target.value)}
                 />
-                <div className="flex flex-col gap-1 mt-2 pt-2 border-t border-blue-900/20">
-                    <div className="flex items-center gap-2">
-                        <Star className="w-3 h-3 text-yellow-500" />
+                <div className="mt-3 p-2 bg-black/40 border border-blue-900/20 rounded-lg space-y-2">
+                    <div className="flex items-center justify-between">
+                        <p className="text-[9px] font-bold text-blue-400 uppercase tracking-wider flex items-center gap-1">
+                            <Star className="w-3 h-3" /> Rewards
+                        </p>
                         <InputField
                             type="number"
-                            placeholder="Points Awarded"
+                            placeholder="Pts"
                             value={data.score}
                             onChange={(e) => handleChange('score', parseInt(e.target.value) || 0)}
-                            className="bg-black/50"
+                            className="w-20 text-right bg-blue-950/30 border-blue-900/30 text-blue-200"
                         />
                     </div>
                     <ObjectiveSelector
@@ -588,15 +586,17 @@ export const LogicNode = memo(({ id, data, selected }) => {
                     </div>
                 </div>
 
-                <div className="flex flex-col gap-1 mt-3 pt-2 border-t border-emerald-900/20">
-                    <div className="flex items-center gap-2">
-                        <Star className="w-3 h-3 text-yellow-500" />
+                <div className="mt-3 p-2 bg-black/40 border border-emerald-900/20 rounded-lg space-y-2">
+                    <div className="flex items-center justify-between">
+                        <p className="text-[9px] font-bold text-emerald-400 uppercase tracking-wider flex items-center gap-1">
+                            <Star className="w-3 h-3" /> Rewards
+                        </p>
                         <InputField
                             type="number"
-                            placeholder="Points Awarded"
+                            placeholder="Pts"
                             value={data.score}
                             onChange={(e) => handleChange('score', parseInt(e.target.value) || 0)}
-                            className="bg-black/50"
+                            className="w-20 text-right bg-emerald-950/30 border-emerald-900/30 text-emerald-200"
                         />
                     </div>
                     <ObjectiveSelector
@@ -647,32 +647,37 @@ export const TerminalNode = memo(({ id, data, selected }) => {
                             onChange={(e) => handleChange('command', e.target.value)}
                         />
                     </div>
-                    <div className="mt-2 pt-2 border-t border-zinc-800 space-y-2">
-                        <div className="flex items-center gap-2">
-                            <Star className="w-3 h-3 text-yellow-500" />
-                            <InputField
-                                type="number"
-                                placeholder="Hack Reward Points"
-                                value={data.score}
-                                onChange={(e) => handleChange('score', parseInt(e.target.value) || 0)}
-                                className="bg-black/50"
-                            />
+                    <div className="mt-3 p-2 bg-black/40 border border-green-900/20 rounded-lg space-y-2">
+                        <p className="text-[9px] font-bold text-green-400 uppercase tracking-wider flex items-center gap-1 mb-2">
+                            <Star className="w-3 h-3" /> Challenge Scoring
+                        </p>
+                        <div className="flex gap-2">
+                            <div className="flex-1 relative">
+                                <span className="absolute left-2 top-1.5 text-[8px] text-green-500/50 font-bold uppercase">Win</span>
+                                <InputField
+                                    type="number"
+                                    placeholder="0"
+                                    value={data.score}
+                                    onChange={(e) => handleChange('score', parseInt(e.target.value) || 0)}
+                                    className="pl-8 text-right bg-green-950/30 border-green-900/30 text-green-400"
+                                />
+                            </div>
+                            <div className="flex-1 relative">
+                                <span className="absolute left-2 top-1.5 text-[8px] text-red-500/50 font-bold uppercase">Fail</span>
+                                <InputField
+                                    type="number"
+                                    placeholder="0"
+                                    value={data.penalty}
+                                    onChange={(e) => handleChange('penalty', parseInt(e.target.value) || 0)}
+                                    className="pl-8 text-right bg-red-950/10 border-red-900/30 text-red-400"
+                                />
+                            </div>
                         </div>
                         <ObjectiveSelector
                             value={data.learningObjectiveId}
                             onChange={(v) => handleChange('learningObjectiveId', v)}
                             objectives={data.learningObjectives}
                         />
-                        <div className="flex items-center gap-2">
-                            <Trash2 className="w-3 h-3 text-red-500" />
-                            <InputField
-                                type="number"
-                                placeholder="Penalty (Wrong Answer)"
-                                value={data.penalty}
-                                onChange={(e) => handleChange('penalty', parseInt(e.target.value) || 0)}
-                                className="bg-black/50 text-red-400"
-                            />
-                        </div>
                     </div>
                     {/* Logic ID */}
                     <div>
@@ -967,48 +972,44 @@ export const QuestionNode = memo(({ id, data, selected }) => {
                         onChange={(e) => handleChange('question', e.target.value)}
                     />
 
-                    <div className="flex gap-2">
-                        <div className="w-1/2">
-                            <p className="text-[10px] text-zinc-500 mb-1">Type</p>
-                            <select
-                                className="w-full bg-black border border-zinc-800 rounded px-2 py-1 text-xs text-zinc-300 focus:border-indigo-500 outline-none"
-                                value={data.selectionType || 'single'}
-                                onChange={(e) => handleChange('selectionType', e.target.value)}
-                            >
-                                <option value="single">Single Select</option>
-                                <option value="multi">Multi Select</option>
-                            </select>
-                        </div>
-                        <div className="w-1/2">
-                            <p className="text-[10px] text-zinc-500 mb-1">Reward Points</p>
-                            <div className="flex items-center gap-1">
-                                <Star className="w-3 h-3 text-yellow-500" />
+                    <div className="w-1/2 mb-2">
+                        <p className="text-[10px] text-zinc-500 mb-1">Type</p>
+                        <select
+                            className="w-full bg-black border border-zinc-800 rounded px-2 py-1 text-xs text-zinc-300 focus:border-indigo-500 outline-none"
+                            value={data.selectionType || 'single'}
+                            onChange={(e) => handleChange('selectionType', e.target.value)}
+                        >
+                            <option value="single">Single Select</option>
+                            <option value="multi">Multi Select</option>
+                        </select>
+                    </div>
+
+                    <div className="mt-3 p-2 bg-black/40 border border-fuchsia-900/20 rounded-lg space-y-2">
+                        <p className="text-[9px] font-bold text-fuchsia-400 uppercase tracking-wider flex items-center gap-1 mb-2">
+                            <Star className="w-3 h-3" /> Question Scoring
+                        </p>
+                        <div className="flex gap-2">
+                            <div className="flex-1 relative">
+                                <span className="absolute left-2 top-1.5 text-[8px] text-green-500/50 font-bold uppercase">Win</span>
                                 <InputField
                                     type="number"
-                                    placeholder="Award Pts"
+                                    placeholder="0"
                                     value={data.score}
                                     onChange={(e) => handleChange('score', parseInt(e.target.value) || 0)}
-                                    className="bg-black/50"
+                                    className="pl-8 text-right bg-green-950/10 border-green-900/30 text-green-400"
                                 />
                             </div>
-                        </div>
-                    </div>
-                    <div className="flex gap-2">
-                        <div className="w-1/2">
-                            <p className="text-[10px] text-zinc-500 mb-1">Penalty Points</p>
-                            <div className="flex items-center gap-1">
-                                <Trash2 className="w-3 h-3 text-red-500" />
+                            <div className="flex-1 relative">
+                                <span className="absolute left-2 top-1.5 text-[8px] text-red-500/50 font-bold uppercase">Fail</span>
                                 <InputField
                                     type="number"
-                                    placeholder="Deduct Pts"
+                                    placeholder="0"
                                     value={data.penalty}
                                     onChange={(e) => handleChange('penalty', parseInt(e.target.value) || 0)}
-                                    className="bg-black/50 text-red-400"
+                                    className="pl-8 text-right bg-red-950/10 border-red-900/30 text-red-400"
                                 />
                             </div>
                         </div>
-                    </div>
-                    <div className="space-y-1 mt-1">
                         <ObjectiveSelector
                             value={data.learningObjectiveId}
                             onChange={(v) => handleChange('learningObjectiveId', v)}
