@@ -3,7 +3,7 @@ import { db } from '../lib/firebase';
 import { collection, query, where, getDocs, orderBy, deleteDoc, doc, writeBatch } from 'firebase/firestore';
 import { useAuth } from '../lib/auth';
 import { motion, AnimatePresence } from 'framer-motion';
-import { X, TrendingUp, Calendar, Target, Award, Clock, BarChart2, Filter, ChevronDown, CheckCircle, AlertTriangle, Trash2, Download } from 'lucide-react';
+import { X, TrendingUp, Calendar, Target, Award, Clock, BarChart2, Filter, ChevronDown, CheckCircle, AlertTriangle, Trash2, Download, CircleHelp } from 'lucide-react';
 import jsPDF from 'jspdf';
 import autoTable from 'jspdf-autotable';
 import { Button, Card } from './ui/shared';
@@ -15,6 +15,7 @@ const ProgressReportModal = ({ onClose }) => {
     const [selectedCaseId, setSelectedCaseId] = useState('all');
     const [timeRange, setTimeRange] = useState('all'); // 'all', 'week', 'month'
     const [showConfirmWipe, setShowConfirmWipe] = useState(false);
+    const [showHelp, setShowHelp] = useState(false);
 
     const [objMap, setObjMap] = useState({});
 
@@ -414,10 +415,40 @@ const ProgressReportModal = ({ onClose }) => {
                             {/* Objective Breakdown */}
                             {Object.keys(stats.objectiveStats).length > 0 && (
                                 <div className="bg-zinc-900/30 border border-zinc-800 rounded-xl p-6">
-                                    <h3 className="text-lg font-bold text-white mb-6 flex items-center gap-2">
-                                        <BarChart2 className="w-5 h-5 text-indigo-500" />
-                                        Learning Objectives Analysis
-                                    </h3>
+                                    <div className="flex items-center justify-between mb-6">
+                                        <h3 className="text-lg font-bold text-white flex items-center gap-2">
+                                            <BarChart2 className="w-5 h-5 text-indigo-500" />
+                                            Learning Objectives Analysis
+                                        </h3>
+                                        <div className="relative">
+                                            <button
+                                                onMouseEnter={() => setShowHelp(true)}
+                                                onMouseLeave={() => setShowHelp(false)}
+                                                onClick={() => setShowHelp(!showHelp)}
+                                                className="p-1.5 rounded-full hover:bg-white/10 text-zinc-500 hover:text-indigo-400 transition-all cursor-help"
+                                            >
+                                                <CircleHelp className="w-5 h-5" />
+                                            </button>
+
+                                            <AnimatePresence>
+                                                {showHelp && (
+                                                    <motion.div
+                                                        initial={{ opacity: 0, y: 10, scale: 0.95 }}
+                                                        animate={{ opacity: 1, y: 0, scale: 1 }}
+                                                        exit={{ opacity: 0, y: 10, scale: 0.95 }}
+                                                        className="absolute right-0 bottom-full mb-2 w-72 p-4 bg-zinc-900 border border-zinc-700 rounded-xl shadow-2xl z-50 pointer-events-none"
+                                                    >
+                                                        <h4 className="text-xs font-bold text-indigo-400 uppercase tracking-wider mb-2">Methodology</h4>
+                                                        <p className="text-xs text-zinc-400 leading-relaxed">
+                                                            Analysis is calculated by averaging performance scores across all mission attempts.
+                                                            <br /><br />
+                                                            Each field action is mapped to specific objectives. Successes grant positive progression, while errors or excessive hint usage can reduce the impact on that specific skill node.
+                                                        </p>
+                                                    </motion.div>
+                                                )}
+                                            </AnimatePresence>
+                                        </div>
+                                    </div>
 
                                     <div className="grid grid-cols-1 md:grid-cols-2 gap-8">
                                         {Object.entries(
