@@ -218,7 +218,7 @@ const Dashboard = () => {
                                     <h2 className="text-xs font-black text-indigo-400 uppercase tracking-[0.2em]">Command Console</h2>
                                     <div className="flex items-center gap-2 text-[10px] text-zinc-500 font-mono mt-1">
                                         <span className="w-1.5 h-1.5 rounded-full bg-emerald-500 animate-pulse"></span>
-                                        SYSTEM READY // {new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}
+                                        SYSTEM READY
                                     </div>
                                 </div>
 

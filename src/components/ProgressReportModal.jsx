@@ -3,7 +3,9 @@ import { db } from '../lib/firebase';
 import { collection, query, where, getDocs, orderBy, deleteDoc, doc, writeBatch } from 'firebase/firestore';
 import { useAuth } from '../lib/auth';
 import { motion, AnimatePresence } from 'framer-motion';
-import { X, TrendingUp, Calendar, Target, Award, Clock, BarChart2, Filter, ChevronDown, CheckCircle, AlertTriangle, Trash2 } from 'lucide-react';
+import { X, TrendingUp, Calendar, Target, Award, Clock, BarChart2, Filter, ChevronDown, CheckCircle, AlertTriangle, Trash2, Download } from 'lucide-react';
+import jsPDF from 'jspdf';
+import autoTable from 'jspdf-autotable';
 import { Button, Card } from './ui/shared';
 
 const ProgressReportModal = ({ onClose }) => {
@@ -180,6 +182,122 @@ const ProgressReportModal = ({ onClose }) => {
 
     const isAdmin = user?.role === 'Admin';
 
+    const handleExportPDF = () => {
+        const doc = new jsPDF();
+        const pageWidth = doc.internal.pageSize.getWidth();
+
+        // Title
+        doc.setFontSize(22);
+        doc.setTextColor(63, 81, 181); // Indigo color
+        doc.text("Detective Performance Record", 14, 22);
+
+        // Header Info
+        doc.setFontSize(10);
+        doc.setTextColor(100);
+        doc.text(`User Index: ${user?.email}`, 14, 32);
+        doc.text(`Generated On: ${new Date().toLocaleString()}`, 14, 37);
+        doc.text(`Report Range: ${timeRange === 'all' ? 'All Time' : timeRange === 'week' ? 'Past 7 Days' : 'Past 30 Days'}`, 14, 42);
+
+        // Stats Box
+        doc.setDrawColor(200);
+        doc.setFillColor(245, 247, 255);
+        doc.rect(14, 50, pageWidth - 28, 25, 'F');
+
+        doc.setFontSize(10);
+        doc.setTextColor(50);
+        doc.text("SUMMARY STATISTICS", 18, 56);
+
+        doc.setFontSize(12);
+        doc.setTextColor(0);
+        doc.text(`Missions: ${stats.totalGames}`, 18, 65);
+        doc.text(`Success Rate: ${stats.winRate}%`, 65, 65);
+        doc.text(`Field Time: ${Math.floor(stats.totalTime / 60)}m ${stats.totalTime % 60}s`, 120, 65);
+
+        // Learning Objectives Table
+        if (Object.keys(stats.objectiveStats).length > 0) {
+            doc.setFontSize(14);
+            doc.setTextColor(63, 81, 181);
+            doc.text("Learning Objectives Analysis", 14, 88);
+
+            const objectiveRows = Object.entries(
+                Object.entries(stats.objectiveStats).reduce((acc, [key, data]) => {
+                    let name = objMap[key] || key;
+                    if (!objMap[key]) {
+                        if (key.includes(':')) {
+                            const [prefix, suffix] = key.split(':');
+                            if (objMap[prefix]) {
+                                name = `${objMap[prefix]}: Objective ${parseInt(suffix) + 1}`;
+                            } else {
+                                name = prefix.split('_').map(s => s.charAt(0).toUpperCase() + s.slice(1)).join(' ');
+                            }
+                        }
+                    }
+                    if (!acc[name]) acc[name] = { ...data };
+                    else {
+                        acc[name].total += data.total;
+                        acc[name].count += data.count;
+                    }
+                    return acc;
+                }, {})
+            ).map(([name, data]) => [
+                name,
+                `${Math.round(data.total / data.count)}%`,
+                data.count
+            ]);
+
+            autoTable(doc, {
+                startY: 93,
+                head: [['Objective', 'Avg Score', 'Data Points']],
+                body: objectiveRows,
+                headStyles: { fillColor: [63, 81, 181] },
+                alternateRowStyles: { fillColor: [245, 247, 251] }
+            });
+        }
+
+        // Recent Sessions Table
+        const finalY = doc.lastAutoTable ? doc.lastAutoTable.finalY + 15 : 90;
+        doc.setFontSize(14);
+        doc.setTextColor(63, 81, 181);
+        doc.text("Mission History Log", 14, finalY);
+
+        const sessionRows = filteredData.map(game => [
+            new Date(game.playedAt).toLocaleDateString(),
+            game.caseTitle,
+            game.outcome.toUpperCase(),
+            `${Math.floor(game.timeSpentSeconds / 60)}m ${game.timeSpentSeconds % 60}s`,
+            `${game.score} PTS`
+        ]);
+
+        autoTable(doc, {
+            startY: finalY + 5,
+            head: [['Date', 'Mission', 'Outcome', 'Duration', 'Score']],
+            body: sessionRows,
+            headStyles: { fillColor: [45, 45, 45] },
+            alternateRowStyles: { fillColor: [250, 250, 250] },
+            columnStyles: {
+                2: { cellWidth: 30 },
+                4: { halign: 'right' }
+            }
+        });
+
+        // Footer
+        const finalPageCount = doc.internal.getNumberOfPages();
+        for (let i = 1; i <= finalPageCount; i++) {
+            doc.setPage(i);
+            doc.setFontSize(8);
+            doc.setTextColor(150);
+            doc.text(`Mystery Architect Intelligence Division - Confidential // Page ${i} of ${finalPageCount}`, pageWidth / 2, doc.internal.pageSize.getHeight() - 10, { align: 'center' });
+        }
+
+        const fileName = `Performance_Record_${user.email.split('@')[0]}.pdf`;
+        doc.save(fileName);
+
+        // Also open in new tab for immediate view
+        const pdfBlob = doc.output('blob');
+        const pdfUrl = URL.createObjectURL(pdfBlob);
+        window.open(pdfUrl, '_blank');
+    };
+
     return (
         <div className="fixed inset-0 z-[100] flex items-center justify-center p-4 bg-black/90 backdrop-blur-md">
             <motion.div
@@ -202,6 +320,10 @@ const ProgressReportModal = ({ onClose }) => {
                         </div>
                     </div>
                     <div className="flex gap-2">
+                        <Button variant="outline" className="text-zinc-400 hover:text-indigo-400 border-zinc-800" onClick={handleExportPDF}>
+                            <Download className="w-5 h-5 mr-2" />
+                            Export PDF
+                        </Button>
                         {isAdmin && (
                             <Button variant="destructive" size="icon" onClick={handleClearHistory} title="Wipe All History (Admin Only)">
                                 <Trash2 className="w-5 h-5" />
