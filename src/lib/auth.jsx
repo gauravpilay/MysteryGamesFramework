@@ -70,9 +70,11 @@ export const AuthProvider = ({ children }) => {
 
                 if (!userSnap.exists()) {
                     await setDoc(userRef, {
+                        displayName: user.displayName,
+                        photoURL: user.photoURL,
                         email: user.email,
                         role: "User",
-                        createdAt: new Date()
+                        createdAt: new Date().toISOString()
                     });
                 }
             }

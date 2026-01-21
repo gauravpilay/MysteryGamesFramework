@@ -8,6 +8,7 @@ import { Plus, FolderOpen, LogOut, Search, Trash2, Rocket, Copy, Users, BookOpen
 import { useNavigate } from 'react-router-dom';
 import { motion, AnimatePresence } from 'framer-motion';
 import ProgressReportModal from '../components/ProgressReportModal';
+import AdminProgressModal from '../components/AdminProgressModal';
 
 const Dashboard = () => {
     const { user, logout } = useAuth();
@@ -16,6 +17,7 @@ const Dashboard = () => {
     const [searchQuery, setSearchQuery] = useState('');
     const [showNewModal, setShowNewModal] = useState(false);
     const [showProgressModal, setShowProgressModal] = useState(false);
+    const [showAdminProgressModal, setShowAdminProgressModal] = useState(false);
     const [deleteId, setDeleteId] = useState(null);
     const [duplicateId, setDuplicateId] = useState(null);
     const [duplicateName, setDuplicateName] = useState('');
@@ -166,6 +168,16 @@ const Dashboard = () => {
                             <TrendingUp className="w-4 h-4" />
                             <span className="hidden md:inline">My Progress</span>
                         </Button>
+                        {isAdmin && (
+                            <Button
+                                variant="ghost"
+                                className="text-zinc-400 hover:text-white flex items-center gap-2"
+                                onClick={() => setShowAdminProgressModal(true)}
+                            >
+                                <Users className="w-4 h-4 text-purple-400" />
+                                <span className="hidden md:inline">Users Progress</span>
+                            </Button>
+                        )}
                         <div className="h-4 w-px bg-zinc-700"></div>
                         <div className="flex items-center gap-2 px-3 py-1.5 rounded-full bg-zinc-900 border border-zinc-800">
                             {user?.photoURL ? <img src={user.photoURL} alt="User" className="w-5 h-5 rounded-full" /> : <div className="w-5 h-5 rounded-full bg-indigo-500"></div>}
@@ -212,6 +224,9 @@ const Dashboard = () => {
                                 <div className="h-8 w-px bg-zinc-700 mx-2"></div>
                                 <Button variant="secondary" onClick={() => navigate('/admin/users')} className="h-11 px-5 text-base">
                                     <Users className="w-5 h-5 mr-2 text-indigo-400" /> Users
+                                </Button>
+                                <Button variant="secondary" onClick={() => setShowAdminProgressModal(true)} className="h-11 px-5 text-base hover:text-purple-400">
+                                    <TrendingUp className="w-5 h-5 mr-2 text-purple-400" /> Users Progress
                                 </Button>
                                 <Button variant="secondary" onClick={() => window.open('/USER_MANUAL.pdf', '_blank')} className="h-11 px-5 text-base">
                                     <BookOpen className="w-5 h-5 mr-2 text-indigo-400" /> Manual
@@ -348,6 +363,10 @@ const Dashboard = () => {
 
                 {showProgressModal && (
                     <ProgressReportModal onClose={() => setShowProgressModal(false)} />
+                )}
+
+                {showAdminProgressModal && isAdmin && (
+                    <AdminProgressModal onClose={() => setShowAdminProgressModal(false)} />
                 )}
             </AnimatePresence>
         </div>
