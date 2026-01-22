@@ -466,22 +466,43 @@ const CaseCard = ({ project, isAdmin, onPlay, onEdit, onDelete, onDuplicate, onT
                     </Button>
                     {isAdmin && (
                         <>
-                            <Button
-                                variant="secondary"
-                                size="icon"
-                                onClick={onEdit}
-                                title={project.status === 'published' ? "Case is Locked. Unlock to Edit." : "Edit Case"}
-                                disabled={project.status === 'published'}
-                                className={project.status === 'published' ? "opacity-50 cursor-not-allowed bg-zinc-900/50" : "hover:text-indigo-400"}
-                            >
-                                <Pencil className="w-4 h-4" />
-                            </Button>
+                            <div className="relative group/tooltip">
+                                <Button
+                                    variant="secondary"
+                                    size="icon"
+                                    onClick={onEdit}
+                                    disabled={project.status === 'published'}
+                                    className={project.status === 'published' ? "opacity-50 cursor-not-allowed bg-zinc-900/50" : "hover:text-indigo-400"}
+                                >
+                                    <Pencil className="w-4 h-4" />
+                                </Button>
+                                {project.status === 'published' && (
+                                    <div className="absolute bottom-full left-1/2 -translate-x-1/2 mb-2 px-3 py-1.5 bg-zinc-900 border border-zinc-700 text-[10px] text-zinc-300 rounded shadow-2xl opacity-0 group-hover/tooltip:opacity-100 transition-opacity pointer-events-none whitespace-nowrap z-50">
+                                        Case is Live. <span className="text-indigo-400 font-bold">Unlock</span> above to edit.
+                                        <div className="absolute top-full left-1/2 -translate-x-1/2 border-8 border-transparent border-t-zinc-900"></div>
+                                    </div>
+                                )}
+                            </div>
                             <Button variant="secondary" size="icon" onClick={onDuplicate} title="Duplicate">
                                 <Copy className="w-4 h-4" />
                             </Button>
-                            <Button variant="ghost" size="icon" onClick={onDelete} className="text-zinc-500 hover:text-red-400 hover:bg-red-950/30">
-                                <Trash2 className="w-4 h-4" />
-                            </Button>
+                            <div className="relative group/tooltip">
+                                <Button
+                                    variant="ghost"
+                                    size="icon"
+                                    onClick={onDelete}
+                                    disabled={project.status === 'published'}
+                                    className={project.status === 'published' ? "opacity-30 cursor-not-allowed" : "text-zinc-500 hover:text-red-400 hover:bg-red-950/30"}
+                                >
+                                    <Trash2 className="w-4 h-4" />
+                                </Button>
+                                {project.status === 'published' && (
+                                    <div className="absolute bottom-full left-1/2 -translate-x-1/2 mb-2 px-3 py-1.5 bg-zinc-900 border border-zinc-700 text-[10px] text-zinc-300 rounded shadow-2xl opacity-0 group-hover/tooltip:opacity-100 transition-opacity pointer-events-none whitespace-nowrap z-50">
+                                        Case is Live. <span className="text-indigo-400 font-bold">Unlock</span> above to delete.
+                                        <div className="absolute top-full left-1/2 -translate-x-1/2 border-8 border-transparent border-t-zinc-900"></div>
+                                    </div>
+                                )}
+                            </div>
                         </>
                     )}
                 </div>
