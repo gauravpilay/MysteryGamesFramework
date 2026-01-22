@@ -1688,71 +1688,77 @@ const GamePreview = ({ nodes, edges, onClose, gameMetadata, onGameEnd }) => {
                                                         <Search className="w-24 h-24 text-white" />
                                                     </div>
 
-                                                    <div className="flex items-center justify-between mb-6">
-                                                        <div className="flex items-center gap-3">
-                                                            <div className="w-8 h-8 rounded-lg bg-amber-500/10 border border-amber-500/30 flex items-center justify-center">
-                                                                <Search className="w-4 h-4 text-amber-500" />
-                                                            </div>
-                                                            <div>
-                                                                <h4 className="text-sm font-black text-white uppercase tracking-wider">Confront with Evidence</h4>
-                                                                <p className="text-[10px] text-zinc-500 uppercase font-bold tracking-tight">Challenge the subject's statement to force a breakthrough</p>
-                                                            </div>
-                                                        </div>
-                                                        <div className="px-3 py-1 bg-amber-500/10 border border-amber-500/20 rounded-full">
-                                                            <span className="text-[9px] font-black text-amber-500 uppercase">{Array.from(inventory).length} Items Logged</span>
-                                                        </div>
-                                                    </div>
+                                                    {(() => {
+                                                        const collectedEvidence = Array.from(inventory)
+                                                            .map(id => nodes.find(n => n.id === id && n.type === 'evidence'))
+                                                            .filter(Boolean);
 
-                                                    {inventory.size > 0 ? (
-                                                        <div className="grid grid-cols-2 sm:grid-cols-4 md:grid-cols-6 lg:grid-cols-8 gap-4">
-                                                            {Array.from(inventory).map(id => {
-                                                                const eNode = nodes.find(n => n.id === id && n.type === 'evidence');
-                                                                if (!eNode) return null;
-                                                                return (
-                                                                    <motion.button
-                                                                        key={id}
-                                                                        whileHover={{ y: -5, scale: 1.05 }}
-                                                                        whileTap={{ scale: 0.95 }}
-                                                                        onClick={() => {
-                                                                            const match = edges.find(e =>
-                                                                                e.source === activeModalNode.id &&
-                                                                                (e.label?.toLowerCase() === eNode.data.label?.toLowerCase() || e.data?.evidenceId === id)
-                                                                            );
-                                                                            if (match) {
-                                                                                addLog(`BREAKTHROUGH: Subject's story collapsed when confronted with ${eNode.data.label}.`);
-                                                                                setActiveModalNode(null);
-                                                                                setIsConfronting(false);
-                                                                                handleOptionClick(match.target);
-                                                                            } else {
-                                                                                addLog(`STALEMATE: ${activeModalNode.data.name} remains defiant. ${eNode.data.label} was dismissed.`);
-                                                                            }
-                                                                        }}
-                                                                        className="group"
-                                                                    >
-                                                                        <div className="aspect-square bg-zinc-900 border border-zinc-800 rounded-2xl overflow-hidden group-hover:border-amber-500 transition-all shadow-lg shadow-black/80 relative">
-                                                                            {eNode.data.image ? (
-                                                                                <img src={eNode.data.image} alt="" className="w-full h-full object-cover grayscale opacity-60 group-hover:grayscale-0 group-hover:opacity-100 transition-all duration-500" />
-                                                                            ) : (
-                                                                                <div className="w-full h-full flex items-center justify-center">
-                                                                                    <Search className="w-6 h-6 text-zinc-800 group-hover:text-amber-500" />
-                                                                                </div>
-                                                                            )}
-                                                                            <div className="absolute inset-0 bg-gradient-to-t from-black via-black/20 to-transparent opacity-60 group-hover:opacity-20 transition-opacity" />
-                                                                            <div className="absolute inset-x-0 bottom-0 p-2 text-center pointer-events-none">
-                                                                                <div className="text-[8px] font-black text-white/50 group-hover:text-white uppercase truncate tracking-widest">{eNode.data.label}</div>
-                                                                            </div>
+                                                        return (
+                                                            <>
+                                                                <div className="flex items-center justify-between mb-6">
+                                                                    <div className="flex items-center gap-3">
+                                                                        <div className="w-8 h-8 rounded-lg bg-amber-500/10 border border-amber-500/30 flex items-center justify-center">
+                                                                            <Search className="w-4 h-4 text-amber-500" />
                                                                         </div>
-                                                                    </motion.button>
-                                                                );
-                                                            })}
-                                                        </div>
-                                                    ) : (
-                                                        <div className="py-12 flex flex-col items-center justify-center border-2 border-dashed border-zinc-900 rounded-3xl bg-zinc-900/10">
-                                                            <Briefcase className="w-10 h-10 text-zinc-800 mb-4" />
-                                                            <p className="text-zinc-600 font-bold uppercase tracking-widest text-xs">No physical evidence in possession</p>
-                                                            <p className="text-[10px] text-zinc-700 mt-1 uppercase">Acquire clues from the field to proceed</p>
-                                                        </div>
-                                                    )}
+                                                                        <div>
+                                                                            <h4 className="text-sm font-black text-white uppercase tracking-wider">Confront with Evidence</h4>
+                                                                            <p className="text-[10px] text-zinc-500 uppercase font-bold tracking-tight">Challenge the subject's statement to force a breakthrough</p>
+                                                                        </div>
+                                                                    </div>
+                                                                    <div className="px-3 py-1 bg-amber-500/10 border border-amber-500/20 rounded-full">
+                                                                        <span className="text-[9px] font-black text-amber-500 uppercase">{collectedEvidence.length} Items Logged</span>
+                                                                    </div>
+                                                                </div>
+
+                                                                {collectedEvidence.length > 0 ? (
+                                                                    <div className="grid grid-cols-2 sm:grid-cols-4 md:grid-cols-6 lg:grid-cols-8 gap-4">
+                                                                        {collectedEvidence.map(eNode => (
+                                                                            <motion.button
+                                                                                key={eNode.id}
+                                                                                whileHover={{ y: -5, scale: 1.05 }}
+                                                                                whileTap={{ scale: 0.95 }}
+                                                                                onClick={() => {
+                                                                                    const match = edges.find(e =>
+                                                                                        e.source === activeModalNode.id &&
+                                                                                        (e.label?.toLowerCase() === eNode.data.label?.toLowerCase() || e.data?.evidenceId === eNode.id)
+                                                                                    );
+                                                                                    if (match) {
+                                                                                        addLog(`BREAKTHROUGH: Subject's story collapsed when confronted with ${eNode.data.label}.`);
+                                                                                        setActiveModalNode(null);
+                                                                                        setIsConfronting(false);
+                                                                                        handleOptionClick(match.target);
+                                                                                    } else {
+                                                                                        addLog(`STALEMATE: ${activeModalNode.data.name} remains defiant. ${eNode.data.label} was dismissed.`);
+                                                                                    }
+                                                                                }}
+                                                                                className="group"
+                                                                            >
+                                                                                <div className="aspect-square bg-zinc-900 border border-zinc-800 rounded-2xl overflow-hidden group-hover:border-amber-500 transition-all shadow-lg shadow-black/80 relative">
+                                                                                    {eNode.data.image ? (
+                                                                                        <img src={eNode.data.image} alt="" className="w-full h-full object-cover grayscale opacity-60 group-hover:grayscale-0 group-hover:opacity-100 transition-all duration-500" />
+                                                                                    ) : (
+                                                                                        <div className="w-full h-full flex items-center justify-center">
+                                                                                            <Search className="w-6 h-6 text-zinc-800 group-hover:text-amber-500" />
+                                                                                        </div>
+                                                                                    )}
+                                                                                    <div className="absolute inset-0 bg-gradient-to-t from-black via-black/20 to-transparent opacity-60 group-hover:opacity-20 transition-opacity" />
+                                                                                    <div className="absolute inset-x-0 bottom-0 p-2 text-center pointer-events-none">
+                                                                                        <div className="text-[8px] font-black text-white/50 group-hover:text-white uppercase truncate tracking-widest">{eNode.data.label}</div>
+                                                                                    </div>
+                                                                                </div>
+                                                                            </motion.button>
+                                                                        ))}
+                                                                    </div>
+                                                                ) : (
+                                                                    <div className="py-12 flex flex-col items-center justify-center border-2 border-dashed border-zinc-900 rounded-3xl bg-zinc-900/10">
+                                                                        <Briefcase className="w-10 h-10 text-zinc-800 mb-4" />
+                                                                        <p className="text-zinc-600 font-bold uppercase tracking-widest text-xs">No physical evidence in possession</p>
+                                                                        <p className="text-[10px] text-zinc-700 mt-1 uppercase">Acquire clues from the field to proceed</p>
+                                                                    </div>
+                                                                )}
+                                                            </>
+                                                        );
+                                                    })()}
                                                 </div>
                                             </div>
 
