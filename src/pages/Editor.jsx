@@ -6,14 +6,18 @@ import ReactFlow, {
     useEdgesState,
     Controls,
     Background,
-    MiniMap
+    MiniMap,
+    useReactFlow,
 } from 'reactflow';
 import 'reactflow/dist/style.css';
 import { useParams, useNavigate } from 'react-router-dom';
 import { Button } from '../components/ui/shared';
 import { Logo } from '../components/ui/Logo';
-import { Save, ArrowLeft, X, FileText, User, Search, GitMerge, Terminal, MessageSquare, CircleHelp, Play, Settings, Music, Image as ImageIcon, MousePointerClick, Fingerprint, Bell, HelpCircle, ChevronLeft, ChevronRight, ToggleLeft, Lock, Sun, Moon, Stethoscope, Unlock, Binary, Grid3x3, CheckCircle, AlertTriangle, Plus, Trash2, Target } from 'lucide-react';
-import { StoryNode, SuspectNode, EvidenceNode, LogicNode, TerminalNode, MessageNode, MusicNode, MediaNode, ActionNode, IdentifyNode, NotificationNode, QuestionNode, SetterNode, LockpickNode, DecryptionNode, KeypadNode, InputField } from '../components/nodes/CustomNodes';
+import { Save, ArrowLeft, X, FileText, User, Search, GitMerge, Terminal, MessageSquare, CircleHelp, Play, Settings, Music, Image as ImageIcon, MousePointerClick, Fingerprint, Bell, HelpCircle, ChevronLeft, ChevronRight, ToggleLeft, Lock, Sun, Moon, Stethoscope, Unlock, Binary, Grid3x3, CheckCircle, AlertTriangle, Plus, Trash2, Target, Box, FolderOpen } from 'lucide-react';
+import { StoryNode, SuspectNode, EvidenceNode, LogicNode, TerminalNode, MessageNode, MusicNode, MediaNode, ActionNode, IdentifyNode, NotificationNode, QuestionNode, SetterNode, LockpickNode, DecryptionNode, KeypadNode, GroupNode, InputField } from '../components/nodes/CustomNodes';
+function FolderNode(props) {
+    return <GroupNode {...props} />;
+}
 import { TutorialOverlay } from '../components/ui/TutorialOverlay';
 import GamePreview from '../components/GamePreview';
 import { AnimatePresence, motion } from 'framer-motion';
@@ -103,10 +107,16 @@ const NODE_HELP = {
         title: "Security Keypad",
         desc: "A numeric keypad interface. Requires the player to enter a specific code found elsewhere.",
         examples: ["Vault Door", "Armory Access", "Phone Unlock"]
+    },
+    group: {
+        title: "Sub-Graph Group",
+        desc: "A container for organizing nodes. Collapse it to hide internal logic or dialogue trees.",
+        examples: ["Act 1 Scene", "Side Investigation", "Complex Dialogue Tree"]
     }
 };
 
 const PALETTE_ITEMS = [
+    { type: 'group', label: 'Node Group (Folder)', icon: FolderOpen, className: "hover:border-amber-500/50", iconClass: "text-amber-500" },
     { type: 'story', label: 'Story Narrative', icon: FileText, className: "hover:border-indigo-500/50", iconClass: "text-blue-400" },
     { type: 'suspect', label: 'Suspect', icon: User, className: "hover:border-red-500/50", iconClass: "text-red-400" },
     { type: 'evidence', label: 'Evidence Item', icon: Search, className: "hover:border-yellow-500/50", iconClass: "text-yellow-400" },
@@ -132,6 +142,7 @@ const Editor = () => {
     const reactFlowWrapper = useRef(null);
     const [nodes, setNodes, onNodesChange] = useNodesState([]);
     const [edges, setEdges, onEdgesChange] = useEdgesState([]);
+    const { getIntersectingNodes } = useReactFlow();
     const [helpModalData, setHelpModalData] = useState(null);
     const [reactFlowInstance, setReactFlowInstance] = useState(null);
     const [showTutorial, setShowTutorial] = useState(false);
@@ -199,7 +210,8 @@ const Editor = () => {
         setter: SetterNode,
         lockpick: LockpickNode,
         decryption: DecryptionNode,
-        keypad: KeypadNode
+        keypad: KeypadNode,
+        group: FolderNode
     }), []);
 
     const [editingEdge, setEditingEdge] = useState(null); // { id: string, label: string }
@@ -208,12 +220,55 @@ const Editor = () => {
     // Update handler
     const onNodeUpdate = useCallback((id, newData) => {
         if (isLocked) return;
-        setNodes((nds) => nds.map((node) => {
-            if (node.id === id) {
-                return { ...node, data: { ...newData, onChange: onNodeUpdate } };
+        setNodes((nds) => {
+            const updatedNodes = nds.map((node) => {
+                if (node.id === id) {
+                    const isClosing = newData.collapsed && !node.data.collapsed;
+                    const isOpening = !newData.collapsed && node.data.collapsed;
+
+                    let nextData = { ...newData, onChange: onNodeUpdate };
+
+                    if (isClosing) {
+                        // Store current dimensions before collapsing
+                        nextData.expandedSize = {
+                            width: node.width || (node.style?.width),
+                            height: node.height || (node.style?.height)
+                        };
+                        return {
+                            ...node,
+                            data: nextData,
+                            style: { width: 224, height: 56 },
+                            width: 224,
+                            height: 56
+                        };
+                    } else if (isOpening) {
+                        // Restore previous dimensions
+                        const size = newData.expandedSize || { width: 600, height: 400 };
+                        return {
+                            ...node,
+                            data: nextData,
+                            style: { ...size },
+                            width: size.width,
+                            height: size.height
+                        };
+                    }
+
+                    return { ...node, data: nextData };
+                }
+                return node;
+            });
+
+            const targetNode = updatedNodes.find(n => n.id === id);
+            if (targetNode && targetNode.type === 'group') {
+                return updatedNodes.map(n => {
+                    if (n.parentNode === id) {
+                        return { ...n, hidden: !!targetNode.data.collapsed };
+                    }
+                    return n;
+                });
             }
-            return node;
-        }));
+            return updatedNodes;
+        });
     }, [setNodes, isLocked]);
 
     const onConnect = useCallback((params) => {
@@ -251,6 +306,54 @@ const Editor = () => {
         event.dataTransfer.dropEffect = 'move';
     }, []);
 
+    const onNodeDragStop = useCallback((_, node) => {
+        if (node.type === 'group' || node.parentNode) return;
+
+        const intersections = getIntersectingNodes(node);
+        const parentGroup = intersections.find(n => n.type === 'group' && !n.data.collapsed);
+
+        if (parentGroup) {
+            setNodes((nds) => nds.map((n) => {
+                if (n.id === node.id) {
+                    return {
+                        ...n,
+                        parentNode: parentGroup.id,
+                        extent: 'parent',
+                        position: {
+                            x: n.position.x - parentGroup.position.x,
+                            y: n.position.y - parentGroup.position.y
+                        }
+                    };
+                }
+                return n;
+            }));
+        }
+    }, [getIntersectingNodes, setNodes]);
+
+    const onUngroup = useCallback((groupId) => {
+        if (isLocked) return;
+        setNodes(nds => {
+            const parent = nds.find(n => n.id === groupId);
+            if (!parent) return nds;
+
+            return nds.filter(n => n.id !== groupId).map(n => {
+                if (n.parentNode === groupId) {
+                    return {
+                        ...n,
+                        parentNode: undefined,
+                        extent: undefined,
+                        position: {
+                            x: n.position.x + parent.position.x,
+                            y: n.position.y + parent.position.y
+                        },
+                        hidden: false
+                    };
+                }
+                return n;
+            });
+        });
+    }, [setNodes, isLocked]);
+
     // Generic Duplicate Handler
     const onDuplicateNode = useCallback((id) => {
         if (isLocked) return;
@@ -270,6 +373,7 @@ const Editor = () => {
                     label: `${nodeToDuplicate.data.label} (Copy)`,
                     onChange: onNodeUpdate, // Ensure handlers are attached
                     onDuplicate: onDuplicateNode,
+                    onUngroup: onUngroup,
                 },
                 selected: false, // Don't auto-select to avoid confusion or keep false
             };
@@ -286,6 +390,7 @@ const Editor = () => {
                     ...node.data,
                     onChange: onNodeUpdate,
                     onDuplicate: onDuplicateNode,
+                    onUngroup: onUngroup,
                     learningObjectives // Inject global objectives
                 }
             })));
@@ -307,10 +412,12 @@ const Editor = () => {
             id: crypto.randomUUID(),
             type,
             position,
+            style: type === 'group' ? { width: 600, height: 400 } : undefined,
             data: {
-                label: `${type} node`,
+                label: type === 'group' ? 'New Group' : `${type} node`,
                 onChange: onNodeUpdate,
                 onDuplicate: onDuplicateNode,
+                onUngroup: onUngroup,
                 learningObjectives
             },
         };
@@ -634,6 +741,46 @@ const Editor = () => {
         setShowPreview(false);
     };
 
+    const groupSelectedNodes = useCallback(() => {
+        if (isLocked) return;
+        const selectedNodes = nodes.filter(n => n.selected && n.type !== 'group');
+        if (selectedNodes.length === 0) return;
+
+        const minX = Math.min(...selectedNodes.map(n => n.position.x));
+        const minY = Math.min(...selectedNodes.map(n => n.position.y));
+        const maxX = Math.max(...selectedNodes.map(n => n.position.x + (n.width || 300)));
+        const maxY = Math.max(...selectedNodes.map(n => n.position.y + (n.height || 200)));
+
+        const groupId = crypto.randomUUID();
+        const width = (maxX - minX) + 80;
+        const height = (maxY - minY) + 100;
+        const groupNode = {
+            id: groupId,
+            type: 'group',
+            position: { x: minX - 40, y: minY - 60 },
+            style: { width, height },
+            width,
+            height,
+            data: {
+                label: 'New Group',
+                collapsed: false,
+                onChange: onNodeUpdate,
+                onUngroup: onUngroup
+            }
+        };
+
+        setNodes(nds => [
+            ...nds.map(n => n.selected ? {
+                ...n,
+                parentNode: groupId,
+                extent: 'parent',
+                position: { x: n.position.x - (minX - 40), y: n.position.y - (minY - 60) },
+                selected: false
+            } : n),
+            groupNode
+        ]);
+    }, [nodes, setNodes, onNodeUpdate, isLocked]);
+
     return (
         <div className={`flex h-screen w-screen flex-col overflow-hidden transition-colors duration-300 relative selection:bg-indigo-500/30 font-sans ${isDarkMode ? 'bg-black text-white' : 'bg-zinc-50 text-zinc-900'}`}>
 
@@ -697,6 +844,17 @@ const Editor = () => {
                         </Button>
                         <Button variant="ghost" size="icon" onClick={() => setShowSettings(true)} title="Game Settings" disabled={isLocked} className="h-8 w-8">
                             <Settings className={`w-4 h-4 ${isDarkMode ? 'text-zinc-400' : 'text-zinc-600'}`} />
+                        </Button>
+                        <div className={`w-px h-4 ${isDarkMode ? 'bg-white/10' : 'bg-zinc-300'}`}></div>
+                        <Button
+                            variant="ghost"
+                            size="icon"
+                            onClick={groupSelectedNodes}
+                            title="Group Selected Nodes"
+                            disabled={isLocked || nodes.filter(n => n.selected).length < 1}
+                            className={`h-8 w-8 ${nodes.filter(n => n.selected).length > 0 ? 'text-amber-500' : ''}`}
+                        >
+                            <Box className="w-4 h-4" />
                         </Button>
                     </div>
 
@@ -808,6 +966,7 @@ const Editor = () => {
                         edgesFocusable={!isLocked}
                         onDrop={onDrop}
                         onDragOver={onDragOver}
+                        onNodeDragStop={onNodeDragStop}
                         onEdgeClick={onEdgeClick}
                         nodeTypes={nodeTypes}
                         deleteKeyCode={['Backspace', 'Delete']}

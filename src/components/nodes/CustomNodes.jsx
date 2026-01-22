@@ -1,6 +1,6 @@
 import React, { memo, useState, useRef, useEffect } from 'react';
-import { Handle, Position } from 'reactflow';
-import { FileText, User, Search, GitMerge, Terminal, MessageSquare, Music, Image as ImageIcon, Star, MousePointerClick, Trash2, Plus, Copy, Fingerprint, Bell, HelpCircle, ToggleLeft, Unlock, Binary, Grid3x3 } from 'lucide-react';
+import { Handle, Position, NodeResizer } from 'reactflow';
+import { FileText, User, Search, GitMerge, Terminal, MessageSquare, Music, Image as ImageIcon, Star, MousePointerClick, Trash2, Plus, Copy, Fingerprint, Bell, HelpCircle, ToggleLeft, Unlock, Binary, Grid3x3, Folder, ChevronDown, ChevronUp, Maximize } from 'lucide-react';
 import { storage } from '../../lib/firebase';
 import { ref, uploadBytes, getDownloadURL } from 'firebase/storage';
 
@@ -1311,3 +1311,80 @@ const ObjectiveSelector = ({ values = [], onChange, objectives }) => {
         </div>
     );
 };
+
+export const GroupNode = memo(({ id, data, selected }) => {
+    const isCollapsed = data.collapsed;
+    const handleChange = (key, val) => {
+        data.onChange && data.onChange(id, { ...data, [key]: val });
+    };
+
+    return (
+        <>
+            {!isCollapsed && (
+                <NodeResizer
+                    minWidth={300}
+                    minHeight={200}
+                    isVisible={selected}
+                    lineClassName="!border-indigo-500"
+                    handleClassName="!h-3 !w-3 !bg-white !border-2 !border-indigo-500 !rounded"
+                />
+            )}
+            <div
+                className={`rounded-2xl border-2 transition-all duration-300 relative overflow-hidden pointer-events-none
+                    ${selected ? 'border-indigo-500 bg-indigo-500/5 shadow-[0_0_30px_rgba(99,102,241,0.2)]' : 'border-zinc-800 border-dashed bg-zinc-950/40'} 
+                    ${isCollapsed ? 'w-56 h-14' : 'w-full h-full'}`}
+            >
+                {/* Background Instruction (Behind nodes) */}
+                {!isCollapsed && (
+                    <div className="absolute inset-0 z-[-1] pointer-events-none opacity-40 flex items-center justify-center">
+                        <div className="border-2 border-indigo-500/10 inset-8 absolute rounded-3xl border-dashed flex items-center justify-center">
+                            <div className="text-[10px] text-zinc-800 font-black uppercase tracking-[0.4em] animate-pulse">
+                                Drop Items Here
+                            </div>
+                        </div>
+                    </div>
+                )}
+
+                {/* Header */}
+                <div className={`p-3 h-14 flex items-center justify-between gap-2 relative z-10 pointer-events-auto transition-colors
+                    ${isCollapsed ? 'bg-zinc-900 border border-zinc-700 shadow-xl rounded-2xl' : 'border-b border-zinc-800/50 bg-zinc-900/60'}`}>
+
+                    <div className="flex items-center gap-3 flex-1 min-w-0">
+                        <div className={`p-1.5 rounded-lg transition-all shadow-inner
+                            ${isCollapsed ? 'bg-amber-500 text-black shadow-amber-500/20' : 'bg-zinc-800 text-zinc-400'}`}>
+                            <Folder className="w-4 h-4" />
+                        </div>
+                        <div className="flex flex-col min-w-0 flex-1">
+                            {isCollapsed && <span className="text-[7px] font-black text-amber-500 uppercase tracking-tighter mb-0.5 opacity-70">Sub-Graph</span>}
+                            <input
+                                className="bg-transparent border-none text-[11px] font-black uppercase tracking-widest text-zinc-100 focus:outline-none w-full nodrag truncate"
+                                value={data.label || 'New Sub-Graph'}
+                                onChange={(e) => handleChange('label', e.target.value)}
+                                placeholder="Group Name"
+                            />
+                        </div>
+                    </div>
+
+                    <div className="flex items-center gap-1 shrink-0">
+                        {data.onUngroup && !isCollapsed && (
+                            <button
+                                onClick={() => data.onUngroup(id)}
+                                className="p-1.5 hover:bg-white/10 rounded-lg transition-colors text-zinc-500 hover:text-white nodrag"
+                                title="Dissolve Group"
+                            >
+                                <Maximize className="w-3.5 h-3.5" />
+                            </button>
+                        )}
+                        <button
+                            onClick={() => handleChange('collapsed', !isCollapsed)}
+                            className={`p-2 rounded-xl transition-all nodrag shadow-lg
+                                ${isCollapsed ? 'bg-zinc-800 text-white hover:bg-zinc-700 border border-zinc-700' : 'hover:bg-white/10 text-zinc-500 hover:text-white'}`}
+                        >
+                            {isCollapsed ? <ChevronDown className="w-4 h-4" /> : <ChevronUp className="w-4 h-4" />}
+                        </button>
+                    </div>
+                </div>
+            </div>
+        </>
+    );
+});

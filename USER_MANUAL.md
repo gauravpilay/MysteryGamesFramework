@@ -22,6 +22,8 @@ Welcome to the Mystery Games Framework Editor! This manual provides a detailed e
 16. [Decryption Minigame](#16-decryption-minigame)
 17. [Keypad Lock](#17-keypad-lock)
 18. [Tutorial: Building Your First Mystery](#18-tutorial-building-your-first-mystery)
+19. [Crazy Wall: The Investigative Canvas](#19-crazy-wall-the-investigative-canvas)
+20. [Evidence Confrontation System](#20-evidence-confrontation-system)
 
 ---
 
@@ -290,6 +292,68 @@ Now, let's make Alice reveal more info *only if* the player has the evidence.
     *   **Configuration:** Mark "Intern Bob" as the correct answer (based on Alice's witness account).
 
 **Congratulations!** You have built a dynamic mystery game with branching dialogue, inventory-based logic, and a challenging conclusion.
+
+---
+
+### 19. Crazy Wall: The Investigative Canvas
+
+The **Crazy Wall** (Neural Investigative Canvas) is the player's primary deduction tool. It allows you to visualize connections between suspects, evidence, and your own custom notes.
+
+#### How to use the Canvas:
+*   **The Evidence Locker:** Open the sidebar on the left to see all your **Unlocked Suspects** and **Evidence**. Click the `+` icon to pin them to your board.
+*   **Draggable Interface:** Click and drag any item to organize your thoughts.
+*   **Creating Links:** Click the `Link` icon on one item, then click the `Link` icon on another to draw a "Red String" connection.
+*   **Connection Labels:** Click on any red string to add a text label, helping you define relationships (e.g., "Motive?", "Was Seen With").
+*   **Sticky Notes:** Use the `Sticky Note` icon in the sidebar to add custom text boxes for your theories.
+*   **Dossier Revisit:** Click the `FileText` icon on a Suspect card to jump back into their interrogation/profile at any time.
+
+---
+
+### 20. Evidence Confrontation System
+
+The **Evidence Confrontation System** allows players to use physical evidence to "break" a suspect during interrogation.
+
+#### Player Experience:
+1.  Open a **Suspect Dossier**.
+2.  Click **"Select Evidence"** in the Confrontation panel.
+3.  Choose an item from your collected inventory.
+4.  If the item is relevant, the suspect will react (triggering a story path). If not, they will dismiss the clue.
+
+#### Editor Setup (Pictorial Logic):
+To implement this in your game, you must name your outgoing lines (edges) to match the **Evidence Label**. 
+
+```mermaid
+graph LR
+    S[Suspect Node: Col. Mustard] -- label: 'Bloody Knife' --> R[Story Node: Mustard Confesses]
+    S -- label: 'Signed Letter' --> R2[Story Node: Mustard Lies]
+    
+    subgraph "In Player's Inventory"
+    E1[Evidence: Bloody Knife]
+    E2[Evidence: Signed Letter]
+    end
+```
+
+**Workflow Summary:**
+*   **Step 1:** Create an **Evidence Node** and give it a clear name (e.g., `Encryption Key`).
+*   **Step 2:** Create a **Suspect Node**.
+*   **Step 3:** Draw a line from the Suspect to the next Story Node.
+*   **Step 4:** Set that line's **Label** to `Encryption Key`. 
+
+The system now knows that when the player presents the "Encryption Key" to that suspect, it should follow that specific path!
+
+### 21. Node Grouping (Sub-Graphs)
+
+As your mystery becomes more complex, you can use **Node Grouping** to keep your canvas clean and organized.
+
+#### How to Group Nodes:
+1.  **Selection grouping:** Select multiple nodes on the canvas (Shift + Drag).
+2.  **The Box Icon:** Click the **Box (Package)** icon in the top toolbar. This will bundle all selected nodes into a single folder.
+3.  **Manual grouping:** Drag a **Node Group** (Folder icon) from the sidebar palette onto the canvas. You can then drag other nodes into it.
+
+#### Managing Groups:
+*   **Collapse/Expand:** Click the **Chevron** icon in the group header. Collapsing a group hides all its internal nodes, saving space.
+*   **Move as One:** Moving the group folder moves all internal nodes with it.
+*   **Ungroup (Dissolve):** Click the **Maximize** icon in the group header to remove the folder and return all nodes to the main canvas level.
 
 ---
 
