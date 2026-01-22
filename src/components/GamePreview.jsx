@@ -1102,6 +1102,32 @@ const GamePreview = ({ nodes, edges, onClose, gameMetadata, onGameEnd }) => {
         }
     };
 
+    const handleCloseModal = () => {
+        if (!activeModalNode) return;
+
+        // If the modal node is the current navigational node, closing it should revert to the previous one
+        if (activeModalNode.id === currentNodeId && history.length > 0) {
+            // Find the last node in history that isn't a pass-through node (logic, setter, music)
+            const backtrack = [...history].reverse();
+            const lastStableNodeId = backtrack.find(id => {
+                const node = nodes.find(n => n.id === id);
+                return node && !['logic', 'setter', 'music'].includes(node.type);
+            });
+
+            if (lastStableNodeId) {
+                setCurrentNodeId(lastStableNodeId);
+                // Clean up history to before that transition
+                const targetIndex = history.lastIndexOf(lastStableNodeId);
+                if (targetIndex !== -1) {
+                    setHistory(prev => prev.slice(0, targetIndex));
+                }
+            }
+        }
+
+        setActiveModalNode(null);
+        setIsConfronting(false);
+    };
+
     // Helper to get nice labels for buttons
     const getEdgeLabel = (node) => {
         if (!node) return "Continue";
@@ -1288,7 +1314,13 @@ const GamePreview = ({ nodes, edges, onClose, gameMetadata, onGameEnd }) => {
                             Identify Culprit
                         </Button>
                     )}
-                    <Button variant="ghost" onClick={onClose}>
+                    <Button variant="ghost" onClick={() => {
+                        if (activeModalNode) handleCloseModal();
+                        else if (showEvidenceBoard) setShowEvidenceBoard(false);
+                        else if (showAccuseModal) setShowAccuseModal(false);
+                        else if (zoomedImage) setZoomedImage(null);
+                        else onClose();
+                    }}>
                         <X className="w-5 h-5" />
                     </Button>
                 </div>
@@ -1616,6 +1648,13 @@ const GamePreview = ({ nodes, edges, onClose, gameMetadata, onGameEnd }) => {
                             exit={{ scale: 0.9, opacity: 0 }}
                             className="bg-zinc-950 border border-zinc-800 p-0 rounded-2xl max-w-2xl w-full relative overflow-hidden shadow-2xl shadow-black max-h-[90vh] flex flex-col"
                         >
+                            {/* Modal Close Button */}
+                            <button
+                                onClick={handleCloseModal}
+                                className="absolute top-4 right-4 z-[110] p-2 bg-black/40 hover:bg-black/60 text-zinc-400 hover:text-white rounded-full backdrop-blur-md transition-all border border-white/5 hover:border-white/20"
+                            >
+                                <X className="w-5 h-5" />
+                            </button>
                             {activeModalNode.type === 'suspect' && (
                                 <div className="flex flex-col flex-1 overflow-hidden">
                                     <div className="h-32 bg-gradient-to-r from-zinc-900 to-black relative shrink-0">
