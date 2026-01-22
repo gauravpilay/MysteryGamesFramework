@@ -37,13 +37,7 @@ const ProgressReportModal = ({ onClose }) => {
                         const snapshot = await getDocs(q);
                         data = snapshot.docs.map(d => ({ id: d.id, ...d.data() }));
 
-                        // Fetch relevant cases to build Objective Map
-                        const caseIds = [...new Set(data.map(d => d.caseId))];
-                        // Firestore 'in' query supports up to 10 items. If more, we might need multiple queries or just fetch all cases.
-                        // Fetching all cases is safer/simpler for this context usually, or we assume a small number.
-                        // Let's just fetch all cases to be robust (assuming < 100 cases).
-                        const casesParams = query(collection(db, "cases"));
-                        const casesSnap = await getDocs(casesParams);
+                        const casesSnap = await getDocs(query(collection(db, "cases")));
 
                         casesSnap.docs.forEach(doc => {
                             const c = doc.data();
@@ -51,13 +45,22 @@ const ProgressReportModal = ({ onClose }) => {
                                 c.meta.learningObjectives.forEach(cat => {
                                     if (cat.objectives) {
                                         cat.objectives.forEach((obj, idx) => {
-                                            // Map both ID formats if possible
-                                            // Format 1: cat.id + ':' + idx
-                                            map[`${cat.id}:${idx}`] = obj;
-                                            // Store Category Name for fallback
+                                            const isObj = typeof obj === 'object';
+                                            const title = isObj ? obj.learningObjective : obj;
+                                            const key = `${cat.id}:${idx}`;
+
+                                            map[key] = title;
                                             map[cat.id] = cat.category;
-                                            // Format 2: Just the name (already resolved)
-                                            map[obj] = obj;
+                                            if (isObj) {
+                                                const details = {
+                                                    learningObjective: obj.learningObjective,
+                                                    objective: obj.objective,
+                                                    keyTakeaway: obj.keyTakeaway
+                                                };
+                                                map[`${key}_details`] = details;
+                                                map[`${title}_details`] = details;
+                                            }
+                                            map[title] = title;
                                         });
                                     }
                                 });
@@ -69,10 +72,7 @@ const ProgressReportModal = ({ onClose }) => {
                     }
                 }
 
-                // 2. Sort Data (Client-side)
-                // Local Storage merging disabled. Only showing Cloud results.
                 data.sort((a, b) => new Date(b.playedAt) - new Date(a.playedAt));
-
                 setRawData(data);
                 setObjMap(map);
             } catch (err) {
@@ -282,6 +282,67 @@ const ProgressReportModal = ({ onClose }) => {
                 body: objectiveRows,
                 headStyles: { fillColor: [63, 81, 181] },
                 alternateRowStyles: { fillColor: [245, 247, 251] }
+            });
+
+            // Detailed Learning Paths Section
+            let detailY = doc.lastAutoTable.finalY + 15;
+
+            // Check for page break
+            if (detailY > 240) {
+                doc.addPage();
+                detailY = 20;
+            }
+
+            doc.setFontSize(14);
+            doc.setTextColor(63, 81, 181);
+            doc.text("Detailed Learning Path Analysis", 14, detailY);
+            detailY += 10;
+
+            const objectivesUsed = Object.keys(stats.objectiveStats);
+
+            objectivesUsed.forEach(objKey => {
+                const details = objMap[`${objKey}_details`];
+                const objTitle = objMap[objKey];
+                const catId = objKey.split(':')[0];
+                const catName = objMap[catId];
+
+                if (details && (details.learningObjective || details.objective || details.keyTakeaway)) {
+                    if (detailY > 250) {
+                        doc.addPage();
+                        detailY = 20;
+                    }
+
+                    doc.setDrawColor(230);
+                    doc.setFillColor(250, 250, 252);
+                    doc.rect(14, detailY, pageWidth - 28, 35, 'F');
+
+                    doc.setFontSize(10);
+                    doc.setTextColor(63, 81, 181);
+                    doc.setFont(undefined, 'bold');
+                    doc.text(`${catName || "Category"}: ${objTitle}`, 18, detailY + 7);
+
+                    doc.setFontSize(8);
+                    doc.setFont(undefined, 'normal');
+                    doc.setTextColor(80);
+
+                    let innerY = detailY + 14;
+                    if (details.learningObjective) {
+                        doc.text(`Focus: ${details.learningObjective}`, 18, innerY);
+                        innerY += 4;
+                    }
+                    if (details.objective) {
+                        const splitObjective = doc.splitTextToSize(`Objective: ${details.objective}`, pageWidth - 40);
+                        doc.text(splitObjective, 18, innerY);
+                        innerY += (splitObjective.length * 4);
+                    }
+                    if (details.keyTakeaway) {
+                        doc.setTextColor(16, 185, 129); // Emerald
+                        doc.setFont(undefined, 'bold');
+                        doc.text(`Key Takeaway: ${details.keyTakeaway}`, 18, innerY);
+                    }
+
+                    detailY += 42;
+                }
             });
         }
 

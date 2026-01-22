@@ -324,6 +324,30 @@ const GamePreview = ({ nodes, edges, onClose, gameMetadata, onGameEnd }) => {
         setLogs(prev => [`> ${msg}`, ...prev].slice(0, 50));
     };
 
+    const rewardObjectivePoints = (node, points) => {
+        const objIds = node.data.learningObjectiveIds || (node.data.learningObjectiveId ? [node.data.learningObjectiveId] : []);
+        if (objIds.length === 0) return;
+
+        const objectives = gameMetadata?.learningObjectives || gameMetadata?.meta?.learningObjectives;
+
+        setPlayerObjectiveScores(prev => {
+            const newScores = { ...prev };
+            objIds.forEach(id => {
+                let displayName = id;
+                if (objectives) {
+                    const [catId, idxStr] = id.split(':');
+                    const cat = objectives.find(c => c.id === catId);
+                    if (cat && cat.objectives && cat.objectives[parseInt(idxStr)]) {
+                        const objEntry = cat.objectives[parseInt(idxStr)];
+                        displayName = typeof objEntry === 'string' ? objEntry : (objEntry.learningObjective || id);
+                    }
+                }
+                newScores[displayName] = (newScores[displayName] || 0) + points;
+            });
+            return newScores;
+        });
+    };
+
     // Initialize Game
     useEffect(() => {
         // Find a suitable start node logic:
@@ -399,29 +423,7 @@ const GamePreview = ({ nodes, edges, onClose, gameMetadata, onGameEnd }) => {
             setScore(s => s + currentNode.data.score);
 
             // Objective Scoring
-            // Objective Scoring
-            if (currentNode.data.learningObjectiveId) {
-                let objName = currentNode.data.learningObjectiveId;
-
-                // Try to resolve ID to Name (e.g. "cat_1:0" -> "Critical Thinking")
-                // Handle various metadata structures (nested meta or direct)
-                const objectives = gameMetadata?.learningObjectives || gameMetadata?.meta?.learningObjectives;
-
-                if (objectives) {
-                    const [catId, idxStr] = objName.split(':');
-                    if (catId && idxStr !== undefined) {
-                        const cat = objectives.find(c => c.id === catId);
-                        if (cat && cat.objectives && cat.objectives[parseInt(idxStr)]) {
-                            objName = cat.objectives[parseInt(idxStr)];
-                        }
-                    }
-                }
-
-                setPlayerObjectiveScores(prev => ({
-                    ...prev,
-                    [objName]: (prev[objName] || 0) + currentNode.data.score
-                }));
-            }
+            rewardObjectivePoints(currentNode, currentNode.data.score);
 
             setScoredNodes(prev => new Set([...prev, currentNode.id]));
             addLog(`SCORE REWARD: +${currentNode.data.score} Points`);
@@ -895,12 +897,7 @@ const GamePreview = ({ nodes, edges, onClose, gameMetadata, onGameEnd }) => {
                     setScore(s => s + activeModalNode.data.score);
 
                     // Objective Scoring
-                    if (activeModalNode.data.learningObjectiveId) {
-                        setPlayerObjectiveScores(prev => ({
-                            ...prev,
-                            [activeModalNode.data.learningObjectiveId]: (prev[activeModalNode.data.learningObjectiveId] || 0) + activeModalNode.data.score
-                        }));
-                    }
+                    rewardObjectivePoints(activeModalNode, activeModalNode.data.score);
 
                     setScoredNodes(prev => new Set([...prev, activeModalNode.id]));
                     addLog(`HACK REWARD: +${activeModalNode.data.score} Points`);
@@ -918,12 +915,7 @@ const GamePreview = ({ nodes, edges, onClose, gameMetadata, onGameEnd }) => {
                 setScore(s => Math.max(0, s - penalty));
                 addLog(`HACK PROTECTION DETECTED: -${penalty} Points`);
 
-                if (activeModalNode.data.learningObjectiveId) {
-                    setPlayerObjectiveScores(prev => ({
-                        ...prev,
-                        [activeModalNode.data.learningObjectiveId]: (prev[activeModalNode.data.learningObjectiveId] || 0) - penalty
-                    }));
-                }
+                rewardObjectivePoints(activeModalNode, -penalty);
             }
         }
     };
@@ -957,12 +949,7 @@ const GamePreview = ({ nodes, edges, onClose, gameMetadata, onGameEnd }) => {
                 setScore(s => s + activeAccusationNode.data.score);
                 addLog(`CASE CLOSED: +${activeAccusationNode.data.score} Points`);
 
-                if (activeAccusationNode.data.learningObjectiveId) {
-                    setPlayerObjectiveScores(prev => ({
-                        ...prev,
-                        [activeAccusationNode.data.learningObjectiveId]: (prev[activeAccusationNode.data.learningObjectiveId] || 0) + activeAccusationNode.data.score
-                    }));
-                }
+                rewardObjectivePoints(activeAccusationNode, activeAccusationNode.data.score);
             }
             setAccusationResult('success');
         } else {
@@ -971,12 +958,7 @@ const GamePreview = ({ nodes, edges, onClose, gameMetadata, onGameEnd }) => {
                 setScore(s => Math.max(0, s - penalty));
                 addLog(`WRONG ACCUSATION: -${penalty} Points`);
 
-                if (activeAccusationNode.data.learningObjectiveId) {
-                    setPlayerObjectiveScores(prev => ({
-                        ...prev,
-                        [activeAccusationNode.data.learningObjectiveId]: (prev[activeAccusationNode.data.learningObjectiveId] || 0) - penalty
-                    }));
-                }
+                rewardObjectivePoints(activeAccusationNode, -penalty);
             }
             setAccusationResult('failure');
         }
@@ -1000,12 +982,7 @@ const GamePreview = ({ nodes, edges, onClose, gameMetadata, onGameEnd }) => {
                 setScore(s => s + (activeModalNode.data.score || 0));
 
                 // Objective Scoring (Reward)
-                if (activeModalNode.data.learningObjectiveId) {
-                    setPlayerObjectiveScores(prev => ({
-                        ...prev,
-                        [activeModalNode.data.learningObjectiveId]: (prev[activeModalNode.data.learningObjectiveId] || 0) + (activeModalNode.data.score || 0)
-                    }));
-                }
+                rewardObjectivePoints(activeModalNode, activeModalNode.data.score || 0);
 
                 setScoredNodes(prev => new Set([...prev, activeModalNode.id]));
                 addLog(`QUIZ REWARD: +${activeModalNode.data.score} Points`);
@@ -1025,12 +1002,7 @@ const GamePreview = ({ nodes, edges, onClose, gameMetadata, onGameEnd }) => {
                 setScore(s => Math.max(0, s - penalty));
                 addLog(`QUIZ PENALTY: -${penalty} Points`);
 
-                if (activeModalNode.data.learningObjectiveId) {
-                    setPlayerObjectiveScores(prev => ({
-                        ...prev,
-                        [activeModalNode.data.learningObjectiveId]: (prev[activeModalNode.data.learningObjectiveId] || 0) - penalty
-                    }));
-                }
+                rewardObjectivePoints(activeModalNode, -penalty);
             }
             // Visual feedback could be added here
             const btn = document.getElementById('quiz-submit-btn');

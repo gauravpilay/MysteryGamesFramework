@@ -103,9 +103,24 @@ const AdminProgressModal = ({ onClose }) => {
                         c.meta.learningObjectives.forEach(cat => {
                             if (cat.objectives) {
                                 cat.objectives.forEach((obj, idx) => {
-                                    map[`${cat.id}:${idx}`] = obj;
+                                    const isObj = typeof obj === 'object';
+                                    const title = isObj ? obj.learningObjective : obj;
+                                    const key = `${cat.id}:${idx}`;
+
+                                    map[key] = title;
                                     map[cat.id] = cat.category;
-                                    map[obj] = obj;
+                                    if (isObj) {
+                                        const details = {
+                                            learningObjective: obj.learningObjective,
+                                            objective: obj.objective,
+                                            keyTakeaway: obj.keyTakeaway
+                                        };
+                                        map[`${key}_details`] = details;
+                                        // Also map by title for the stats lookup in PDF
+                                        map[`${title}_details`] = details;
+                                        map[`${cat.id}:${title}_details`] = details;
+                                    }
+                                    map[title] = title;
                                 });
                             }
                         });
@@ -269,6 +284,53 @@ const AdminProgressModal = ({ onClose }) => {
                     body: objectiveRows,
                     theme: 'striped',
                     headStyles: { fillColor: [147, 51, 234] }
+                });
+
+                // Detailed Analysis Section
+                let detailY = doc.lastAutoTable.finalY + 12;
+
+                const objectivesUsed = Object.keys(userData.objectiveStats);
+
+                objectivesUsed.forEach(objName => {
+                    // Try to find details by name
+                    const details = objMap[`${objName}_details`];
+
+                    if (details && (details.learningObjective || details.objective || details.keyTakeaway)) {
+                        if (detailY > 250) {
+                            doc.addPage();
+                            detailY = 20;
+                        }
+
+                        doc.setFillColor(245, 240, 255);
+                        doc.rect(14, detailY, pageWidth - 28, 30, 'F');
+
+                        doc.setFontSize(9);
+                        doc.setTextColor(147, 51, 234);
+                        doc.setFont(undefined, 'bold');
+                        doc.text(`Analysis: ${objName}`, 18, detailY + 7);
+
+                        doc.setFontSize(8);
+                        doc.setFont(undefined, 'normal');
+                        doc.setTextColor(100);
+
+                        let innerY = detailY + 13;
+                        if (details.learningObjective) {
+                            doc.text(`Objective: ${details.learningObjective}`, 18, innerY);
+                            innerY += 4;
+                        }
+                        if (details.objective) {
+                            const splitObj = doc.splitTextToSize(`Detail: ${details.objective}`, pageWidth - 40);
+                            doc.text(splitObj, 18, innerY);
+                            innerY += (splitObj.length * 4);
+                        }
+                        if (details.keyTakeaway) {
+                            doc.setTextColor(80);
+                            doc.setFont(undefined, 'bold');
+                            doc.text(`Takeaway: ${details.keyTakeaway}`, 18, innerY);
+                        }
+
+                        detailY += 35;
+                    }
                 });
             }
 

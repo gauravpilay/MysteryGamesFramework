@@ -12,7 +12,7 @@ import 'reactflow/dist/style.css';
 import { useParams, useNavigate } from 'react-router-dom';
 import { Button } from '../components/ui/shared';
 import { Logo } from '../components/ui/Logo';
-import { Save, ArrowLeft, X, FileText, User, Search, GitMerge, Terminal, MessageSquare, CircleHelp, Play, Settings, Music, Image as ImageIcon, MousePointerClick, Fingerprint, Bell, HelpCircle, ChevronLeft, ChevronRight, ToggleLeft, Lock, Sun, Moon, Stethoscope, Unlock, Binary, Grid3x3, CheckCircle, AlertTriangle, Plus, Trash2 } from 'lucide-react';
+import { Save, ArrowLeft, X, FileText, User, Search, GitMerge, Terminal, MessageSquare, CircleHelp, Play, Settings, Music, Image as ImageIcon, MousePointerClick, Fingerprint, Bell, HelpCircle, ChevronLeft, ChevronRight, ToggleLeft, Lock, Sun, Moon, Stethoscope, Unlock, Binary, Grid3x3, CheckCircle, AlertTriangle, Plus, Trash2, Target } from 'lucide-react';
 import { StoryNode, SuspectNode, EvidenceNode, LogicNode, TerminalNode, MessageNode, MusicNode, MediaNode, ActionNode, IdentifyNode, NotificationNode, QuestionNode, SetterNode, LockpickNode, DecryptionNode, KeypadNode } from '../components/nodes/CustomNodes';
 import { TutorialOverlay } from '../components/ui/TutorialOverlay';
 import GamePreview from '../components/GamePreview';
@@ -144,7 +144,15 @@ const Editor = () => {
     const [caseTitle, setCaseTitle] = useState("");
     const [validationReport, setValidationReport] = useState(null);
     const [learningObjectives, setLearningObjectives] = useState([]);
-    const [newCategoryName, setNewCategoryName] = useState("");
+    const [newCategory, setNewCategory] = useState({
+        name: ""
+    });
+    const [newObjective, setNewObjective] = useState({
+        categoryId: null,
+        title: "",
+        detail: "",
+        takeaway: ""
+    });
 
     const tutorialSteps = [
         {
@@ -431,6 +439,7 @@ const Editor = () => {
     const validateGraph = () => {
         const errors = [];
         const warnings = [];
+        const usedObjectives = new Set();
 
         nodes.forEach(node => {
             const incoming = edges.filter(e => e.target === node.id);
@@ -451,6 +460,32 @@ const Editor = () => {
                 if (outgoing.length < 2) {
                     errors.push({ id: crypto.randomUUID(), type: 'error', message: `Logic Node '${node.data.label}' should have at least 2 paths (True/False).`, nodeId: node.id });
                 }
+            }
+
+            // Track objective usage
+            if (node.data.learningObjectiveId) {
+                usedObjectives.add(node.data.learningObjectiveId);
+            }
+            if (Array.isArray(node.data.learningObjectiveIds)) {
+                node.data.learningObjectiveIds.forEach(id => usedObjectives.add(id));
+            }
+        });
+
+        // Check for unused learning objectives
+        learningObjectives.forEach(cat => {
+            if (cat.objectives) {
+                cat.objectives.forEach((obj, idx) => {
+                    const objKey = `${cat.id}:${idx}`;
+                    if (!usedObjectives.has(objKey)) {
+                        const objTitle = typeof obj === 'string' ? obj : obj.learningObjective;
+                        warnings.push({
+                            id: crypto.randomUUID(),
+                            type: 'warning',
+                            message: `Unused Objective: '${objTitle}' (${cat.category}) is defined but not linked to any node.`,
+                            nodeId: null
+                        });
+                    }
+                });
             }
         });
 
@@ -526,23 +561,32 @@ const Editor = () => {
     };
 
     const addCategory = () => {
-        if (!newCategoryName.trim()) return;
-        setLearningObjectives([...learningObjectives, { id: crypto.randomUUID(), category: newCategoryName.trim(), objectives: [] }]);
-        setNewCategoryName("");
+        if (!newCategory.name.trim()) return;
+        setLearningObjectives([...learningObjectives, {
+            id: crypto.randomUUID(),
+            category: newCategory.name.trim(),
+            objectives: []
+        }]);
+        setNewCategory({ name: "" });
     };
 
-    const deleteCategory = (id) => {
-        setLearningObjectives(learningObjectives.filter(c => c.id !== id));
-    };
-
-    const addObjective = (catId, objective) => {
-        if (!objective.trim()) return;
+    const addObjective = (catId) => {
+        if (!newObjective.title.trim()) return;
         setLearningObjectives(learningObjectives.map(cat => {
             if (cat.id === catId) {
-                return { ...cat, objectives: [...cat.objectives, objective.trim()] };
+                return {
+                    ...cat,
+                    objectives: [...cat.objectives, {
+                        id: crypto.randomUUID(),
+                        learningObjective: newObjective.title.trim(),
+                        objective: newObjective.detail.trim(),
+                        keyTakeaway: newObjective.takeaway.trim()
+                    }]
+                };
             }
             return cat;
         }));
+        setNewObjective({ categoryId: null, title: "", detail: "", takeaway: "" });
     };
 
     const deleteObjective = (catId, index) => {
@@ -805,57 +849,102 @@ const Editor = () => {
                             <div className="border-t border-zinc-800 pt-6">
                                 <h3 className="text-sm font-bold text-zinc-400 uppercase tracking-wider mb-4">Learning Objectives</h3>
 
-                                <div className="flex gap-2 mb-6">
-                                    <input
-                                        type="text"
-                                        placeholder="New Category Name (e.g. Cyber Security)"
-                                        value={newCategoryName}
-                                        onChange={(e) => setNewCategoryName(e.target.value)}
-                                        onKeyDown={(e) => e.key === 'Enter' && addCategory()}
-                                        className="flex-1 bg-black border border-zinc-700 rounded px-3 py-2 text-sm text-white focus:border-indigo-500 outline-none"
-                                    />
-                                    <Button size="sm" onClick={addCategory} disabled={!newCategoryName.trim()} className="shrink-0">
-                                        <Plus className="w-4 h-4 mr-1" /> Add Category
-                                    </Button>
+                                <div className="bg-zinc-900/30 border border-zinc-800 rounded-xl p-5 mb-8">
+                                    <div className="flex gap-4">
+                                        <div className="flex-1 space-y-1.5">
+                                            <label className="text-[10px] font-bold text-zinc-500 uppercase tracking-wider ml-1">New Category Title</label>
+                                            <input
+                                                type="text"
+                                                placeholder="e.g. Cyber Security Fundamentals"
+                                                value={newCategory.name}
+                                                onChange={(e) => setNewCategory({ name: e.target.value })}
+                                                onKeyDown={(e) => e.key === 'Enter' && addCategory()}
+                                                className="w-full bg-black border border-zinc-700 rounded px-3 py-2 text-sm text-white focus:border-indigo-500 outline-none"
+                                            />
+                                        </div>
+                                        <div className="flex items-end">
+                                            <Button size="sm" onClick={addCategory} disabled={!newCategory.name.trim()} className="h-10 px-6 font-bold shadow-lg shadow-indigo-600/20">
+                                                <Plus className="w-4 h-4 mr-2" /> Add Category
+                                            </Button>
+                                        </div>
+                                    </div>
                                 </div>
 
                                 <div className="space-y-4">
                                     {learningObjectives.map((cat) => (
                                         <div key={cat.id} className="bg-zinc-900/50 rounded-lg p-4 border border-zinc-800">
-                                            <div className="flex items-center justify-between mb-3 border-b border-zinc-800/50 pb-2">
-                                                <span className="font-bold text-indigo-400">{cat.category}</span>
-                                                <button onClick={() => deleteCategory(cat.id)} className="text-zinc-500 hover:text-red-400 transition-colors p-1" title="Delete Category">
+                                            <div className="flex items-center justify-between mb-4 border-b border-zinc-800/50 pb-3">
+                                                <span className="font-extrabold text-indigo-400 text-lg uppercase tracking-tight">{cat.category}</span>
+                                                <button onClick={() => deleteCategory(cat.id)} className="text-zinc-500 hover:text-red-400 transition-colors p-2 bg-black/40 rounded-lg border border-transparent hover:border-red-900/30" title="Delete Category">
                                                     <Trash2 className="w-4 h-4" />
                                                 </button>
                                             </div>
 
-                                            <ul className="space-y-2 mb-4 pl-1">
+                                            <div className="space-y-3 mb-6">
                                                 {cat.objectives.length === 0 && (
-                                                    <li className="text-xs text-zinc-600 italic">No objectives added yet.</li>
+                                                    <div className="text-xs text-zinc-600 italic px-2">No specific learning objectives added yet.</div>
                                                 )}
                                                 {cat.objectives.map((obj, idx) => (
-                                                    <li key={idx} className="flex items-start gap-2 text-sm text-zinc-300 group">
-                                                        <div className="mt-1.5 w-1 h-1 rounded-full bg-zinc-600 shrink-0"></div>
-                                                        <span className="flex-1 leading-relaxed">{obj}</span>
-                                                        <button onClick={() => deleteObjective(cat.id, idx)} className="text-zinc-600 hover:text-red-400 opacity-0 group-hover:opacity-100 transition-all p-0.5">
-                                                            <X className="w-3.5 h-3.5" />
-                                                        </button>
-                                                    </li>
+                                                    <div key={idx} className="bg-black/40 border border-zinc-800/50 rounded-xl p-4 group relative">
+                                                        <div className="flex items-start justify-between gap-4">
+                                                            <div className="flex-1 space-y-2">
+                                                                <div className="flex items-center gap-2">
+                                                                    <div className="w-1.5 h-1.5 rounded-full bg-indigo-500"></div>
+                                                                    <span className="font-bold text-sm text-zinc-200">{typeof obj === 'string' ? obj : obj.learningObjective}</span>
+                                                                </div>
+                                                                {typeof obj !== 'string' && (
+                                                                    <div className="pl-3 space-y-1.5">
+                                                                        {obj.objective && <p className="text-[11px] text-zinc-400 leading-relaxed italic border-l border-zinc-800 pl-3">{obj.objective}</p>}
+                                                                        {obj.keyTakeaway && (
+                                                                            <div className="flex items-center gap-2 text-[10px] text-emerald-400 font-bold uppercase tracking-wider bg-emerald-500/5 w-fit px-2 py-0.5 rounded border border-emerald-500/10">
+                                                                                <CheckCircle className="w-3 h-3" /> {obj.keyTakeaway}
+                                                                            </div>
+                                                                        )}
+                                                                    </div>
+                                                                )}
+                                                            </div>
+                                                            <button onClick={() => deleteObjective(cat.id, idx)} className="text-zinc-600 hover:text-red-400 transition-all p-2 bg-black/80 rounded-lg border border-zinc-800 hover:border-red-900/30">
+                                                                <Trash2 className="w-3.5 h-3.5" />
+                                                            </button>
+                                                        </div>
+                                                    </div>
                                                 ))}
-                                            </ul>
+                                            </div>
 
-                                            <div className="flex gap-2">
-                                                <input
-                                                    type="text"
-                                                    placeholder="Add learning objective..."
-                                                    className="flex-1 bg-black border border-zinc-700 rounded px-2.5 py-1.5 text-xs text-white focus:border-indigo-500 outline-none"
-                                                    onKeyDown={(e) => {
-                                                        if (e.key === 'Enter') {
-                                                            addObjective(cat.id, e.target.value);
-                                                            e.target.value = '';
-                                                        }
-                                                    }}
-                                                />
+                                            <div className="bg-zinc-900/80 border border-zinc-800 rounded-xl p-4 space-y-3">
+                                                <p className="text-[10px] font-black text-indigo-400 uppercase tracking-widest px-1 mb-1">Add New Objective</p>
+                                                <div className="space-y-3">
+                                                    <InputField
+                                                        placeholder="Learning Objective (e.g. Identify Phishing emails)"
+                                                        value={newObjective.categoryId === cat.id ? newObjective.title : ""}
+                                                        onChange={(e) => setNewObjective({ ...newObjective, categoryId: cat.id, title: e.target.value })}
+                                                        className="!bg-black !border-zinc-800 focus:!border-indigo-500"
+                                                    />
+                                                    <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
+                                                        <InputField
+                                                            placeholder="Detail / Description"
+                                                            value={newObjective.categoryId === cat.id ? newObjective.detail : ""}
+                                                            onChange={(e) => setNewObjective({ ...newObjective, categoryId: cat.id, detail: e.target.value })}
+                                                            className="!bg-black !border-zinc-800 focus:!border-indigo-500"
+                                                        />
+                                                        <InputField
+                                                            placeholder="Key Takeaway"
+                                                            value={newObjective.categoryId === cat.id ? newObjective.takeaway : ""}
+                                                            onChange={(e) => setNewObjective({ ...newObjective, categoryId: cat.id, takeaway: e.target.value })}
+                                                            className="!bg-black !border-zinc-800 focus:!border-indigo-500"
+                                                        />
+                                                    </div>
+                                                </div>
+                                                <div className="flex justify-end">
+                                                    <Button
+                                                        size="sm"
+                                                        onClick={() => addObjective(cat.id)}
+                                                        disabled={newObjective.categoryId !== cat.id || !newObjective.title.trim()}
+                                                        className="h-9 px-4 text-xs"
+                                                    >
+                                                        <Plus className="w-3.5 h-3.5 mr-2" /> Save Objective
+                                                    </Button>
+                                                </div>
                                             </div>
                                         </div>
                                     ))}
