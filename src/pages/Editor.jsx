@@ -280,10 +280,26 @@ const Editor = () => {
 
     const filteredNodes = useMemo(() => {
         if (!searchQuery) return [];
-        return nodes.filter(node =>
-            node.data?.label?.toLowerCase().includes(searchQuery.toLowerCase()) ||
-            node.type?.toLowerCase().includes(searchQuery.toLowerCase())
-        ).slice(0, 10);
+        const query = searchQuery.toLowerCase();
+
+        // Helper to recursively check for text in data
+        const searchInData = (obj) => {
+            if (!obj) return false;
+            if (typeof obj === 'string') return obj.toLowerCase().includes(query);
+            if (Array.isArray(obj)) return obj.some(item => searchInData(item));
+            if (typeof obj === 'object') {
+                return Object.values(obj).some(val => searchInData(val));
+            }
+            return false;
+        };
+
+        return nodes.filter(node => {
+            const label = node.data?.label?.toLowerCase() || "";
+            const type = node.type?.toLowerCase() || "";
+            return label.includes(query) ||
+                type.includes(query) ||
+                searchInData(node.data);
+        }).slice(0, 10);
     }, [nodes, searchQuery]);
 
     const navigateToNode = useCallback((node) => {
