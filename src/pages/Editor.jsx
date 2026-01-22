@@ -116,7 +116,6 @@ const NODE_HELP = {
 };
 
 const PALETTE_ITEMS = [
-    { type: 'group', label: 'Node Group (Folder)', icon: FolderOpen, className: "hover:border-amber-500/50", iconClass: "text-amber-500" },
     { type: 'story', label: 'Story Narrative', icon: FileText, className: "hover:border-indigo-500/50", iconClass: "text-blue-400" },
     { type: 'suspect', label: 'Suspect', icon: User, className: "hover:border-red-500/50", iconClass: "text-red-400" },
     { type: 'evidence', label: 'Evidence Item', icon: Search, className: "hover:border-yellow-500/50", iconClass: "text-yellow-400" },
@@ -149,6 +148,8 @@ const Editor = () => {
     const [showPreview, setShowPreview] = useState(false);
     const [showSettings, setShowSettings] = useState(false);
     const [timeLimit, setTimeLimit] = useState(15); // Default 15 minutes
+    const [searchQuery, setSearchQuery] = useState("");
+    const [isSearchOpen, setIsSearchOpen] = useState(false);
     const [isPaletteCollapsed, setIsPaletteCollapsed] = useState(false);
     const [isLocked, setIsLocked] = useState(false);
     const [isDarkMode, setIsDarkMode] = useState(true);
@@ -276,6 +277,38 @@ const Editor = () => {
         // Create edge immediately without prompt
         setEdges((eds) => addEdge({ ...params, type: 'default' }, eds));
     }, [setEdges, isLocked]);
+
+    const filteredNodes = useMemo(() => {
+        if (!searchQuery) return [];
+        return nodes.filter(node =>
+            node.data?.label?.toLowerCase().includes(searchQuery.toLowerCase()) ||
+            node.type?.toLowerCase().includes(searchQuery.toLowerCase())
+        ).slice(0, 10);
+    }, [nodes, searchQuery]);
+
+    const navigateToNode = useCallback((node) => {
+        if (!reactFlowInstance) return;
+
+        // Calculate center precisely
+        const width = node.width || 300;
+        const height = node.height || 200;
+        const x = node.position.x + width / 2;
+        const y = node.position.y + height / 2;
+
+        reactFlowInstance.setCenter(x, y, {
+            zoom: 1.2,
+            duration: 800
+        });
+
+        // Highlight the node
+        setNodes((nds) => nds.map((n) => ({
+            ...n,
+            selected: n.id === node.id
+        })));
+
+        setSearchQuery("");
+        setIsSearchOpen(false);
+    }, [reactFlowInstance, setNodes]);
 
     const onEdgeClick = useCallback((event, edge) => {
         event.stopPropagation();
@@ -422,7 +455,11 @@ const Editor = () => {
             },
         };
 
-        setNodes((nds) => nds.concat(newNode));
+        if (type === 'group') {
+            setNodes((nds) => [newNode, ...nds]);
+        } else {
+            setNodes((nds) => nds.concat(newNode));
+        }
     }, [reactFlowInstance, onNodeUpdate, onDuplicateNode, setNodes, isLocked]);
 
     // Initial Load
@@ -436,7 +473,6 @@ const Editor = () => {
                 if (docSnap.exists()) {
                     const data = docSnap.data();
                     if (data.nodes) setNodes(data.nodes);
-                    if (data.nodes) setNodes(data.nodes);
                     if (data.edges) setEdges(data.edges);
                     if (data.meta) {
                         if (data.meta.timeLimit) setTimeLimit(data.meta.timeLimit);
@@ -446,7 +482,6 @@ const Editor = () => {
                     if (data.title) setCaseTitle(data.title);
                 } else {
                     console.error("No such document!");
-                    // potentially navigate back or show error
                 }
             } catch (error) {
                 console.error("Error loading case:", error);
@@ -454,6 +489,17 @@ const Editor = () => {
         };
         loadCaseData();
     }, [projectId, setNodes, setEdges]);
+
+    // Close search on click outside
+    useEffect(() => {
+        const handleClickOutside = (event) => {
+            if (!event.target.closest('.node-search-container')) {
+                setIsSearchOpen(false);
+            }
+        };
+        document.addEventListener('mousedown', handleClickOutside);
+        return () => document.removeEventListener('mousedown', handleClickOutside);
+    }, []);
 
     // Time Tracking Effect
     useEffect(() => {
@@ -770,14 +816,14 @@ const Editor = () => {
         };
 
         setNodes(nds => [
+            groupNode,
             ...nds.map(n => n.selected ? {
                 ...n,
                 parentNode: groupId,
                 extent: 'parent',
                 position: { x: n.position.x - (minX - 40), y: n.position.y - (minY - 60) },
                 selected: false
-            } : n),
-            groupNode
+            } : n)
         ]);
     }, [nodes, setNodes, onNodeUpdate, isLocked]);
 
@@ -831,6 +877,68 @@ const Editor = () => {
                     </div>
                 </div>
                 <div id="editor-actions" className="flex items-center gap-3">
+                    {/* Node Search Mechanism */}
+                    <div className="relative mr-4 min-w-[240px] node-search-container">
+                        <div className={`flex items-center gap-2 px-3 py-1.5 rounded-xl border transition-all ${isDarkMode ? 'bg-black/60 border-white/10 focus-within:border-indigo-500/50 shadow-inner' : 'bg-zinc-100 border-zinc-200 focus-within:border-indigo-500'}`}>
+                            <Search className="w-4 h-4 text-zinc-500" />
+                            <input
+                                placeholder="Jump to node..."
+                                className={`bg-transparent border-none outline-none text-xs w-full ${isDarkMode ? 'text-zinc-200' : 'text-zinc-800'}`}
+                                value={searchQuery}
+                                onChange={(e) => {
+                                    setSearchQuery(e.target.value);
+                                    setIsSearchOpen(true);
+                                }}
+                                onFocus={() => setIsSearchOpen(true)}
+                            />
+                            {searchQuery && (
+                                <button onClick={() => setSearchQuery("")} className="p-0.5 hover:bg-white/10 rounded-full">
+                                    <X className="w-3 h-3 text-zinc-500" />
+                                </button>
+                            )}
+                        </div>
+
+                        <AnimatePresence>
+                            {isSearchOpen && searchQuery && (
+                                <motion.div
+                                    initial={{ opacity: 0, scale: 0.95, y: 10 }}
+                                    animate={{ opacity: 1, scale: 1, y: 0 }}
+                                    exit={{ opacity: 0, scale: 0.95, y: 10 }}
+                                    className={`absolute top-full right-0 mt-2 w-72 rounded-2xl border shadow-[0_20px_50px_rgba(0,0,0,0.5)] z-[100] overflow-hidden backdrop-blur-xl ${isDarkMode ? 'bg-zinc-950/90 border-white/10' : 'bg-white border-zinc-200'}`}
+                                >
+                                    <div className="max-h-80 overflow-y-auto scrollbar-hide">
+                                        {filteredNodes.length > 0 ? (
+                                            filteredNodes.map(node => (
+                                                <button
+                                                    key={node.id}
+                                                    onClick={() => navigateToNode(node)}
+                                                    className={`w-full flex items-center gap-3 px-4 py-3 text-left transition-all ${isDarkMode ? 'hover:bg-indigo-500/10 border-b border-white/5 last:border-none' : 'hover:bg-indigo-50 border-b border-zinc-100 last:border-none'}`}
+                                                >
+                                                    <div className={`p-2 rounded-lg ${isDarkMode ? 'bg-zinc-900 border border-white/10 text-indigo-400' : 'bg-indigo-50 text-indigo-600'}`}>
+                                                        <Target className="w-4 h-4" />
+                                                    </div>
+                                                    <div className="flex flex-col min-w-0">
+                                                        <span className={`text-[11px] font-black uppercase tracking-tight truncate ${isDarkMode ? 'text-zinc-200' : 'text-zinc-800'}`}>
+                                                            {node.data?.label || 'Untitled Node'}
+                                                        </span>
+                                                        <span className="text-[9px] text-zinc-500 font-bold uppercase tracking-widest mt-0.5">{node.type}</span>
+                                                    </div>
+                                                </button>
+                                            ))
+                                        ) : (
+                                            <div className="px-4 py-8 text-center">
+                                                <div className="inline-flex p-3 rounded-full bg-zinc-900 mb-3">
+                                                    <Search className="w-5 h-5 text-zinc-700" />
+                                                </div>
+                                                <p className="text-zinc-500 text-[10px] font-bold uppercase tracking-widest">No matching nodes</p>
+                                            </div>
+                                        )}
+                                    </div>
+                                </motion.div>
+                            )}
+                        </AnimatePresence>
+                    </div>
+
                     <div className={`flex items-center gap-1 p-1 rounded-lg border ${isDarkMode ? 'bg-black/40 border-white/5' : 'bg-zinc-100 border-zinc-200'}`}>
                         <Button variant="ghost" size="icon" onClick={() => setIsDarkMode(!isDarkMode)} title={isDarkMode ? "Switch to Light Mode" : "Switch to Dark Mode"} className="h-8 w-8">
                             {isDarkMode ? <Sun className="w-4 h-4 text-amber-300" /> : <Moon className="w-4 h-4 text-indigo-600" />}
@@ -844,17 +952,6 @@ const Editor = () => {
                         </Button>
                         <Button variant="ghost" size="icon" onClick={() => setShowSettings(true)} title="Game Settings" disabled={isLocked} className="h-8 w-8">
                             <Settings className={`w-4 h-4 ${isDarkMode ? 'text-zinc-400' : 'text-zinc-600'}`} />
-                        </Button>
-                        <div className={`w-px h-4 ${isDarkMode ? 'bg-white/10' : 'bg-zinc-300'}`}></div>
-                        <Button
-                            variant="ghost"
-                            size="icon"
-                            onClick={groupSelectedNodes}
-                            title="Group Selected Nodes"
-                            disabled={isLocked || nodes.filter(n => n.selected).length < 1}
-                            className={`h-8 w-8 ${nodes.filter(n => n.selected).length > 0 ? 'text-amber-500' : ''}`}
-                        >
-                            <Box className="w-4 h-4" />
                         </Button>
                     </div>
 

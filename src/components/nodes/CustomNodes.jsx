@@ -302,9 +302,9 @@ const NodeWrapper = ({ children, title, icon: Icon, colorClass = "border-zinc-70
 
     return (
         <div
-            className={`w-72 rounded-2xl border transition-all duration-300 relative group
+            className={`w-72 rounded-2xl border transition-all duration-300 relative group pointer-events-auto
                 ${selected ? 'scale-[1.02] z-50' : 'hover:border-zinc-500 z-10'}
-                ${colorClass} backdrop-blur-xl bg-black/80 shadow-2xl`}
+                ${colorClass} backdrop-blur-md bg-black/80 shadow-2xl`}
             style={{
                 boxShadow: selected ? `0 0 30px ${glowColor}, inset 0 0 20px ${glowColor}` : '0 10px 30px -10px rgba(0,0,0,0.5)'
             }}
@@ -1330,12 +1330,13 @@ export const GroupNode = memo(({ id, data, selected }) => {
                 />
             )}
             <div
-                className={`rounded-2xl border-2 transition-all duration-300 relative overflow-hidden pointer-events-none
-                    ${selected ? 'border-indigo-500 bg-indigo-500/5 shadow-[0_0_30px_rgba(99,102,241,0.2)]' : 'border-zinc-800 border-dashed bg-zinc-950/40'} 
-                    ${isCollapsed ? 'w-56 h-14' : 'w-full h-full'}`}
+                className={`rounded-2xl border-2 transition-all duration-300 relative pointer-events-none
+                    ${selected ? 'border-indigo-500' : 'border-zinc-800 border-dashed'} 
+                    ${isCollapsed ? 'w-56 h-14 bg-zinc-900 shadow-xl' : 'w-full h-full bg-transparent'}`}
+                style={{ backdropFilter: 'none', WebkitBackdropFilter: 'none' }}
             >
                 {/* Background Instruction (Behind nodes) */}
-                {!isCollapsed && (
+                {!isCollapsed && !selected && (
                     <div className="absolute inset-0 z-[-1] pointer-events-none opacity-40 flex items-center justify-center">
                         <div className="border-2 border-indigo-500/10 inset-8 absolute rounded-3xl border-dashed flex items-center justify-center">
                             <div className="text-[10px] text-zinc-800 font-black uppercase tracking-[0.4em] animate-pulse">
@@ -1347,7 +1348,8 @@ export const GroupNode = memo(({ id, data, selected }) => {
 
                 {/* Header */}
                 <div className={`p-3 h-14 flex items-center justify-between gap-2 relative z-10 pointer-events-auto transition-colors
-                    ${isCollapsed ? 'bg-zinc-900 border border-zinc-700 shadow-xl rounded-2xl' : 'border-b border-zinc-800/50 bg-zinc-900/60'}`}>
+                    ${isCollapsed ? 'bg-zinc-900 border border-zinc-700 shadow-xl rounded-2xl' : 'border-b border-zinc-800/10 bg-zinc-950/20'}`}
+                    style={{ backdropFilter: 'none', WebkitBackdropFilter: 'none' }}>
 
                     <div className="flex items-center gap-3 flex-1 min-w-0">
                         <div className={`p-1.5 rounded-lg transition-all shadow-inner
