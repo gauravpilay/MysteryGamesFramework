@@ -79,6 +79,17 @@ The **Story Node** is the primary narrative building block of your game. It is u
     *   "Conversation with a Witness"
     *   "Description of a spooky room"
 
+#### Rich Text & Formatting
+The Story Node supports basic Markdown-style formatting to help you emphasize keywords and guide the player's attention:
+*   **Bold Text:** Wrap text in double asterisks like `**CRITICAL CLUE**` to make it bold and bright.
+*   **Color Emphasis:** Use color tags to highlight specific words.
+    *   `[red]Hostile[/red]`
+    *   `[blue]Calm[/blue]`
+    *   `[green]Success[/green]`
+    *   `[yellow]Warning[/yellow]`
+    *   `[indigo]Neural Link[/indigo]`
+    *   `[orange]Danger[/orange]`
+
 ### 4. Suspect Node
 **Icon:** User (Red)
 

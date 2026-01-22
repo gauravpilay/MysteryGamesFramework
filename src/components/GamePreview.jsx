@@ -38,11 +38,43 @@ const TypewriterText = ({ text, onComplete }) => {
     const [displayedText, setDisplayedText] = useState('');
     const index = useRef(0);
 
+    const parseRichText = (input) => {
+        if (!input) return "";
+        // Bold: **text**
+        let parsed = input.replace(/\*\*(.*?)\*\*/g, '<b class="text-white font-black drop-shadow-sm">$1</b>');
+
+        // Colors: [red]text[/red], [blue]text[/blue], etc.
+        const colors = ['red', 'blue', 'green', 'yellow', 'indigo', 'orange', 'emerald', 'amber', 'rose', 'cyan'];
+        colors.forEach(color => {
+            const regex = new RegExp(`\\[${color}\\](.*?)\\[\\/${color}\\]`, 'g');
+            // Mapping colors to Tailwind classes
+            const colorMap = {
+                red: 'text-red-500',
+                blue: 'text-blue-400',
+                green: 'text-emerald-400',
+                yellow: 'text-amber-300',
+                indigo: 'text-indigo-400',
+                orange: 'text-orange-400',
+                emerald: 'text-emerald-400',
+                amber: 'text-amber-400',
+                rose: 'text-rose-500',
+                cyan: 'text-cyan-400'
+            };
+            parsed = parsed.replace(regex, `<span class="${colorMap[color]} font-bold">$1</span>`);
+        });
+
+        // Handle unclosed bold tags for a smoother typing experience
+        if (parsed.includes('**') && !parsed.includes('</b>')) {
+            parsed = parsed.replace(/\*\*(.*)$/, '<b class="text-white font-black">$1</b>');
+        }
+
+        return parsed;
+    };
+
     useEffect(() => {
         setDisplayedText('');
         index.current = 0;
 
-        // If no text, complete immediately (or if text is short)
         if (!text) {
             if (onComplete) onComplete();
             return;
@@ -50,20 +82,23 @@ const TypewriterText = ({ text, onComplete }) => {
 
         const timer = setInterval(() => {
             if (index.current < text.length) {
-                // Use slice to ensure we explicitly show characters 0 to N
-                // This prevents 'skipped' characters if state updates batch or lag
                 setDisplayedText(text.slice(0, index.current + 1));
                 index.current++;
             } else {
                 clearInterval(timer);
                 if (onComplete) onComplete();
             }
-        }, 15); // Speed
+        }, 12); // Slightly faster for longer texts
 
         return () => clearInterval(timer);
     }, [text]);
 
-    return <span>{displayedText}<span className="animate-pulse text-indigo-500">_</span></span>;
+    return (
+        <span className="relative">
+            <span dangerouslySetInnerHTML={{ __html: parseRichText(displayedText) }} />
+            <span className="animate-pulse text-indigo-500 ml-1">_</span>
+        </span>
+    );
 };
 
 // -- MINIGAME COMPONENTS --
