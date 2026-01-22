@@ -314,6 +314,9 @@ const GamePreview = ({ nodes, edges, onClose, gameMetadata, onGameEnd }) => {
     const [activeAccusationNode, setActiveAccusationNode] = useState(null);
     const [zoomedImage, setZoomedImage] = useState(null);
     const [showEvidenceBoard, setShowEvidenceBoard] = useState(false);
+    const [boardItems, setBoardItems] = useState([]);
+    const [boardConnections, setBoardConnections] = useState([]);
+    const [boardNotes, setBoardNotes] = useState([]);
     const [isConfronting, setIsConfronting] = useState(false);
 
     // Logic/Outputs State
@@ -2123,6 +2126,12 @@ const GamePreview = ({ nodes, edges, onClose, gameMetadata, onGameEnd }) => {
                         nodes={nodes}
                         history={history}
                         onClose={() => setShowEvidenceBoard(false)}
+                        boardItems={boardItems}
+                        setBoardItems={setBoardItems}
+                        connections={boardConnections}
+                        setConnections={setBoardConnections}
+                        notes={boardNotes}
+                        setNotes={setBoardNotes}
                         onOpenDossier={(nodeId) => {
                             const node = nodes.find(n => n.id === nodeId);
                             if (node) {

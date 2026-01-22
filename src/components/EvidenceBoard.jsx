@@ -3,11 +3,20 @@ import { motion, AnimatePresence } from 'framer-motion';
 import { X, Plus, Link, Trash2, GripHorizontal, StickyNote, User, Search, ImageIcon, ZoomIn, Briefcase, ChevronRight, ChevronLeft, Type, FileText } from 'lucide-react';
 import { Button } from './ui/shared';
 
-const EvidenceBoard = ({ inventory, nodes, history, onClose, onOpenDossier }) => {
-    const [boardItems, setBoardItems] = useState([]); // { id, type, x, y, label, data }
-    const [connections, setConnections] = useState([]); // { from, to, label }
+const EvidenceBoard = ({
+    inventory,
+    nodes,
+    history,
+    onClose,
+    onOpenDossier,
+    boardItems,
+    setBoardItems,
+    connections,
+    setConnections,
+    notes,
+    setNotes
+}) => {
     const [linkingFrom, setLinkingFrom] = useState(null);
-    const [notes, setNotes] = useState([]); // { id, x, y, text }
     const [zoomedImage, setZoomedImage] = useState(null);
     const [sidebarOpen, setSidebarOpen] = useState(true);
     const boardRef = useRef(null);
