@@ -285,7 +285,7 @@ const ProgressReportModal = ({ onClose }) => {
             });
 
             // Detailed Learning Paths Section
-            let detailY = doc.lastAutoTable.finalY + 15;
+            let detailY = doc.lastAutoTable ? doc.lastAutoTable.finalY + 15 : 70;
 
             // Check for page break
             if (detailY > 240) {
@@ -304,50 +304,67 @@ const ProgressReportModal = ({ onClose }) => {
                 const details = objMap[`${objKey}_details`];
                 const objTitle = objMap[objKey];
                 const catId = objKey.split(':')[0];
-                const catName = objMap[catId];
+                const catName = objMap[catId] || "Category";
 
                 if (details && (details.learningObjective || details.objective || details.keyTakeaway)) {
-                    if (detailY > 250) {
+                    // Pre-calculate heights
+                    doc.setFontSize(10);
+                    const splitTitle = doc.splitTextToSize(`${catName}: ${objTitle}`, pageWidth - 36);
+
+                    doc.setFontSize(8);
+                    const splitFocus = details.learningObjective ? doc.splitTextToSize(`Focus: ${details.learningObjective}`, pageWidth - 36) : [];
+                    const splitDetail = details.objective ? doc.splitTextToSize(`Objective: ${details.objective}`, pageWidth - 36) : [];
+                    const splitTakeaway = details.keyTakeaway ? doc.splitTextToSize(`Key Takeaway: ${details.keyTakeaway}`, pageWidth - 36) : [];
+
+                    const blockHeight = (splitTitle.length * 6) + (splitFocus.length * 4) + (splitDetail.length * 4) + (splitTakeaway.length * 4) + 12;
+
+                    if (detailY + blockHeight > 270) {
                         doc.addPage();
                         detailY = 20;
                     }
 
                     doc.setDrawColor(230);
                     doc.setFillColor(250, 250, 252);
-                    doc.rect(14, detailY, pageWidth - 28, 35, 'F');
+                    doc.rect(14, detailY, pageWidth - 28, blockHeight, 'F');
 
+                    let innerY = detailY + 7;
                     doc.setFontSize(10);
                     doc.setTextColor(63, 81, 181);
                     doc.setFont(undefined, 'bold');
-                    doc.text(`${catName || "Category"}: ${objTitle}`, 18, detailY + 7);
+                    doc.text(splitTitle, 18, innerY);
+                    innerY += (splitTitle.length * 5) + 2;
 
                     doc.setFontSize(8);
                     doc.setFont(undefined, 'normal');
                     doc.setTextColor(80);
 
-                    let innerY = detailY + 14;
-                    if (details.learningObjective) {
-                        doc.text(`Focus: ${details.learningObjective}`, 18, innerY);
-                        innerY += 4;
+                    if (splitFocus.length > 0) {
+                        doc.text(splitFocus, 18, innerY);
+                        innerY += (splitFocus.length * 4);
                     }
-                    if (details.objective) {
-                        const splitObjective = doc.splitTextToSize(`Objective: ${details.objective}`, pageWidth - 40);
-                        doc.text(splitObjective, 18, innerY);
-                        innerY += (splitObjective.length * 4);
+                    if (splitDetail.length > 0) {
+                        doc.text(splitDetail, 18, innerY);
+                        innerY += (splitDetail.length * 4);
                     }
-                    if (details.keyTakeaway) {
+                    if (splitTakeaway.length > 0) {
                         doc.setTextColor(16, 185, 129); // Emerald
                         doc.setFont(undefined, 'bold');
-                        doc.text(`Key Takeaway: ${details.keyTakeaway}`, 18, innerY);
+                        doc.text(splitTakeaway, 18, innerY);
+                        innerY += (splitTakeaway.length * 4);
                     }
 
-                    detailY += 42;
+                    detailY += blockHeight + 5;
                 }
             });
         }
 
         // Recent Sessions Table
-        const finalY = doc.lastAutoTable ? doc.lastAutoTable.finalY + 15 : 90;
+        let finalY = detailY + 10;
+        if (finalY > 260) {
+            doc.addPage();
+            finalY = 20;
+        }
+
         doc.setFontSize(14);
         doc.setTextColor(63, 81, 181);
         doc.text("Mission History Log", 14, finalY);

@@ -248,6 +248,8 @@ const AdminProgressModal = ({ onClose }) => {
             doc.text(`Successes: ${userData.stats.totalWins}`, 70, 44);
             doc.text(`Field Time: ${Math.floor(userData.stats.totalTime / 60)}m`, 120, 44);
 
+            let currentY = 64;
+
             // Objectives Chart & Table
             if (Object.keys(userData.objectiveStats).length > 0) {
                 const objectiveData = Object.entries(userData.objectiveStats);
@@ -287,55 +289,70 @@ const AdminProgressModal = ({ onClose }) => {
                 });
 
                 // Detailed Analysis Section
-                let detailY = doc.lastAutoTable.finalY + 12;
+                currentY = doc.lastAutoTable.finalY + 12;
 
                 const objectivesUsed = Object.keys(userData.objectiveStats);
 
                 objectivesUsed.forEach(objName => {
-                    // Try to find details by name
                     const details = objMap[`${objName}_details`];
 
                     if (details && (details.learningObjective || details.objective || details.keyTakeaway)) {
-                        if (detailY > 250) {
+                        // Pre-calculate heights
+                        doc.setFontSize(9);
+                        const splitTitle = doc.splitTextToSize(`Analysis: ${objName}`, pageWidth - 36);
+
+                        doc.setFontSize(8);
+                        const splitFocus = details.learningObjective ? doc.splitTextToSize(`Objective: ${details.learningObjective}`, pageWidth - 36) : [];
+                        const splitDetail = details.objective ? doc.splitTextToSize(`Detail: ${details.objective}`, pageWidth - 36) : [];
+                        const splitTakeaway = details.keyTakeaway ? doc.splitTextToSize(`Takeaway: ${details.keyTakeaway}`, pageWidth - 36) : [];
+
+                        const blockHeight = (splitTitle.length * 5) + (splitFocus.length * 4) + (splitDetail.length * 4) + (splitTakeaway.length * 4) + 10;
+
+                        if (currentY + blockHeight > 270) {
                             doc.addPage();
-                            detailY = 20;
+                            currentY = 20;
                         }
 
                         doc.setFillColor(245, 240, 255);
-                        doc.rect(14, detailY, pageWidth - 28, 30, 'F');
+                        doc.rect(14, currentY, pageWidth - 28, blockHeight, 'F');
 
+                        let innerY = currentY + 6;
                         doc.setFontSize(9);
                         doc.setTextColor(147, 51, 234);
                         doc.setFont(undefined, 'bold');
-                        doc.text(`Analysis: ${objName}`, 18, detailY + 7);
+                        doc.text(splitTitle, 18, innerY);
+                        innerY += (splitTitle.length * 5) + 1;
 
                         doc.setFontSize(8);
                         doc.setFont(undefined, 'normal');
                         doc.setTextColor(100);
 
-                        let innerY = detailY + 13;
-                        if (details.learningObjective) {
-                            doc.text(`Objective: ${details.learningObjective}`, 18, innerY);
-                            innerY += 4;
+                        if (splitFocus.length > 0) {
+                            doc.text(splitFocus, 18, innerY);
+                            innerY += (splitFocus.length * 4);
                         }
-                        if (details.objective) {
-                            const splitObj = doc.splitTextToSize(`Detail: ${details.objective}`, pageWidth - 40);
-                            doc.text(splitObj, 18, innerY);
-                            innerY += (splitObj.length * 4);
+                        if (splitDetail.length > 0) {
+                            doc.text(splitDetail, 18, innerY);
+                            innerY += (splitDetail.length * 4);
                         }
-                        if (details.keyTakeaway) {
+                        if (splitTakeaway.length > 0) {
                             doc.setTextColor(80);
                             doc.setFont(undefined, 'bold');
-                            doc.text(`Takeaway: ${details.keyTakeaway}`, 18, innerY);
+                            doc.text(splitTakeaway, 18, innerY);
+                            innerY += (splitTakeaway.length * 4);
                         }
 
-                        detailY += 35;
+                        currentY += blockHeight + 4;
                     }
                 });
             }
 
             // Mission Log Table
-            const finalY = doc.lastAutoTable ? doc.lastAutoTable.finalY + 15 : 68;
+            let finalY = currentY + 10;
+            if (finalY > 260) {
+                doc.addPage();
+                finalY = 20;
+            }
             doc.setFontSize(12);
             doc.setTextColor(0);
             doc.text("Recent Mission Logs", 14, finalY);
