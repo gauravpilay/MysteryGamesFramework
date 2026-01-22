@@ -1,7 +1,8 @@
 import React, { useState, useEffect, useMemo, useRef } from 'react';
 import { Button, Card } from './ui/shared';
-import { X, User, Search, Terminal, MessageSquare, FileText, ArrowRight, ShieldAlert, CheckCircle, AlertTriangle, Volume2, VolumeX, Image as ImageIcon, Briefcase, Star, MousePointerClick, Bell, HelpCircle, Clock, ZoomIn } from 'lucide-react';
+import { X, User, Search, Terminal, MessageSquare, FileText, ArrowRight, ShieldAlert, CheckCircle, AlertTriangle, Volume2, VolumeX, Image as ImageIcon, Briefcase, Star, MousePointerClick, Bell, HelpCircle, Clock, ZoomIn, LayoutGrid } from 'lucide-react';
 import { motion, AnimatePresence } from 'framer-motion';
+import EvidenceBoard from './EvidenceBoard';
 
 const BackgroundEffect = () => (
     <div className="fixed inset-0 pointer-events-none z-0 overflow-hidden">
@@ -277,6 +278,7 @@ const GamePreview = ({ nodes, edges, onClose, gameMetadata, onGameEnd }) => {
     const [accusationResult, setAccusationResult] = useState(null); // 'success' | 'failure' | null | 'timeout'
     const [activeAccusationNode, setActiveAccusationNode] = useState(null);
     const [zoomedImage, setZoomedImage] = useState(null);
+    const [showEvidenceBoard, setShowEvidenceBoard] = useState(false);
 
     // Logic/Outputs State
     const [nodeOutputs, setNodeOutputs] = useState({});
@@ -685,9 +687,6 @@ const GamePreview = ({ nodes, edges, onClose, gameMetadata, onGameEnd }) => {
         setIsContentReady(false);
 
     }, [currentNode, inventory, options, nodeOutputs]);
-
-
-    const [showVault, setShowVault] = useState(false);
 
     // ...
 
@@ -1211,16 +1210,17 @@ const GamePreview = ({ nodes, edges, onClose, gameMetadata, onGameEnd }) => {
                         </Button>
                     )}
 
-                    {/* Vault Button */}
+
+                    {/* Evidence Board Button */}
                     {missionStarted && (
                         <Button
                             variant="secondary"
                             size="sm"
-                            onClick={() => setShowVault(true)}
-                            className="bg-zinc-800 border border-zinc-700 text-zinc-300 hover:text-white"
+                            onClick={() => setShowEvidenceBoard(true)}
+                            className="bg-zinc-800 border border-zinc-700 text-amber-500 hover:text-amber-400"
                         >
-                            <Briefcase className="w-4 h-4 mr-2" />
-                            Evidence Vault
+                            <LayoutGrid className="w-4 h-4 mr-2" />
+                            Crazy Wall
                         </Button>
                     )}
 
@@ -1551,64 +1551,6 @@ const GamePreview = ({ nodes, edges, onClose, gameMetadata, onGameEnd }) => {
                     </motion.div>
                 </AnimatePresence>
             </div>
-
-            {/* Inventory / Vault Modal */}
-            <AnimatePresence>
-                {showVault && (
-                    <div className="fixed inset-0 z-[70] flex items-center justify-center p-4 bg-black/90 backdrop-blur-md">
-                        <div className="bg-zinc-950 border border-zinc-800 rounded-2xl w-full max-w-4xl h-[80vh] flex flex-col shadow-2xl relative">
-                            <div className="p-6 border-b border-zinc-800 flex items-center justify-between">
-                                <div className="flex items-center gap-3">
-                                    <Briefcase className="w-6 h-6 text-indigo-500" />
-                                    <h2 className="text-xl font-bold text-white uppercase tracking-wider">Resource Vault</h2>
-                                </div>
-                                <Button variant="ghost" onClick={() => setShowVault(false)}>
-                                    <X className="w-6 h-6" />
-                                </Button>
-                            </div>
-                            <div className="flex-1 overflow-y-auto p-6">
-                                <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
-                                    {Array.from(inventory).map(id => {
-                                        const node = nodes.find(n => n.id === id);
-                                        if (!node || !['evidence', 'media'].includes(node.type)) return null;
-
-                                        const Icon = node.type === 'media' ? ImageIcon : Search;
-                                        const color = node.type === 'media' ? 'text-orange-500' : 'text-yellow-500';
-
-                                        return (
-                                            <div
-                                                key={id}
-                                                onClick={() => { setShowVault(false); setActiveModalNode(node); }}
-                                                className="bg-black border border-zinc-800 p-4 rounded-xl hover:border-indigo-500/50 cursor-pointer transition-all group"
-                                            >
-                                                <div className="flex items-center gap-3 mb-3">
-                                                    <Icon className={`w-5 h-5 ${color}`} />
-                                                    <span className="text-xs font-bold text-zinc-500 uppercase">{node.type}</span>
-                                                </div>
-                                                <h4 className="font-bold text-zinc-200 group-hover:text-indigo-400 truncate">{node.data.label}</h4>
-                                                {((node.type === 'media' && node.data.mediaType === 'image') || (node.type === 'evidence' && node.data.image)) && (
-                                                    <div className="mt-3 aspect-video bg-zinc-900 rounded overflow-hidden">
-                                                        <img src={node.data.image || node.data.url} alt="" className="w-full h-full object-cover opacity-50 group-hover:opacity-80 transition-opacity" />
-                                                    </div>
-                                                )}
-                                                <p className="text-xs text-zinc-600 mt-2 line-clamp-2">{node.data.description || node.data.text}</p>
-                                            </div>
-                                        )
-                                    })}
-                                    {Array.from(inventory).filter(id => {
-                                        const n = nodes.find(x => x.id === id);
-                                        return n && ['evidence', 'media'].includes(n.type);
-                                    }).length === 0 && (
-                                            <div className="col-span-full py-12 text-center text-zinc-600">
-                                                <p>No evidence collected yet.</p>
-                                            </div>
-                                        )}
-                                </div>
-                            </div>
-                        </div>
-                    </div>
-                )}
-            </AnimatePresence>
 
             {/* Generic Interaction Modal (Replaces Suspect Modal) */}
             <AnimatePresence>
@@ -2035,6 +1977,18 @@ const GamePreview = ({ nodes, edges, onClose, gameMetadata, onGameEnd }) => {
                             />
                         </motion.div>
                     </div>
+                )}
+            </AnimatePresence>
+
+            {/* Evidence Board (Crazy Wall) */}
+            <AnimatePresence>
+                {showEvidenceBoard && (
+                    <EvidenceBoard
+                        inventory={inventory}
+                        nodes={nodes}
+                        history={history}
+                        onClose={() => setShowEvidenceBoard(false)}
+                    />
                 )}
             </AnimatePresence>
 
