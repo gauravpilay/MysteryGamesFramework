@@ -314,6 +314,7 @@ const GamePreview = ({ nodes, edges, onClose, gameMetadata, onGameEnd }) => {
     const [activeAccusationNode, setActiveAccusationNode] = useState(null);
     const [zoomedImage, setZoomedImage] = useState(null);
     const [showEvidenceBoard, setShowEvidenceBoard] = useState(false);
+    const [isConfronting, setIsConfronting] = useState(false);
 
     // Logic/Outputs State
     const [nodeOutputs, setNodeOutputs] = useState({});
@@ -913,6 +914,7 @@ const GamePreview = ({ nodes, edges, onClose, gameMetadata, onGameEnd }) => {
             setAccusationResult(null);
         } else {
             setActiveModalNode(null);
+            setIsConfronting(false);
             // Ensure intermediate nodes are tracked in inventory if needed (usually just history is sufficient)
             if (intermediateIds.length > 0) {
                 setInventory(prev => new Set([...prev, ...intermediateIds]));
@@ -1651,17 +1653,106 @@ const GamePreview = ({ nodes, edges, onClose, gameMetadata, onGameEnd }) => {
                                                 </p>
                                             </div>
 
+                                            {/* Evidence Confrontation System */}
+                                            <div className="pt-6 border-t border-zinc-900 mt-6">
+                                                <div className="flex items-center justify-between mb-4">
+                                                    <h4 className="text-xs font-bold text-amber-500 uppercase tracking-widest flex items-center gap-2">
+                                                        <Search className="w-4 h-4" />
+                                                        Evidence Confrontation
+                                                    </h4>
+                                                    {!isConfronting && inventory.size > 0 && (
+                                                        <Button
+                                                            size="xs"
+                                                            variant="outline"
+                                                            onClick={() => setIsConfronting(true)}
+                                                            className="border-amber-500/30 text-amber-500 hover:bg-amber-500/10 text-[10px]"
+                                                        >
+                                                            Select Evidence
+                                                        </Button>
+                                                    )}
+                                                </div>
+
+                                                {isConfronting ? (
+                                                    <motion.div
+                                                        initial={{ opacity: 0, y: 10 }}
+                                                        animate={{ opacity: 1, y: 0 }}
+                                                        className="bg-black/40 border border-amber-500/20 rounded-xl p-4"
+                                                    >
+                                                        <div className="flex items-center justify-between mb-3">
+                                                            <span className="text-[10px] text-zinc-500 font-bold uppercase">Choose item to present:</span>
+                                                            <Button variant="ghost" size="xs" onClick={() => setIsConfronting(false)} className="h-5 w-5 p-0">
+                                                                <X className="w-3 h-3" />
+                                                            </Button>
+                                                        </div>
+                                                        <div className="flex gap-3 overflow-x-auto pb-2 scrollbar-hide">
+                                                            {Array.from(inventory).map(id => {
+                                                                const evidenceNode = nodes.find(n => n.id === id && n.type === 'evidence');
+                                                                if (!evidenceNode) return null;
+                                                                return (
+                                                                    <motion.div
+                                                                        key={id}
+                                                                        whileHover={{ scale: 1.05 }}
+                                                                        whileTap={{ scale: 0.95 }}
+                                                                        onClick={() => {
+                                                                            // Logic to find edge matching this evidence
+                                                                            const matchingEdge = edges.find(e =>
+                                                                                e.source === activeModalNode.id &&
+                                                                                (e.label?.toLowerCase() === evidenceNode.data.label?.toLowerCase() ||
+                                                                                    e.data?.evidenceId === id)
+                                                                            );
+
+                                                                            if (matchingEdge) {
+                                                                                addLog(`CONFRONTATION SUCCESS: Showed ${evidenceNode.data.label} to ${activeModalNode.data.name}`);
+                                                                                setActiveModalNode(null);
+                                                                                setIsConfronting(false);
+                                                                                handleOptionClick(matchingEdge.target);
+                                                                            } else {
+                                                                                addLog(`CONFRONTATION: ${activeModalNode.data.name} has no reaction to the ${evidenceNode.data.label}.`);
+                                                                                setIsConfronting(false);
+                                                                            }
+                                                                        }}
+                                                                        className="flex-shrink-0 w-24 cursor-pointer group"
+                                                                    >
+                                                                        <div className="aspect-square bg-zinc-900 border border-zinc-800 rounded-lg overflow-hidden mb-1 group-hover:border-amber-500 transition-colors">
+                                                                            {evidenceNode.data.image ? (
+                                                                                <img src={evidenceNode.data.image} alt="" className="w-full h-full object-cover" />
+                                                                            ) : (
+                                                                                <div className="w-full h-full flex items-center justify-center">
+                                                                                    <Search className="w-6 h-6 text-zinc-700" />
+                                                                                </div>
+                                                                            )}
+                                                                        </div>
+                                                                        <div className="text-[8px] text-zinc-400 text-center font-bold uppercase truncate px-1">
+                                                                            {evidenceNode.data.label}
+                                                                        </div>
+                                                                    </motion.div>
+                                                                );
+                                                            })}
+                                                            {Array.from(inventory).filter(id => nodes.find(n => n.id === id && n.type === 'evidence')).length === 0 && (
+                                                                <div className="text-[10px] text-zinc-600 italic py-4 w-full text-center">
+                                                                    No evidence in inventory to present.
+                                                                </div>
+                                                            )}
+                                                        </div>
+                                                    </motion.div>
+                                                ) : (
+                                                    <p className="text-[10px] text-zinc-600 italic">
+                                                        Prepare physical evidence to pressure the suspect during interrogation.
+                                                    </p>
+                                                )}
+                                            </div>
+
                                             {/* Action Buttons for this Suspect */}
-                                            <div className="pt-8 border-t border-zinc-900 mt-4">
-                                                <h4 className="text-xs font-bold text-zinc-500 uppercase tracking-widest mb-4">Available Actions</h4>
+                                            <div className="pt-8 border-t border-zinc-900 mt-6">
+                                                <h4 className="text-xs font-bold text-zinc-500 uppercase tracking-widest mb-4">Dialogue / Actions</h4>
                                                 <div className="grid grid-cols-1 gap-3">
-                                                    {edges.filter(e => e.source === activeModalNode.id).map(edge => {
+                                                    {edges.filter(e => e.source === activeModalNode.id && !e.label?.startsWith('evidence:') && !e.data?.isEvidenceLink).map(edge => {
                                                         const target = nodes.find(n => n.id === edge.target);
                                                         if (!target) return null;
                                                         return (
                                                             <Button
                                                                 key={edge.id}
-                                                                onClick={() => { setActiveModalNode(null); handleOptionClick(edge.target); }}
+                                                                onClick={() => { setActiveModalNode(null); setIsConfronting(false); handleOptionClick(edge.target); }}
                                                                 className="w-full justify-between h-auto py-3 bg-indigo-600 hover:bg-indigo-700 text-white border-0"
                                                             >
                                                                 <span>{getEdgeLabel(target)}</span>
@@ -1669,13 +1760,9 @@ const GamePreview = ({ nodes, edges, onClose, gameMetadata, onGameEnd }) => {
                                                             </Button>
                                                         )
                                                     })}
-                                                    {edges.filter(e => e.source === activeModalNode.id).length === 0 && (
+                                                    {edges.filter(e => e.source === activeModalNode.id && !e.label?.startsWith('evidence:') && !e.data?.isEvidenceLink).length === 0 && (
                                                         <div className="p-3 rounded bg-zinc-900/50 border border-zinc-900 border-dashed">
-                                                            <p className="text-zinc-500 italic text-sm mb-1">No further leads on this suspect currently.</p>
-                                                            <p className="text-[10px] text-zinc-600 font-mono">
-                                                                Debug: Node ID `{activeModalNode.id}` has 0 outgoing connections.
-                                                                Connect this node to Evidence or Story nodes in the editor to create actions.
-                                                            </p>
+                                                            <p className="text-zinc-500 italic text-sm mb-1">No further dialogue paths currently.</p>
                                                         </div>
                                                     )}
                                                 </div>
@@ -2036,6 +2123,13 @@ const GamePreview = ({ nodes, edges, onClose, gameMetadata, onGameEnd }) => {
                         nodes={nodes}
                         history={history}
                         onClose={() => setShowEvidenceBoard(false)}
+                        onOpenDossier={(nodeId) => {
+                            const node = nodes.find(n => n.id === nodeId);
+                            if (node) {
+                                setActiveModalNode(node);
+                                setShowEvidenceBoard(false);
+                            }
+                        }}
                     />
                 )}
             </AnimatePresence>

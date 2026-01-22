@@ -1,9 +1,9 @@
 import React, { useState, useEffect, useRef } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
-import { X, Plus, Link, Trash2, GripHorizontal, StickyNote, User, Search, ImageIcon, ZoomIn, Briefcase, ChevronRight, ChevronLeft, Type } from 'lucide-react';
+import { X, Plus, Link, Trash2, GripHorizontal, StickyNote, User, Search, ImageIcon, ZoomIn, Briefcase, ChevronRight, ChevronLeft, Type, FileText } from 'lucide-react';
 import { Button } from './ui/shared';
 
-const EvidenceBoard = ({ inventory, nodes, history, onClose }) => {
+const EvidenceBoard = ({ inventory, nodes, history, onClose, onOpenDossier }) => {
     const [boardItems, setBoardItems] = useState([]); // { id, type, x, y, label, data }
     const [connections, setConnections] = useState([]); // { from, to, label }
     const [linkingFrom, setLinkingFrom] = useState(null);
@@ -13,6 +13,7 @@ const EvidenceBoard = ({ inventory, nodes, history, onClose }) => {
     const boardRef = useRef(null);
 
     // Get all unlocked resources
+    const allUnlockedSuspects = nodes.filter(n => n.type === 'suspect' && history.includes(n.id));
     const allUnlockedEvidence = nodes.filter(n => n.type === 'evidence' && inventory.has(n.id));
 
     const addItemToBoard = (item) => {
@@ -125,6 +126,35 @@ const EvidenceBoard = ({ inventory, nodes, history, onClose }) => {
                         </Button>
                     </div>
 
+                    {/* Suspects */}
+                    <div className="space-y-3">
+                        {sidebarOpen && <h3 className="text-[10px] font-bold text-zinc-600 uppercase tracking-widest mb-2 px-1">Unlocked Suspects ({allUnlockedSuspects.length})</h3>}
+                        <div className="grid grid-cols-1 gap-2">
+                            {allUnlockedSuspects.map(s => {
+                                const onBoard = boardItems.some(i => i.id === s.id);
+                                return (
+                                    <div
+                                        key={s.id}
+                                        onClick={() => !onBoard && addItemToBoard(s)}
+                                        className={`group p-2 rounded-lg border transition-all cursor-pointer flex items-center gap-3
+                                            ${onBoard ? 'bg-zinc-900/50 border-zinc-800 opacity-40 cursor-not-allowed' : 'bg-zinc-900 border-zinc-700 hover:border-amber-500/50 hover:bg-zinc-800'}`}
+                                    >
+                                        <div className="w-8 h-8 rounded bg-zinc-800 flex items-center justify-center shrink-0">
+                                            <User className={`w-4 h-4 ${onBoard ? 'text-zinc-600' : 'text-zinc-400'}`} />
+                                        </div>
+                                        {sidebarOpen && (
+                                            <div className="min-w-0 flex-1">
+                                                <div className="text-[10px] font-bold text-zinc-200 truncate">{s.data.name}</div>
+                                                <div className="text-[8px] text-zinc-500 truncate">{s.data.role}</div>
+                                            </div>
+                                        )}
+                                        {sidebarOpen && !onBoard && <Plus className="w-3 h-3 text-zinc-600 group-hover:text-amber-500" />}
+                                    </div>
+                                );
+                            })}
+                        </div>
+                    </div>
+
                     {/* Evidence */}
                     <div className="space-y-3">
                         {sidebarOpen && <h3 className="text-[10px] font-bold text-zinc-600 uppercase tracking-widest mb-2 px-1">Evidence Files ({allUnlockedEvidence.length})</h3>}
@@ -162,20 +192,20 @@ const EvidenceBoard = ({ inventory, nodes, history, onClose }) => {
                 >
                     {sidebarOpen ? <ChevronLeft className="w-4 h-4" /> : <ChevronRight className="w-4 h-4" />}
                 </button>
-            </motion.div>
+            </motion.div >
 
             {/* Main Board Container */}
-            <div className="flex-1 flex flex-col bg-zinc-950 relative">
+            < div className="flex-1 flex flex-col bg-zinc-950 relative" >
                 {/* Board Header */}
-                <div className="p-4 border-b border-zinc-900 flex items-center justify-between relative z-10 bg-zinc-950/50 backdrop-blur-md">
+                < div className="p-4 border-b border-zinc-900 flex items-center justify-between relative z-10 bg-zinc-950/50 backdrop-blur-md" >
                     <h2 className="text-xl font-black text-zinc-600 uppercase tracking-tighter italic">
                         <span className="text-amber-500">Neural</span> Investigative Canvas v2.0
                     </h2>
                     <Button variant="ghost" onClick={onClose} className="hover:bg-red-500/10 hover:text-red-500"><X className="w-6 h-6" /></Button>
-                </div>
+                </div >
 
                 {/* Board Area */}
-                <div
+                < div
                     ref={boardRef}
                     className="flex-1 relative overflow-hidden bg-[url('https://www.transparenttextures.com/patterns/carbon-fibre.png')] bg-zinc-900"
                     style={{
@@ -184,182 +214,203 @@ const EvidenceBoard = ({ inventory, nodes, history, onClose }) => {
                     }}
                 >
                     {/* Connection Lines (SVG) */}
-                    <svg className="absolute inset-0 pointer-events-none w-full h-full">
-                        {connections.map((conn, i) => {
+                    < svg className="absolute inset-0 pointer-events-none w-full h-full" >
+                        {
+                            connections.map((conn, i) => {
+                                const from = getItemPos(conn.from);
+                                const to = getItemPos(conn.to);
+                                const midX = (from.x + to.x) / 2;
+                                const midY = (from.y + to.y) / 2;
+
+                                return (
+                                    <g key={i} className="pointer-events-none">
+                                        <line
+                                            x1={from.x} y1={from.y}
+                                            x2={to.x} y2={to.y}
+                                            stroke="#ef4444"
+                                            strokeWidth="2"
+                                            strokeDasharray="8 4"
+                                            opacity="0.4"
+                                            className="drop-shadow-[0_0_8px_rgba(239,68,68,0.3)]"
+                                        />
+                                        {/* Connection Label Point */}
+                                        <foreignObject
+                                            x={midX - 30}
+                                            y={midY - 15}
+                                            width="60"
+                                            height="30"
+                                            className="pointer-events-auto"
+                                        >
+                                            <div className="group relative flex items-center justify-center h-full">
+                                                <div className="w-6 h-6 rounded-full bg-zinc-950 border border-red-900/50 flex items-center justify-center hover:bg-red-950 transition-colors cursor-pointer"
+                                                    onClick={() => removeConnection(i)}>
+                                                    <X className="w-3 h-3 text-red-500" />
+                                                </div>
+                                            </div>
+                                        </foreignObject>
+                                    </g>
+                                );
+                            })
+                        }
+                    </svg >
+
+                    {/* Linkage Labels (Separate from SVG to handle inputs better) */}
+                    {
+                        connections.map((conn, i) => {
                             const from = getItemPos(conn.from);
                             const to = getItemPos(conn.to);
                             const midX = (from.x + to.x) / 2;
                             const midY = (from.y + to.y) / 2;
 
                             return (
-                                <g key={i} className="pointer-events-none">
-                                    <line
-                                        x1={from.x} y1={from.y}
-                                        x2={to.x} y2={to.y}
-                                        stroke="#ef4444"
-                                        strokeWidth="2"
-                                        strokeDasharray="8 4"
-                                        opacity="0.4"
-                                        className="drop-shadow-[0_0_8px_rgba(239,68,68,0.3)]"
-                                    />
-                                    {/* Connection Label Point */}
-                                    <foreignObject
-                                        x={midX - 30}
-                                        y={midY - 15}
-                                        width="60"
-                                        height="30"
-                                        className="pointer-events-auto"
-                                    >
-                                        <div className="group relative flex items-center justify-center h-full">
-                                            <div className="w-6 h-6 rounded-full bg-zinc-950 border border-red-900/50 flex items-center justify-center hover:bg-red-950 transition-colors cursor-pointer"
-                                                onClick={() => removeConnection(i)}>
-                                                <X className="w-3 h-3 text-red-500" />
-                                            </div>
-                                        </div>
-                                    </foreignObject>
-                                </g>
-                            );
-                        })}
-                    </svg>
-
-                    {/* Linkage Labels (Separate from SVG to handle inputs better) */}
-                    {connections.map((conn, i) => {
-                        const from = getItemPos(conn.from);
-                        const to = getItemPos(conn.to);
-                        const midX = (from.x + to.x) / 2;
-                        const midY = (from.y + to.y) / 2;
-
-                        return (
-                            <div
-                                key={`label-${i}`}
-                                className="absolute pointer-events-auto"
-                                style={{
-                                    left: midX,
-                                    top: midY + 15, // Offset below the delete button
-                                    transform: 'translateX(-50%)'
-                                }}
-                            >
-                                <div className="bg-zinc-950/80 border border-zinc-800 rounded px-2 py-1 shadow-xl backdrop-blur-sm min-w-[80px]">
-                                    <input
-                                        type="text"
-                                        placeholder="Add connection note..."
-                                        value={conn.label}
-                                        onChange={(e) => updateConnectionLabel(i, e.target.value)}
-                                        className="bg-transparent border-none text-[8px] text-zinc-300 focus:outline-none w-full text-center placeholder:opacity-30 uppercase font-black"
-                                    />
+                                <div
+                                    key={`label-${i}`}
+                                    className="absolute pointer-events-auto"
+                                    style={{
+                                        left: midX,
+                                        top: midY + 15, // Offset below the delete button
+                                        transform: 'translateX(-50%)'
+                                    }}
+                                >
+                                    <div className="bg-zinc-950/80 border border-zinc-800 rounded px-2 py-1 shadow-xl backdrop-blur-sm min-w-[80px]">
+                                        <input
+                                            type="text"
+                                            placeholder="Add connection note..."
+                                            value={conn.label}
+                                            onChange={(e) => updateConnectionLabel(i, e.target.value)}
+                                            className="bg-transparent border-none text-[8px] text-zinc-300 focus:outline-none w-full text-center placeholder:opacity-30 uppercase font-black"
+                                        />
+                                    </div>
                                 </div>
-                            </div>
-                        );
-                    })}
+                            );
+                        })
+                    }
 
                     {/* Evidence & Suspect Items */}
-                    {boardItems.map(item => (
-                        <motion.div
-                            key={item.id}
-                            drag
-                            dragMomentum={false}
-                            onDrag={(e, info) => handleDrag(item.id, info)}
-                            initial={{ x: item.x, y: item.y }}
-                            animate={{ x: item.x, y: item.y }}
-                            className={`absolute w-44 p-2 bg-zinc-800 border-2 ${linkingFrom === item.id ? 'border-amber-500 scale-105' : 'border-zinc-700'} shadow-2xl cursor-grab active:cursor-grabbing group`}
-                        >
-                            <div className="flex items-center justify-between mb-1">
-                                <div className="flex items-center gap-1 opacity-50">
-                                    {item.type === 'suspect' ? <User className="w-3 h-3" /> : <Search className="w-3 h-3" />}
-                                    <span className="text-[8px] uppercase font-bold">{item.type}</span>
-                                </div>
-                                <div className="flex gap-1 opacity-0 group-hover:opacity-100 transition-opacity">
-                                    <Button variant="ghost" size="icon" className="h-5 w-5 p-0 hover:text-red-500" onClick={() => removeItem(item.id)}>
-                                        <Trash2 className="w-3 h-3" />
-                                    </Button>
-                                    <Button variant="ghost" size="icon" className="h-5 w-5 p-0" onClick={() => startLink(item.id)}>
-                                        <Link className={`w-3.5 h-3.5 ${linkingFrom === item.id ? 'text-amber-500' : 'text-zinc-400'}`} />
-                                    </Button>
-                                    {item.image && (
-                                        <Button variant="ghost" size="icon" className="h-5 w-5 p-0" onClick={() => setZoomedImage(item.image)}>
-                                            <ZoomIn className="w-3.5 h-3.5 text-zinc-400" />
+                    {
+                        boardItems.map(item => (
+                            <motion.div
+                                key={item.id}
+                                drag
+                                dragMomentum={false}
+                                onDrag={(e, info) => handleDrag(item.id, info)}
+                                initial={{ x: item.x, y: item.y }}
+                                animate={{ x: item.x, y: item.y }}
+                                className={`absolute w-44 p-2 bg-zinc-800 border-2 ${linkingFrom === item.id ? 'border-amber-500 scale-105' : 'border-zinc-700'} shadow-2xl cursor-grab active:cursor-grabbing group`}
+                            >
+                                <div className="flex items-center justify-between mb-1">
+                                    <div className="flex items-center gap-1 opacity-50">
+                                        {item.type === 'suspect' ? <User className="w-3 h-3" /> : <Search className="w-3 h-3" />}
+                                        <span className="text-[8px] uppercase font-bold">{item.type}</span>
+                                    </div>
+                                    <div className="flex gap-1 opacity-0 group-hover:opacity-100 transition-opacity">
+                                        <Button variant="ghost" size="icon" className="h-5 w-5 p-0 hover:text-red-500" onClick={() => removeItem(item.id)}>
+                                            <Trash2 className="w-3 h-3" />
                                         </Button>
-                                    )}
+                                        {item.type === 'suspect' && (
+                                            <Button
+                                                variant="ghost"
+                                                size="icon"
+                                                className="h-5 w-5 p-0 text-indigo-400 hover:text-indigo-300"
+                                                onClick={() => onOpenDossier(item.id)}
+                                                title="Open Dossier"
+                                            >
+                                                <FileText className="w-3.5 h-3.5" />
+                                            </Button>
+                                        )}
+                                        <Button variant="ghost" size="icon" className="h-5 w-5 p-0" onClick={() => startLink(item.id)}>
+                                            <Link className={`w-3.5 h-3.5 ${linkingFrom === item.id ? 'text-amber-500' : 'text-zinc-400'}`} />
+                                        </Button>
+                                        {item.image && (
+                                            <Button variant="ghost" size="icon" className="h-5 w-5 p-0" onClick={() => setZoomedImage(item.image)}>
+                                                <ZoomIn className="w-3.5 h-3.5 text-zinc-400" />
+                                            </Button>
+                                        )}
+                                    </div>
                                 </div>
-                            </div>
 
-                            {item.image ? (
-                                <div className="aspect-[4/3] bg-black mb-2 overflow-hidden border border-zinc-900 relative group/img">
-                                    <img src={item.image} alt="" className="w-full h-full object-cover grayscale brightness-75 group-hover/img:brightness-100 group-hover/img:grayscale-0 transition-all shadow-inner" />
-                                </div>
-                            ) : (
-                                <div className="aspect-[4/3] bg-zinc-900 mb-2 flex items-center justify-center border border-zinc-950">
-                                    {item.type === 'suspect' ? <User className="w-8 h-8 text-zinc-800 opacity-20" /> : <Search className="w-8 h-8 text-zinc-800 opacity-20" />}
-                                </div>
-                            )}
-
-                            <div className="space-y-1">
-                                <div className="text-[10px] font-bold text-zinc-200 tracking-tighter uppercase truncate leading-tight">
-                                    {item.label}
-                                </div>
-                                {item.description && (
-                                    <div className="text-[8px] text-zinc-500 leading-tight line-clamp-2 italic opacity-60">
-                                        {item.description}
+                                {item.image ? (
+                                    <div className="aspect-[4/3] bg-black mb-2 overflow-hidden border border-zinc-900 relative group/img">
+                                        <img src={item.image} alt="" className="w-full h-full object-cover grayscale brightness-75 group-hover/img:brightness-100 group-hover/img:grayscale-0 transition-all shadow-inner" />
+                                    </div>
+                                ) : (
+                                    <div className="aspect-[4/3] bg-zinc-900 mb-2 flex items-center justify-center border border-zinc-950">
+                                        {item.type === 'suspect' ? <User className="w-8 h-8 text-zinc-800 opacity-20" /> : <Search className="w-8 h-8 text-zinc-800 opacity-20" />}
                                     </div>
                                 )}
-                            </div>
 
-                            <div className="absolute -top-3 left-1/2 -translate-x-1/2 w-12 h-4 bg-zinc-300/5 backdrop-blur-[2px] rotate-2 border border-white/5" />
-                        </motion.div>
-                    ))}
+                                <div className="space-y-1">
+                                    <div className="text-[10px] font-bold text-zinc-200 tracking-tighter uppercase truncate leading-tight">
+                                        {item.label}
+                                    </div>
+                                    {item.description && (
+                                        <div className="text-[8px] text-zinc-500 leading-tight line-clamp-2 italic opacity-60">
+                                            {item.description}
+                                        </div>
+                                    )}
+                                </div>
+
+                                <div className="absolute -top-3 left-1/2 -translate-x-1/2 w-12 h-4 bg-zinc-300/5 backdrop-blur-[2px] rotate-2 border border-white/5" />
+                            </motion.div>
+                        ))
+                    }
 
                     {/* Sticky Notes */}
-                    {notes.map(note => (
-                        <motion.div
-                            key={note.id}
-                            drag
-                            dragMomentum={false}
-                            onDrag={(e, info) => handleDrag(note.id, info, true)}
-                            initial={{ x: note.x, y: note.y }}
-                            animate={{ x: note.x, y: note.y }}
-                            className={`absolute w-52 p-3 bg-amber-200 text-amber-900 shadow-2xl cursor-grab active:cursor-grabbing border-l-8 border-amber-300 ring-1 ring-amber-400/30 ${linkingFrom === note.id ? 'ring-4 ring-amber-500' : ''}`}
-                            style={{ rotate: -1 }}
-                        >
-                            <div className="flex items-center justify-between mb-2 border-b border-amber-300/50 pb-1">
-                                <StickyNote className="w-3 h-3 opacity-50" />
-                                <div className="flex gap-2">
-                                    <button onClick={() => startLink(note.id)} className={`p-1 hover:bg-amber-300 rounded transition-colors ${linkingFrom === note.id ? 'text-amber-600' : 'text-amber-800'}`}>
-                                        <Link className="w-3 h-3" />
-                                    </button>
-                                    <button onClick={() => removeNote(note.id)} className="p-1 hover:bg-amber-300 rounded text-red-600/70 hover:text-red-700 transition-colors">
-                                        <Trash2 className="w-3 h-3" />
-                                    </button>
+                    {
+                        notes.map(note => (
+                            <motion.div
+                                key={note.id}
+                                drag
+                                dragMomentum={false}
+                                onDrag={(e, info) => handleDrag(note.id, info, true)}
+                                initial={{ x: note.x, y: note.y }}
+                                animate={{ x: note.x, y: note.y }}
+                                className={`absolute w-52 p-3 bg-amber-200 text-amber-900 shadow-2xl cursor-grab active:cursor-grabbing border-l-8 border-amber-300 ring-1 ring-amber-400/30 ${linkingFrom === note.id ? 'ring-4 ring-amber-500' : ''}`}
+                                style={{ rotate: -1 }}
+                            >
+                                <div className="flex items-center justify-between mb-2 border-b border-amber-300/50 pb-1">
+                                    <StickyNote className="w-3 h-3 opacity-50" />
+                                    <div className="flex gap-2">
+                                        <button onClick={() => startLink(note.id)} className={`p-1 hover:bg-amber-300 rounded transition-colors ${linkingFrom === note.id ? 'text-amber-600' : 'text-amber-800'}`}>
+                                            <Link className="w-3 h-3" />
+                                        </button>
+                                        <button onClick={() => removeNote(note.id)} className="p-1 hover:bg-amber-300 rounded text-red-600/70 hover:text-red-700 transition-colors">
+                                            <Trash2 className="w-3 h-3" />
+                                        </button>
+                                    </div>
                                 </div>
-                            </div>
-                            <textarea
-                                value={note.text}
-                                onChange={(e) => updateNoteText(note.id, e.target.value)}
-                                className="bg-transparent border-none w-full text-xs font-serif resize-none focus:outline-none placeholder-amber-700/50 h-24 leading-relaxed tracking-tight"
-                                placeholder="Type deduction..."
-                            />
-                            <div className="absolute -bottom-2 -right-2 w-full h-full bg-black/5 -z-10 blur-sm" />
-                        </motion.div>
-                    ))}
+                                <textarea
+                                    value={note.text}
+                                    onChange={(e) => updateNoteText(note.id, e.target.value)}
+                                    className="bg-transparent border-none w-full text-xs font-serif resize-none focus:outline-none placeholder-amber-700/50 h-24 leading-relaxed tracking-tight"
+                                    placeholder="Type deduction..."
+                                />
+                                <div className="absolute -bottom-2 -right-2 w-full h-full bg-black/5 -z-10 blur-sm" />
+                            </motion.div>
+                        ))
+                    }
 
                     {/* Empty State Overlay */}
-                    {boardItems.length === 0 && notes.length === 0 && (
-                        <div className="absolute inset-0 flex items-center justify-center pointer-events-none">
-                            <div className="bg-black/20 backdrop-blur-sm border border-white/5 p-12 rounded-[3rem] flex flex-col items-center max-w-md text-center">
-                                <div className="w-20 h-20 rounded-full bg-zinc-900 border border-zinc-800 flex items-center justify-center mb-6">
-                                    <Briefcase className="w-10 h-10 text-zinc-700 opacity-50" />
+                    {
+                        boardItems.length === 0 && notes.length === 0 && (
+                            <div className="absolute inset-0 flex items-center justify-center pointer-events-none">
+                                <div className="bg-black/20 backdrop-blur-sm border border-white/5 p-12 rounded-[3rem] flex flex-col items-center max-w-md text-center">
+                                    <div className="w-20 h-20 rounded-full bg-zinc-900 border border-zinc-800 flex items-center justify-center mb-6">
+                                        <Briefcase className="w-10 h-10 text-zinc-700 opacity-50" />
+                                    </div>
+                                    <h3 className="text-2xl font-black uppercase tracking-[0.2em] text-zinc-700 opacity-50 mb-4">Board Offline</h3>
+                                    <p className="text-xs text-zinc-600 uppercase tracking-widest leading-relaxed">
+                                        Use the <span className="text-amber-500">Evidence Locker</span> on the left to deploy clues and suspects onto the neural net.
+                                    </p>
                                 </div>
-                                <h3 className="text-2xl font-black uppercase tracking-[0.2em] text-zinc-700 opacity-50 mb-4">Board Offline</h3>
-                                <p className="text-xs text-zinc-600 uppercase tracking-widest leading-relaxed">
-                                    Use the <span className="text-amber-500">Evidence Locker</span> on the left to deploy clues and suspects onto the neural net.
-                                </p>
                             </div>
-                        </div>
-                    )}
-                </div>
-            </div>
+                        )
+                    }
+                </div >
+            </div >
 
             {/* Magnifier Overlay */}
-            <AnimatePresence>
+            < AnimatePresence >
                 {zoomedImage && (
                     <motion.div
                         initial={{ opacity: 0 }}
@@ -390,16 +441,16 @@ const EvidenceBoard = ({ inventory, nodes, history, onClose }) => {
                         </motion.div>
                     </motion.div>
                 )}
-            </AnimatePresence>
+            </AnimatePresence >
 
             {/* Global Instruction Bar */}
-            <div className="fixed bottom-4 left-1/2 -translate-x-1/2 px-6 py-2 bg-zinc-950/80 border border-zinc-800 rounded-full backdrop-blur-xl flex items-center gap-8 text-[9px] text-zinc-500 uppercase tracking-widest z-50 shadow-2xl">
+            < div className="fixed bottom-4 left-1/2 -translate-x-1/2 px-6 py-2 bg-zinc-950/80 border border-zinc-800 rounded-full backdrop-blur-xl flex items-center gap-8 text-[9px] text-zinc-500 uppercase tracking-widest z-50 shadow-2xl" >
                 <div className="flex items-center gap-2"><GripHorizontal className="w-4 h-4 text-zinc-700" /> Drag to arrange</div>
                 <div className="flex items-center gap-2"><Link className="w-4 h-4 text-zinc-700" /> Link two nodes</div>
                 <div className="flex items-center gap-2"><Type className="w-4 h-4 text-amber-500" /> Type on lines to label connections</div>
                 <div className="flex items-center gap-2"><Trash2 className="w-4 h-4 text-red-900" /> Bin items to return to locker</div>
-            </div>
-        </div>
+            </div >
+        </div >
     );
 };
 
