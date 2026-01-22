@@ -1,4 +1,4 @@
-import React, { memo, useState } from 'react';
+import React, { memo, useState, useRef, useEffect } from 'react';
 import { Handle, Position } from 'reactflow';
 import { FileText, User, Search, GitMerge, Terminal, MessageSquare, Music, Image as ImageIcon, Star, MousePointerClick, Trash2, Plus, Copy, Fingerprint, Bell, HelpCircle, ToggleLeft, Unlock, Binary, Grid3x3 } from 'lucide-react';
 import { storage } from '../../lib/firebase';
@@ -1240,6 +1240,7 @@ export const SetterNode = memo(({ id, data, selected }) => {
 const ObjectiveSelector = ({ values = [], onChange, objectives }) => {
     if (!objectives || objectives.length === 0) return null;
     const [isOpen, setIsOpen] = useState(false);
+    const containerRef = useRef(null);
 
     // Filter out invalid/empty strings and handle legacy string values if any
     const selectedIds = Array.isArray(values) ? values : (values ? [values] : []);
@@ -1251,11 +1252,23 @@ const ObjectiveSelector = ({ values = [], onChange, objectives }) => {
         onChange(newValues);
     };
 
+    useEffect(() => {
+        const handleClickOutside = (event) => {
+            if (containerRef.current && !containerRef.current.contains(event.target)) {
+                setIsOpen(false);
+            }
+        };
+
+        if (isOpen) {
+            document.addEventListener('mousedown', handleClickOutside);
+        }
+        return () => document.removeEventListener('mousedown', handleClickOutside);
+    }, [isOpen]);
+
     return (
-        <div className="mt-1 relative">
+        <div className="mt-1 relative" ref={containerRef}>
             <button
                 onClick={() => setIsOpen(!isOpen)}
-                onBlur={() => setTimeout(() => setIsOpen(false), 200)}
                 className="w-full bg-black/40 border border-zinc-800 text-zinc-400 rounded px-2 py-1.5 text-[9px] uppercase font-bold tracking-wider hover:bg-black/60 transition-all flex items-center justify-between group"
             >
                 <span className={selectedIds.length > 0 ? "text-indigo-400" : ""}>
@@ -1267,7 +1280,6 @@ const ObjectiveSelector = ({ values = [], onChange, objectives }) => {
             {isOpen && (
                 <div
                     className="absolute z-[100] bottom-full left-0 right-0 mb-1 bg-zinc-950 border border-zinc-800 rounded-lg shadow-[0_10px_40px_rgba(0,0,0,0.8)] p-2 max-h-48 overflow-y-auto custom-scrollbar ring-1 ring-white/10"
-                    onMouseDown={(e) => e.preventDefault()} // Prevent blur when clicking inside
                 >
                     {objectives.map(cat => (
                         <div key={cat.id} className="mb-3 last:mb-0">
