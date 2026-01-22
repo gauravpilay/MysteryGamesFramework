@@ -13,7 +13,7 @@ import { useParams, useNavigate } from 'react-router-dom';
 import { Button } from '../components/ui/shared';
 import { Logo } from '../components/ui/Logo';
 import { Save, ArrowLeft, X, FileText, User, Search, GitMerge, Terminal, MessageSquare, CircleHelp, Play, Settings, Music, Image as ImageIcon, MousePointerClick, Fingerprint, Bell, HelpCircle, ChevronLeft, ChevronRight, ToggleLeft, Lock, Sun, Moon, Stethoscope, Unlock, Binary, Grid3x3, CheckCircle, AlertTriangle, Plus, Trash2, Target } from 'lucide-react';
-import { StoryNode, SuspectNode, EvidenceNode, LogicNode, TerminalNode, MessageNode, MusicNode, MediaNode, ActionNode, IdentifyNode, NotificationNode, QuestionNode, SetterNode, LockpickNode, DecryptionNode, KeypadNode } from '../components/nodes/CustomNodes';
+import { StoryNode, SuspectNode, EvidenceNode, LogicNode, TerminalNode, MessageNode, MusicNode, MediaNode, ActionNode, IdentifyNode, NotificationNode, QuestionNode, SetterNode, LockpickNode, DecryptionNode, KeypadNode, InputField } from '../components/nodes/CustomNodes';
 import { TutorialOverlay } from '../components/ui/TutorialOverlay';
 import GamePreview from '../components/GamePreview';
 import { AnimatePresence, motion } from 'framer-motion';
@@ -153,6 +153,7 @@ const Editor = () => {
         detail: "",
         takeaway: ""
     });
+    const [confirmDeleteCat, setConfirmDeleteCat] = useState(null); // catId or null
 
     const tutorialSteps = [
         {
@@ -598,6 +599,16 @@ const Editor = () => {
             }
             return cat;
         }));
+    };
+
+    const deleteCategory = (catId) => {
+        setConfirmDeleteCat(catId);
+    };
+
+    const confirmDeleteCategory = () => {
+        if (!confirmDeleteCat) return;
+        setLearningObjectives(learningObjectives.filter(cat => cat.id !== confirmDeleteCat));
+        setConfirmDeleteCat(null);
     };
 
     const handlePreviewGameEnd = async (resultData) => {
@@ -1112,6 +1123,43 @@ const Editor = () => {
                                         </div>
                                     </div>
                                 )}
+                            </div>
+                        </motion.div>
+                    </div>
+                )}
+                {/* Delete Category Confirmation Modal */}
+                {confirmDeleteCat && (
+                    <div className="fixed inset-0 z-[100] flex items-center justify-center p-4 bg-black/60 backdrop-blur-sm">
+                        <motion.div
+                            initial={{ scale: 0.95, opacity: 0 }}
+                            animate={{ scale: 1, opacity: 1 }}
+                            className="bg-zinc-950 border border-zinc-900 p-8 rounded-2xl max-w-sm w-full shadow-2xl space-y-6"
+                        >
+                            <div className="flex flex-col items-center text-center space-y-4">
+                                <div className="p-3 bg-red-500/10 rounded-full border border-red-500/20">
+                                    <AlertTriangle className="w-8 h-8 text-red-500" />
+                                </div>
+                                <div>
+                                    <h3 className="text-xl font-bold text-white uppercase tracking-tight">Destructive Action</h3>
+                                    <p className="text-zinc-500 text-sm mt-2">
+                                        Are you sure you want to delete <span className="text-zinc-200 font-bold">{learningObjectives.find(c => c.id === confirmDeleteCat)?.category}</span> and all its associated objectives?
+                                    </p>
+                                </div>
+                            </div>
+                            <div className="flex gap-3">
+                                <Button
+                                    variant="ghost"
+                                    className="flex-1 border border-zinc-800 hover:bg-zinc-900"
+                                    onClick={() => setConfirmDeleteCat(null)}
+                                >
+                                    Cancel
+                                </Button>
+                                <Button
+                                    className="flex-1 bg-red-600 hover:bg-red-700 text-white border-0 shadow-lg shadow-red-900/20"
+                                    onClick={confirmDeleteCategory}
+                                >
+                                    Delete All
+                                </Button>
                             </div>
                         </motion.div>
                     </div>

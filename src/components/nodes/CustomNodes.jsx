@@ -406,7 +406,7 @@ const NodeWrapper = ({ children, title, icon: Icon, colorClass = "border-zinc-70
     );
 };
 
-const InputField = ({ value, onChange, placeholder, className = "", ...props }) => (
+export const InputField = ({ value, onChange, placeholder, className = "", ...props }) => (
     <input
         className={`w-full bg-zinc-900/50 border border-zinc-800 rounded px-2 py-1 text-xs text-zinc-200 placeholder:text-zinc-600 focus:outline-none focus:border-indigo-500/50 nodrag ${className}`}
         placeholder={placeholder}
