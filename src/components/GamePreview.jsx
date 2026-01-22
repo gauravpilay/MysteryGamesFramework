@@ -316,7 +316,16 @@ const GamePreview = ({ nodes, edges, onClose, gameMetadata, onGameEnd }) => {
         return `${mins.toString().padStart(2, '0')}:${secs.toString().padStart(2, '0')}`;
     };
 
-    // Initialize Game
+    // Track visited nodes in history
+    useEffect(() => {
+        if (currentNodeId) {
+            setHistory(prev => {
+                if (prev.includes(currentNodeId)) return prev;
+                return [...prev, currentNodeId];
+            });
+        }
+    }, [currentNodeId]);
+
     const currentNode = useMemo(() =>
         nodes.find(n => n.id === currentNodeId),
         [currentNodeId, nodes]
@@ -607,12 +616,16 @@ const GamePreview = ({ nodes, edges, onClose, gameMetadata, onGameEnd }) => {
     useEffect(() => {
         if (!currentNode) return;
 
-        // 1. Evidence: Auto-collect
-        if (currentNode.type === 'evidence') {
+        // 1. Evidence & Suspects: Auto-collect
+        if (currentNode.type === 'evidence' || currentNode.type === 'suspect') {
             const flag = currentNode.data.variableId || currentNode.data.condition || currentNode.id;
             if (!inventory.has(flag)) {
                 setInventory(prev => new Set([...prev, flag]));
-                addLog(`EVIDENCE ACQUIRED: ${currentNode.data.label}`);
+                if (currentNode.type === 'evidence') {
+                    addLog(`EVIDENCE ACQUIRED: ${currentNode.data.label}`);
+                } else {
+                    addLog(`SUSPECT ENCOUNTERED: ${currentNode.data.name}`);
+                }
             }
         }
 
