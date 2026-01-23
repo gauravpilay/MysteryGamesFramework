@@ -240,44 +240,102 @@ const ProgressReportModal = ({ onClose }) => {
                                 }
                             }
                         }
-                        if (!acc[name]) acc[name] = { ...data };
-                        else {
+                        if (!acc[name]) {
+                            acc[name] = { ...data, runs: [...(data.runs || [])] };
+                        } else {
                             acc[name].total += data.total;
                             acc[name].count += data.count;
+                            acc[name].runs = [...(acc[name].runs || []), ...(data.runs || [])];
                         }
                         return acc;
                     }, {})
                 );
 
-                // Visual Chart
+                // Visual Progression Chart
                 let chartY = 105;
-                doc.setFontSize(9);
-                doc.setTextColor(140);
-                doc.text("INTELLIGENCE SKILL DISTRIBUTION MODEL", 14, chartY - 6);
+                doc.setFontSize(8);
+                doc.setTextColor(150);
+                doc.setFont(undefined, 'bold');
+                doc.text("INTELLIGENCE EVOLUTION & SKILL ADAPTATION MODEL", 14, chartY - 6);
 
                 objectiveData.forEach(([name, data], i) => {
-                    const count = data.count || 1;
-                    const score = Math.round(data.total / count);
-                    const maxBarWidth = pageWidth - 90;
-                    const barWidth = maxBarWidth * (Math.abs(score) / 100) || 0;
+                    const sortedRuns = [...(data.runs || [])].sort((a, b) => new Date(a.date) - new Date(b.date));
+                    const spacing = 13;
+                    const y = chartY + (i * spacing);
 
-                    doc.setTextColor(80);
-                    doc.text(String(name).length > 25 ? String(name).substring(0, 22) + "..." : String(name), 14, chartY + (i * 8));
+                    // Name and Improvement Calculation
+                    const firstScore = sortedRuns[0]?.score || 0;
+                    const lastScore = sortedRuns[sortedRuns.length - 1]?.score || 0;
+                    const diff = lastScore - firstScore;
 
-                    // Bar track
-                    doc.setFillColor(242, 242, 247);
-                    doc.rect(65, chartY + (i * 8) - 3, maxBarWidth, 3, 'F');
+                    doc.setFontSize(8);
+                    doc.setTextColor(60);
+                    doc.setFont(undefined, 'bold');
+                    doc.text(String(name).substring(0, 45), 14, y);
 
-                    // Bar fill
-                    doc.setFillColor(score >= 0 ? 79 : 220, score >= 0 ? 70 : 38, score >= 0 ? 229 : 38);
-                    doc.rect(65, chartY + (i * 8) - 3, barWidth, 3, 'F');
+                    if (sortedRuns.length > 1) {
+                        doc.setFontSize(7);
+                        if (diff > 0) {
+                            doc.setTextColor(16, 185, 129); // Emerald
+                            doc.text(`+${diff}% IMPROVEMENT`, 14, y + 4);
+                        } else if (diff < 0) {
+                            doc.setTextColor(239, 68, 68); // Red
+                            doc.text(`${diff}% DECREASE`, 14, y + 4);
+                        }
+                    }
 
+                    // Progress Track
+                    const trackX = 70;
+                    const trackWidth = pageWidth - trackX - 25;
+                    const trackHeight = 3.5;
+
+                    // Track background
+                    doc.setFillColor(245, 245, 250);
+                    doc.roundedRect(trackX, y - 3, trackWidth, trackHeight, 1.5, 1.5, 'F');
+
+                    // Base/First attempt line
+                    const firstX = trackX + (Math.max(0, firstScore) / 100 * trackWidth);
+                    const lastX = trackX + (Math.max(0, lastScore) / 100 * trackWidth);
+
+                    // Connection line (Progression)
+                    if (sortedRuns.length > 1) {
+                        doc.setDrawColor(diff >= 0 ? 199 : 254, diff >= 0 ? 210 : 202, diff >= 0 ? 254 : 202);
+                        doc.setLineWidth(1.5);
+                        doc.line(firstX, y - 1.25, lastX, y - 1.25);
+                    }
+
+                    // Attempt Markers
+                    sortedRuns.forEach((run, idx) => {
+                        const runX = trackX + (Math.max(0, run.score) / 100 * trackWidth);
+                        const isFirst = idx === 0;
+                        const isLast = idx === sortedRuns.length - 1;
+
+                        if (isFirst) {
+                            doc.setFillColor(245, 158, 11); // Amber 500
+                            doc.circle(runX, y - 1.25, 1.5, 'F');
+                            doc.setFontSize(6);
+                            doc.setTextColor(180, 83, 9);
+                            doc.text("ORIGIN", runX - 3, y - 4);
+                        } else if (isLast) {
+                            doc.setFillColor(79, 70, 229); // Indigo 600
+                            doc.circle(runX, y - 1.25, 1.8, 'F');
+                            doc.setFontSize(6);
+                            doc.setTextColor(67, 56, 202);
+                            doc.text("CURRENT", runX - 4, y - 4);
+                        } else {
+                            doc.setFillColor(165, 180, 252); // Indigo 300
+                            doc.circle(runX, y - 1.25, 1, 'F');
+                        }
+                    });
+
+                    // Percent readout
                     doc.setFontSize(7);
-                    doc.text(`${score}%`, pageWidth - 20, chartY + (i * 8));
-                    doc.setFontSize(9);
+                    doc.setTextColor(100);
+                    doc.setFont(undefined, 'bold');
+                    doc.text(`${lastScore}%`, pageWidth - 20, y);
                 });
 
-                const tableStartY = chartY + (objectiveData.length * 8) + 10;
+                const tableStartY = chartY + (objectiveData.length * 13) + 10;
                 const objectiveRows = objectiveData.map(([name, data]) => [
                     name,
                     `${Math.round(data.total / data.count)}%`,
