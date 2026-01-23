@@ -29,7 +29,7 @@ export const ConfigProvider = ({ children }) => {
         setLoading(true);
         const unsubscribe = onSnapshot(configRef, (docSnap) => {
             if (docSnap.exists()) {
-                setSettings(docSnap.data());
+                setSettings(prev => ({ ...prev, ...docSnap.data() }));
             } else {
                 // If config doesn't exist in DB, seed it from .env if the user is an Admin
                 // to prevent non-admins from creating the config doc

@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { X, Settings, Shield, Key, Sliders, Save, AlertTriangle, Cpu, Globe } from 'lucide-react';
 import { useConfig } from '../lib/config';
@@ -14,13 +14,22 @@ const SystemSettingsModal = ({ onClose }) => {
     const [isSaving, setIsSaving] = useState(false);
     const [status, setStatus] = useState(null); // { type, message }
 
+    // Sync formData when settings change (e.g. after initial load or remote update)
+    useEffect(() => {
+        setFormData({
+            aiApiKey: settings.aiApiKey || '',
+            maxAIRequests: settings.maxAIRequests || 10,
+            systemName: settings.systemName || 'Mystery Architect Central',
+        });
+    }, [settings]);
+
     const handleSave = async () => {
         setIsSaving(true);
         setStatus(null);
         try {
             await updateSettings(formData);
             setStatus({ type: 'success', message: 'Intelligence parameters synchronized successfully.' });
-            setTimeout(() => setStatus(null), 3000);
+            setTimeout(() => setStatus(null), 4000);
         } catch (err) {
             console.error(err);
             setStatus({ type: 'error', message: `Sync Failed: ${err.message || 'Unknown permission error'}` });
@@ -34,8 +43,36 @@ const SystemSettingsModal = ({ onClose }) => {
             <motion.div
                 initial={{ scale: 0.95, opacity: 0 }}
                 animate={{ scale: 1, opacity: 1 }}
-                className="w-full max-w-xl bg-zinc-950 border border-zinc-800 rounded-2xl overflow-hidden shadow-2xl flex flex-col"
+                className="w-full max-w-xl bg-zinc-950 border border-zinc-800 rounded-2xl overflow-hidden shadow-2xl flex flex-col relative"
             >
+                {/* Tactical Popup Notification */}
+                <AnimatePresence>
+                    {status && (
+                        <motion.div
+                            initial={{ opacity: 0, y: -20, x: '-50%' }}
+                            animate={{ opacity: 1, y: 15, x: '-50%' }}
+                            exit={{ opacity: 0, y: -20, x: '-50%' }}
+                            className={`absolute top-0 left-1/2 z-[110] min-w-[340px] p-4 rounded-xl border backdrop-blur-xl shadow-2xl flex items-center gap-4 ${status.type === 'success'
+                                ? 'bg-indigo-500/20 border-indigo-500/30 text-indigo-400 shadow-indigo-500/20'
+                                : 'bg-rose-500/20 border-rose-500/30 text-rose-400 shadow-rose-500/20'
+                                }`}
+                        >
+                            <div className={`p-2 rounded-lg ${status.type === 'success' ? 'bg-indigo-500/20' : 'bg-rose-500/20'}`}>
+                                {status.type === 'success' ? <Shield className="w-5 h-5" /> : <AlertTriangle className="w-5 h-5" />}
+                            </div>
+                            <div className="flex-1">
+                                <p className="text-[10px] font-black uppercase tracking-[0.2em] opacity-50 mb-0.5">
+                                    {status.type === 'success' ? 'Protocol Sync Success' : 'System Access Failure'}
+                                </p>
+                                <p className="text-xs font-bold leading-tight">{status.message}</p>
+                            </div>
+                            <button onClick={() => setStatus(null)} className="p-1 hover:bg-white/5 rounded-md transition-colors">
+                                <X className="w-4 h-4 opacity-50 hover:opacity-100" />
+                            </button>
+                        </motion.div>
+                    )}
+                </AnimatePresence>
+
                 {/* Header */}
                 <div className="p-6 border-b border-zinc-900 flex items-center justify-between bg-zinc-900/50">
                     <div className="flex items-center gap-3">
@@ -52,7 +89,7 @@ const SystemSettingsModal = ({ onClose }) => {
                     </Button>
                 </div>
 
-                <div className="p-8 space-y-8 overflow-y-auto max-h-[70vh]">
+                <div className="p-8 space-y-8 overflow-y-auto max-h-[70vh] scrollbar-thin scrollbar-thumb-white/10 scrollbar-track-transparent">
                     {/* Security Info */}
                     <div className="p-4 bg-indigo-500/5 border border-indigo-500/10 rounded-xl flex gap-4">
                         <div className="shrink-0 w-10 h-10 bg-indigo-500/10 rounded-lg flex items-center justify-center">
@@ -134,20 +171,6 @@ const SystemSettingsModal = ({ onClose }) => {
                             />
                         </div>
                     </div>
-
-                    {status && (
-                        <motion.div
-                            initial={{ opacity: 0, y: 5 }}
-                            animate={{ opacity: 1, y: 0 }}
-                            className={`p-4 rounded-xl border flex items-center gap-3 ${status.type === 'success'
-                                ? 'bg-emerald-500/10 border-emerald-500/20 text-emerald-400'
-                                : 'bg-red-500/10 border-red-500/20 text-red-400'
-                                }`}
-                        >
-                            <AlertTriangle className="w-5 h-5" />
-                            <span className="text-xs font-bold uppercase tracking-wider">{status.message}</span>
-                        </motion.div>
-                    )}
                 </div>
 
                 {/* Footer */}
