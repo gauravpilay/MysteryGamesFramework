@@ -1,9 +1,9 @@
 import React, { useState, useEffect, useRef } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
-import { MessageSquare, Send, X, Brain, Cpu, Loader2, Star, User, ShieldAlert } from 'lucide-react';
+import { MessageSquare, Send, X, Brain, Cpu, Loader2, Star, User, ShieldAlert, AlertCircle, Info } from 'lucide-react';
 import { callAI } from '../lib/ai';
 
-const AIInterrogation = ({ node, onComplete, onFail }) => {
+const AIInterrogation = ({ node, onComplete, onFail, requestCount, onAIRequest }) => {
     const [messages, setMessages] = useState([
         { role: 'assistant', text: "Hello detective! Tell me how can I help you today?" }
     ]);
@@ -31,8 +31,19 @@ const AIInterrogation = ({ node, onComplete, onFail }) => {
         }
     }, [messages]);
 
+    const [showLimitPopup, setShowLimitPopup] = useState(false);
+
+    const MAX_REQUESTS = parseInt(import.meta.env.VITE_MAX_AI_REQUESTS) || 10;
+    const isLimitReached = requestCount >= MAX_REQUESTS;
+
     const handleSendMessage = async () => {
         if (!input.trim() || isTyping) return;
+
+        // Check limit
+        if (isLimitReached && apiKey) {
+            setShowLimitPopup(true);
+            return;
+        }
 
         const userMsg = input.trim();
         setInput('');
@@ -42,6 +53,9 @@ const AIInterrogation = ({ node, onComplete, onFail }) => {
 
         if (!apiKey) {
             console.warn("AI Reference Key not found. Falling back to Simulation Mode.");
+        } else {
+            // Only count real AI requests
+            onAIRequest();
         }
 
         try {
@@ -79,6 +93,14 @@ const AIInterrogation = ({ node, onComplete, onFail }) => {
                         <div className="flex items-center gap-1.5 px-3 py-1 bg-amber-500/10 border border-amber-500/30 rounded-full">
                             <Star className="w-3 h-3 text-amber-500 fill-amber-500" />
                             <span className="text-[10px] font-black text-amber-500 uppercase">{score} PTS Available</span>
+                        </div>
+                    )}
+                    {apiKey && (
+                        <div className={`flex items-center gap-1.5 px-3 py-1 bg-${isLimitReached ? 'red' : 'indigo'}-500/10 border border-${isLimitReached ? 'red' : 'indigo'}-500/30 rounded-full`}>
+                            <Info className={`w-3 h-3 text-${isLimitReached ? 'red' : 'indigo'}-500`} />
+                            <span className={`text-[9px] font-black text-${isLimitReached ? 'red' : 'indigo'}-400 uppercase`}>
+                                {MAX_REQUESTS - requestCount} Qs Left
+                            </span>
                         </div>
                     )}
                     <button
@@ -180,6 +202,48 @@ const AIInterrogation = ({ node, onComplete, onFail }) => {
                     AI Interrogation Active // Secure Link Established
                 </p>
             </div>
+
+            {/* Limit Reached Popup Overlay */}
+            <AnimatePresence>
+                {showLimitPopup && (
+                    <motion.div
+                        initial={{ opacity: 0 }}
+                        animate={{ opacity: 1 }}
+                        exit={{ opacity: 0 }}
+                        className="absolute inset-0 z-50 flex items-center justify-center p-6 bg-black/80 backdrop-blur-md"
+                    >
+                        <motion.div
+                            initial={{ scale: 0.9, y: 20 }}
+                            animate={{ scale: 1, y: 0 }}
+                            className="w-full max-w-sm bg-zinc-900 border border-red-500/30 rounded-3xl p-8 shadow-2xl shadow-red-500/10 text-center"
+                        >
+                            <div className="w-16 h-16 bg-red-500/10 rounded-2xl border border-red-500/20 flex items-center justify-center mx-auto mb-6">
+                                <AlertCircle className="w-8 h-8 text-red-500" />
+                            </div>
+                            <h3 className="text-xl font-black text-white uppercase tracking-tight mb-2">Usage Limit Reached</h3>
+                            <p className="text-sm text-zinc-400 mb-6 leading-relaxed">
+                                You have exhausted the maximum of <span className="text-red-400 font-bold">{MAX_REQUESTS}</span> AI-powered questions for this session to maintain secure operations.
+                            </p>
+                            <div className="space-y-3">
+                                <button
+                                    onClick={() => onComplete()}
+                                    className="w-full py-3 bg-indigo-600 hover:bg-indigo-500 text-white text-xs font-black rounded-xl transition-all uppercase tracking-widest"
+                                >
+                                    Conclude Interrogation
+                                </button>
+                                <button
+                                    onClick={() => {
+                                        setShowLimitPopup(false);
+                                    }}
+                                    className="w-full py-3 bg-white/5 hover:bg-white/10 text-zinc-400 text-xs font-black rounded-xl transition-all uppercase tracking-widest"
+                                >
+                                    Review Transcript
+                                </button>
+                            </div>
+                        </motion.div>
+                    </motion.div>
+                )}
+            </AnimatePresence>
         </div>
     );
 };

@@ -332,6 +332,7 @@ const GamePreview = ({ nodes, edges, onClose, gameMetadata, onGameEnd }) => {
     const [score, setScore] = useState(0);
     const [playerObjectiveScores, setPlayerObjectiveScores] = useState({}); // { objId: score }
     const [scoredNodes, setScoredNodes] = useState(new Set());
+    const [aiRequestCount, setAiRequestCount] = useState(0);
     const [userAnswers, setUserAnswers] = useState(new Set()); // Set of selected option IDs for Question Nodes
 
     // Timer Logic
@@ -1948,6 +1949,8 @@ const GamePreview = ({ nodes, edges, onClose, gameMetadata, onGameEnd }) => {
                             {activeModalNode.type === 'interrogation' && (
                                 <AIInterrogation
                                     node={activeModalNode}
+                                    requestCount={aiRequestCount}
+                                    onAIRequest={() => setAiRequestCount(prev => prev + 1)}
                                     onComplete={() => {
                                         // Handle score/points if needed
                                         if (activeModalNode.data.score && !scoredNodes.has(activeModalNode.id)) {
