@@ -709,60 +709,151 @@ export const TerminalNode = memo(({ id, data, selected }) => {
             <Handle type="target" position={Position.Top} className="!bg-zinc-500 !w-3 !h-3 !border-2 !border-black" />
             <Handle type="target" position={Position.Top} className="!bg-zinc-500 !w-3 !h-3 !border-2 !border-black" />
             <NodeWrapper id={id} title="Terminal Challenge" icon={Terminal} selected={selected} headerClass="bg-zinc-800 text-green-400" colorClass="border-green-900/30" data={data} onLabelChange={(v) => handleChange('label', v)}>
-                <div className="space-y-2 font-mono">
-                    <div>
-                        <p className="text-[10px] text-zinc-500 mb-1">Challenge Prompt (Visible to Player)</p>
-                        <TextArea placeholder="e.g. SYSTEM LOCKED. ENTER OVERRIDE KEY..." rows={2} value={data.prompt} onChange={(e) => handleChange('prompt', e.target.value)} />
+                <div className="space-y-4 font-mono">
+                    <div className="relative group p-1.5 bg-green-950/10 border border-green-900/20 rounded-lg">
+                        <div className="flex items-center gap-2 mb-2">
+                            <div className="w-2 h-2 rounded-full bg-green-500 animate-pulse" />
+                            <span className="text-[10px] font-black text-green-500 uppercase tracking-widest">OS Mode: Advanced</span>
+                        </div>
+
+                        <div className="space-y-3">
+                            <div>
+                                <p className="text-[9px] text-zinc-500 mb-1 uppercase font-bold">Primary Task</p>
+                                <select
+                                    className="w-full bg-black border border-green-900/30 rounded px-2 py-1.5 text-[10px] text-green-400 focus:border-green-500 outline-none"
+                                    value={data.terminalType || 'content'}
+                                    onChange={(e) => handleChange('terminalType', e.target.value)}
+                                >
+                                    <option value="content">Find Secret String (cat/grep)</option>
+                                    <option value="password">Submit Password (submit)</option>
+                                    <option value="legacy">Legacy Command Match</option>
+                                </select>
+                            </div>
+
+                            {data.terminalType === 'content' && (
+                                <div>
+                                    <p className="text-[9px] text-zinc-500 mb-1 uppercase font-bold">Secret String to Find</p>
+                                    <InputField
+                                        className="text-green-400 bg-black border-green-900/40 focus:border-green-500"
+                                        placeholder="e.g. Sector 7"
+                                        value={data.solveContent}
+                                        onChange={(e) => handleChange('solveContent', e.target.value)}
+                                    />
+                                </div>
+                            )}
+
+                            {data.terminalType === 'password' && (
+                                <div>
+                                    <p className="text-[9px] text-zinc-500 mb-1 uppercase font-bold">Submit Password</p>
+                                    <InputField
+                                        className="text-green-400 bg-black border-green-900/40 focus:border-green-500"
+                                        placeholder="e.g. mystery_2024"
+                                        value={data.solvePassword}
+                                        onChange={(e) => handleChange('solvePassword', e.target.value)}
+                                    />
+                                </div>
+                            )}
+
+                            {data.terminalType === 'legacy' && (
+                                <div>
+                                    <p className="text-[9px] text-zinc-500 mb-1 uppercase font-bold">Exact Command Match</p>
+                                    <InputField
+                                        className="text-green-400 bg-black border-green-900/40 focus:border-green-500"
+                                        placeholder="e.g. override --all"
+                                        value={data.command}
+                                        onChange={(e) => handleChange('command', e.target.value)}
+                                    />
+                                </div>
+                            )}
+
+                            <div>
+                                <p className="text-[9px] text-zinc-500 mb-1 uppercase font-bold">Boot Prompt</p>
+                                <TextArea
+                                    placeholder="e.g. SYSTEM LOCKED. ANALYZE FILES..."
+                                    rows={2}
+                                    value={data.prompt}
+                                    onChange={(e) => handleChange('prompt', e.target.value)}
+                                    className="text-[10px] border-green-900/20"
+                                />
+                            </div>
+
+                            <div>
+                                <div className="flex items-center justify-between mb-1">
+                                    <p className="text-[9px] text-zinc-500 uppercase font-bold">VFS Editor (JSON)</p>
+                                    <button
+                                        onClick={() => {
+                                            const defaultVFS = {
+                                                '/': { type: 'dir', children: ['home', 'secrets.txt'] },
+                                                '/home': { type: 'dir', children: ['user'] },
+                                                '/home/user': { type: 'dir', children: ['diary.txt'] },
+                                                '/secrets.txt': { type: 'file', content: 'The location is Sector 7.' },
+                                                '/home/user/diary.txt': { type: 'file', content: 'I saw something strange today...' }
+                                            };
+                                            handleChange('vfs', defaultVFS);
+                                        }}
+                                        className="text-[8px] text-indigo-400 hover:text-indigo-300 font-bold uppercase transition-colors"
+                                    >
+                                        Load Template
+                                    </button>
+                                </div>
+                                <TextArea
+                                    placeholder='{"/": {"type": "dir", "children": ["f1"]}}'
+                                    rows={3}
+                                    value={data.vfs ? JSON.stringify(data.vfs, null, 2) : ''}
+                                    onChange={(e) => {
+                                        try {
+                                            const parsed = JSON.parse(e.target.value);
+                                            handleChange('vfs', parsed);
+                                        } catch (err) {
+                                            // Handle invalid JSON while typing if needed
+                                            // For now just update raw if we had a raw state, but we don't.
+                                            // Let's just update the data property.
+                                        }
+                                    }}
+                                    className="text-[9px] font-mono text-zinc-400 bg-black/60 border-green-900/20 h-24 scrollbar-hide"
+                                />
+                            </div>
+                        </div>
                     </div>
-                    <div className="pt-2 border-t border-zinc-800">
-                        <p className="text-[10px] text-zinc-500 mb-1 font-bold text-green-600">REQUIRED COMMAND (SECRET ANSWER)</p>
-                        <InputField
-                            className="text-green-400 bg-black border-green-900/40 focus:border-green-500"
-                            placeholder="e.g. sudo override"
-                            value={data.command}
-                            onChange={(e) => handleChange('command', e.target.value)}
-                        />
-                    </div>
-                    <div className="mt-3 p-2 bg-black/40 border border-green-900/20 rounded-lg space-y-2">
-                        <p className="text-[9px] font-bold text-green-400 uppercase tracking-wider flex items-center gap-1 mb-2">
-                            <Star className="w-3 h-3" /> Challenge Scoring
+
+                    <div className="p-2 bg-black/40 border border-green-900/20 rounded-lg space-y-2">
+                        <p className="text-[9px] font-bold text-green-400 uppercase tracking-wider flex items-center gap-1">
+                            <Star className="w-3 h-3" /> Bounty & Logic
                         </p>
                         <div className="flex gap-2">
                             <div className="flex-1 relative">
-                                <span className="absolute left-2 top-1.5 text-[8px] text-green-500/50 font-bold uppercase">Win</span>
+                                <span className="absolute left-2 top-1.5 text-[8px] text-green-500/50 font-bold uppercase">Reward</span>
                                 <InputField
                                     type="number"
                                     placeholder="0"
                                     value={data.score}
                                     onChange={(e) => handleChange('score', parseInt(e.target.value) || 0)}
-                                    className="pl-8 text-right bg-green-950/30 border-green-900/30 text-green-400"
+                                    className="pl-9 text-right bg-green-950/30 border-green-900/30 text-green-400"
                                 />
                             </div>
                             <div className="flex-1 relative">
-                                <span className="absolute left-2 top-1.5 text-[8px] text-red-500/50 font-bold uppercase">Fail</span>
+                                <span className="absolute left-2 top-1.5 text-[8px] text-red-500/50 font-bold uppercase">Risk</span>
                                 <InputField
                                     type="number"
                                     placeholder="0"
                                     value={data.penalty}
                                     onChange={(e) => handleChange('penalty', parseInt(e.target.value) || 0)}
-                                    className="pl-8 text-right bg-red-950/10 border-red-900/30 text-red-400"
+                                    className="pl-9 text-right bg-red-950/10 border-red-900/30 text-red-400 font-bold"
                                 />
                             </div>
+                        </div>
+                        <div>
+                            <InputField
+                                placeholder="Logic ID (e.g. hacked)"
+                                value={data.variableId}
+                                onChange={(e) => handleChange('variableId', e.target.value)}
+                                className="font-mono text-green-500/80 !bg-black/60 !border-green-900/30 mt-1"
+                            />
                         </div>
                         <ObjectiveSelector
                             values={data.learningObjectiveIds}
                             onChange={(v) => handleChange('learningObjectiveIds', v)}
                             objectives={data.learningObjectives}
-                        />
-                    </div>
-                    {/* Logic ID */}
-                    <div>
-                        <p className="text-[10px] text-zinc-500 mb-1">Logic ID (Set on Success)</p>
-                        <InputField
-                            placeholder="e.g. mainframe_hacked"
-                            value={data.variableId}
-                            onChange={(e) => handleChange('variableId', e.target.value)}
-                            className="font-mono text-green-500/80"
                         />
                     </div>
                 </div>

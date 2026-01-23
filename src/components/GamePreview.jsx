@@ -3,6 +3,7 @@ import { Button, Card } from './ui/shared';
 import { X, User, Search, Terminal, MessageSquare, FileText, ArrowRight, ShieldAlert, CheckCircle, AlertTriangle, Volume2, VolumeX, Image as ImageIcon, Briefcase, Star, MousePointerClick, Bell, HelpCircle, Clock, ZoomIn, LayoutGrid, ChevronRight } from 'lucide-react';
 import { motion, AnimatePresence } from 'framer-motion';
 import EvidenceBoard from './EvidenceBoard';
+import AdvancedTerminal from './AdvancedTerminal';
 
 const BackgroundEffect = () => (
     <div className="fixed inset-0 pointer-events-none z-0 overflow-hidden">
@@ -925,12 +926,14 @@ const GamePreview = ({ nodes, edges, onClose, gameMetadata, onGameEnd }) => {
         }
     };
 
-    const handleTerminalSubmit = (input) => {
+    const handleTerminalSubmit = (input, forceSuccess = false) => {
         // specific for terminal node
         if (!activeModalNode || activeModalNode.type !== 'terminal') return;
 
         const expected = activeModalNode.data.command || '';
-        if (input.trim() === expected.trim() || input.includes('grep')) {
+        const isLegacyMatch = expected && input.trim() === expected.trim();
+
+        if (forceSuccess || isLegacyMatch || input.includes('grep')) {
             addLog(`COMMAND SUCCESS: ${input}`);
 
             // Find next node (usually just one output)
@@ -1105,21 +1108,49 @@ const GamePreview = ({ nodes, edges, onClose, gameMetadata, onGameEnd }) => {
     const handleCloseModal = () => {
         if (!activeModalNode) return;
 
-        // If the modal node is the current navigational node, closing it should revert to the previous one
-        if (activeModalNode.id === currentNodeId && history.length > 0) {
-            // Find the last node in history that isn't a pass-through node (logic, setter, music)
-            const backtrack = [...history].reverse();
-            const lastStableNodeId = backtrack.find(id => {
-                const node = nodes.find(n => n.id === id);
-                return node && !['logic', 'setter', 'music'].includes(node.type);
-            });
+        const MODAL_TYPES = ['suspect', 'evidence', 'terminal', 'message', 'media', 'notification', 'question', 'lockpick', 'decryption', 'keypad', 'identify'];
+        const SKIP_TYPES = ['logic', 'setter', 'music', ...MODAL_TYPES];
 
-            if (lastStableNodeId) {
-                setCurrentNodeId(lastStableNodeId);
-                // Clean up history to before that transition
-                const targetIndex = history.lastIndexOf(lastStableNodeId);
-                if (targetIndex !== -1) {
-                    setHistory(prev => prev.slice(0, targetIndex));
+        // If the modal node is the current navigational node, closing it should revert to the previous narrative
+        if (activeModalNode.id === currentNodeId) {
+            if (history.length > 0) {
+                // Find the last node in history that is a "STABLE" narrative node (Story)
+                // We skip logic nodes AND other modal nodes to find the background narrative
+                const backtrack = [...history].reverse();
+                const lastStoryNodeId = backtrack.find(id => {
+                    const node = nodes.find(n => n.id === id);
+                    return node && node.type === 'story' && node.id !== activeModalNode.id;
+                });
+
+                if (lastStoryNodeId) {
+                    setCurrentNodeId(lastStoryNodeId);
+                    // Clean up history to before that story node
+                    const targetIndex = history.lastIndexOf(lastStoryNodeId);
+                    if (targetIndex !== -1) {
+                        setHistory(prev => prev.slice(0, targetIndex));
+                    }
+                } else {
+                    // Fallback: If no story node found in history, try any non-skip node
+                    const lastStableNodeId = backtrack.find(id => {
+                        const node = nodes.find(n => n.id === id);
+                        return node && !SKIP_TYPES.includes(node.type) && node.id !== activeModalNode.id;
+                    });
+
+                    if (lastStableNodeId) {
+                        setCurrentNodeId(lastStableNodeId);
+                        const targetIndex = history.lastIndexOf(lastStableNodeId);
+                        setHistory(prev => prev.slice(0, targetIndex));
+                    } else if (history.length > 0) {
+                        // Desperation: Go back one step regardless
+                        setCurrentNodeId(history[history.length - 1]);
+                        setHistory(prev => prev.slice(0, -1));
+                    }
+                }
+            } else {
+                // No history! Try to find the nearest story node as a narrative home
+                const storyNode = nodes.find(n => n.type === 'story');
+                if (storyNode && storyNode.id !== activeModalNode.id) {
+                    setCurrentNodeId(storyNode.id);
                 }
             }
         }
@@ -1904,32 +1935,13 @@ const GamePreview = ({ nodes, edges, onClose, gameMetadata, onGameEnd }) => {
 
                             {/* Terminal Layout */}
                             {activeModalNode.type === 'terminal' && (
-                                <div className="p-0 bg-black h-full flex flex-col font-mono">
-                                    <div className="p-4 border-b border-green-900/50 flex items-center justify-between bg-zinc-900/50">
-                                        <div className="flex items-center gap-2 text-green-500">
-                                            <Terminal className="w-5 h-5" />
-                                            <span className="font-bold tracking-widest">SECURE TERMINAL // {activeModalNode.data.label}</span>
-                                        </div>
-
-                                    </div>
-
-                                    <div className="flex-1 p-6 overflow-y-auto space-y-4">
-                                        {logs.map((l, i) => <div key={i} className="text-green-800 text-xs">{l}</div>)}
-                                        <div className="text-green-400 my-4 text-sm">{activeModalNode.data.prompt}</div>
-                                        <div className="flex items-center gap-2 border-t border-green-900/30 pt-4 mt-auto">
-                                            <span className="text-green-500 animate-pulse">$</span>
-                                            <input
-                                                className="bg-transparent border-none focus:outline-none text-green-400 w-full font-bold text-lg"
-                                                placeholder="Enter command..."
-                                                onKeyDown={(e) => {
-                                                    if (e.key === 'Enter') handleTerminalSubmit(e.currentTarget.value);
-                                                }}
-                                                autoFocus
-                                            />
-                                        </div>
-                                        <p className="text-xs text-green-700 mt-2">ACCESS RESTRICTED. UNAUTHORIZED USE IS A FELONY.</p>
-                                    </div>
-                                </div>
+                                <AdvancedTerminal
+                                    node={activeModalNode}
+                                    edges={edges}
+                                    onComplete={(cmd) => handleTerminalSubmit(cmd, true)}
+                                    onFail={() => handleCloseModal()}
+                                    addLog={addLog}
+                                />
                             )}
 
                             {/* Message Layout */}
