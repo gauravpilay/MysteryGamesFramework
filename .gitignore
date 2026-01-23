@@ -10,15 +10,29 @@ lerna-debug.log*
 node_modules
 dist
 dist-ssr
+# Env files
+.env
+.env.local
+.env.*.local
 *.local
 
+# Firebase
+.firebase/
+firestore-debug.log
+ui-debug.log
+firebase-debug.log*
+
 # Editor directories and files
-.vscode/*
+.vscode/
 !.vscode/extensions.json
-.idea
+.idea/
 .DS_Store
 *.suo
 *.ntvs*
 *.njsproj
 *.sln
 *.sw?
+
+# OS Files
+Thumbs.db
+Desktop.ini
