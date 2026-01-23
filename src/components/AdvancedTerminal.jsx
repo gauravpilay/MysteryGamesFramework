@@ -4,11 +4,17 @@ import { motion, AnimatePresence } from 'framer-motion';
 
 const AdvancedTerminal = ({ node, edges, onComplete, onFail, addLog }) => {
     const [input, setInput] = useState('');
-    const [history, setHistory] = useState([
-        { type: 'info', content: 'Initializing Secure Connection...' },
-        { type: 'info', content: 'Bypassing Node-Red Firewall...' },
-        { type: 'success', content: 'Connection Established. Welcome, Agent.' }
-    ]);
+    const [history, setHistory] = useState(() => {
+        const initial = [
+            { type: 'info', content: 'Initializing Secure Connection...' },
+            { type: 'info', content: 'Bypassing Node-Red Firewall...' },
+            { type: 'success', content: 'Connection Established. Welcome, Agent.' }
+        ];
+        if (node.data.prompt) {
+            initial.push({ type: 'output', content: node.data.prompt });
+        }
+        return initial;
+    });
     const [currentPath, setCurrentPath] = useState('/');
     const scrollRef = useRef(null);
 
