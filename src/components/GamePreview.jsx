@@ -4,6 +4,7 @@ import { X, User, Search, Terminal, MessageSquare, FileText, ArrowRight, ShieldA
 import { motion, AnimatePresence } from 'framer-motion';
 import EvidenceBoard from './EvidenceBoard';
 import AdvancedTerminal from './AdvancedTerminal';
+import AIInterrogation from './AIInterrogation';
 
 const BackgroundEffect = () => (
     <div className="fixed inset-0 pointer-events-none z-0 overflow-hidden">
@@ -896,7 +897,7 @@ const GamePreview = ({ nodes, edges, onClose, gameMetadata, onGameEnd }) => {
         setCurrentNodeId(nextNodeId);
 
         // If it's a type that requires a popup, set it as active modal AND add to inventory
-        if (nextNode && ['suspect', 'evidence', 'terminal', 'message', 'media', 'notification', 'question', 'lockpick', 'decryption', 'keypad'].includes(nextNode.type)) {
+        if (nextNode && ['suspect', 'evidence', 'terminal', 'message', 'media', 'notification', 'question', 'lockpick', 'decryption', 'keypad', 'interrogation'].includes(nextNode.type)) {
             setActiveModalNode(nextNode);
             if (nextNode.type === 'question') setUserAnswers(new Set()); // Reset answers
             if (nextNode.type === 'lockpick') { /* Initialize specific state if needed here, mostly handled in component */ }
@@ -1108,7 +1109,7 @@ const GamePreview = ({ nodes, edges, onClose, gameMetadata, onGameEnd }) => {
     const handleCloseModal = () => {
         if (!activeModalNode) return;
 
-        const MODAL_TYPES = ['suspect', 'evidence', 'terminal', 'message', 'media', 'notification', 'question', 'lockpick', 'decryption', 'keypad', 'identify'];
+        const MODAL_TYPES = ['suspect', 'evidence', 'terminal', 'message', 'media', 'notification', 'question', 'lockpick', 'decryption', 'keypad', 'identify', 'interrogation'];
         const SKIP_TYPES = ['logic', 'setter', 'music', ...MODAL_TYPES];
 
         // If the modal node is the current navigational node, closing it should revert to the previous narrative
@@ -1941,6 +1942,30 @@ const GamePreview = ({ nodes, edges, onClose, gameMetadata, onGameEnd }) => {
                                     onComplete={(cmd) => handleTerminalSubmit(cmd, true)}
                                     onFail={() => handleCloseModal()}
                                     addLog={addLog}
+                                />
+                            )}
+
+                            {activeModalNode.type === 'interrogation' && (
+                                <AIInterrogation
+                                    node={activeModalNode}
+                                    onComplete={() => {
+                                        // Handle score/points if needed
+                                        if (activeModalNode.data.score && !scoredNodes.has(activeModalNode.id)) {
+                                            setScore(s => s + activeModalNode.data.score);
+                                            rewardObjectivePoints(activeModalNode, activeModalNode.data.score);
+                                            setScoredNodes(prev => new Set([...prev, activeModalNode.id]));
+                                            addLog(`INTERROGATION REWARD: +${activeModalNode.data.score} Points`);
+                                        }
+
+                                        const nodeOptions = edges.filter(e => e.source === activeModalNode.id);
+                                        if (nodeOptions.length > 0) {
+                                            setActiveModalNode(null);
+                                            handleOptionClick(nodeOptions[0].target);
+                                        } else {
+                                            handleCloseModal();
+                                        }
+                                    }}
+                                    onFail={() => handleCloseModal()}
                                 />
                             )}
 

@@ -1,7 +1,7 @@
 import React, { memo, useState, useRef, useEffect } from 'react';
 import ReactDOM from 'react-dom';
 import { Handle, Position, NodeResizer } from 'reactflow';
-import { FileText, User, Search, GitMerge, Terminal, MessageSquare, Music, Image as ImageIcon, Star, MousePointerClick, Trash2, Plus, Copy, Fingerprint, Bell, HelpCircle, ToggleLeft, Unlock, Binary, Grid3x3, Folder, ChevronDown, ChevronUp, Maximize, X, Save, File, FolderOpen, AlertCircle } from 'lucide-react';
+import { FileText, User, Search, GitMerge, Terminal, MessageSquare, Music, Image as ImageIcon, Star, MousePointerClick, Trash2, Plus, Copy, Fingerprint, Bell, HelpCircle, ToggleLeft, Unlock, Binary, Grid3x3, Folder, ChevronDown, ChevronUp, Maximize, X, Save, File, FolderOpen, AlertCircle, Brain, Cpu, Send, Loader2 } from 'lucide-react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { storage } from '../../lib/firebase';
 import { ref, uploadBytes, getDownloadURL } from 'firebase/storage';
@@ -1036,6 +1036,91 @@ export const TerminalNode = memo(({ id, data, selected }) => {
                 <Handle type="source" position={Position.Bottom} className="!bg-green-500 !w-3 !h-3 !border-2 !border-black" />
             )
             }
+        </>
+    );
+});
+
+export const InterrogationNode = memo(({ id, data, selected }) => {
+    const handleChange = (key, val) => {
+        data.onChange && data.onChange(id, { ...data, [key]: val });
+    };
+
+    return (
+        <>
+            <Handle type="target" position={Position.Top} className="!bg-zinc-500 !w-3 !h-3 !border-2 !border-black" />
+            <Handle type="target" position={Position.Top} className="!bg-zinc-500 !w-3 !h-3 !border-2 !border-black" />
+            <NodeWrapper id={id} title="AI Interrogation" icon={Brain} selected={selected} headerClass="bg-indigo-950/30 text-indigo-200" colorClass="border-indigo-900/30" data={data} onLabelChange={(v) => handleChange('label', v)}>
+                <div className="space-y-3">
+                    <div className="p-2 bg-indigo-500/5 border border-indigo-500/10 rounded-lg">
+                        <p className="text-[10px] text-indigo-400 mb-1 uppercase font-bold tracking-widest flex items-center gap-1">
+                            <Cpu className="w-3 h-3" /> Core AI Engine
+                        </p>
+                        <select
+                            className="w-full bg-black border border-indigo-900/30 rounded px-2 py-1.5 text-[10px] text-indigo-200 focus:border-indigo-500 outline-none cursor-pointer"
+                            value={data.aiProvider || 'gemini'}
+                            onChange={(e) => handleChange('aiProvider', e.target.value)}
+                        >
+                            <option value="gemini">Google Gemini (Recommended)</option>
+                            <option value="openai">OpenAI ChatGPT</option>
+                        </select>
+                    </div>
+
+                    <div>
+                        <div className="flex items-center justify-between mb-1">
+                            <p className="text-[10px] text-zinc-500 mb-1 uppercase font-bold tracking-widest">Suspect Persona & Alibi</p>
+                            <button
+                                onClick={() => {
+                                    const template = "PERSONA: Arthur P. Miller, age 56. Professional, slightly nervous. SPEAKING STYLE: Formal, uses 'per se' often. ALIBI: In the library reading 'The Great Gatsby'. SECRET: Arthur actually hates Gatsby, but wants to look sophisticated. He saw the gardener near the shed at 10 PM holding a heavy bag. If asked about the shed, he gets defensive.";
+                                    handleChange('systemPrompt', template);
+                                }}
+                                className="text-[8px] text-indigo-400 hover:text-indigo-300 font-bold uppercase transition-colors"
+                            >
+                                Template
+                            </button>
+                        </div>
+                        <TextArea
+                            placeholder="Persona: Strict detective. Alibi: At home during the murder. Secret: Found a key..."
+                            rows={4}
+                            value={data.systemPrompt}
+                            onChange={(e) => handleChange('systemPrompt', e.target.value)}
+                            className="text-[10px] border-indigo-900/20 focus:border-indigo-500 bg-black/40"
+                        />
+                    </div>
+
+                    <div className="p-2 bg-black/60 border border-zinc-800 rounded-lg">
+                        <p className="text-[10px] text-zinc-500 mb-1 uppercase font-bold tracking-widest">Environment Variable Key</p>
+                        <InputField
+                            placeholder="e.g. VITE_GEMINI_API_KEY"
+                            value={data.apiKeyVar || 'VITE_AI_API_KEY'}
+                            onChange={(e) => handleChange('apiKeyVar', e.target.value)}
+                            className="!bg-transparent font-mono text-indigo-400/80 !text-[10px]"
+                        />
+                    </div>
+
+                    <div className="mt-2 p-2 bg-indigo-900/10 border border-indigo-900/20 rounded-lg space-y-2">
+                        <div className="flex items-center justify-between">
+                            <p className="text-[9px] font-bold text-indigo-400 uppercase tracking-wider flex items-center gap-1">
+                                <Star className="w-3 h-3" /> Achievement Score
+                            </p>
+                            <InputField
+                                type="number"
+                                placeholder="0"
+                                value={data.score}
+                                onChange={(e) => handleChange('score', parseInt(e.target.value) || 0)}
+                                className="w-20 text-right bg-indigo-950/30 border-indigo-900/30 text-indigo-200"
+                            />
+                        </div>
+                        <ObjectiveSelector
+                            values={data.learningObjectiveIds}
+                            onChange={(v) => handleChange('learningObjectiveIds', v)}
+                            objectives={data.learningObjectives}
+                        />
+                    </div>
+                </div>
+            </NodeWrapper>
+            {(!data.actions || data.actions.length === 0) && (
+                <Handle type="source" position={Position.Bottom} className="!bg-indigo-500 !w-3 !h-3 !border-2 !border-black" />
+            )}
         </>
     );
 });

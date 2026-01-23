@@ -13,8 +13,8 @@ import 'reactflow/dist/style.css';
 import { useParams, useNavigate } from 'react-router-dom';
 import { Button } from '../components/ui/shared';
 import { Logo } from '../components/ui/Logo';
-import { Save, ArrowLeft, X, FileText, User, Search, GitMerge, Terminal, MessageSquare, CircleHelp, Play, Settings, Music, Image as ImageIcon, MousePointerClick, Fingerprint, Bell, HelpCircle, ChevronLeft, ChevronRight, ToggleLeft, Lock, Sun, Moon, Stethoscope, Unlock, Binary, Grid3x3, CheckCircle, AlertTriangle, Plus, Trash2, Target, Box, FolderOpen } from 'lucide-react';
-import { StoryNode, SuspectNode, EvidenceNode, LogicNode, TerminalNode, MessageNode, MusicNode, MediaNode, ActionNode, IdentifyNode, NotificationNode, QuestionNode, SetterNode, LockpickNode, DecryptionNode, KeypadNode, GroupNode, InputField } from '../components/nodes/CustomNodes';
+import { Save, ArrowLeft, X, FileText, User, Search, GitMerge, Terminal, MessageSquare, CircleHelp, Play, Settings, Music, Image as ImageIcon, MousePointerClick, Fingerprint, Bell, HelpCircle, ChevronLeft, ChevronRight, ToggleLeft, Lock, Sun, Moon, Stethoscope, Unlock, Binary, Grid3x3, CheckCircle, AlertTriangle, Plus, Trash2, Target, Box, FolderOpen, Brain } from 'lucide-react';
+import { StoryNode, SuspectNode, EvidenceNode, LogicNode, TerminalNode, MessageNode, MusicNode, MediaNode, ActionNode, IdentifyNode, NotificationNode, QuestionNode, SetterNode, LockpickNode, DecryptionNode, KeypadNode, GroupNode, InputField, InterrogationNode } from '../components/nodes/CustomNodes';
 function FolderNode(props) {
     return <GroupNode {...props} />;
 }
@@ -53,6 +53,11 @@ const NODE_HELP = {
         title: "Terminal Challenge",
         desc: "A hacking interface where the player must type a specific command or answer to proceed.",
         examples: ["Password Lock", "Database Query", "Override Sequence"]
+    },
+    interrogation: {
+        title: "AI Interrogation",
+        desc: "Interactive AI-powered questioning. Players can freely type questions to suspects who respond based on their persona.",
+        examples: ["Interrogating the Butler", "Witness testimony verification"]
     },
     message: {
         title: "Incoming Transmission",
@@ -121,6 +126,7 @@ const PALETTE_ITEMS = [
     { type: 'evidence', label: 'Evidence Item', icon: Search, className: "hover:border-yellow-500/50", iconClass: "text-yellow-400" },
     { type: 'logic', label: 'Logic Branch', icon: GitMerge, className: "hover:border-emerald-500/50", iconClass: "text-emerald-400" },
     { type: 'terminal', label: 'Terminal Prompt', icon: Terminal, className: "hover:border-green-500/50", iconClass: "text-green-400" },
+    { type: 'interrogation', label: 'AI Interrogate', icon: Brain, className: "hover:border-indigo-500/50", iconClass: "text-indigo-400" },
     { type: 'message', label: 'Message Block', icon: MessageSquare, className: "hover:border-violet-500/50", iconClass: "text-violet-400" },
     { type: 'music', label: 'Background Audio', icon: Music, className: "hover:border-pink-500/50", iconClass: "text-pink-400" },
     { type: 'media', label: 'Media Asset', icon: ImageIcon, className: "hover:border-orange-500/50", iconClass: "text-orange-400" },
@@ -201,6 +207,7 @@ const Editor = () => {
         evidence: EvidenceNode,
         logic: LogicNode,
         terminal: TerminalNode,
+        interrogation: InterrogationNode,
         message: MessageNode,
         music: MusicNode,
         media: MediaNode,
