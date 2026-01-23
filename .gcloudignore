@@ -1,0 +1,10 @@
+.git
+.gitignore
+node_modules
+dist
+.firebase
+*.log
+
+# We EXPLICITLY do NOT ignore .env here so it gets uploaded to Cloud Build
+# but it remains ignored in your local .git storage.
+# .env 

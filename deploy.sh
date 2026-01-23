@@ -24,7 +24,7 @@ IMAGE_TAG="gcr.io/$PROJECT_ID/$SERVICE_NAME"
 echo "--------------------------------------------------"
 echo "🔨 Building Container Image using Cloud Build..."
 echo "--------------------------------------------------"
-gcloud builds submit --tag $IMAGE_TAG .
+gcloud builds submit --tag "$IMAGE_TAG" .
 
 echo "--------------------------------------------------"
 echo "🚀 Deploying to Cloud Run..."
