@@ -1,6 +1,8 @@
 import React, { memo, useState, useRef, useEffect } from 'react';
+import ReactDOM from 'react-dom';
 import { Handle, Position, NodeResizer } from 'reactflow';
-import { FileText, User, Search, GitMerge, Terminal, MessageSquare, Music, Image as ImageIcon, Star, MousePointerClick, Trash2, Plus, Copy, Fingerprint, Bell, HelpCircle, ToggleLeft, Unlock, Binary, Grid3x3, Folder, ChevronDown, ChevronUp, Maximize } from 'lucide-react';
+import { FileText, User, Search, GitMerge, Terminal, MessageSquare, Music, Image as ImageIcon, Star, MousePointerClick, Trash2, Plus, Copy, Fingerprint, Bell, HelpCircle, ToggleLeft, Unlock, Binary, Grid3x3, Folder, ChevronDown, ChevronUp, Maximize, X, Save, File, FolderOpen, AlertCircle } from 'lucide-react';
+import { motion, AnimatePresence } from 'framer-motion';
 import { storage } from '../../lib/firebase';
 import { ref, uploadBytes, getDownloadURL } from 'firebase/storage';
 
@@ -699,7 +701,181 @@ export const LogicNode = memo(({ id, data, selected }) => {
     );
 });
 
+const VFSEditorModal = ({ vfs, onChange, onClose }) => {
+    const [entries, setEntries] = useState(() => {
+        // Convert vfs map to manageable array
+        return Object.entries(vfs || {}).map(([path, data]) => ({
+            id: crypto.randomUUID(),
+            path,
+            type: data.type || 'file',
+            content: data.content || '',
+            children: data.children || []
+        })).sort((a, b) => a.path.localeCompare(b.path));
+    });
+
+    const addEntry = () => {
+        setEntries([...entries, { id: crypto.randomUUID(), path: '/new_file.txt', type: 'file', content: '', children: [] }]);
+    };
+
+    const removeEntry = (id) => {
+        setEntries(entries.filter(e => e.id !== id));
+    };
+
+    const updateEntry = (id, updates) => {
+        setEntries(entries.map(e => e.id === id ? { ...e, ...updates } : e));
+    };
+
+    const handleSave = () => {
+        const newVfs = {};
+        entries.forEach(e => {
+            const path = e.path.startsWith('/') ? e.path : '/' + e.path;
+            newVfs[path] = {
+                type: e.type,
+                ...(e.type === 'file' ? { content: e.content } : { children: [] })
+            };
+        });
+
+        // Ensure root exists
+        if (!newVfs['/']) newVfs['/'] = { type: 'dir', children: [] };
+
+        // Reconstruct children lists
+        Object.keys(newVfs).forEach(path => {
+            if (path === '/') return;
+            const lastSlash = path.lastIndexOf('/');
+            const parentPath = lastSlash === 0 ? '/' : path.substring(0, lastSlash);
+            const name = path.substring(lastSlash + 1);
+
+            if (newVfs[parentPath] && newVfs[parentPath].type === 'dir') {
+                if (!newVfs[parentPath].children) newVfs[parentPath].children = [];
+                if (!newVfs[parentPath].children.includes(name)) {
+                    newVfs[parentPath].children.push(name);
+                }
+            } else if (!newVfs[parentPath]) {
+                // Auto-create parent if missing
+                newVfs[parentPath] = { type: 'dir', children: [name] };
+            }
+        });
+
+        onChange(newVfs);
+        onClose();
+    };
+
+    return ReactDOM.createPortal(
+        <div className="fixed inset-0 z-[1000] flex items-center justify-center p-6 bg-black/80 backdrop-blur-md">
+            <motion.div
+                initial={{ opacity: 0, scale: 0.9, y: 20 }}
+                animate={{ opacity: 1, scale: 1, y: 0 }}
+                className="bg-zinc-950 border border-zinc-800 rounded-3xl w-full max-w-4xl max-h-[85vh] overflow-hidden flex flex-col shadow-2xl shadow-green-500/10"
+            >
+                {/* Header */}
+                <div className="px-8 py-6 border-b border-white/5 flex items-center justify-between bg-zinc-900/30 font-sans">
+                    <div className="flex items-center gap-4">
+                        <div className="p-3 rounded-2xl bg-green-500/10 border border-green-500/20">
+                            <FolderOpen className="w-6 h-6 text-green-500" />
+                        </div>
+                        <div>
+                            <h3 className="text-xl font-black text-white uppercase tracking-tighter">OS File System Architect</h3>
+                            <p className="text-xs text-zinc-500 font-medium">Design the virtual directory structure and secret contents</p>
+                        </div>
+                    </div>
+                    <button onClick={onClose} className="p-2 hover:bg-white/5 rounded-full text-zinc-500 hover:text-white transition-all">
+                        <X className="w-6 h-6" />
+                    </button>
+                </div>
+
+                {/* Content */}
+                <div className="flex-1 overflow-y-auto p-8 space-y-4 font-sans">
+                    {entries.map((entry) => (
+                        <div key={entry.id} className="group relative bg-white/5 border border-white/5 rounded-2xl p-4 flex gap-4 items-start hover:bg-white/[0.07] hover:border-green-500/30 transition-all">
+                            <div className="pt-1">
+                                {entry.type === 'dir' ? <Folder className="w-5 h-5 text-indigo-400" /> : <FileText className="w-5 h-5 text-green-400" />}
+                            </div>
+
+                            <div className="flex-1 grid grid-cols-12 gap-4">
+                                <div className="col-span-4">
+                                    <p className="text-[9px] text-zinc-500 uppercase font-bold mb-1 ml-1 tracking-widest">Virtual Path</p>
+                                    <InputField
+                                        value={entry.path}
+                                        onChange={(e) => updateEntry(entry.id, { path: e.target.value })}
+                                        className="!bg-black font-mono text-green-500 !text-[11px]"
+                                        placeholder="/home/user/secret.txt"
+                                    />
+                                </div>
+                                <div className="col-span-2">
+                                    <p className="text-[9px] text-zinc-500 uppercase font-bold mb-1 ml-1 tracking-widest">Type</p>
+                                    <select
+                                        className="w-full bg-black border border-zinc-800 rounded-lg px-2 py-1.5 text-xs text-zinc-300 outline-none focus:border-green-500 cursor-pointer"
+                                        value={entry.type}
+                                        onChange={(e) => updateEntry(entry.id, { type: e.target.value })}
+                                    >
+                                        <option value="file">FILE</option>
+                                        <option value="dir">FOLDER</option>
+                                    </select>
+                                </div>
+                                <div className="col-span-6">
+                                    {entry.type === 'file' ? (
+                                        <>
+                                            <p className="text-[9px] text-zinc-500 uppercase font-bold mb-1 ml-1 tracking-widest">Contents</p>
+                                            <TextArea
+                                                value={entry.content}
+                                                onChange={(e) => updateEntry(entry.id, { content: e.target.value })}
+                                                rows={1}
+                                                className="!bg-black !min-h-[40px] text-zinc-400 font-mono"
+                                                placeholder="Enter data for this file..."
+                                            />
+                                        </>
+                                    ) : (
+                                        <div className="h-full flex items-center pt-5">
+                                            <p className="text-[9px] text-zinc-700 font-bold uppercase tracking-widest italic">Virtual Directory Node</p>
+                                        </div>
+                                    )}
+                                </div>
+                            </div>
+
+                            <button
+                                onClick={() => removeEntry(entry.id)}
+                                className="mt-5 p-2 text-zinc-600 hover:text-red-500 hover:bg-red-500/10 rounded-lg transition-all opacity-0 group-hover:opacity-100"
+                                title="Delete Entry"
+                            >
+                                <Trash2 className="w-4 h-4" />
+                            </button>
+                        </div>
+                    ))}
+
+                    <button
+                        onClick={addEntry}
+                        className="w-full py-6 border-2 border-dashed border-white/5 rounded-2xl text-zinc-500 hover:text-green-500 hover:border-green-500/50 hover:bg-green-500/5 transition-all flex items-center justify-center gap-2 font-bold uppercase tracking-[0.3em] text-[10px]"
+                    >
+                        <Plus className="w-4 h-4" />
+                        Add Node to File System
+                    </button>
+                </div>
+
+                {/* Footer */}
+                <div className="px-8 py-6 border-t border-white/5 bg-zinc-900/30 flex justify-between items-center font-sans">
+                    <div className="flex items-center gap-3 text-amber-500/70 bg-amber-500/5 px-4 py-2 rounded-xl border border-amber-500/10">
+                        <AlertCircle className="w-4 h-4" />
+                        <span className="text-[9px] font-black uppercase tracking-widest">Paths must begin with "/"</span>
+                    </div>
+                    <div className="flex gap-4">
+                        <button onClick={onClose} className="px-6 py-2 text-xs font-bold text-zinc-500 hover:text-white transition-colors uppercase tracking-widest">Cancel</button>
+                        <button
+                            onClick={handleSave}
+                            className="px-10 py-3 bg-green-600 hover:bg-green-500 text-black text-[11px] font-black rounded-xl transition-all shadow-[0_10px_30px_rgba(34,197,94,0.3)] flex items-center gap-2 uppercase tracking-widest"
+                        >
+                            <Save className="w-4 h-4" />
+                            Commit File System
+                        </button>
+                    </div>
+                </div>
+            </motion.div>
+        </div>,
+        document.body
+    );
+};
+
 export const TerminalNode = memo(({ id, data, selected }) => {
+    const [showVfsModal, setShowVfsModal] = useState(false);
     const handleChange = (key, val) => {
         data.onChange && data.onChange(id, { ...data, [key]: val });
     };
@@ -779,7 +955,7 @@ export const TerminalNode = memo(({ id, data, selected }) => {
 
                             <div>
                                 <div className="flex items-center justify-between mb-1">
-                                    <p className="text-[9px] text-zinc-500 uppercase font-bold">VFS Editor (JSON)</p>
+                                    <p className="text-[9px] text-zinc-500 uppercase font-bold tracking-widest">Virtual File System</p>
                                     <button
                                         onClick={() => {
                                             const defaultVFS = {
@@ -793,25 +969,23 @@ export const TerminalNode = memo(({ id, data, selected }) => {
                                         }}
                                         className="text-[8px] text-indigo-400 hover:text-indigo-300 font-bold uppercase transition-colors"
                                     >
-                                        Load Template
+                                        Template
                                     </button>
                                 </div>
-                                <TextArea
-                                    placeholder='{"/": {"type": "dir", "children": ["f1"]}}'
-                                    rows={3}
-                                    value={data.vfs ? JSON.stringify(data.vfs, null, 2) : ''}
-                                    onChange={(e) => {
-                                        try {
-                                            const parsed = JSON.parse(e.target.value);
-                                            handleChange('vfs', parsed);
-                                        } catch (err) {
-                                            // Handle invalid JSON while typing if needed
-                                            // For now just update raw if we had a raw state, but we don't.
-                                            // Let's just update the data property.
-                                        }
-                                    }}
-                                    className="text-[9px] font-mono text-zinc-400 bg-black/60 border-green-900/20 h-24 scrollbar-hide"
-                                />
+                                <button
+                                    onClick={() => setShowVfsModal(true)}
+                                    className="w-full py-2 bg-black/60 border border-green-900/30 rounded flex items-center justify-center gap-2 text-[10px] text-green-500 hover:bg-green-500/10 hover:border-green-500 transition-all group"
+                                >
+                                    <FolderOpen className="w-3.5 h-3.5 group-hover:scale-110 transition-transform" />
+                                    <span>CONFIGURE FILES & FOLDERS</span>
+                                </button>
+                                {showVfsModal && (
+                                    <VFSEditorModal
+                                        vfs={data.vfs || { '/': { type: 'dir', children: [] } }}
+                                        onChange={(newVfs) => handleChange('vfs', newVfs)}
+                                        onClose={() => setShowVfsModal(false)}
+                                    />
+                                )}
                             </div>
                         </div>
                     </div>
