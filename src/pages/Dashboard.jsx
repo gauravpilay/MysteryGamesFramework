@@ -180,14 +180,24 @@ const Dashboard = () => {
                             <span className="hidden md:inline">Leaderboard</span>
                         </Button>
                         {isAdmin && (
-                            <Button
-                                variant="ghost"
-                                className="text-zinc-400 hover:text-white flex items-center gap-2"
-                                onClick={() => setShowAdminProgressModal(true)}
-                            >
-                                <Users className="w-4 h-4 text-purple-400" />
-                                <span className="hidden md:inline">Users Progress</span>
-                            </Button>
+                            <>
+                                <Button
+                                    variant="ghost"
+                                    className="text-zinc-400 hover:text-white flex items-center gap-2"
+                                    onClick={() => setShowAdminProgressModal(true)}
+                                >
+                                    <Users className="w-4 h-4 text-purple-400" />
+                                    <span className="hidden md:inline">Users Progress</span>
+                                </Button>
+                                <Button
+                                    variant="ghost"
+                                    className="text-zinc-400 hover:text-white flex items-center gap-2"
+                                    onClick={() => setShowSettingsModal(true)}
+                                >
+                                    <Settings className="w-4 h-4 text-indigo-400" />
+                                    <span className="hidden md:inline">Settings</span>
+                                </Button>
+                            </>
                         )}
                         <div className="h-4 w-px bg-zinc-700"></div>
                         <div className="flex items-center gap-2 px-3 py-1.5 rounded-full bg-zinc-900 border border-zinc-800">
@@ -253,9 +263,6 @@ const Dashboard = () => {
                                         <div className="flex gap-2 p-1 bg-black/40 rounded-xl border border-white/5">
                                             <Button variant="ghost" size="sm" onClick={() => navigate('/admin/users')} className="h-9 px-4 text-xs font-bold hover:bg-white/5">
                                                 <Users className="w-3.5 h-3.5 mr-2 text-indigo-400" /> Personnel
-                                            </Button>
-                                            <Button variant="ghost" size="sm" onClick={() => setShowSettingsModal(true)} className="h-9 px-4 text-xs font-bold hover:bg-white/5">
-                                                <Settings className="w-3.5 h-3.5 mr-2 text-indigo-400" /> Settings
                                             </Button>
                                             <Button variant="ghost" size="sm" onClick={() => window.open('/USER_MANUAL.pdf', '_blank')} className="h-9 px-4 text-xs font-bold hover:bg-white/5">
                                                 <BookOpen className="w-3.5 h-3.5 mr-2 text-indigo-400" /> Manual
