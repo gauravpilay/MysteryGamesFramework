@@ -4,7 +4,7 @@ import { db } from '../lib/firebase';
 import { collection, addDoc, deleteDoc, updateDoc, doc, onSnapshot, query, orderBy } from 'firebase/firestore';
 import { Button, Card, Input, Label } from '../components/ui/shared';
 import { Logo } from '../components/ui/Logo';
-import { Plus, FolderOpen, LogOut, Search, Trash2, Rocket, Copy, Users, BookOpen, Lock, Unlock, Activity, FileText, CheckCircle, Clock, TrendingUp, Pencil, Fingerprint } from 'lucide-react';
+import { Plus, FolderOpen, LogOut, Search, Trash2, Rocket, Copy, Users, BookOpen, Lock, Unlock, Activity, FileText, CheckCircle, Clock, TrendingUp, Pencil, Fingerprint, Trophy } from 'lucide-react';
 import { useNavigate } from 'react-router-dom';
 import { motion, AnimatePresence } from 'framer-motion';
 import ProgressReportModal from '../components/ProgressReportModal';
@@ -167,6 +167,14 @@ const Dashboard = () => {
                         >
                             <TrendingUp className="w-4 h-4" />
                             <span className="hidden md:inline">My Progress</span>
+                        </Button>
+                        <Button
+                            variant="ghost"
+                            className="text-zinc-400 hover:text-white flex items-center gap-2"
+                            onClick={() => navigate('/leaderboard')}
+                        >
+                            <Trophy className="w-4 h-4 text-yellow-500" />
+                            <span className="hidden md:inline">Leaderboard</span>
                         </Button>
                         {isAdmin && (
                             <Button
