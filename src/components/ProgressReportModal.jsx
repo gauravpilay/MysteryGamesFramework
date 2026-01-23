@@ -4,7 +4,7 @@ import { collection, query, where, getDocs, orderBy, deleteDoc, doc, writeBatch 
 import { useAuth } from '../lib/auth';
 import { motion, AnimatePresence } from 'framer-motion';
 import { X, TrendingUp, Calendar, Target, Award, Clock, BarChart2, Filter, ChevronDown, CheckCircle, AlertTriangle, Trash2, Download, CircleHelp } from 'lucide-react';
-import jsPDF from 'jspdf';
+import { jsPDF } from 'jspdf';
 import autoTable from 'jspdf-autotable';
 import { Button, Card } from './ui/shared';
 
@@ -184,235 +184,250 @@ const ProgressReportModal = ({ onClose }) => {
     const isAdmin = user?.role === 'Admin';
 
     const handleExportPDF = () => {
-        const doc = new jsPDF();
-        const pageWidth = doc.internal.pageSize.getWidth();
+        try {
+            if (!user || !user.email) {
+                alert("User session not found. Please log in again.");
+                return;
+            }
+            const doc = new jsPDF();
+            const pageWidth = doc.internal.pageSize.getWidth();
 
-        // Title
-        doc.setFontSize(22);
-        doc.setTextColor(63, 81, 181); // Indigo color
-        doc.text("Detective Performance Record", 14, 22);
+            // Title
+            doc.setFontSize(22);
+            doc.setTextColor(63, 81, 181); // Indigo color
+            doc.text("Detective Performance Record", 14, 22);
 
-        // Header Info
-        doc.setFontSize(10);
-        doc.setTextColor(100);
-        doc.text(`User Index: ${user?.email}`, 14, 32);
-        doc.text(`Generated On: ${new Date().toLocaleString()}`, 14, 37);
-        doc.text(`Report Range: ${timeRange === 'all' ? 'All Time' : timeRange === 'week' ? 'Past 7 Days' : 'Past 30 Days'}`, 14, 42);
+            // Header Info
+            doc.setFontSize(10);
+            doc.setTextColor(100);
+            doc.text(`User Index: ${user?.email}`, 14, 32);
+            doc.text(`Generated On: ${new Date().toLocaleString()}`, 14, 37);
+            doc.text(`Report Range: ${timeRange === 'all' ? 'All Time' : timeRange === 'week' ? 'Past 7 Days' : 'Past 30 Days'}`, 14, 42);
 
-        // Stats Box
-        doc.setDrawColor(200);
-        doc.setFillColor(245, 247, 255);
-        doc.rect(14, 50, pageWidth - 28, 25, 'F');
+            // Stats Box
+            doc.setDrawColor(200);
+            doc.setFillColor(245, 247, 255);
+            doc.rect(14, 50, pageWidth - 28, 25, 'F');
 
-        doc.setFontSize(10);
-        doc.setTextColor(50);
-        doc.text("SUMMARY STATISTICS", 18, 56);
+            doc.setFontSize(10);
+            doc.setTextColor(50);
+            doc.text("SUMMARY STATISTICS", 18, 56);
 
-        doc.setFontSize(12);
-        doc.setTextColor(0);
-        doc.text(`Missions: ${stats.totalGames}`, 18, 65);
-        doc.text(`Success Rate: ${stats.winRate}%`, 65, 65);
-        doc.text(`Field Time: ${Math.floor(stats.totalTime / 60)}m ${stats.totalTime % 60}s`, 120, 65);
+            doc.setFontSize(12);
+            doc.setTextColor(0);
+            doc.text(`Missions: ${stats.totalGames}`, 18, 65);
+            doc.text(`Success Rate: ${stats.winRate}%`, 65, 65);
+            doc.text(`Field Time: ${Math.floor(stats.totalTime / 60)}m ${stats.totalTime % 60}s`, 120, 65);
 
-        // Learning Objectives Table
-        if (Object.keys(stats.objectiveStats).length > 0) {
-            doc.setFontSize(14);
-            doc.setTextColor(63, 81, 181);
-            doc.text("Learning Objectives Analysis", 14, 88);
+            let detailY = 88;
 
-            const objectiveData = Object.entries(
-                Object.entries(stats.objectiveStats).reduce((acc, [key, data]) => {
-                    let name = objMap[key] || key;
-                    if (!objMap[key]) {
-                        if (key.includes(':')) {
-                            const [prefix, suffix] = key.split(':');
-                            if (objMap[prefix]) {
-                                name = `${objMap[prefix]}: Objective ${parseInt(suffix) + 1}`;
-                            } else {
-                                name = prefix.split('_').map(s => s.charAt(0).toUpperCase() + s.slice(1)).join(' ');
+            // Learning Objectives Table
+            if (Object.keys(stats.objectiveStats).length > 0) {
+                doc.setFontSize(14);
+                doc.setTextColor(63, 81, 181);
+                doc.text("Learning Objectives Analysis", 14, 88);
+
+                const objectiveData = Object.entries(
+                    Object.entries(stats.objectiveStats).reduce((acc, [key, data]) => {
+                        let name = objMap[key] || key;
+                        if (!objMap[key]) {
+                            if (key.includes(':')) {
+                                const [prefix, suffix] = key.split(':');
+                                if (objMap[prefix]) {
+                                    name = `${objMap[prefix]}: Objective ${parseInt(suffix) + 1}`;
+                                } else {
+                                    name = prefix.split('_').map(s => s.charAt(0).toUpperCase() + s.slice(1)).join(' ');
+                                }
                             }
                         }
-                    }
-                    if (!acc[name]) acc[name] = { ...data };
-                    else {
-                        acc[name].total += data.total;
-                        acc[name].count += data.count;
-                    }
-                    return acc;
-                }, {})
-            );
+                        if (!acc[name]) acc[name] = { ...data };
+                        else {
+                            acc[name].total += data.total;
+                            acc[name].count += data.count;
+                        }
+                        return acc;
+                    }, {})
+                );
 
-            // Visual Chart
-            let chartY = 105;
-            doc.setFontSize(9);
-            doc.setTextColor(140);
-            doc.text("INTELLIGENCE SKILL DISTRIBUTION MODEL", 14, chartY - 6);
-
-            objectiveData.forEach(([name, data], i) => {
-                const score = Math.round(data.total / data.count);
-                const maxBarWidth = pageWidth - 90;
-                const barWidth = maxBarWidth * (Math.abs(score) / 100);
-
-                doc.setTextColor(80);
-                doc.text(name.length > 25 ? name.substring(0, 22) + "..." : name, 14, chartY + (i * 8));
-
-                // Bar track
-                doc.setFillColor(242, 242, 247);
-                doc.rect(65, chartY + (i * 8) - 3, maxBarWidth, 3, 'F');
-
-                // Bar fill
-                doc.setFillColor(score >= 0 ? 79 : 220, score >= 0 ? 70 : 38, score >= 0 ? 229 : 38);
-                doc.rect(65, chartY + (i * 8) - 3, barWidth, 3, 'F');
-
-                doc.setFontSize(7);
-                doc.text(`${score}%`, pageWidth - 20, chartY + (i * 8));
+                // Visual Chart
+                let chartY = 105;
                 doc.setFontSize(9);
-            });
+                doc.setTextColor(140);
+                doc.text("INTELLIGENCE SKILL DISTRIBUTION MODEL", 14, chartY - 6);
 
-            const tableStartY = chartY + (objectiveData.length * 8) + 10;
-            const objectiveRows = objectiveData.map(([name, data]) => [
-                name,
-                `${Math.round(data.total / data.count)}%`,
-                data.count
+                objectiveData.forEach(([name, data], i) => {
+                    const count = data.count || 1;
+                    const score = Math.round(data.total / count);
+                    const maxBarWidth = pageWidth - 90;
+                    const barWidth = maxBarWidth * (Math.abs(score) / 100) || 0;
+
+                    doc.setTextColor(80);
+                    doc.text(String(name).length > 25 ? String(name).substring(0, 22) + "..." : String(name), 14, chartY + (i * 8));
+
+                    // Bar track
+                    doc.setFillColor(242, 242, 247);
+                    doc.rect(65, chartY + (i * 8) - 3, maxBarWidth, 3, 'F');
+
+                    // Bar fill
+                    doc.setFillColor(score >= 0 ? 79 : 220, score >= 0 ? 70 : 38, score >= 0 ? 229 : 38);
+                    doc.rect(65, chartY + (i * 8) - 3, barWidth, 3, 'F');
+
+                    doc.setFontSize(7);
+                    doc.text(`${score}%`, pageWidth - 20, chartY + (i * 8));
+                    doc.setFontSize(9);
+                });
+
+                const tableStartY = chartY + (objectiveData.length * 8) + 10;
+                const objectiveRows = objectiveData.map(([name, data]) => [
+                    name,
+                    `${Math.round(data.total / data.count)}%`,
+                    data.count
+                ]);
+
+                autoTable(doc, {
+                    startY: tableStartY,
+                    head: [['Objective', 'Avg Score', 'Data Points']],
+                    body: objectiveRows,
+                    headStyles: { fillColor: [63, 81, 181] },
+                    alternateRowStyles: { fillColor: [245, 247, 251] }
+                });
+
+                // Detailed Learning Paths Section
+                detailY = doc.lastAutoTable ? doc.lastAutoTable.finalY + 15 : 70;
+
+                // Check for page break
+                if (detailY > 240) {
+                    doc.addPage();
+                    detailY = 20;
+                }
+
+                doc.setFontSize(14);
+                doc.setTextColor(63, 81, 181);
+                doc.text("Detailed Learning Path Analysis", 14, detailY);
+                detailY += 10;
+
+                const objectivesUsed = Object.keys(stats.objectiveStats);
+
+                objectivesUsed.forEach(objKey => {
+                    const details = objMap[`${objKey}_details`];
+                    const objTitle = objMap[objKey];
+                    const catId = objKey.split(':')[0];
+                    const catName = objMap[catId] || "Category";
+
+                    if (details && (details.learningObjective || details.objective || details.keyTakeaway)) {
+                        // Pre-calculate heights
+                        doc.setFontSize(10);
+                        const safeTitle = `${catName}: ${objTitle || objKey}`;
+                        const splitTitle = doc.splitTextToSize(safeTitle, pageWidth - 36);
+
+                        doc.setFontSize(8);
+                        const splitFocus = details.learningObjective ? doc.splitTextToSize(`Focus: ${details.learningObjective}`, pageWidth - 36) : [];
+                        const splitDetail = details.objective ? doc.splitTextToSize(`Objective: ${details.objective}`, pageWidth - 36) : [];
+                        const splitTakeaway = details.keyTakeaway ? doc.splitTextToSize(`Key Takeaway: ${details.keyTakeaway}`, pageWidth - 36) : [];
+
+                        const blockHeight = (splitTitle.length * 6) + (splitFocus.length * 4) + (splitDetail.length * 4) + (splitTakeaway.length * 4) + 12;
+
+                        if (detailY + blockHeight > 270) {
+                            doc.addPage();
+                            detailY = 20;
+                        }
+
+                        doc.setDrawColor(230);
+                        doc.setFillColor(250, 250, 252);
+                        doc.rect(14, detailY, pageWidth - 28, blockHeight, 'F');
+
+                        let innerY = detailY + 7;
+                        doc.setFontSize(10);
+                        doc.setTextColor(63, 81, 181);
+                        doc.setFont(undefined, 'bold');
+                        doc.text(splitTitle, 18, innerY);
+                        innerY += (splitTitle.length * 5) + 2;
+
+                        doc.setFontSize(8);
+                        doc.setFont(undefined, 'normal');
+                        doc.setTextColor(80);
+
+                        if (splitFocus.length > 0) {
+                            doc.text(splitFocus, 18, innerY);
+                            innerY += (splitFocus.length * 4);
+                        }
+                        if (splitDetail.length > 0) {
+                            doc.text(splitDetail, 18, innerY);
+                            innerY += (splitDetail.length * 4);
+                        }
+                        if (splitTakeaway.length > 0) {
+                            doc.setTextColor(16, 185, 129); // Emerald
+                            doc.setFont(undefined, 'bold');
+                            doc.text(splitTakeaway, 18, innerY);
+                            innerY += (splitTakeaway.length * 4);
+                        }
+
+                        detailY += blockHeight + 5;
+                    }
+                });
+            }
+
+            // Recent Sessions Table
+            let finalY = detailY + 10;
+            if (finalY > 260) {
+                doc.addPage();
+                finalY = 20;
+            }
+
+            doc.setFontSize(14);
+            doc.setTextColor(63, 81, 181);
+            doc.text("Mission History Log", 14, finalY);
+
+            const sessionRows = filteredData.map(game => [
+                new Date(game.playedAt).toLocaleDateString(),
+                game.caseTitle,
+                game.outcome.toUpperCase(),
+                `${Math.floor(game.timeSpentSeconds / 60)}m ${game.timeSpentSeconds % 60}s`,
+                `${game.score} PTS`
             ]);
 
             autoTable(doc, {
-                startY: tableStartY,
-                head: [['Objective', 'Avg Score', 'Data Points']],
-                body: objectiveRows,
-                headStyles: { fillColor: [63, 81, 181] },
-                alternateRowStyles: { fillColor: [245, 247, 251] }
-            });
-
-            // Detailed Learning Paths Section
-            let detailY = doc.lastAutoTable ? doc.lastAutoTable.finalY + 15 : 70;
-
-            // Check for page break
-            if (detailY > 240) {
-                doc.addPage();
-                detailY = 20;
-            }
-
-            doc.setFontSize(14);
-            doc.setTextColor(63, 81, 181);
-            doc.text("Detailed Learning Path Analysis", 14, detailY);
-            detailY += 10;
-
-            const objectivesUsed = Object.keys(stats.objectiveStats);
-
-            objectivesUsed.forEach(objKey => {
-                const details = objMap[`${objKey}_details`];
-                const objTitle = objMap[objKey];
-                const catId = objKey.split(':')[0];
-                const catName = objMap[catId] || "Category";
-
-                if (details && (details.learningObjective || details.objective || details.keyTakeaway)) {
-                    // Pre-calculate heights
-                    doc.setFontSize(10);
-                    const splitTitle = doc.splitTextToSize(`${catName}: ${objTitle}`, pageWidth - 36);
-
-                    doc.setFontSize(8);
-                    const splitFocus = details.learningObjective ? doc.splitTextToSize(`Focus: ${details.learningObjective}`, pageWidth - 36) : [];
-                    const splitDetail = details.objective ? doc.splitTextToSize(`Objective: ${details.objective}`, pageWidth - 36) : [];
-                    const splitTakeaway = details.keyTakeaway ? doc.splitTextToSize(`Key Takeaway: ${details.keyTakeaway}`, pageWidth - 36) : [];
-
-                    const blockHeight = (splitTitle.length * 6) + (splitFocus.length * 4) + (splitDetail.length * 4) + (splitTakeaway.length * 4) + 12;
-
-                    if (detailY + blockHeight > 270) {
-                        doc.addPage();
-                        detailY = 20;
-                    }
-
-                    doc.setDrawColor(230);
-                    doc.setFillColor(250, 250, 252);
-                    doc.rect(14, detailY, pageWidth - 28, blockHeight, 'F');
-
-                    let innerY = detailY + 7;
-                    doc.setFontSize(10);
-                    doc.setTextColor(63, 81, 181);
-                    doc.setFont(undefined, 'bold');
-                    doc.text(splitTitle, 18, innerY);
-                    innerY += (splitTitle.length * 5) + 2;
-
-                    doc.setFontSize(8);
-                    doc.setFont(undefined, 'normal');
-                    doc.setTextColor(80);
-
-                    if (splitFocus.length > 0) {
-                        doc.text(splitFocus, 18, innerY);
-                        innerY += (splitFocus.length * 4);
-                    }
-                    if (splitDetail.length > 0) {
-                        doc.text(splitDetail, 18, innerY);
-                        innerY += (splitDetail.length * 4);
-                    }
-                    if (splitTakeaway.length > 0) {
-                        doc.setTextColor(16, 185, 129); // Emerald
-                        doc.setFont(undefined, 'bold');
-                        doc.text(splitTakeaway, 18, innerY);
-                        innerY += (splitTakeaway.length * 4);
-                    }
-
-                    detailY += blockHeight + 5;
+                startY: finalY + 5,
+                head: [['Date', 'Mission', 'Outcome', 'Duration', 'Score']],
+                body: sessionRows,
+                headStyles: { fillColor: [45, 45, 45] },
+                alternateRowStyles: { fillColor: [250, 250, 250] },
+                columnStyles: {
+                    2: { cellWidth: 30 },
+                    4: { halign: 'right' }
                 }
             });
-        }
 
-        // Recent Sessions Table
-        let finalY = detailY + 10;
-        if (finalY > 260) {
-            doc.addPage();
-            finalY = 20;
-        }
-
-        doc.setFontSize(14);
-        doc.setTextColor(63, 81, 181);
-        doc.text("Mission History Log", 14, finalY);
-
-        const sessionRows = filteredData.map(game => [
-            new Date(game.playedAt).toLocaleDateString(),
-            game.caseTitle,
-            game.outcome.toUpperCase(),
-            `${Math.floor(game.timeSpentSeconds / 60)}m ${game.timeSpentSeconds % 60}s`,
-            `${game.score} PTS`
-        ]);
-
-        autoTable(doc, {
-            startY: finalY + 5,
-            head: [['Date', 'Mission', 'Outcome', 'Duration', 'Score']],
-            body: sessionRows,
-            headStyles: { fillColor: [45, 45, 45] },
-            alternateRowStyles: { fillColor: [250, 250, 250] },
-            columnStyles: {
-                2: { cellWidth: 30 },
-                4: { halign: 'right' }
+            // Footer
+            const finalPageCount = doc.internal.getNumberOfPages();
+            for (let i = 1; i <= finalPageCount; i++) {
+                doc.setPage(i);
+                doc.setFontSize(8);
+                doc.setTextColor(150);
+                doc.text(`Mystery Architect Intelligence Division - Confidential // Page ${i} of ${finalPageCount}`, pageWidth / 2, doc.internal.pageSize.getHeight() - 10, { align: 'center' });
             }
-        });
 
-        // Footer
-        const finalPageCount = doc.internal.getNumberOfPages();
-        for (let i = 1; i <= finalPageCount; i++) {
-            doc.setPage(i);
-            doc.setFontSize(8);
-            doc.setTextColor(150);
-            doc.text(`Mystery Architect Intelligence Division - Confidential // Page ${i} of ${finalPageCount}`, pageWidth / 2, doc.internal.pageSize.getHeight() - 10, { align: 'center' });
+            const fileName = `Performance_Record_${user.email.split('@')[0]}.pdf`;
+            doc.setProperties({ title: fileName });
+
+            // Robust download method
+            const pdfBlob = doc.output('blob');
+            const url = URL.createObjectURL(pdfBlob);
+            const link = document.createElement('a');
+            link.href = url;
+            link.download = fileName;
+            document.body.appendChild(link);
+            link.click();
+            document.body.removeChild(link);
+
+            // Also open in new tab for immediate view (optional but helpful)
+            setTimeout(() => {
+                window.open(url, '_blank');
+            }, 100);
+        } catch (err) {
+            console.error("PDF Export failed:", err);
+            alert(`Failed to generate PDF: ${err.message}`);
         }
-
-        const fileName = `Performance_Record_${user.email.split('@')[0]}.pdf`;
-        doc.setProperties({ title: fileName });
-
-        // Robust download method
-        const pdfBlob = doc.output('blob');
-        const url = URL.createObjectURL(pdfBlob);
-        const link = document.createElement('a');
-        link.href = url;
-        link.download = fileName;
-        document.body.appendChild(link);
-        link.click();
-        document.body.removeChild(link);
-
-        // Also open in new tab for immediate view (optional but helpful)
-        window.open(url, '_blank');
     };
 
     return (
