@@ -11,9 +11,11 @@ import ProgressReportModal from '../components/ProgressReportModal';
 import AdminProgressModal from '../components/AdminProgressModal';
 import SystemSettingsModal from '../components/SystemSettingsModal';
 import { Settings } from 'lucide-react';
+import { useConfig } from '../lib/config';
 
 const Dashboard = () => {
     const { user, logout } = useAuth();
+    const { settings } = useConfig();
     const navigate = useNavigate();
     const [projects, setProjects] = useState([]);
     const [searchQuery, setSearchQuery] = useState('');
@@ -160,7 +162,7 @@ const Dashboard = () => {
                         <div className="flex items-center justify-center">
                             <Logo className="w-9 h-9 drop-shadow-[0_0_10px_rgba(99,102,241,0.5)]" />
                         </div>
-                        <span className="font-bold text-lg tracking-tight">Mystery Architect</span>
+                        <span className="font-bold text-lg tracking-tight">{settings.systemName || 'Mystery Architect'}</span>
                     </div>
                     <div className="flex items-center gap-4">
                         <Button

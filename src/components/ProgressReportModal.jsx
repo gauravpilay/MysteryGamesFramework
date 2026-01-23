@@ -2,6 +2,7 @@ import React, { useState, useEffect, useMemo } from 'react';
 import { db } from '../lib/firebase';
 import { collection, query, where, getDocs, orderBy, deleteDoc, doc, writeBatch } from 'firebase/firestore';
 import { useAuth } from '../lib/auth';
+import { useConfig } from '../lib/config';
 import { motion, AnimatePresence } from 'framer-motion';
 import { X, TrendingUp, Calendar, Target, Award, Clock, BarChart2, Filter, ChevronDown, CheckCircle, AlertTriangle, Trash2, Download, CircleHelp } from 'lucide-react';
 import { jsPDF } from 'jspdf';
@@ -10,6 +11,7 @@ import { Button, Card } from './ui/shared';
 
 const ProgressReportModal = ({ onClose }) => {
     const { user } = useAuth();
+    const { settings } = useConfig();
     const [loading, setLoading] = useState(true);
     const [rawData, setRawData] = useState([]);
     const [selectedCaseId, setSelectedCaseId] = useState('all');
@@ -501,7 +503,7 @@ const ProgressReportModal = ({ onClose }) => {
                 doc.setPage(i);
                 doc.setFontSize(8);
                 doc.setTextColor(150);
-                doc.text(`Mystery Architect Intelligence Division - Confidential // Page ${i} of ${finalPageCount}`, pageWidth / 2, doc.internal.pageSize.getHeight() - 10, { align: 'center' });
+                doc.text(`${settings.systemName || 'Mystery Architect'} Intelligence Division - Confidential // Page ${i} of ${finalPageCount}`, pageWidth / 2, doc.internal.pageSize.getHeight() - 10, { align: 'center' });
             }
 
             const fileName = `Performance_Record_${user.email.split('@')[0]}.pdf`;

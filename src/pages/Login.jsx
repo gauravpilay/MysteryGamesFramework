@@ -1,11 +1,12 @@
-import React from 'react';
 import { useAuth } from '../lib/auth';
+import { useConfig } from '../lib/config';
 import { Navigate } from 'react-router-dom';
 import { motion } from 'framer-motion';
 import { Logo } from '../components/ui/Logo';
 
 const Login = () => {
     const { user, login } = useAuth();
+    const { settings } = useConfig();
 
     if (user) return <Navigate to="/" />;
 
@@ -22,7 +23,7 @@ const Login = () => {
                         <Logo className="h-16 w-16" />
                     </div>
                     <h1 className="text-4xl font-bold tracking-tight text-white">
-                        Mystery Architect
+                        {settings.systemName || 'Mystery Architect'}
                     </h1>
                     <p className="mt-2 text-sm text-gray-400">
                         Design immersive, engaging, and interactive detective games.

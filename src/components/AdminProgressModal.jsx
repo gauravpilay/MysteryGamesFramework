@@ -2,6 +2,7 @@ import React, { useState, useEffect } from 'react';
 import { db } from '../lib/firebase';
 import { collection, query, where, getDocs, orderBy, documentId, deleteDoc, doc, writeBatch } from 'firebase/firestore';
 import { useAuth } from '../lib/auth';
+import { useConfig } from '../lib/config';
 import { Users, FileText, CheckCircle, AlertTriangle, Clock, X, BarChart2, Filter, Download, Trash2 } from 'lucide-react';
 import { motion } from 'framer-motion';
 import { jsPDF } from 'jspdf';
@@ -10,6 +11,7 @@ import { Button } from './ui/shared';
 
 const AdminProgressModal = ({ onClose }) => {
     const { user } = useAuth();
+    const { settings } = useConfig();
     // State
     const [step, setStep] = useState(1); // 1: Select Users, 2: View Report
     const [users, setUsers] = useState([]);
@@ -560,7 +562,7 @@ const AdminProgressModal = ({ onClose }) => {
                 doc.setPage(i);
                 doc.setFontSize(8);
                 doc.setTextColor(150);
-                doc.text(`Agency Confidential - Report #${i}`, pageWidth / 2, doc.internal.pageSize.getHeight() - 10, { align: 'center' });
+                doc.text(`${settings.systemName || 'Mystery Architect'} - Personnel Division - Page ${i}`, pageWidth / 2, doc.internal.pageSize.getHeight() - 10, { align: 'center' });
             }
 
             const fileName = `Personnel_Agency_Report_${new Date().toISOString().split('T')[0]}.pdf`;
