@@ -434,6 +434,37 @@ const AdminProgressModal = ({ onClose }) => {
                         headStyles: { fillColor: [147, 51, 234] }
                     });
 
+                    // --- Initial Intelligence Baseline ---
+                    let baselineY = doc.lastAutoTable.finalY + 12;
+                    if (baselineY > 240) {
+                        doc.addPage();
+                        baselineY = 20;
+                    }
+                    doc.setFontSize(14);
+                    doc.setTextColor(107, 33, 168);
+                    doc.text("Personnel Baseline Performance", 14, baselineY);
+
+                    const baselineRows = objectiveData.map(([name, stat]) => {
+                        const sortedRuns = [...(stat.runs || [])].sort((a, b) => new Date(a.date) - new Date(b.date));
+                        const firstRun = sortedRuns[0];
+                        const currentRun = sortedRuns[sortedRuns.length - 1];
+                        return [
+                            name,
+                            firstRun ? new Date(firstRun.date).toLocaleDateString() : 'N/A',
+                            firstRun ? `${firstRun.score}%` : '0%',
+                            currentRun ? `${currentRun.score}%` : '0%',
+                            firstRun && currentRun ? `${currentRun.score - firstRun.score}%` : '0%'
+                        ];
+                    });
+
+                    autoTable(doc, {
+                        startY: baselineY + 5,
+                        head: [['Objective', 'Origin Date', 'Baseline Score', 'Current', 'Progress']],
+                        body: baselineRows,
+                        headStyles: { fillColor: [245, 158, 11] },
+                        alternateRowStyles: { fillColor: [254, 252, 243] }
+                    });
+
                     // Detailed Analysis Section
                     currentY = doc.lastAutoTable.finalY + 12;
 

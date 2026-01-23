@@ -356,6 +356,39 @@ const ProgressReportModal = ({ onClose }) => {
                     alternateRowStyles: { fillColor: [245, 247, 251] }
                 });
 
+                // --- Initial Intelligence Baseline ---
+                let baselineY = doc.lastAutoTable.finalY + 15;
+                if (baselineY > 240) {
+                    doc.addPage();
+                    baselineY = 20;
+                }
+                doc.setFontSize(14);
+                doc.setTextColor(63, 81, 181);
+                doc.text("Initial Intelligence Baseline", 14, baselineY);
+
+                const baselineRows = objectiveData.map(([name, data]) => {
+                    const sortedRuns = [...(data.runs || [])].sort((a, b) => new Date(a.date) - new Date(b.date));
+                    const firstRun = sortedRuns[0];
+                    const currentRun = sortedRuns[sortedRuns.length - 1];
+                    const firstScore = firstRun?.score || 0;
+                    const currentScore = currentRun?.score || 0;
+                    return [
+                        name,
+                        firstRun ? new Date(firstRun.date).toLocaleDateString() : 'N/A',
+                        `${firstScore}%`,
+                        `${currentScore}%`,
+                        `${currentScore - firstScore > 0 ? '+' : ''}${currentScore - firstScore}%`
+                    ];
+                });
+
+                autoTable(doc, {
+                    startY: baselineY + 5,
+                    head: [['Objective', 'Baseline Date', 'Origin Score', 'Current', 'Net Growth']],
+                    body: baselineRows,
+                    headStyles: { fillColor: [245, 158, 11] },
+                    alternateRowStyles: { fillColor: [255, 252, 243] }
+                });
+
                 // Detailed Learning Paths Section
                 detailY = doc.lastAutoTable ? doc.lastAutoTable.finalY + 15 : 70;
 
