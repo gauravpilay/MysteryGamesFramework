@@ -254,10 +254,10 @@ const AdminProgressModal = ({ onClose }) => {
                             }
                         }
 
-                        if (!objectiveStats[name]) objectiveStats[name] = { total: 0, count: 0, scores: [] };
+                        if (!objectiveStats[name]) objectiveStats[name] = { total: 0, count: 0, runs: [] };
                         objectiveStats[name].total += score;
                         objectiveStats[name].count += 1;
-                        objectiveStats[name].scores.push(score);
+                        objectiveStats[name].runs.push({ date: game.playedAt, score });
                     });
                 });
 
@@ -340,26 +340,86 @@ const AdminProgressModal = ({ onClose }) => {
                 if (Object.keys(userData.objectiveStats).length > 0) {
                     const objectiveData = Object.entries(userData.objectiveStats);
 
-                    let chartY = 64;
-                    doc.setFontSize(9);
-                    doc.setTextColor(100);
-                    doc.text("SKILLS MATRIX DISTRIBUTION", 14, chartY - 5);
+                    let chartY = 70;
+                    doc.setFontSize(8);
+                    doc.setTextColor(150);
+                    doc.setFont(undefined, 'bold');
+                    doc.text("PERSONNEL INTELLIGENCE EVOLUTION MATRIX", 14, chartY - 6);
 
                     objectiveData.forEach(([name, stat], i) => {
-                        const score = Math.round(stat.total / stat.count);
-                        const barWidth = (pageWidth - 90) * (Math.abs(score) / 100);
+                        const sortedRuns = [...(stat.runs || [])].sort((a, b) => new Date(a.date) - new Date(b.date));
+                        const spacing = 13;
+                        const y = chartY + (i * spacing);
 
-                        doc.setTextColor(80);
-                        doc.text(name.length > 30 ? name.substring(0, 27) + "..." : name, 14, chartY + (i * 8));
+                        const firstScore = sortedRuns[0]?.score || 0;
+                        const lastScore = sortedRuns[sortedRuns.length - 1]?.score || 0;
+                        const diff = lastScore - firstScore;
+
+                        doc.setFontSize(8);
+                        doc.setTextColor(60);
+                        doc.setFont(undefined, 'bold');
+                        doc.text(String(name).substring(0, 35), 14, y);
+
+                        if (sortedRuns.length > 1) {
+                            doc.setFontSize(7);
+                            if (diff > 0) {
+                                doc.setTextColor(16, 185, 129);
+                                doc.text(`+${diff}% IMPROVEMENT`, 14, y + 4);
+                            } else if (diff < 0) {
+                                doc.setTextColor(220, 38, 38);
+                                doc.text(`${diff}% DECREASE`, 14, y + 4);
+                            }
+                        }
+
+                        // Progress Track
+                        const trackX = 70;
+                        const trackWidth = pageWidth - trackX - 25;
+                        const trackHeight = 3.5;
 
                         doc.setFillColor(242, 242, 247);
-                        doc.rect(70, chartY + (i * 8) - 3, pageWidth - 95, 3, 'F');
+                        doc.roundedRect(trackX, y - 3, trackWidth, trackHeight, 1.5, 1.5, 'F');
 
-                        doc.setFillColor(147, 51, 234);
-                        doc.rect(70, chartY + (i * 8) - 3, barWidth, 3, 'F');
+                        const firstX = trackX + (Math.max(0, firstScore) / 100 * trackWidth);
+                        const lastX = trackX + (Math.max(0, lastScore) / 100 * trackWidth);
+
+                        if (sortedRuns.length > 1) {
+                            doc.setDrawColor(diff >= 0 ? 192 : 252, diff >= 0 ? 132 : 165, diff >= 0 ? 252 : 165);
+                            doc.setLineWidth(1.5);
+                            doc.line(firstX, y - 1.25, lastX, y - 1.25);
+                        }
+
+                        sortedRuns.forEach((run, idx) => {
+                            const runX = trackX + (Math.max(0, run.score) / 100 * trackWidth);
+                            const isFirst = idx === 0;
+                            const isLast = idx === sortedRuns.length - 1;
+
+                            if (isFirst) {
+                                doc.setFillColor(245, 158, 11);
+                                doc.circle(runX, y - 1.25, 1.5, 'F');
+                                doc.setFontSize(6);
+                                doc.setTextColor(180, 83, 9);
+                                const labelOffset = Math.abs(firstX - lastX) < 12 ? -5.5 : -4;
+                                doc.text("ORIGIN", runX - 3, y + labelOffset);
+                            } else if (isLast) {
+                                doc.setFillColor(147, 51, 234);
+                                doc.circle(runX, y - 1.25, 1.8, 'F');
+                                doc.setFontSize(6);
+                                doc.setTextColor(107, 33, 168);
+                                const labelOffset = Math.abs(firstX - lastX) < 12 ? 2.5 : -4;
+                                doc.text("CURRENT", runX - 4, y + labelOffset);
+                            } else {
+                                doc.setFillColor(216, 180, 254);
+                                doc.circle(runX, y - 1.25, 1, 'F');
+                            }
+                        });
+
+                        doc.setFontSize(7);
+                        doc.setTextColor(100);
+                        doc.setFont(undefined, 'bold');
+                        doc.text(`${lastScore}%`, pageWidth - 20, y);
                     });
 
-                    const tableStartY = chartY + (objectiveData.length * 8) + 10;
+                    const tableStartY = chartY + (objectiveData.length * 13) + 12;
                     const objectiveRows = objectiveData.map(([name, stat]) => [
                         name,
                         `${Math.round(stat.total / stat.count)}%`,

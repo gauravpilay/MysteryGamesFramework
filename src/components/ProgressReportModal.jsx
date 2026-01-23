@@ -315,13 +315,19 @@ const ProgressReportModal = ({ onClose }) => {
                             doc.circle(runX, y - 1.25, 1.5, 'F');
                             doc.setFontSize(6);
                             doc.setTextColor(180, 83, 9);
-                            doc.text("ORIGIN", runX - 3, y - 4);
+
+                            // Prevent overlap with CURRENT label
+                            const labelOffset = Math.abs(firstX - lastX) < 12 ? -5.5 : -4;
+                            doc.text("ORIGIN", runX - 3, y + labelOffset);
                         } else if (isLast) {
                             doc.setFillColor(79, 70, 229); // Indigo 600
                             doc.circle(runX, y - 1.25, 1.8, 'F');
                             doc.setFontSize(6);
                             doc.setTextColor(67, 56, 202);
-                            doc.text("CURRENT", runX - 4, y - 4);
+
+                            // Prevent overlap with ORIGIN label
+                            const labelOffset = Math.abs(firstX - lastX) < 12 ? 2.5 : -4;
+                            doc.text("CURRENT", runX - 4, y + labelOffset);
                         } else {
                             doc.setFillColor(165, 180, 252); // Indigo 300
                             doc.circle(runX, y - 1.25, 1, 'F');
