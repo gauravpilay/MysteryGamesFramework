@@ -9,6 +9,8 @@ import { useNavigate } from 'react-router-dom';
 import { motion, AnimatePresence } from 'framer-motion';
 import ProgressReportModal from '../components/ProgressReportModal';
 import AdminProgressModal from '../components/AdminProgressModal';
+import SystemSettingsModal from '../components/SystemSettingsModal';
+import { Settings } from 'lucide-react';
 
 const Dashboard = () => {
     const { user, logout } = useAuth();
@@ -18,6 +20,7 @@ const Dashboard = () => {
     const [showNewModal, setShowNewModal] = useState(false);
     const [showProgressModal, setShowProgressModal] = useState(false);
     const [showAdminProgressModal, setShowAdminProgressModal] = useState(false);
+    const [showSettingsModal, setShowSettingsModal] = useState(false);
     const [deleteId, setDeleteId] = useState(null);
     const [duplicateId, setDuplicateId] = useState(null);
     const [duplicateName, setDuplicateName] = useState('');
@@ -251,6 +254,9 @@ const Dashboard = () => {
                                             <Button variant="ghost" size="sm" onClick={() => navigate('/admin/users')} className="h-9 px-4 text-xs font-bold hover:bg-white/5">
                                                 <Users className="w-3.5 h-3.5 mr-2 text-indigo-400" /> Personnel
                                             </Button>
+                                            <Button variant="ghost" size="sm" onClick={() => setShowSettingsModal(true)} className="h-9 px-4 text-xs font-bold hover:bg-white/5">
+                                                <Settings className="w-3.5 h-3.5 mr-2 text-indigo-400" /> Settings
+                                            </Button>
                                             <Button variant="ghost" size="sm" onClick={() => window.open('/USER_MANUAL.pdf', '_blank')} className="h-9 px-4 text-xs font-bold hover:bg-white/5">
                                                 <BookOpen className="w-3.5 h-3.5 mr-2 text-indigo-400" /> Manual
                                             </Button>
@@ -397,6 +403,10 @@ const Dashboard = () => {
 
                 {showAdminProgressModal && isAdmin && (
                     <AdminProgressModal onClose={() => setShowAdminProgressModal(false)} />
+                )}
+
+                {showSettingsModal && isAdmin && (
+                    <SystemSettingsModal onClose={() => setShowSettingsModal(false)} />
                 )}
             </AnimatePresence>
         </div>

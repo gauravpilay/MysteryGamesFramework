@@ -35,5 +35,11 @@ service cloud.firestore {
     match /game_results/{resultId} {
       allow read, write: if request.auth != null;
     }
+
+    // SYSTEM CONFIG
+    match /system_config/{configId} {
+      allow read: if request.auth != null;
+      allow write: if isAdmin();
+    }
   }
 }

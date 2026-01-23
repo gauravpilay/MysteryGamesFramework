@@ -2,8 +2,10 @@ import React, { useState, useEffect, useRef } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { MessageSquare, Send, X, Brain, Cpu, Loader2, Star, User, ShieldAlert, AlertCircle, Info } from 'lucide-react';
 import { callAI } from '../lib/ai';
+import { useConfig } from '../lib/config';
 
 const AIInterrogation = ({ node, onComplete, onFail, requestCount, onAIRequest }) => {
+    const { settings } = useConfig();
     const [messages, setMessages] = useState([
         { role: 'assistant', text: "Hello detective! Tell me how can I help you today?" }
     ]);
@@ -16,10 +18,17 @@ const AIInterrogation = ({ node, onComplete, onFail, requestCount, onAIRequest }
     const systemPrompt = node.data.systemPrompt || "You are a suspect in a mystery game. Be cautious and realistic.";
     const score = node.data.score || 0;
 
-    // Get API Key from environment or localStorage
+    // Get API Key from environment or settings or localStorage
     const getApiKey = () => {
-        const envKey = import.meta.env[node.data.apiKeyVar] || import.meta.env.VITE_AI_API_KEY;
+        // Priority: Node specific env var -> DB Settings -> .env fallback -> Local Storage
+        const envKey = import.meta.env[node.data.apiKeyVar];
         if (envKey) return envKey;
+
+        if (settings.aiApiKey) return settings.aiApiKey;
+
+        const dotEnvKey = import.meta.env.VITE_AI_API_KEY;
+        if (dotEnvKey) return dotEnvKey;
+
         return localStorage.getItem('MYSTERY_AI_KEY');
     };
 
@@ -33,7 +42,7 @@ const AIInterrogation = ({ node, onComplete, onFail, requestCount, onAIRequest }
 
     const [showLimitPopup, setShowLimitPopup] = useState(false);
 
-    const MAX_REQUESTS = parseInt(import.meta.env.VITE_MAX_AI_REQUESTS) || 10;
+    const MAX_REQUESTS = parseInt(settings.maxAIRequests) || 10;
     const isLimitReached = requestCount >= MAX_REQUESTS;
 
     const handleSendMessage = async () => {
