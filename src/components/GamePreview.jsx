@@ -1376,9 +1376,13 @@ const GamePreview = ({ nodes, edges, onClose, gameMetadata, onGameEnd }) => {
                             <div className="mt-12 flex justify-center animate-in fade-in slide-in-from-bottom-8 duration-1000 delay-500">
                                 <Button
                                     onClick={() => setMissionStarted(true)}
-                                    className="px-12 py-8 text-xl font-bold tracking-[0.2em] bg-red-600 hover:bg-red-700 text-white border-none shadow-[0_0_50px_rgba(220,38,38,0.4)] hover:shadow-[0_0_80px_rgba(220,38,38,0.6)] hover:scale-105 transition-all duration-300 uppercase"
+                                    className="px-8 py-5 text-base font-black tracking-[0.3em] bg-red-600 hover:bg-red-500 text-white border-t border-white/20 shadow-[0_0_30px_rgba(220,38,38,0.3)] hover:shadow-[0_0_50px_rgba(220,38,38,0.5)] hover:scale-105 transition-all duration-300 uppercase relative group overflow-hidden"
                                 >
-                                    Begin Mission
+                                    <div className="absolute inset-0 bg-gradient-to-r from-transparent via-white/10 to-transparent -translate-x-full group-hover:translate-x-full transition-transform duration-1000" />
+                                    <span className="relative z-10 flex items-center gap-3">
+                                        Begin Mission
+                                        <ArrowRight className="w-5 h-5 group-hover:translate-x-1 transition-transform" />
+                                    </span>
                                 </Button>
                             </div>
                         ) : (
@@ -1633,11 +1637,11 @@ const GamePreview = ({ nodes, edges, onClose, gameMetadata, onGameEnd }) => {
                                                             whileTap={item.target ? { scale: 0.98 } : {}}
                                                             onClick={() => item.target && handleOptionClick(item.target)}
                                                             disabled={!item.target}
-                                                            className={`w-full text-center rounded-xl transition-all group relative overflow-hidden flex items-center gap-4 
+                                                            className={`w-full text-left rounded-xl transition-all group relative overflow-hidden flex items-center gap-4 
                                                             ${!item.target ? 'cursor-not-allowed border border-zinc-900 opacity-60 p-4' : 'cursor-pointer'}
                                                             ${item.isAction && item.target
-                                                                    ? `${bg} p-6`
-                                                                    : "bg-zinc-900/50 border border-zinc-800 hover:border-indigo-500/50 hover:bg-zinc-900 shadow-none hover:shadow-lg hover:shadow-indigo-500/10 p-4"
+                                                                    ? `${bg} p-4 md:p-5 border-t border-white/10`
+                                                                    : "bg-zinc-900/40 border border-zinc-800/50 hover:border-indigo-500/50 hover:bg-zinc-900/80 shadow-none hover:shadow-xl hover:shadow-indigo-500/5 p-4"
                                                                 }`}
                                                         >
                                                             <div className={`rounded-lg ${item.isAction ? 'bg-black/30' : bg} ${item.isAction ? 'p-2' : 'p-3'} border border-white/5 ${item.target && 'group-hover:scale-110'} transition-transform shrink-0`}>
@@ -1920,10 +1924,8 @@ const GamePreview = ({ nodes, edges, onClose, gameMetadata, onGameEnd }) => {
 
                                     <div className="flex justify-end">
                                         <Button
-                                            className="bg-yellow-600 hover:bg-yellow-700 text-black font-bold"
+                                            className="bg-yellow-600 hover:bg-yellow-500 text-black font-black uppercase tracking-wider shadow-[0_0_20px_rgba(234,179,8,0.2)] hover:shadow-[0_0_30px_rgba(234,179,8,0.4)] transition-all border-t border-white/30"
                                             onClick={() => {
-                                                // Auto-advance if there is a single path out (often back to story or next clue)
-                                                // Or just close
                                                 const next = edges.find(e => e.source === activeModalNode.id);
                                                 setActiveModalNode(null);
                                                 if (next) handleOptionClick(next.target);
@@ -1991,6 +1993,7 @@ const GamePreview = ({ nodes, edges, onClose, gameMetadata, onGameEnd }) => {
                                     <div className="mt-6 flex justify-end">
                                         <Button
                                             variant="outline"
+                                            className="border-violet-500/50 text-violet-200 hover:bg-violet-500/10 hover:border-violet-400 font-bold uppercase tracking-widest text-xs"
                                             onClick={() => {
                                                 const next = edges.find(e => e.source === activeModalNode.id);
                                                 setActiveModalNode(null);
@@ -2061,7 +2064,7 @@ const GamePreview = ({ nodes, edges, onClose, gameMetadata, onGameEnd }) => {
 
                                     <div className="p-4 border-t border-zinc-800 bg-zinc-900/50 flex justify-end shrink-0 z-20">
                                         <Button
-                                            className="bg-orange-600 hover:bg-orange-700 text-white"
+                                            className="bg-orange-600 hover:bg-orange-500 text-white font-black uppercase tracking-widest shadow-[0_0_20px_rgba(249,115,22,0.2)] hover:shadow-[0_0_30px_rgba(249,115,22,0.4)] transition-all border-t border-white/20"
                                             onClick={() => {
                                                 const next = edges.find(e => e.source === activeModalNode.id);
                                                 setActiveModalNode(null);
@@ -2085,19 +2088,23 @@ const GamePreview = ({ nodes, edges, onClose, gameMetadata, onGameEnd }) => {
                                         {activeModalNode.data.message}
                                     </p>
                                     <Button
-                                        className={`w-full max-w-sm py-6 text-lg font-bold tracking-wider uppercase transition-all transform hover:scale-105 ${activeModalNode.data.buttonStyle === 'danger' ? 'bg-red-600 hover:bg-red-700 shadow-red-900/20' :
-                                            activeModalNode.data.buttonStyle === 'primary' ? 'bg-blue-600 hover:bg-blue-700 shadow-blue-900/20' :
-                                                activeModalNode.data.buttonStyle === 'success' ? 'bg-emerald-600 hover:bg-emerald-700 shadow-emerald-900/20' :
-                                                    activeModalNode.data.buttonStyle === 'warning' ? 'bg-amber-500 hover:bg-amber-600 text-black shadow-amber-900/20' :
-                                                        'bg-white text-black hover:bg-zinc-200 shadow-white/10'
-                                            } shadow-xl`}
+                                        className={`w-full max-w-xs py-4 text-sm font-black tracking-[0.2em] uppercase transition-all duration-300 transform hover:scale-105 active:scale-95 group overflow-hidden relative shadow-2xl border-t border-white/20 ${activeModalNode.data.buttonStyle === 'danger' ? 'bg-gradient-to-r from-red-600 to-red-800 hover:from-red-500 hover:to-red-700 shadow-red-900/40 text-white' :
+                                            activeModalNode.data.buttonStyle === 'primary' ? 'bg-gradient-to-r from-blue-600 to-indigo-700 hover:from-blue-500 hover:to-indigo-600 shadow-blue-900/40 text-white' :
+                                                activeModalNode.data.buttonStyle === 'success' ? 'bg-gradient-to-r from-emerald-600 to-green-700 hover:from-emerald-500 hover:to-green-600 shadow-emerald-900/40 text-white' :
+                                                    activeModalNode.data.buttonStyle === 'warning' ? 'bg-gradient-to-r from-amber-400 to-orange-500 hover:from-amber-300 hover:to-orange-400 shadow-amber-900/40 text-black' :
+                                                        'bg-white text-black hover:bg-zinc-100 shadow-white/10'
+                                            }`}
                                         onClick={() => {
                                             const next = edges.find(e => e.source === activeModalNode.id);
                                             setActiveModalNode(null);
                                             if (next) handleOptionClick(next.target);
                                         }}
                                     >
-                                        {activeModalNode.data.buttonText || "Continue"}
+                                        <div className="absolute inset-0 bg-gradient-to-r from-transparent via-white/10 to-transparent -translate-x-full group-hover:translate-x-full transition-transform duration-1000" />
+                                        <span className="relative z-10 flex items-center justify-center gap-2">
+                                            {activeModalNode.data.buttonText || "Continue"}
+                                            <ArrowRight className="w-4 h-4 group-hover:translate-x-1 transition-transform" />
+                                        </span>
                                     </Button>
 
                                 </div>
@@ -2149,11 +2156,15 @@ const GamePreview = ({ nodes, edges, onClose, gameMetadata, onGameEnd }) => {
                                     <div className="mt-8 pt-4 border-t border-zinc-800 flex justify-end">
                                         <Button
                                             id="quiz-submit-btn"
-                                            className="bg-fuchsia-600 hover:bg-fuchsia-700 text-white px-8 py-6 text-lg font-bold tracking-wider"
+                                            className="bg-fuchsia-600 hover:bg-fuchsia-500 text-white px-8 py-4 text-sm font-black tracking-[0.2em] uppercase transition-all duration-300 transform hover:scale-105 active:scale-95 group overflow-hidden relative shadow-2xl border-t border-white/20"
                                             onClick={handleQuestionSubmit}
                                             disabled={userAnswers.size === 0}
                                         >
-                                            Submit Answer
+                                            <div className="absolute inset-0 bg-gradient-to-r from-transparent via-white/10 to-transparent -translate-x-full group-hover:translate-x-full transition-transform duration-1000" />
+                                            <span className="relative z-10 flex items-center justify-center gap-2">
+                                                Submit Answer
+                                                <ArrowRight className="w-4 h-4 group-hover:translate-x-1 transition-transform" />
+                                            </span>
                                         </Button>
                                     </div>
                                 </div>
