@@ -5,6 +5,12 @@ import { motion, AnimatePresence } from 'framer-motion';
 import EvidenceBoard from './EvidenceBoard';
 import AdvancedTerminal from './AdvancedTerminal';
 import AIInterrogation from './AIInterrogation';
+import {
+    checkLogicCondition as checkLogic,
+    evaluateLogic as evalLogic,
+    resolveNextNode as resolveNext,
+    resolveEdgeTarget as resolveTarget
+} from '../lib/gameLogic';
 
 const BackgroundEffect = () => (
     <div className="fixed inset-0 pointer-events-none z-0 overflow-hidden">
@@ -494,104 +500,15 @@ const GamePreview = ({ nodes, edges, onClose, gameMetadata, onGameEnd }) => {
         const resolvedOptions = [];
         const processedLogicNodes = new Set(); // Prevent infinite recursion
 
-        // Recursive helper to look through logic nodes for the *effective* target
-        const resolveEdgeTarget = (edge) => {
-            const targetNode = nodes.find(n => n.id === edge.target);
-            if (!targetNode) return null;
-
-            // Atomic Node (Terminal, Visible Node) -> Return as is
-            if (!['logic', 'music', 'setter'].includes(targetNode.type)) {
-                return edge;
-            }
-
-            // Logic/Music Node -> Evaluate and continue
-            if (targetNode.type === 'logic') {
-                if (processedLogicNodes.has(targetNode.id)) return null; // Cycle guard
-                processedLogicNodes.add(targetNode.id);
-
-                // Use our evaluateLogic helper
-                // Note: We need to define evaluateLogic BEFORE this useMemo or use a separate helper
-                // Since evaluateLogic uses state variables, we might need to inline part of it or move it up.
-                // Ideally, evaluateLogic should be pure or we extract the logic.
-
-                // Re-implementing simplified logic evaluation here to avoid hoisting issues 
-                // (since evaluateLogic is defined below in original code)
-                const { variable, operator, value, condition } = targetNode.data;
-                let isTrue = false;
-
-                if (variable) {
-                    let actualValue = undefined;
-                    if (nodeOutputs[variable] !== undefined) actualValue = nodeOutputs[variable];
-                    else if (inventory.has(variable)) actualValue = true;
-
-                    if (actualValue === undefined) isTrue = false;
-                    else {
-                        const sVal = String(actualValue).toLowerCase();
-                        const tVal = String(value || '').toLowerCase();
-                        if (!value && (operator === '==' || !operator)) isTrue = true;
-                        else if (operator === '!=') isTrue = sVal != tVal;
-                        else if (operator === '>') isTrue = parseFloat(actualValue) > parseFloat(value);
-                        else if (operator === '<') isTrue = parseFloat(actualValue) < parseFloat(value);
-                        else if (operator === 'contains') isTrue = sVal.includes(tVal);
-                        else isTrue = sVal == tVal;
-                    }
-                } else {
-                    // Check logic condition using the component Helper if possible, or reimplement
-                    // Note: checkLogicCondition is stable and defined early in component? 
-                    // No, checkLogicCondition is defined in render. We must rely on dependency.
-                    if (!condition || condition === 'always_true') isTrue = true;
-                    else if (condition === 'always_false') isTrue = false;
-                    else if (inventory.has(condition)) isTrue = true;
-                    // Full checkLogicCondition is complex, we'll assume inventory basic check here for preview performance
-                    // or rely on a simplified version. Most commonly it's inventory check.
-                    // The user asked for "keys are set", which is inventory or set variable.
-
-                    // Handle 'visited:' and 'has:' prefixes briefly
-                    if (condition.startsWith('visited:')) isTrue = history.includes(condition.split(':')[1]);
-                    else if (condition.startsWith('has:')) isTrue = inventory.has(condition.split(':')[1]);
-                }
-
-                // Find next edge based on result
-                const logicEdges = edges.filter(e => e.source === targetNode.id);
-                const trueEdge = logicEdges.find(e => e.sourceHandle === 'true' || e.label === 'True' || e.label === 'true');
-                const falseEdge = logicEdges.find(e => e.sourceHandle === 'false' || e.label === 'False' || e.label === 'false');
-
-                let nextEdge = isTrue ? trueEdge : falseEdge;
-                // Fallback
-                if (!nextEdge && logicEdges.length > 0) {
-                    nextEdge = isTrue ? logicEdges[0] : (logicEdges.length > 1 ? logicEdges[1] : null);
-                }
-
-                if (nextEdge) return resolveEdgeTarget(nextEdge);
-                return null; // Dead end logic path (Hidden option)
-            }
-
-            if (targetNode.type === 'music' || targetNode.type === 'setter') {
-                // Music/Setter always passes through
-                const outEdges = edges.filter(e => e.source === targetNode.id);
-                if (outEdges.length > 0) return resolveEdgeTarget(outEdges[0]);
-                return null;
-            }
-
-            return edge;
-        };
-
         // Process all immediate edges
         rawEdges.forEach(edge => {
-            // We use a clean set for each branch to allow diamond patterns, 
-            // but prevent loops within one branch.
             processedLogicNodes.clear();
-            const resolved = resolveEdgeTarget(edge);
+            const resolved = resolveTarget(edge, { nodes, edges, inventory, nodeOutputs, history, processedLogicNodes });
             if (resolved) {
-                // We create a "Virtual Edge" that looks like it comes from Current -> Resolved Target
-                // We preserve the original label if the resolved edge doesn't have one? 
-                // Mostly we just want the target ID.
-                // We use the ID of the resolved edge to ensure keys are unique? No, resolved edge might be far away.
-                // We want to verify uniqueness of TARGETS.
                 resolvedOptions.push({
-                    ...edge, // Keep original source info (handles etc)
-                    target: resolved.target, // Point to the final destination
-                    id: edge.id + '_resolved_' + resolved.id // Unique ID
+                    ...edge,
+                    target: resolved.target,
+                    id: edge.id + '_resolved_' + resolved.id
                 });
             }
         });
@@ -610,49 +527,8 @@ const GamePreview = ({ nodes, edges, onClose, gameMetadata, onGameEnd }) => {
     }, [currentNodeId, edges, inventory, nodeOutputs, history, nodes]);
 
     // Helper to evaluate logic conditions
-    const checkLogicCondition = (condition) => {
-        if (!condition || condition === 'always_true') return true;
-        if (condition === 'always_false') return false;
+    const checkLogicCondition = (condition) => checkLogic(condition, inventory, history);
 
-        // Check for boolean operators (simple implementation)
-        if (condition.includes(' && ')) {
-            return condition.split(' && ').every(c => checkLogicCondition(c.trim()));
-        }
-        if (condition.includes(' || ')) {
-            return condition.split(' || ').some(c => checkLogicCondition(c.trim()));
-        }
-
-        // PREV keyword: Check if the previous node was completed
-        if (condition === 'PREV' || condition === 'previous_task') {
-            const prevNodeId = history[history.length - 1];
-            return prevNodeId && inventory.has(prevNodeId);
-        }
-
-        // Check visited status
-        if (condition.startsWith('visited:')) {
-            const targetId = condition.split(':')[1];
-            return history.includes(targetId);
-        }
-
-        // Check collected status (Inventory)
-        if (condition.startsWith('has:')) {
-            const targetId = condition.split(':')[1];
-            return inventory.has(targetId);
-        }
-
-        // Legacy/Direct ID checks
-        // Hardcoded check for tutorial/sample usage
-        if (condition === 'has_usb_drive' && (inventory.has('evidence-1') || inventory.has('sample-evidence-usb') || Array.from(inventory).some(i => i.toLowerCase().includes('usb')))) return true;
-
-        // Cyber Case Hardcode
-        if (condition === 'keycard_match_ken') {
-            // Logic: Needs Keycard OR Logs (providing Access Code)
-            if (inventory.has('evidence-cctv') || inventory.has('term-logs')) return true;
-        }
-
-        // Default: Check if the condition string matches an item in inventory
-        return inventory.has(condition);
-    };
 
     // Effect to handle "Auto-traverse" nodes (Logic) or State Updates (Evidence)
     useEffect(() => {
@@ -746,142 +622,12 @@ const GamePreview = ({ nodes, edges, onClose, gameMetadata, onGameEnd }) => {
     // ...
 
     // Helper to evaluate logic for a given node
-    const evaluateLogic = (node, inv = inventory, out = nodeOutputs) => {
-        const { logicType, variable, operator, value, condition } = node.data;
-        let isTrue = false;
+    const evaluateLogic = (node, inv = inventory, out = nodeOutputs) => evalLogic(node, inv, out);
 
-        if (variable) {
-            let actualValue = undefined;
-            if (out[variable] !== undefined) actualValue = out[variable];
-            else if (inv.has(variable)) actualValue = true;
-
-            if (actualValue === undefined) {
-                isTrue = false;
-            } else {
-                const sVal = String(actualValue).toLowerCase();
-                const tVal = String(value || '').toLowerCase();
-
-                if (!value && (operator === '==' || !operator)) isTrue = true;
-                else if (operator === '!=') isTrue = sVal != tVal;
-                else if (operator === '>') isTrue = parseFloat(actualValue) > parseFloat(value);
-                else if (operator === '<') isTrue = parseFloat(actualValue) < parseFloat(value);
-                else if (operator === 'contains') isTrue = sVal.includes(tVal);
-                else isTrue = sVal == tVal;
-            }
-            addLog(`LOGIC (${logicType}): ${variable} [${actualValue}] ${operator} ${value} = ${isTrue}`);
-        } else {
-            // Check legacy condition against inventory (using safe inv reference)
-            if (!condition || condition === 'always_true') isTrue = true;
-            else if (condition === 'always_false') isTrue = false;
-            else if (condition.startsWith('has:')) isTrue = inv.has(condition.split(':')[1]);
-            else isTrue = inv.has(condition);
-
-            addLog(`LOGIC CHECK: ${condition || 'Default'} = ${isTrue}`);
-        }
-        return isTrue;
-    };
 
     const handleOptionClick = (targetId) => {
-        let loopCount = 0;
-        const maxLoops = 20; // Safety brake
-        const intermediateIds = [];
-
-        // Simulation State for immediate consistency in same-tick logic chains
-        const localInventory = new Set(inventory);
-        const localOutputs = { ...nodeOutputs };
-        let stateChanged = false;
-
-        // Recursive resolution function (iterative implementation)
-        const resolveNextNode = (startId) => {
-            let currId = startId;
-            let currNode = nodes.find(n => n.id === currId);
-
-            while (currNode && (['music', 'logic', 'setter'].includes(currNode.type)) && loopCount < maxLoops) {
-                loopCount++;
-                intermediateIds.push(currNode.id);
-
-                // Handle Music
-                if (currNode.type === 'music') {
-                    if (currNode.data.url) {
-                        setAudioSource(currNode.data.url);
-                        addLog(`AUDIO: Background track started.`);
-                    }
-                    const outEdges = edges.filter(e => e.source === currNode.id);
-                    if (outEdges.length > 0) {
-                        currId = outEdges[0].target;
-                        currNode = nodes.find(n => n.id === currId);
-                    } else break;
-                }
-                // Handle Setter
-                else if (currNode.type === 'setter') {
-                    const { variableId, operation, value } = currNode.data;
-                    if (variableId) {
-                        stateChanged = true;
-                        let valToSet = value;
-
-                        // Parse boolean strings
-                        if (String(value).toLowerCase() === 'true') valToSet = true;
-                        if (String(value).toLowerCase() === 'false') valToSet = false;
-
-                        // Check current value
-                        const currentVal = localOutputs[variableId] !== undefined ? localOutputs[variableId] : (localInventory.has(variableId) ? true : undefined);
-
-                        if (operation === 'toggle') {
-                            valToSet = !currentVal;
-                        } else if (operation === 'increment') {
-                            valToSet = (parseInt(currentVal) || 0) + (parseInt(value) || 1);
-                        } else if (operation === 'decrement') {
-                            valToSet = (parseInt(currentVal) || 0) - (parseInt(value) || 1);
-                        }
-
-                        // Update Local State
-                        localOutputs[variableId] = valToSet;
-                        // Sync Inventory for boolean flags
-                        if (valToSet === true) localInventory.add(variableId);
-                        else if (valToSet === false) localInventory.delete(variableId);
-
-                        addLog(`SETTER: ${variableId} = ${valToSet} (${operation})`);
-                    }
-
-                    const outEdges = edges.filter(e => e.source === currNode.id);
-                    if (outEdges.length > 0) {
-                        currId = outEdges[0].target;
-                        currNode = nodes.find(n => n.id === currId);
-                    } else break;
-                }
-                // Handle Logic
-                else if (currNode.type === 'logic') {
-                    const isTrue = evaluateLogic(currNode, localInventory, localOutputs);
-                    const nodeOptions = edges.filter(e => e.source === currNode.id);
-
-                    if (currNode.data.logicType === 'while' && !isTrue) {
-                        break;
-                    }
-
-                    const trueEdge = nodeOptions.find(e => e.sourceHandle === 'true' || e.label === 'True' || e.label === 'true');
-                    const falseEdge = nodeOptions.find(e => e.sourceHandle === 'false' || e.label === 'False' || e.label === 'false');
-
-                    let nextEdge = isTrue ? trueEdge : falseEdge;
-
-                    if (!nextEdge && nodeOptions.length > 0) {
-                        nextEdge = isTrue ? nodeOptions[0] : (nodeOptions.length > 1 ? nodeOptions[1] : null);
-                    }
-
-                    if (nextEdge) {
-                        currId = nextEdge.target;
-                        currNode = nodes.find(n => n.id === currId);
-                    } else {
-                        addLog(`LOGIC STOP: No path for result ${isTrue}`);
-                        break; // Dead end
-                    }
-                }
-            }
-            return { nodeId: currId, node: currNode };
-        };
-
-        const result = resolveNextNode(targetId);
-        const nextNodeId = result.nodeId;
-        const nextNode = result.node;
+        const result = resolveNext(targetId, { nodes, edges, inventory, nodeOutputs, history });
+        const { nodeId, node, intermediateIds, localInventory, localOutputs, stateChanged, audioToPlay } = result;
 
         // Commit State Changes
         if (stateChanged) {
@@ -889,39 +635,39 @@ const GamePreview = ({ nodes, edges, onClose, gameMetadata, onGameEnd }) => {
             setNodeOutputs(localOutputs);
         }
 
+        if (audioToPlay) {
+            setAudioSource(audioToPlay);
+            addLog(`AUDIO: Background track started.`);
+        }
+
         // Add current and intermediates to history
         setHistory(prev => {
-            const newHistory = [...prev, currentNodeId]; // Log where we came from
+            const newHistory = [...prev, currentNodeId];
             return [...newHistory, ...intermediateIds];
         });
 
-        setCurrentNodeId(nextNodeId);
+        setCurrentNodeId(nodeId);
 
         // If it's a type that requires a popup, set it as active modal AND add to inventory
-        if (nextNode && ['suspect', 'evidence', 'terminal', 'message', 'media', 'notification', 'question', 'lockpick', 'decryption', 'keypad', 'interrogation'].includes(nextNode.type)) {
-            setActiveModalNode(nextNode);
-            if (nextNode.type === 'question') setUserAnswers(new Set()); // Reset answers
-            if (nextNode.type === 'lockpick') { /* Initialize specific state if needed here, mostly handled in component */ }
+        if (node && ['suspect', 'evidence', 'terminal', 'message', 'media', 'notification', 'question', 'lockpick', 'decryption', 'keypad', 'interrogation'].includes(node.type)) {
+            setActiveModalNode(node);
+            if (node.type === 'question') setUserAnswers(new Set());
 
-            // Collect IDs: Node IDs + any custom logic variableIds
-            const idsToAdd = [nextNodeId, ...intermediateIds];
+            const idsToAdd = [nodeId, ...intermediateIds];
 
-            // Check connected nodes for custom IDs
-            [nextNode, ...intermediateIds.map(id => nodes.find(n => n.id === id))].forEach(n => {
+            [node, ...intermediateIds.map(id => nodes.find(n => n.id === id))].forEach(n => {
                 if (n && n.data?.variableId) idsToAdd.push(n.data.variableId);
-                // Legacy support for condition on evidence
                 if (n && n.type === 'evidence' && n.data.condition) idsToAdd.push(n.data.condition);
             });
 
             setInventory(prev => new Set([...prev, ...idsToAdd]));
-        } else if (nextNode && nextNode.type === 'identify') {
-            setActiveAccusationNode(nextNode);
+        } else if (node && node.type === 'identify') {
+            setActiveAccusationNode(node);
             setShowAccuseModal(true);
             setAccusationResult(null);
         } else {
             setActiveModalNode(null);
             setIsConfronting(false);
-            // Ensure intermediate nodes are tracked in inventory if needed (usually just history is sufficient)
             if (intermediateIds.length > 0) {
                 setInventory(prev => new Set([...prev, ...intermediateIds]));
             }
@@ -1629,6 +1375,7 @@ const GamePreview = ({ nodes, edges, onClose, gameMetadata, onGameEnd }) => {
                                                     return (
                                                         <motion.button
                                                             key={`${item.id}-${idx}`}
+                                                            data-testid={`option-${item.target}`}
                                                             layout
                                                             initial={{ opacity: 0, x: -20 }}
                                                             animate={{ opacity: 1, x: 0 }}
