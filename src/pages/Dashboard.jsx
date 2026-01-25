@@ -28,7 +28,10 @@ const Dashboard = () => {
     const [duplicateName, setDuplicateName] = useState('');
     const [newProjectName, setNewProjectName] = useState('');
     const [newProjectDesc, setNewProjectDesc] = useState('');
-    const [lockedCaseInfo, setLockedCaseInfo] = useState(null);
+    const [lockedProject, setLockedProject] = useState(null);
+    const [isRequesting, setIsRequesting] = useState(false);
+    const [requestFeedback, setRequestFeedback] = useState(null); // 'accepted' | 'declined' | null
+    const [incomingRequest, setIncomingRequest] = useState(null); // { project, request }
     const isAdmin = user?.role === 'Admin';
 
     // Fetch Projects
@@ -130,7 +133,7 @@ const Dashboard = () => {
             const now = Date.now();
             const lastActive = new Date(project.editingBy.timestamp).getTime();
             if (now - lastActive < 60000) { // 1 minute timeout
-                setLockedCaseInfo(project.editingBy);
+                setLockedProject(project);
                 return;
             }
         }
@@ -148,12 +151,109 @@ const Dashboard = () => {
             const now = Date.now();
             const lastActive = new Date(project.editingBy.timestamp).getTime();
             if (now - lastActive < 60000) { // 1 minute timeout
-                setLockedCaseInfo(project.editingBy);
+                setLockedProject(project);
                 return;
             }
         }
         navigate(`/editor/${project.id}`);
     };
+
+    const handleRequestAccess = async () => {
+        if (!db || !lockedProject || !user) return;
+        setIsRequesting(true);
+        try {
+            const docRef = doc(db, "cases", lockedProject.id);
+            await updateDoc(docRef, {
+                accessRequest: {
+                    uid: user.uid,
+                    displayName: user.displayName || user.email,
+                    email: user.email,
+                    timestamp: new Date().toISOString(),
+                    status: 'pending'
+                }
+            });
+        } catch (err) {
+            console.error("Failed to request access", err);
+            setIsRequesting(false);
+        }
+    };
+
+    const handleAcceptRequest = async (project, request) => {
+        if (!db || !project || !request) return;
+        try {
+            const docRef = doc(db, "cases", project.id);
+            await updateDoc(docRef, {
+                editingBy: null,
+                accessRequest: {
+                    ...request,
+                    status: 'accepted'
+                }
+            });
+            setIncomingRequest(null);
+        } catch (err) {
+            console.error("Failed to accept request", err);
+        }
+    };
+
+    const handleDeclineRequest = async (project, request) => {
+        if (!db || !project || !request) return;
+        try {
+            const docRef = doc(db, "cases", project.id);
+            await updateDoc(docRef, {
+                accessRequest: {
+                    ...request,
+                    status: 'declined'
+                }
+            });
+            setIncomingRequest(null);
+        } catch (err) {
+            console.error("Failed to decline request", err);
+        }
+    };
+
+    // Monitor access request feedback and incoming requests
+    useEffect(() => {
+        if (!user || !projects.length) return;
+
+        // 1. Handle outgoing request feedback (we are the requester)
+        if (lockedProject) {
+            const currentProject = projects.find(p => p.id === lockedProject.id);
+            if (currentProject) {
+                if (currentProject.accessRequest && currentProject.accessRequest.uid === user.uid) {
+                    if (currentProject.accessRequest.status === 'accepted') {
+                        setRequestFeedback('accepted');
+                        updateDoc(doc(db, "cases", currentProject.id), { accessRequest: null }).catch(() => { });
+                        setTimeout(() => {
+                            setRequestFeedback(null);
+                            setLockedProject(null);
+                            navigate(`/editor/${currentProject.id}`);
+                        }, 2000);
+                    } else if (currentProject.accessRequest.status === 'declined') {
+                        setRequestFeedback('declined');
+                        setIsRequesting(false);
+                        setTimeout(() => {
+                            updateDoc(doc(db, "cases", currentProject.id), { accessRequest: null }).catch(() => { });
+                            setRequestFeedback(null);
+                        }, 5000);
+                    }
+                } else if (!currentProject.accessRequest && isRequesting) {
+                    setIsRequesting(false);
+                }
+            }
+        }
+
+        // 2. Handle incoming requests (we are the lock holder)
+        const projectWithRequest = projects.find(p =>
+            p.editingBy?.uid === user.uid &&
+            p.accessRequest?.status === 'pending'
+        );
+
+        if (projectWithRequest) {
+            setIncomingRequest({ project: projectWithRequest, request: projectWithRequest.accessRequest });
+        } else {
+            setIncomingRequest(null);
+        }
+    }, [projects, lockedProject, user, isRequesting, navigate]);
 
     return (
         <div className="min-h-screen bg-black text-zinc-100 font-sans selection:bg-indigo-500/30 relative overflow-x-hidden">
@@ -430,70 +530,101 @@ const Dashboard = () => {
                     </div>
                 )}
 
-                {lockedCaseInfo && (
-                    <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/80 backdrop-blur-sm p-4">
-                        <motion.div
-                            initial={{ scale: 0.95, opacity: 0 }}
-                            animate={{ scale: 1, opacity: 1 }}
-                            className="bg-zinc-950 border border-indigo-500/30 p-8 rounded-3xl max-w-md w-full shadow-[0_0_50px_rgba(79,70,229,0.2)] text-center relative overflow-hidden"
-                        >
-                            <div className="absolute top-0 left-0 w-full h-1 bg-gradient-to-r from-transparent via-indigo-500 to-transparent"></div>
+                {lockedProject && (() => {
+                    const currentProject = projects.find(p => p.id === lockedProject.id) || lockedProject;
+                    if (!currentProject.editingBy) return null;
 
-                            <div className="flex flex-col items-center gap-6">
-                                <div className="relative">
-                                    <div className="absolute inset-0 bg-indigo-500/20 blur-2xl rounded-full"></div>
-                                    {lockedCaseInfo.photoURL ? (
-                                        <img
-                                            src={lockedCaseInfo.photoURL}
-                                            alt={lockedCaseInfo.displayName}
-                                            className="relative w-24 h-24 rounded-2xl border-2 border-indigo-500/50 object-cover shadow-2xl"
-                                        />
-                                    ) : (
-                                        <div className="relative w-24 h-24 bg-zinc-900 rounded-2xl border border-white/10 flex items-center justify-center">
-                                            <Users className="w-10 h-10 text-indigo-400" />
+                    return (
+                        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/80 backdrop-blur-sm p-4">
+                            <motion.div
+                                initial={{ scale: 0.95, opacity: 0 }}
+                                animate={{ scale: 1, opacity: 1 }}
+                                className="bg-zinc-950 border border-indigo-500/30 p-8 rounded-3xl max-w-md w-full shadow-[0_0_50px_rgba(79,70,229,0.2)] text-center relative overflow-hidden"
+                            >
+                                <div className="absolute top-0 left-0 w-full h-1 bg-gradient-to-r from-transparent via-indigo-500 to-transparent"></div>
+
+                                <div className="flex flex-col items-center gap-6">
+                                    <div className="relative">
+                                        <div className="absolute inset-0 bg-indigo-500/20 blur-2xl rounded-full"></div>
+                                        {currentProject.editingBy.photoURL ? (
+                                            <img
+                                                src={currentProject.editingBy.photoURL}
+                                                alt={currentProject.editingBy.displayName}
+                                                className="relative w-24 h-24 rounded-2xl border-2 border-indigo-500/50 object-cover shadow-2xl"
+                                            />
+                                        ) : (
+                                            <div className="relative w-24 h-24 bg-zinc-900 rounded-2xl border border-white/10 flex items-center justify-center">
+                                                <Users className="w-10 h-10 text-indigo-400" />
+                                            </div>
+                                        )}
+                                        <div className="absolute -bottom-2 -right-2 w-8 h-8 bg-amber-500 rounded-full border-4 border-zinc-950 flex items-center justify-center shadow-lg">
+                                            <Lock className="w-4 h-4 text-black" />
                                         </div>
-                                    )}
-                                    <div className="absolute -bottom-2 -right-2 w-8 h-8 bg-amber-500 rounded-full border-4 border-zinc-950 flex items-center justify-center shadow-lg">
-                                        <Lock className="w-4 h-4 text-black" />
+                                    </div>
+
+                                    <div className="space-y-3">
+                                        <div className="flex flex-col items-center">
+                                            <span className="text-[10px] font-black text-indigo-400 uppercase tracking-[0.3em] mb-1">Personnel on Site</span>
+                                            <h2 className="text-3xl font-black text-white tracking-tighter">
+                                                {(() => {
+                                                    const name = currentProject.editingBy.displayName || "";
+                                                    const emailPart = currentProject.editingBy.email?.split('@')[0] || "";
+                                                    // If displayName is generic or missing, use email
+                                                    const bestName = (name && name !== 'Detective') ? name : (emailPart || 'Detective');
+                                                    return bestName.split(' ')[0];
+                                                })()}
+                                            </h2>
+                                        </div>
+                                        <p className="text-zinc-400 text-sm leading-relaxed max-w-[280px] mx-auto">
+                                            Detective <span className="text-zinc-200 font-bold">{currentProject.editingBy.displayName || currentProject.editingBy.email?.split('@')[0] || 'another agent'}</span> is currently re-writing this case history. To prevent parallel dimensions (and data loss), please wait for their departure.
+                                        </p>
+                                    </div>
+
+                                    <div className="w-full h-px bg-zinc-800/50"></div>
+
+                                    <div className="flex flex-col gap-3 w-full">
+                                        <div className="flex items-center justify-center gap-2 text-[10px] font-bold text-emerald-400 bg-emerald-500/5 py-2.5 rounded-xl border border-emerald-500/10 uppercase tracking-widest">
+                                            <span className="w-1.5 h-1.5 rounded-full bg-emerald-500 animate-pulse"></span>
+                                            Transmission Active
+                                        </div>
+
+                                        <div className="flex flex-col gap-2 w-full mt-2">
+                                            {requestFeedback === 'declined' ? (
+                                                <div className="p-3 bg-red-500/10 border border-red-500/20 rounded-xl text-red-400 text-xs font-bold">
+                                                    Access Request Declined
+                                                </div>
+                                            ) : requestFeedback === 'accepted' ? (
+                                                <div className="p-3 bg-emerald-500/10 border border-emerald-500/20 rounded-xl text-emerald-400 text-xs font-bold">
+                                                    Access Granted! Redirecting...
+                                                </div>
+                                            ) : isRequesting ? (
+                                                <div className="flex items-center justify-center gap-3 w-full h-12 bg-white/5 rounded-xl border border-white/10 text-zinc-400 text-sm font-bold animate-pulse">
+                                                    <div className="w-4 h-4 border-2 border-indigo-500 border-t-transparent rounded-full animate-spin"></div>
+                                                    Waiting for Response...
+                                                </div>
+                                            ) : (
+                                                <Button
+                                                    onClick={handleRequestAccess}
+                                                    className="w-full bg-indigo-600 hover:bg-indigo-500 text-white font-bold h-12 rounded-xl transition-all active:scale-95 shadow-xl"
+                                                >
+                                                    Request Access
+                                                </Button>
+                                            )}
+                                        </div>
+
+                                        <Button
+                                            onClick={() => { setLockedProject(null); setIsRequesting(false); }}
+                                            variant="ghost"
+                                            className="w-full text-zinc-500 hover:text-white hover:bg-white/5 font-medium h-10 rounded-xl"
+                                        >
+                                            Understood, Detective
+                                        </Button>
                                     </div>
                                 </div>
-
-                                <div className="space-y-3">
-                                    <div className="flex flex-col items-center">
-                                        <span className="text-[10px] font-black text-indigo-400 uppercase tracking-[0.3em] mb-1">Personnel on Site</span>
-                                        <h2 className="text-3xl font-black text-white tracking-tighter">
-                                            {(() => {
-                                                const name = lockedCaseInfo.displayName || "";
-                                                const emailPart = lockedCaseInfo.email?.split('@')[0] || "";
-                                                // If displayName is generic or missing, use email
-                                                const bestName = (name && name !== 'Detective') ? name : (emailPart || 'Detective');
-                                                return bestName.split(' ')[0];
-                                            })()}
-                                        </h2>
-                                    </div>
-                                    <p className="text-zinc-400 text-sm leading-relaxed max-w-[280px] mx-auto">
-                                        Detective <span className="text-zinc-200 font-bold">{lockedCaseInfo.displayName || lockedCaseInfo.email?.split('@')[0] || 'another agent'}</span> is currently re-writing this case history. To prevent parallel dimensions (and data loss), please wait for their departure.
-                                    </p>
-                                </div>
-
-                                <div className="w-full h-px bg-zinc-800/50"></div>
-
-                                <div className="flex flex-col gap-3 w-full">
-                                    <div className="flex items-center justify-center gap-2 text-[10px] font-bold text-emerald-400 bg-emerald-500/5 py-2.5 rounded-xl border border-emerald-500/10 uppercase tracking-widest">
-                                        <span className="w-1.5 h-1.5 rounded-full bg-emerald-500 animate-pulse"></span>
-                                        Transmission Active
-                                    </div>
-                                    <Button
-                                        onClick={() => setLockedCaseInfo(null)}
-                                        className="w-full bg-white hover:bg-zinc-200 text-black font-bold h-12 rounded-xl transition-all active:scale-95 shadow-xl"
-                                    >
-                                        Understood, Detective
-                                    </Button>
-                                </div>
-                            </div>
-                        </motion.div>
-                    </div>
-                )}
+                            </motion.div>
+                        </div>
+                    );
+                })()}
 
                 {showProgressModal && (
                     <ProgressReportModal onClose={() => setShowProgressModal(false)} />
@@ -505,6 +636,46 @@ const Dashboard = () => {
 
                 {showSettingsModal && isAdmin && (
                     <SystemSettingsModal onClose={() => setShowSettingsModal(false)} />
+                )}
+
+                {/* Incoming Access Request Modal */}
+                {incomingRequest && (
+                    <div className="fixed inset-0 z-[300] flex items-end justify-center p-6 md:items-center pointer-events-none">
+                        <motion.div
+                            initial={{ y: 100, opacity: 0 }}
+                            animate={{ y: 0, opacity: 1 }}
+                            exit={{ y: 100, opacity: 0 }}
+                            className="bg-zinc-950 border border-indigo-500/50 p-6 rounded-2xl max-w-sm w-full shadow-[0_20px_60px_rgba(0,0,0,0.8)] pointer-events-auto"
+                        >
+                            <div className="flex items-start gap-4 mb-6">
+                                <div className="p-3 bg-indigo-500/20 rounded-xl border border-indigo-500/30">
+                                    <Users className="w-6 h-6 text-indigo-400" />
+                                </div>
+                                <div>
+                                    <h3 className="text-lg font-bold text-white tracking-tight">Access Requested</h3>
+                                    <p className="text-zinc-400 text-xs leading-relaxed mt-1">
+                                        <span className="text-indigo-400 font-bold">{incomingRequest.request.displayName}</span> is requesting permission to edit <span className="text-white font-bold">{incomingRequest.project.title}</span>.
+                                    </p>
+                                </div>
+                            </div>
+
+                            <div className="flex gap-3">
+                                <Button
+                                    onClick={() => handleDeclineRequest(incomingRequest.project, incomingRequest.request)}
+                                    variant="ghost"
+                                    className="flex-1 text-zinc-500 hover:text-white hover:bg-white/5 font-bold rounded-xl"
+                                >
+                                    Decline
+                                </Button>
+                                <Button
+                                    onClick={() => handleAcceptRequest(incomingRequest.project, incomingRequest.request)}
+                                    className="flex-1 bg-indigo-600 hover:bg-indigo-500 text-white font-bold rounded-xl shadow-[0_0_20px_rgba(79,70,229,0.3)]"
+                                >
+                                    Accept & Release
+                                </Button>
+                            </div>
+                        </motion.div>
+                    </div>
                 )}
             </AnimatePresence>
         </div>
