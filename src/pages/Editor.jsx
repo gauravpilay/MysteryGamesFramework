@@ -23,7 +23,7 @@ import GamePreview from '../components/GamePreview';
 import { AnimatePresence, motion } from 'framer-motion';
 import JSZip from 'jszip';
 import { db } from '../lib/firebase';
-import { doc, getDoc, updateDoc, increment, addDoc, collection } from 'firebase/firestore';
+import { doc, getDoc, updateDoc, increment, addDoc, collection, onSnapshot } from 'firebase/firestore';
 import { useAuth } from '../lib/auth';
 
 // ... (other imports)
@@ -172,6 +172,8 @@ const Editor = () => {
         takeaway: ""
     });
     const [confirmDeleteCat, setConfirmDeleteCat] = useState(null); // catId or null
+    const [editingBy, setEditingBy] = useState(null);
+    const [showLockedModal, setShowLockedModal] = useState(false);
 
     const tutorialSteps = [
         {
@@ -512,6 +514,82 @@ const Editor = () => {
         };
         loadCaseData();
     }, [projectId, setNodes, setEdges]);
+
+    // Lock and Heartbeat Logic
+    useEffect(() => {
+        if (!db || !projectId || !user) return;
+
+        const docRef = doc(db, "cases", projectId);
+        let heartbeatInterval;
+
+        const acquireLock = async () => {
+            try {
+                const docSnap = await getDoc(docRef);
+                if (!docSnap.exists()) return;
+
+                const data = docSnap.data();
+                const now = Date.now();
+                const lockTimeout = 60 * 1000; // 1 minute
+
+                if (data.editingBy && data.editingBy.uid !== user.uid) {
+                    const lastActive = new Date(data.editingBy.timestamp).getTime();
+                    if (now - lastActive < lockTimeout) {
+                        // Already locked by someone else
+                        return;
+                    }
+                }
+
+                // Acquire or refresh lock
+                const lockData = {
+                    uid: user.uid,
+                    displayName: user.displayName || "",
+                    email: user.email || "",
+                    timestamp: new Date().toISOString(),
+                    photoURL: user.photoURL || ""
+                };
+
+                await updateDoc(docRef, { editingBy: lockData });
+
+                // Start heartbeat
+                heartbeatInterval = setInterval(async () => {
+                    await updateDoc(docRef, {
+                        "editingBy.timestamp": new Date().toISOString()
+                    });
+                }, 30000); // Every 30 seconds
+            } catch (err) {
+                console.error("Lock acquisition failed", err);
+            }
+        };
+
+        acquireLock();
+
+        // Monitor lock status in real-time
+        const unsubscribe = onSnapshot(docRef, (snap) => {
+            if (snap.exists()) {
+                const data = snap.data();
+                setEditingBy(data.editingBy);
+
+                // If locked by someone else and active, show modal
+                if (data.editingBy && data.editingBy.uid !== user.uid) {
+                    const lastActive = new Date(data.editingBy.timestamp).getTime();
+                    if (Date.now() - lastActive < 60000) {
+                        setShowLockedModal(true);
+                    } else {
+                        setShowLockedModal(false);
+                    }
+                } else {
+                    setShowLockedModal(false);
+                }
+            }
+        });
+
+        return () => {
+            if (heartbeatInterval) clearInterval(heartbeatInterval);
+            unsubscribe();
+            // Clear lock on unmount if it was ours
+            updateDoc(docRef, { editingBy: null }).catch(() => { });
+        };
+    }, [projectId, user]);
 
     // Close search on click outside
     useEffect(() => {
@@ -1439,6 +1517,51 @@ const Editor = () => {
                                 >
                                     Delete All
                                 </Button>
+                            </div>
+                        </motion.div>
+                    </div>
+                )}
+                {/* Case Locked Modal */}
+                {showLockedModal && (
+                    <div className="fixed inset-0 z-[200] flex items-center justify-center p-4 bg-black/90 backdrop-blur-md">
+                        <motion.div
+                            initial={{ scale: 0.9, opacity: 0 }}
+                            animate={{ scale: 1, opacity: 1 }}
+                            className="bg-zinc-950 border border-indigo-500/30 p-8 rounded-3xl max-w-md w-full shadow-[0_0_50px_rgba(79,70,229,0.2)] text-center relative overflow-hidden"
+                        >
+                            <div className="absolute top-0 left-0 w-full h-1 bg-gradient-to-r from-transparent via-indigo-500 to-transparent"></div>
+                            <div className="flex flex-col items-center gap-6">
+                                <div className="relative">
+                                    <div className="absolute inset-0 bg-indigo-500/20 blur-2xl rounded-full"></div>
+                                    <div className="relative w-20 h-20 bg-zinc-900 rounded-2xl border border-white/10 flex items-center justify-center">
+                                        <Lock className="w-10 h-10 text-indigo-400" />
+                                    </div>
+                                    <div className="absolute -bottom-2 -right-2 w-8 h-8 bg-amber-500 rounded-full border-4 border-zinc-950 flex items-center justify-center">
+                                        <AlertTriangle className="w-4 h-4 text-black" />
+                                    </div>
+                                </div>
+
+                                <div className="space-y-2">
+                                    <h2 className="text-2xl font-black text-white tracking-tight">Case is Occupied</h2>
+                                    <p className="text-zinc-400 text-sm leading-relaxed">
+                                        <span className="text-indigo-400 font-bold">{editingBy?.displayName || 'Another detective'}</span> is currently working on this case file. To prevent data corruption, simultaneous editing is prohibited.
+                                    </p>
+                                </div>
+
+                                <div className="w-full h-px bg-zinc-800"></div>
+
+                                <div className="flex flex-col gap-3 w-full">
+                                    <div className="flex items-center justify-center gap-2 text-[10px] font-bold text-emerald-500 bg-emerald-500/10 py-2 rounded-lg border border-emerald-500/20 uppercase tracking-widest">
+                                        <span className="w-1.5 h-1.5 rounded-full bg-emerald-500 animate-pulse"></span>
+                                        Live Status: Currently Editing
+                                    </div>
+                                    <Button
+                                        onClick={() => navigate('/')}
+                                        className="w-full bg-white hover:bg-zinc-200 text-black font-bold h-12 rounded-xl"
+                                    >
+                                        Return to Dashboard
+                                    </Button>
+                                </div>
                             </div>
                         </motion.div>
                     </div>

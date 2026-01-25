@@ -4,7 +4,7 @@ import { db } from '../lib/firebase';
 import { collection, addDoc, deleteDoc, updateDoc, doc, onSnapshot, query, orderBy } from 'firebase/firestore';
 import { Button, Card, Input, Label } from '../components/ui/shared';
 import { Logo } from '../components/ui/Logo';
-import { Plus, FolderOpen, LogOut, Search, Trash2, Rocket, Copy, Users, BookOpen, Lock, Unlock, Activity, FileText, CheckCircle, Clock, TrendingUp, Pencil, Fingerprint, Trophy } from 'lucide-react';
+import { Plus, FolderOpen, LogOut, Search, Trash2, Rocket, Copy, Users, BookOpen, Lock, Unlock, Activity, FileText, CheckCircle, Clock, TrendingUp, Pencil, Fingerprint, Trophy, AlertTriangle } from 'lucide-react';
 import { useNavigate } from 'react-router-dom';
 import { motion, AnimatePresence } from 'framer-motion';
 import ProgressReportModal from '../components/ProgressReportModal';
@@ -28,6 +28,7 @@ const Dashboard = () => {
     const [duplicateName, setDuplicateName] = useState('');
     const [newProjectName, setNewProjectName] = useState('');
     const [newProjectDesc, setNewProjectDesc] = useState('');
+    const [lockedCaseInfo, setLockedCaseInfo] = useState(null);
     const isAdmin = user?.role === 'Admin';
 
     // Fetch Projects
@@ -129,6 +130,18 @@ const Dashboard = () => {
         } catch (e) {
             console.error("Status update failed:", e);
         }
+    };
+
+    const handleEditProject = (project) => {
+        if (project.editingBy && project.editingBy.uid !== user?.uid) {
+            const now = Date.now();
+            const lastActive = new Date(project.editingBy.timestamp).getTime();
+            if (now - lastActive < 60000) { // 1 minute timeout
+                setLockedCaseInfo(project.editingBy);
+                return;
+            }
+        }
+        navigate(`/editor/${project.id}`);
     };
 
     return (
@@ -299,7 +312,7 @@ const Dashboard = () => {
                                 project={project}
                                 isAdmin={isAdmin}
                                 onPlay={() => navigate(`/play/${project.id}`)}
-                                onEdit={() => navigate(`/editor/${project.id}`)}
+                                onEdit={() => handleEditProject(project)}
                                 onDelete={() => setDeleteId(project.id)}
                                 onDuplicate={() => { setDuplicateId(project.id); setDuplicateName(`${project.title} (Copy)`); }}
                                 onToggleStatus={() => handleToggleStatus(project.id, project.status)}
@@ -324,7 +337,7 @@ const Dashboard = () => {
                                     project={project}
                                     isAdmin={isAdmin}
                                     onPlay={() => navigate(`/play/${project.id}`)}
-                                    onEdit={() => navigate(`/editor/${project.id}`)}
+                                    onEdit={() => handleEditProject(project)}
                                     onDelete={() => setDeleteId(project.id)}
                                     onDuplicate={() => { setDuplicateId(project.id); setDuplicateName(`${project.title} (Copy)`); }}
                                     onToggleStatus={() => handleToggleStatus(project.id, project.status)}
@@ -406,6 +419,71 @@ const Dashboard = () => {
                     </div>
                 )}
 
+                {lockedCaseInfo && (
+                    <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/80 backdrop-blur-sm p-4">
+                        <motion.div
+                            initial={{ scale: 0.95, opacity: 0 }}
+                            animate={{ scale: 1, opacity: 1 }}
+                            className="bg-zinc-950 border border-indigo-500/30 p-8 rounded-3xl max-w-md w-full shadow-[0_0_50px_rgba(79,70,229,0.2)] text-center relative overflow-hidden"
+                        >
+                            <div className="absolute top-0 left-0 w-full h-1 bg-gradient-to-r from-transparent via-indigo-500 to-transparent"></div>
+
+                            <div className="flex flex-col items-center gap-6">
+                                <div className="relative">
+                                    <div className="absolute inset-0 bg-indigo-500/20 blur-2xl rounded-full"></div>
+                                    {lockedCaseInfo.photoURL ? (
+                                        <img
+                                            src={lockedCaseInfo.photoURL}
+                                            alt={lockedCaseInfo.displayName}
+                                            className="relative w-24 h-24 rounded-2xl border-2 border-indigo-500/50 object-cover shadow-2xl"
+                                        />
+                                    ) : (
+                                        <div className="relative w-24 h-24 bg-zinc-900 rounded-2xl border border-white/10 flex items-center justify-center">
+                                            <Users className="w-10 h-10 text-indigo-400" />
+                                        </div>
+                                    )}
+                                    <div className="absolute -bottom-2 -right-2 w-8 h-8 bg-amber-500 rounded-full border-4 border-zinc-950 flex items-center justify-center shadow-lg">
+                                        <Lock className="w-4 h-4 text-black" />
+                                    </div>
+                                </div>
+
+                                <div className="space-y-3">
+                                    <div className="flex flex-col items-center">
+                                        <span className="text-[10px] font-black text-indigo-400 uppercase tracking-[0.3em] mb-1">Personnel on Site</span>
+                                        <h2 className="text-3xl font-black text-white tracking-tighter">
+                                            {(() => {
+                                                const name = lockedCaseInfo.displayName || "";
+                                                const emailPart = lockedCaseInfo.email?.split('@')[0] || "";
+                                                // If displayName is generic or missing, use email
+                                                const bestName = (name && name !== 'Detective') ? name : (emailPart || 'Detective');
+                                                return bestName.split(' ')[0];
+                                            })()}
+                                        </h2>
+                                    </div>
+                                    <p className="text-zinc-400 text-sm leading-relaxed max-w-[280px] mx-auto">
+                                        Detective <span className="text-zinc-200 font-bold">{lockedCaseInfo.displayName || lockedCaseInfo.email?.split('@')[0] || 'another agent'}</span> is currently re-writing this case history. To prevent parallel dimensions (and data loss), please wait for their departure.
+                                    </p>
+                                </div>
+
+                                <div className="w-full h-px bg-zinc-800/50"></div>
+
+                                <div className="flex flex-col gap-3 w-full">
+                                    <div className="flex items-center justify-center gap-2 text-[10px] font-bold text-emerald-400 bg-emerald-500/5 py-2.5 rounded-xl border border-emerald-500/10 uppercase tracking-widest">
+                                        <span className="w-1.5 h-1.5 rounded-full bg-emerald-500 animate-pulse"></span>
+                                        Transmission Active
+                                    </div>
+                                    <Button
+                                        onClick={() => setLockedCaseInfo(null)}
+                                        className="w-full bg-white hover:bg-zinc-200 text-black font-bold h-12 rounded-xl transition-all active:scale-95 shadow-xl"
+                                    >
+                                        Understood, Detective
+                                    </Button>
+                                </div>
+                            </div>
+                        </motion.div>
+                    </div>
+                )}
+
                 {showProgressModal && (
                     <ProgressReportModal onClose={() => setShowProgressModal(false)} />
                 )}
@@ -456,6 +534,18 @@ const CaseCard = ({ project, isAdmin, onPlay, onEdit, onDelete, onDuplicate, onT
                 )}
 
                 <div className="absolute inset-0 bg-gradient-to-t from-zinc-900 via-transparent to-transparent"></div>
+
+                {project.editingBy && (Date.now() - new Date(project.editingBy.timestamp).getTime() < 60000) && (
+                    <div className="absolute bottom-2 left-2 flex items-center gap-2 px-2 py-1 bg-indigo-500/20 backdrop-blur-md rounded-lg border border-indigo-500/30 shadow-lg animate-in fade-in slide-in-from-left-2 duration-500">
+                        <div className="relative">
+                            <div className="w-1.5 h-1.5 rounded-full bg-emerald-500 animate-pulse"></div>
+                            <div className="absolute inset-0 bg-emerald-500/50 rounded-full animate-ping"></div>
+                        </div>
+                        <span className="text-[9px] font-black text-indigo-300 uppercase tracking-widest">
+                            In Use: {(project.editingBy.displayName && project.editingBy.displayName !== 'Detective') ? project.editingBy.displayName.split(' ')[0] : (project.editingBy.email?.split('@')[0] || 'Active')}
+                        </span>
+                    </div>
+                )}
 
                 {isAdmin && (
                     <div className="absolute top-2 right-2 flex gap-2 items-center">

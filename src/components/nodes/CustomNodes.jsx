@@ -1047,8 +1047,8 @@ export const InterrogationNode = memo(({ id, data, selected }) => {
 
     return (
         <>
-            <Handle type="target" position={Position.Top} className="!bg-zinc-500 !w-3 !h-3 !border-2 !border-black" />
-            <Handle type="target" position={Position.Top} className="!bg-zinc-500 !w-3 !h-3 !border-2 !border-black" />
+            <Handle type="target" position={Position.Top} id="in-1" className="!bg-zinc-500 !w-3 !h-3 !border-2 !border-black" />
+            <Handle type="target" position={Position.Top} id="in-2" className="!bg-zinc-500 !w-3 !h-3 !border-2 !border-black" />
             <NodeWrapper id={id} title="AI Interrogation" icon={Brain} selected={selected} headerClass="bg-indigo-950/30 text-indigo-200" colorClass="border-indigo-900/30" data={data} onLabelChange={(v) => handleChange('label', v)}>
                 <div className="space-y-3">
                     <div className="p-2 bg-indigo-500/5 border border-indigo-500/10 rounded-lg">
@@ -1780,8 +1780,9 @@ const ObjectiveModal = ({ isOpen, onClose, values, onChange, objectives }) => {
 };
 
 const ObjectiveSelector = ({ values = [], onChange, objectives }) => {
-    if (!objectives || objectives.length === 0) return null;
     const [isModalOpen, setIsModalOpen] = useState(false);
+
+    if (!objectives || objectives.length === 0) return null;
 
     const selectedIds = Array.isArray(values) ? values : (values ? [values] : []);
 
