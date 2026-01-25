@@ -122,11 +122,22 @@ const Dashboard = () => {
         }
     };
 
-    const handleToggleStatus = async (projectId, currentStatus) => {
+    const handleToggleStatus = async (project) => {
         if (!db) return;
-        const newStatus = currentStatus === 'published' ? 'draft' : 'published';
+
+        // Check for active lock
+        if (project.editingBy && project.editingBy.uid !== user?.uid) {
+            const now = Date.now();
+            const lastActive = new Date(project.editingBy.timestamp).getTime();
+            if (now - lastActive < 60000) { // 1 minute timeout
+                setLockedCaseInfo(project.editingBy);
+                return;
+            }
+        }
+
+        const newStatus = project.status === 'published' ? 'draft' : 'published';
         try {
-            await updateDoc(doc(db, "cases", projectId), { status: newStatus });
+            await updateDoc(doc(db, "cases", project.id), { status: newStatus });
         } catch (e) {
             console.error("Status update failed:", e);
         }
@@ -315,7 +326,7 @@ const Dashboard = () => {
                                 onEdit={() => handleEditProject(project)}
                                 onDelete={() => setDeleteId(project.id)}
                                 onDuplicate={() => { setDuplicateId(project.id); setDuplicateName(`${project.title} (Copy)`); }}
-                                onToggleStatus={() => handleToggleStatus(project.id, project.status)}
+                                onToggleStatus={() => handleToggleStatus(project)}
                             />
                         )) : (
                             <p className="col-span-full text-zinc-500 italic">No active missions available.</p>
@@ -340,7 +351,7 @@ const Dashboard = () => {
                                     onEdit={() => handleEditProject(project)}
                                     onDelete={() => setDeleteId(project.id)}
                                     onDuplicate={() => { setDuplicateId(project.id); setDuplicateName(`${project.title} (Copy)`); }}
-                                    onToggleStatus={() => handleToggleStatus(project.id, project.status)}
+                                    onToggleStatus={() => handleToggleStatus(project)}
                                 />
                             )) : (
                                 <p className="col-span-full text-zinc-500 italic">No drafts in progress.</p>
