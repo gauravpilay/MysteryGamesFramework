@@ -1,7 +1,7 @@
 import React, { memo, useState, useRef, useEffect } from 'react';
 import ReactDOM from 'react-dom';
 import { Handle, Position, NodeResizer } from 'reactflow';
-import { FileText, User, Search, GitMerge, Terminal, MessageSquare, Music, Image as ImageIcon, Star, MousePointerClick, Trash2, Plus, Copy, Fingerprint, Bell, HelpCircle, ToggleLeft, Unlock, Binary, Grid3x3, Folder, ChevronDown, ChevronUp, Maximize, X, Save, File, FolderOpen, AlertCircle, Brain, Cpu, Send, Loader2, Check, Filter } from 'lucide-react';
+import { FileText, User, Search, GitMerge, Terminal, MessageSquare, Music, Image as ImageIcon, Star, MousePointerClick, Trash2, Plus, Copy, Fingerprint, Bell, HelpCircle, ToggleLeft, Unlock, Binary, Grid3x3, Folder, ChevronDown, ChevronUp, Maximize, X, Save, File, FolderOpen, AlertCircle, Brain, Cpu, Send, Loader2, Check, Filter, ShieldAlert } from 'lucide-react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { storage } from '../../lib/firebase';
 import { ref, uploadBytes, getDownloadURL } from 'firebase/storage';
@@ -1039,10 +1039,145 @@ export const TerminalNode = memo(({ id, data, selected }) => {
         </>
     );
 });
+const AIPersonaModal = ({ data, onChange, onClose }) => {
+    const [persona, setPersona] = useState({
+        name: data.name || '',
+        personality: data.personality || '',
+        alibi: data.alibi || '',
+        secret: data.secret || '',
+        speakingStyle: data.speakingStyle || ''
+    });
+
+    const handleSave = () => {
+        // Construct the system prompt from structured data
+        const systemPrompt = `
+NAME: ${persona.name}
+PERSONALITY: ${persona.personality}
+SPEAKING STYLE: ${persona.speakingStyle}
+ALIBI: ${persona.alibi}
+SECRET: ${persona.secret}
+
+INSTRUCTIONS:
+You are the suspect described above. 
+Respond to questions realistically based on your persona.
+Try to protect your SECRET unless the detective provides strong evidence or corners you in a logical trap.
+Keep responses concise but immersive.
+`.trim();
+
+        onChange({
+            ...persona,
+            systemPrompt
+        });
+        onClose();
+    };
+
+    return ReactDOM.createPortal(
+        <div className="fixed inset-0 z-[1000] flex items-center justify-center p-6 bg-black/80 backdrop-blur-md">
+            <motion.div
+                initial={{ opacity: 0, scale: 0.9, y: 20 }}
+                animate={{ opacity: 1, scale: 1, y: 0 }}
+                className="bg-zinc-950 border border-indigo-500/30 rounded-3xl w-full max-w-2xl overflow-hidden flex flex-col shadow-2xl shadow-indigo-500/20"
+            >
+                {/* Header */}
+                <div className="px-8 py-6 border-b border-white/5 flex items-center justify-between bg-indigo-950/20">
+                    <div className="flex items-center gap-4">
+                        <div className="p-3 rounded-2xl bg-indigo-500/10 border border-indigo-500/20">
+                            <Brain className="w-6 h-6 text-indigo-400" />
+                        </div>
+                        <div>
+                            <h3 className="text-xl font-black text-white uppercase tracking-tighter">Suspect Consciousness Architect</h3>
+                            <p className="text-xs text-zinc-500 font-medium">Define the psychological profile and hidden truths of your suspect</p>
+                        </div>
+                    </div>
+                    <button onClick={onClose} className="p-2 hover:bg-white/5 rounded-full text-zinc-500 hover:text-white transition-all">
+                        <X className="w-6 h-6" />
+                    </button>
+                </div>
+
+                {/* Content */}
+                <div className="flex-1 overflow-y-auto p-8 space-y-6">
+                    <div className="grid grid-cols-2 gap-6">
+                        <div className="space-y-1.5">
+                            <p className="text-[10px] text-indigo-400 uppercase font-black tracking-[0.2em] ml-1">Suspect Name</p>
+                            <InputField
+                                value={persona.name}
+                                onChange={(e) => setPersona({ ...persona, name: e.target.value })}
+                                placeholder="e.g. Victor Kaine"
+                                className="!bg-black !border-indigo-900/30 focus:!border-indigo-500 !py-3 !text-sm"
+                            />
+                        </div>
+                        <div className="space-y-1.5">
+                            <p className="text-[10px] text-indigo-400 uppercase font-black tracking-[0.2em] ml-1">Speaking Style</p>
+                            <InputField
+                                value={persona.speakingStyle}
+                                onChange={(e) => setPersona({ ...persona, speakingStyle: e.target.value })}
+                                placeholder="e.g. Grumpy, formal, uses slang..."
+                                className="!bg-black !border-indigo-900/30 focus:!border-indigo-500 !py-3 !text-sm"
+                            />
+                        </div>
+                    </div>
+
+                    <div className="space-y-1.5">
+                        <p className="text-[10px] text-indigo-400 uppercase font-black tracking-[0.2em] ml-1">Personality & Background</p>
+                        <TextArea
+                            value={persona.personality}
+                            onChange={(e) => setPersona({ ...persona, personality: e.target.value })}
+                            placeholder="Describe their traits, motivations, and history..."
+                            rows={3}
+                            className="!bg-black !border-indigo-900/30 focus:!border-indigo-500 !text-sm"
+                        />
+                    </div>
+
+                    <div className="space-y-1.5">
+                        <p className="text-[10px] text-indigo-400 uppercase font-black tracking-[0.2em] ml-1">The Alibi</p>
+                        <TextArea
+                            value={persona.alibi}
+                            onChange={(e) => setPersona({ ...persona, alibi: e.target.value })}
+                            placeholder="Where were they? Who were they with? Does it sound convincing?"
+                            rows={3}
+                            className="!bg-black !border-indigo-900/30 focus:!border-indigo-500 !text-sm"
+                        />
+                    </div>
+
+                    <div className="space-y-1.5 p-4 bg-red-500/5 border border-red-500/10 rounded-2xl">
+                        <p className="text-[10px] text-red-400 uppercase font-black tracking-[0.2em] ml-1 flex items-center gap-2">
+                            <ShieldAlert className="w-3 h-3" /> The Critical Secret
+                        </p>
+                        <TextArea
+                            value={persona.secret}
+                            onChange={(e) => setPersona({ ...persona, secret: e.target.value })}
+                            placeholder="The truth they are hiding. Only revealed under intense pressure."
+                            rows={2}
+                            className="!bg-black !border-red-900/20 focus:!border-red-500 !text-sm"
+                        />
+                    </div>
+                </div>
+
+                {/* Footer */}
+                <div className="px-8 py-6 border-t border-white/5 bg-zinc-900/30 flex justify-end items-center gap-4">
+                    <button onClick={onClose} className="px-6 py-2 text-xs font-bold text-zinc-500 hover:text-white transition-colors uppercase tracking-widest">Discard</button>
+                    <button
+                        onClick={handleSave}
+                        className="px-10 py-3 bg-indigo-600 hover:bg-indigo-500 text-white text-[11px] font-black rounded-xl transition-all shadow-[0_10px_30px_rgba(79,70,229,0.3)] flex items-center gap-2 uppercase tracking-widest"
+                    >
+                        <Save className="w-4 h-4" />
+                        Save Persona
+                    </button>
+                </div>
+            </motion.div>
+        </div>,
+        document.body
+    );
+};
 
 export const InterrogationNode = memo(({ id, data, selected }) => {
+    const [showPersonaModal, setShowPersonaModal] = useState(false);
     const handleChange = (key, val) => {
         data.onChange && data.onChange(id, { ...data, [key]: val });
+    };
+
+    const handlePersonaChange = (personaData) => {
+        data.onChange && data.onChange(id, { ...data, ...personaData });
     };
 
     return (
@@ -1053,51 +1188,57 @@ export const InterrogationNode = memo(({ id, data, selected }) => {
                 <div className="space-y-3">
                     <div className="p-2 bg-indigo-500/5 border border-indigo-500/10 rounded-lg">
                         <p className="text-[10px] text-indigo-400 mb-1 uppercase font-bold tracking-widest flex items-center gap-1">
-                            <Cpu className="w-3 h-3" /> Core AI Engine
+                            <Cpu className="w-3 h-3" /> AI Model
                         </p>
                         <select
                             className="w-full bg-black border border-indigo-900/30 rounded px-2 py-1.5 text-[10px] text-indigo-200 focus:border-indigo-500 outline-none cursor-pointer"
                             value={data.aiProvider || 'gemini'}
                             onChange={(e) => handleChange('aiProvider', e.target.value)}
                         >
-                            <option value="gemini">Google Gemini (Recommended)</option>
-                            <option value="openai">OpenAI ChatGPT</option>
+                            <option value="gemini">Google Gemini 2.0</option>
+                            <option value="openai">OpenAI ChatGPT 4</option>
                         </select>
                     </div>
 
-                    <div>
-                        <div className="flex items-center justify-between mb-1">
-                            <p className="text-[10px] text-zinc-500 mb-1 uppercase font-bold tracking-widest">Suspect Persona & Alibi</p>
-                            <button
-                                onClick={() => {
-                                    const template = "PERSONA: Arthur P. Miller, age 56. Professional, slightly nervous. SPEAKING STYLE: Formal, uses 'per se' often. ALIBI: In the library reading 'The Great Gatsby'. SECRET: Arthur actually hates Gatsby, but wants to look sophisticated. He saw the gardener near the shed at 10 PM holding a heavy bag. If asked about the shed, he gets defensive.";
-                                    handleChange('systemPrompt', template);
-                                }}
-                                className="text-[8px] text-indigo-400 hover:text-indigo-300 font-bold uppercase transition-colors"
-                            >
-                                Template
-                            </button>
+                    <div className="relative group">
+                        <div className="flex items-center justify-between mb-2">
+                            <p className="text-[10px] text-zinc-500 uppercase font-black tracking-widest">Suspect Configuration</p>
+                            {data.name && (
+                                <span className="text-[9px] text-indigo-400 font-black uppercase bg-indigo-500/10 px-1.5 py-0.5 rounded border border-indigo-500/20 animate-pulse">
+                                    Configured
+                                </span>
+                            )}
                         </div>
-                        <TextArea
-                            placeholder="Persona: Strict detective. Alibi: At home during the murder. Secret: Found a key..."
-                            rows={4}
-                            value={data.systemPrompt}
-                            onChange={(e) => handleChange('systemPrompt', e.target.value)}
-                            className="text-[10px] border-indigo-900/20 focus:border-indigo-500 bg-black/40"
-                        />
+
+                        <button
+                            onClick={() => setShowPersonaModal(true)}
+                            className="w-full py-4 bg-indigo-600/10 border border-indigo-500/30 rounded-xl flex flex-col items-center justify-center gap-2 hover:bg-indigo-600/20 hover:border-indigo-500 transition-all group/btn"
+                        >
+                            <div className="p-2 bg-indigo-500/20 rounded-lg group-hover/btn:scale-110 transition-transform">
+                                <User className="w-5 h-5 text-indigo-400" />
+                            </div>
+                            <span className="text-[10px] text-indigo-200 font-black uppercase tracking-widest">
+                                {data.name ? `Edit ${data.name.split(' ')[0]}'s Persona` : 'Configure Suspect'}
+                            </span>
+                        </button>
+
+                        {(data.alibi || data.personality) && (
+                            <div className="mt-2 p-2 bg-black/40 border border-white/5 rounded-lg">
+                                <p className="text-[8px] text-zinc-600 uppercase font-bold mb-1">Snippet Preview</p>
+                                <p className="text-[10px] text-zinc-400 line-clamp-2 italic">"{data.personality || data.alibi}"</p>
+                            </div>
+                        )}
                     </div>
 
-                    <div className="p-2 bg-black/60 border border-zinc-800 rounded-lg">
-                        <p className="text-[10px] text-zinc-500 mb-1 uppercase font-bold tracking-widest">Environment Variable Key</p>
-                        <InputField
-                            placeholder="e.g. VITE_GEMINI_API_KEY"
-                            value={data.apiKeyVar || 'VITE_AI_API_KEY'}
-                            onChange={(e) => handleChange('apiKeyVar', e.target.value)}
-                            className="!bg-transparent font-mono text-indigo-400/80 !text-[10px]"
+                    {showPersonaModal && (
+                        <AIPersonaModal
+                            data={data}
+                            onChange={handlePersonaChange}
+                            onClose={() => setShowPersonaModal(false)}
                         />
-                    </div>
+                    )}
 
-                    <div className="mt-2 p-2 bg-indigo-900/10 border border-indigo-900/20 rounded-lg space-y-2">
+                    <div className="mt-2 p-2 bg-black/40 border border-indigo-900/20 rounded-lg space-y-2">
                         <div className="flex items-center justify-between">
                             <p className="text-[9px] font-bold text-indigo-400 uppercase tracking-wider flex items-center gap-1">
                                 <Star className="w-3 h-3" /> Achievement Score

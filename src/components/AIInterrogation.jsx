@@ -20,11 +20,11 @@ const AIInterrogation = ({ node, onComplete, onFail, requestCount, onAIRequest }
 
     // Get API Key from environment or settings or localStorage
     const getApiKey = () => {
-        // Priority: Node specific env var -> DB Settings -> .env fallback -> Local Storage
+        // Priority: DB Settings -> Node specific env var (legacy) -> .env fallback -> Local Storage
+        if (settings.aiApiKey) return settings.aiApiKey;
+
         const envKey = import.meta.env[node.data.apiKeyVar];
         if (envKey) return envKey;
-
-        if (settings.aiApiKey) return settings.aiApiKey;
 
         const dotEnvKey = import.meta.env.VITE_AI_API_KEY;
         if (dotEnvKey) return dotEnvKey;
@@ -79,46 +79,69 @@ const AIInterrogation = ({ node, onComplete, onFail, requestCount, onAIRequest }
     };
 
     return (
-        <div className="flex flex-col h-[600px] w-full max-w-4xl bg-zinc-950 border border-indigo-500/30 rounded-3xl overflow-hidden shadow-2xl shadow-indigo-500/10 font-sans">
-            {/* Header */}
-            <div className="px-6 py-4 border-b border-indigo-500/20 bg-indigo-500/5 flex items-center justify-between">
-                <div className="flex items-center gap-3">
-                    <div className="p-2 bg-indigo-500/10 rounded-xl border border-indigo-500/20">
-                        <Brain className="w-5 h-5 text-indigo-400" />
+        <div className="flex flex-col h-[700px] w-full max-w-5xl bg-zinc-950 border border-indigo-500/30 rounded-3xl overflow-hidden shadow-2xl shadow-indigo-500/10 font-sans relative">
+            {/* Ambient background effect */}
+            <div className="absolute inset-0 bg-[url('https://www.transparenttextures.com/patterns/carbon-fibre.png')] opacity-10 pointer-events-none"></div>
+
+            {/* Top Bar / Header */}
+            <div className="px-8 py-5 border-b border-indigo-500/20 bg-black/40 backdrop-blur-xl flex items-center justify-between z-10">
+                <div className="flex items-center gap-4">
+                    <div className="relative">
+                        <div className="absolute inset-0 bg-indigo-500/20 blur-xl rounded-full animate-pulse"></div>
+                        <div className="relative p-3 bg-indigo-500/10 border border-indigo-500/30 rounded-2xl shadow-inner">
+                            <Brain className="w-6 h-6 text-indigo-400" />
+                        </div>
                     </div>
                     <div>
-                        <h3 className="text-sm font-black text-white uppercase tracking-wider">AI Interrogation</h3>
-                        <div className="flex items-center gap-2">
-                            <span className="text-[10px] text-zinc-500 font-bold uppercase tracking-widest flex items-center gap-1">
-                                <Cpu className="w-3 h-3" /> {apiKey ? (provider === 'gemini' ? 'Google Gemini 2.0' : 'OpenAI ChatGPT') : 'Simulation Mode'}
+                        <h3 className="text-sm font-black text-white uppercase tracking-[0.2em] flex items-center gap-2">
+                            AI Neural Link <span className="w-2 h-2 rounded-full bg-emerald-500 animate-pulse"></span>
+                        </h3>
+                        <div className="flex items-center gap-3">
+                            <span className="text-[10px] text-zinc-500 font-bold uppercase tracking-widest flex items-center gap-1.5">
+                                <Cpu className="w-3.5 h-3.5" /> Engine: {apiKey ? (provider === 'gemini' ? 'Gemini 2.0 Flash' : 'GPT-4 Turbo') : 'Simulation Sub-routine'}
                             </span>
-                            <div className="w-1 h-1 rounded-full bg-indigo-500/50" />
-                            <span className="text-[10px] text-indigo-500/80 font-black uppercase tracking-widest italic">{node.data.label}</span>
+                            <div className="w-1 h-1 rounded-full bg-zinc-800" />
+                            <span className="text-[10px] text-indigo-400 font-black uppercase tracking-[0.1em]">{node.data.name || 'Unknown Suspect'}</span>
                         </div>
                     </div>
                 </div>
+
                 <div className="flex items-center gap-4">
+                    <div className="hidden md:flex flex-col items-end mr-4">
+                        <p className="text-[9px] text-zinc-600 font-black uppercase tracking-widest">Signal Strength</p>
+                        <div className="flex gap-0.5 mt-1">
+                            {[1, 2, 3, 4, 5].map(i => (
+                                <div key={i} className={`w-1 h-3 rounded-full ${i <= 4 ? 'bg-indigo-500' : 'bg-zinc-800'}`}></div>
+                            ))}
+                        </div>
+                    </div>
+
                     {score > 0 && (
-                        <div className="flex items-center gap-1.5 px-3 py-1 bg-amber-500/10 border border-amber-500/30 rounded-full">
-                            <Star className="w-3 h-3 text-amber-500 fill-amber-500" />
-                            <span className="text-[10px] font-black text-amber-500 uppercase">{score} PTS Available</span>
+                        <div className="flex items-center gap-2 px-4 py-2 bg-amber-500/5 border border-amber-500/20 rounded-xl shadow-lg shadow-amber-500/5">
+                            <Star className="w-3.5 h-3.5 text-amber-500 fill-amber-500" />
+                            <span className="text-[10px] font-black text-amber-500 uppercase tracking-widest">{score} Bounty</span>
                         </div>
                     )}
-                    {apiKey && (
-                        <div className={`flex items-center gap-1.5 px-3 py-1 bg-${isLimitReached ? 'red' : 'indigo'}-500/10 border border-${isLimitReached ? 'red' : 'indigo'}-500/30 rounded-full`}>
-                            <Info className={`w-3 h-3 text-${isLimitReached ? 'red' : 'indigo'}-500`} />
-                            <span className={`text-[9px] font-black text-${isLimitReached ? 'red' : 'indigo'}-400 uppercase`}>
-                                {MAX_REQUESTS - requestCount} Qs Left
+
+                    <div className={`flex items-center gap-2 px-4 py-2 bg-${isLimitReached ? 'red' : 'indigo'}-500/5 border border-${isLimitReached ? 'red' : 'indigo'}-500/20 rounded-xl shadow-lg`}>
+                        <Info className={`w-3.5 h-3.5 text-${isLimitReached ? 'red' : 'indigo'}-500`} />
+                        <div className="flex flex-col">
+                            <span className={`text-[9px] font-black text-${isLimitReached ? 'red' : 'indigo'}-400 uppercase leading-none`}>
+                                {MAX_REQUESTS - requestCount} Queries
                             </span>
+                            <span className="text-[7px] text-zinc-600 uppercase font-bold">Remaining</span>
                         </div>
-                    )}
+                    </div>
+
+                    <div className="h-8 w-px bg-white/5 mx-2"></div>
+
                     <button
                         onClick={() => onComplete()}
-                        className="px-4 py-1.5 bg-indigo-600 hover:bg-indigo-500 text-white text-[10px] font-black rounded-lg transition-all uppercase tracking-widest flex items-center gap-2"
+                        className="px-6 py-2.5 bg-white hover:bg-zinc-200 text-black text-[10px] font-black rounded-xl transition-all uppercase tracking-widest flex items-center gap-2 shadow-xl shadow-white/5"
                     >
-                        End Session
+                        Finalize
                     </button>
-                    <button onClick={() => onFail()} className="p-2 hover:bg-white/5 rounded-full text-zinc-500 transition-colors">
+                    <button onClick={() => onFail()} className="p-2.5 hover:bg-red-500/10 rounded-xl text-zinc-500 hover:text-red-400 transition-all border border-transparent hover:border-red-500/20">
                         <X className="w-5 h-5" />
                     </button>
                 </div>
@@ -127,48 +150,66 @@ const AIInterrogation = ({ node, onComplete, onFail, requestCount, onAIRequest }
             {/* Chat Area */}
             <div
                 ref={scrollRef}
-                className="flex-1 p-6 overflow-y-auto space-y-4 scrollbar-thin scrollbar-thumb-indigo-500/20 scrollbar-track-transparent bg-[radial-gradient(circle_at_center,rgba(79,70,229,0.03)_0,transparent_100%)]"
+                className="flex-1 p-8 overflow-y-auto space-y-6 scrollbar-thin scrollbar-thumb-indigo-500/20 scrollbar-track-transparent bg-[radial-gradient(circle_at_center,rgba(79,70,229,0.05)_0,transparent_100%)]"
             >
-                {messages.map((msg, i) => (
-                    <motion.div
-                        initial={{ opacity: 0, y: 10 }}
-                        animate={{ opacity: 1, y: 0 }}
-                        key={i}
-                        className={`flex ${msg.role === 'user' ? 'justify-end' : 'justify-start'}`}
-                    >
-                        <div className={`max-w-[80%] p-4 rounded-2xl border ${msg.role === 'user'
-                            ? 'bg-indigo-600 border-indigo-500 text-white rounded-tr-none shadow-lg shadow-indigo-500/20'
-                            : 'bg-zinc-900/80 border-white/10 text-zinc-300 rounded-tl-none backdrop-blur-md'
-                            }`}>
-                            <div className="flex items-center gap-2 mb-1.5 opacity-50">
-                                {msg.role === 'user' ? (
-                                    <span className="text-[9px] font-black uppercase tracking-widest">Agent (You)</span>
-                                ) : (
-                                    <div className="flex items-center gap-1.5">
-                                        <User className="w-3 h-3" />
-                                        <span className="text-[9px] font-black uppercase tracking-widest">Suspect</span>
+                <div className="flex flex-col gap-6">
+                    {messages.map((msg, i) => (
+                        <motion.div
+                            initial={{ opacity: 0, x: msg.role === 'user' ? 20 : -20 }}
+                            animate={{ opacity: 1, x: 0 }}
+                            transition={{ duration: 0.4, ease: "easeOut" }}
+                            key={i}
+                            className={`flex ${msg.role === 'user' ? 'justify-end' : 'justify-start'}`}
+                        >
+                            <div className={`group relative max-w-[85%] ${msg.role === 'user' ? 'items-end' : 'items-start'}`}>
+                                <div className={`flex items-center gap-2 mb-2 px-1 ${msg.role === 'user' ? 'flex-row-reverse' : ''}`}>
+                                    <div className={`p-1 rounded-md ${msg.role === 'user' ? 'bg-indigo-500/20' : 'bg-emerald-500/10'}`}>
+                                        {msg.role === 'user' ? <ShieldAlert className="w-3 h-3 text-indigo-400" /> : <User className="w-3 h-3 text-emerald-500" />}
                                     </div>
-                                )}
+                                    <span className={`text-[8px] font-black uppercase tracking-[0.2em] ${msg.role === 'user' ? 'text-indigo-400' : 'text-emerald-500'}`}>
+                                        {msg.role === 'user' ? 'Interrogator Node' : (node.data.name || 'Suspect Entry')}
+                                    </span>
+                                </div>
+                                <div className={`p-5 rounded-2xl border transition-all duration-500 ${msg.role === 'user'
+                                    ? 'bg-indigo-600 border-indigo-400/50 text-white rounded-tr-none shadow-xl shadow-indigo-900/40'
+                                    : 'bg-zinc-900/60 border-white/5 text-zinc-300 rounded-tl-none backdrop-blur-md group-hover:border-indigo-500/20'
+                                    }`}>
+                                    <p className="text-sm leading-relaxed font-medium whitespace-pre-wrap selection:bg-white/20">{msg.text}</p>
+                                </div>
+                                <div className={`mt-1.5 flex transition-opacity opacity-0 group-hover:opacity-100 ${msg.role === 'user' ? 'justify-end' : 'justify-start'}`}>
+                                    <span className="text-[7px] text-zinc-700 font-bold uppercase tracking-widest leading-none">Timestamp: {new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}</span>
+                                </div>
                             </div>
-                            <p className="text-sm leading-relaxed whitespace-pre-wrap">{msg.text}</p>
-                        </div>
-                    </motion.div>
-                ))}
+                        </motion.div>
+                    ))}
 
-                {isTyping && (
-                    <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} className="flex justify-start">
-                        <div className="bg-zinc-900/80 border border-white/10 p-4 rounded-2xl rounded-tl-none">
-                            <Loader2 className="w-5 h-5 text-indigo-400 animate-spin" />
-                        </div>
-                    </motion.div>
-                )}
+                    {isTyping && (
+                        <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} className="flex justify-start">
+                            <div className="flex flex-col gap-2">
+                                <div className="flex items-center gap-2 px-1">
+                                    <div className="w-1.5 h-1.5 rounded-full bg-emerald-500 animate-ping"></div>
+                                    <span className="text-[8px] font-black text-emerald-500 uppercase tracking-widest">Suspect Calculating...</span>
+                                </div>
+                                <div className="bg-zinc-900/40 border border-white/5 p-4 rounded-2xl rounded-tl-none backdrop-blur-sm">
+                                    <div className="flex gap-1">
+                                        <div className="w-1.5 h-1.5 rounded-full bg-indigo-500/40 animate-bounce [animation-delay:-0.3s]"></div>
+                                        <div className="w-1.5 h-1.5 rounded-full bg-indigo-500/40 animate-bounce [animation-delay:-0.15s]"></div>
+                                        <div className="w-1.5 h-1.5 rounded-full bg-indigo-500/40 animate-bounce"></div>
+                                    </div>
+                                </div>
+                            </div>
+                        </motion.div>
+                    )}
+                </div>
 
                 {error && (
-                    <motion.div initial={{ opacity: 0, scale: 0.9 }} animate={{ opacity: 1, scale: 1 }} className="p-4 bg-red-500/10 border border-red-500/20 rounded-2xl flex items-center gap-3">
-                        <ShieldAlert className="w-5 h-5 text-red-500" />
+                    <motion.div initial={{ opacity: 0, scale: 0.9 }} animate={{ opacity: 1, scale: 1 }} className="mt-6 p-5 bg-red-500/5 border border-red-500/20 rounded-2xl flex items-center gap-4 backdrop-blur-md">
+                        <div className="p-2 bg-red-500/10 rounded-lg">
+                            <ShieldAlert className="w-5 h-5 text-red-500" />
+                        </div>
                         <div className="flex-1">
-                            <p className="text-[10px] font-black text-red-500 uppercase tracking-widest">System Error</p>
-                            <p className="text-xs text-red-200/70 font-medium">{error}</p>
+                            <p className="text-[10px] font-black text-red-500 uppercase tracking-[0.2em] mb-0.5">Neural Interference Detected</p>
+                            <p className="text-xs text-red-100/60 font-medium">{error}</p>
                         </div>
                         {error.includes("Reference Key") && (
                             <button
@@ -179,37 +220,54 @@ const AIInterrogation = ({ node, onComplete, onFail, requestCount, onAIRequest }
                                         setError(null);
                                     }
                                 }}
-                                className="px-3 py-1 bg-red-500 text-white text-[9px] font-black rounded-lg uppercase"
+                                className="px-4 py-2 bg-red-600 hover:bg-red-500 text-white text-[9px] font-black rounded-lg uppercase tracking-widest transition-all"
                             >
-                                Enter Key
+                                Re-sync Key
                             </button>
                         )}
                     </motion.div>
                 )}
             </div>
 
-            {/* Input Area */}
-            <div className="p-4 border-t border-white/5 bg-zinc-900/30">
-                <div className="relative flex items-center gap-2 max-w-4xl mx-auto">
-                    <input
-                        type="text"
-                        value={input}
-                        onChange={(e) => setInput(e.target.value)}
-                        onKeyDown={(e) => e.key === 'Enter' && handleSendMessage()}
-                        placeholder="Ask the suspect something (e.g., 'Where were you last night?')..."
-                        className="flex-1 bg-black/50 border border-white/10 rounded-2xl px-6 py-4 text-sm text-white placeholder:text-zinc-600 focus:outline-none focus:border-indigo-500/50 transition-all font-medium"
-                    />
+            {/* Input Area / Action Console */}
+            <div className="p-6 border-t border-white/5 bg-black/60 backdrop-blur-2xl z-10">
+                <div className="relative flex items-center gap-4 max-w-5xl mx-auto">
+                    <div className="flex-1 relative group">
+                        <div className="absolute inset-x-0 -top-12 flex justify-center opacity-0 group-focus-within:opacity-100 transition-opacity pointer-events-none">
+                            <div className="px-3 py-1 bg-indigo-500/10 border border-indigo-500/20 rounded-full text-[8px] font-black text-indigo-400 uppercase tracking-widest backdrop-blur-md">
+                                Secure Line Active // 256-bit Encrypted
+                            </div>
+                        </div>
+                        <input
+                            type="text"
+                            value={input}
+                            onChange={(e) => setInput(e.target.value)}
+                            onKeyDown={(e) => e.key === 'Enter' && handleSendMessage()}
+                            placeholder="TRANSMIT INQUIRY TO SUSPECT..."
+                            className="w-full bg-zinc-900/50 border border-white/10 rounded-2xl px-8 py-5 text-sm text-white placeholder:text-zinc-700 focus:outline-none focus:border-indigo-500/50 focus:bg-zinc-900/80 transition-all font-mono tracking-wide"
+                        />
+                    </div>
                     <button
                         onClick={handleSendMessage}
                         disabled={!input.trim() || isTyping}
-                        className="p-4 bg-indigo-600 hover:bg-indigo-500 disabled:opacity-50 disabled:grayscale text-white rounded-2xl transition-all shadow-lg shadow-indigo-600/20"
+                        className="p-5 bg-indigo-600 hover:bg-indigo-500 disabled:opacity-20 disabled:grayscale text-white rounded-2xl transition-all shadow-xl shadow-indigo-600/20 active:scale-95 group"
                     >
-                        <Send className="w-5 h-5" />
+                        <Send className="w-6 h-6 group-hover:translate-x-1 group-hover:-translate-y-1 transition-transform" />
                     </button>
                 </div>
-                <p className="mt-3 text-center text-[10px] text-zinc-600 font-bold uppercase tracking-[0.2em] animate-pulse">
-                    AI Interrogation Active // Secure Link Established
-                </p>
+                <div className="mt-4 flex justify-center items-center gap-8">
+                    <div className="flex items-center gap-2">
+                        <div className="w-1.5 h-1.5 rounded-full bg-indigo-500 animate-pulse"></div>
+                        <span className="text-[8px] text-zinc-600 font-black uppercase tracking-[0.3em]">Audio Feed: Active</span>
+                    </div>
+                    <div className="flex items-center gap-2">
+                        <div className="w-1.5 h-1.5 rounded-full bg-emerald-500 animate-pulse"></div>
+                        <span className="text-[8px] text-zinc-600 font-black uppercase tracking-[0.3em]">Biometrics: Stable</span>
+                    </div>
+                    <div className="flex items-center gap-2 text-indigo-500/50">
+                        <span className="text-[8px] font-black uppercase tracking-[0.3em]">Status: Waiting for input</span>
+                    </div>
+                </div>
             </div>
 
             {/* Limit Reached Popup Overlay */}
