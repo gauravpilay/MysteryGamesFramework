@@ -120,3 +120,13 @@
   border-color: rgba(99, 102, 241, 0.5);
   box-shadow: 0 0 30px rgba(99, 102, 241, 0.15);
 }
+@keyframes shake {
+  0%, 100% { transform: translateX(0); }
+  25% { transform: translateX(-4px); }
+  50% { transform: translateX(4px); }
+  75% { transform: translateX(-4px); }
+}
+
+.animate-shake {
+  animation: shake 0.4s cubic-bezier(.36,.07,.19,.97) both;
+}

@@ -174,6 +174,9 @@ const Editor = () => {
     const [confirmDeleteCat, setConfirmDeleteCat] = useState(null); // catId or null
     const [editingBy, setEditingBy] = useState(null);
     const [showLockedModal, setShowLockedModal] = useState(false);
+    const [incomingRequest, setIncomingRequest] = useState(null);
+    const [requestFeedback, setRequestFeedback] = useState(null); // 'accepted' | 'declined' | null
+    const [isRequesting, setIsRequesting] = useState(false);
 
     const tutorialSteps = [
         {
@@ -567,18 +570,50 @@ const Editor = () => {
         const unsubscribe = onSnapshot(docRef, (snap) => {
             if (snap.exists()) {
                 const data = snap.data();
+                const now = Date.now();
                 setEditingBy(data.editingBy);
 
-                // If locked by someone else and active, show modal
+                // Handle incoming request for Detective A (the current lock holder)
+                if (data.editingBy && data.editingBy.uid === user.uid) {
+                    if (data.accessRequest && data.accessRequest.status === 'pending') {
+                        setIncomingRequest(data.accessRequest);
+                    } else {
+                        setIncomingRequest(null);
+                    }
+                }
+
+                // Handle feedback for Detective B (the requester)
+                if (data.accessRequest && data.accessRequest.uid === user.uid) {
+                    if (data.accessRequest.status === 'accepted') {
+                        setRequestFeedback('accepted');
+                        // Clear request from DB after receipt
+                        updateDoc(docRef, { accessRequest: null }).catch(() => { });
+                        setTimeout(() => setRequestFeedback(null), 5000);
+                    } else if (data.accessRequest.status === 'declined') {
+                        setRequestFeedback('declined');
+                        setIsRequesting(false);
+                        // Clear request from DB after receipt
+                        setTimeout(() => {
+                            updateDoc(docRef, { accessRequest: null }).catch(() => { });
+                            setRequestFeedback(null);
+                        }, 5000);
+                    }
+                }
+
+                // Monitor lock status in real-time
                 if (data.editingBy && data.editingBy.uid !== user.uid) {
                     const lastActive = new Date(data.editingBy.timestamp).getTime();
-                    if (Date.now() - lastActive < 60000) {
-                        setShowLockedModal(true);
-                    } else {
-                        setShowLockedModal(false);
-                    }
+                    const isStillActive = (now - lastActive < 120000);
+                    setShowLockedModal(isStillActive);
                 } else {
                     setShowLockedModal(false);
+                }
+
+                // Sync request status from DB
+                if (!data.accessRequest) {
+                    setIsRequesting(false);
+                } else if (data.accessRequest.uid === user.uid && data.accessRequest.status === 'pending') {
+                    setIsRequesting(true);
                 }
             }
         });
@@ -688,6 +723,91 @@ const Editor = () => {
         } catch (error) {
             console.error("Error saving project:", error);
             alert("Failed to save.");
+        }
+    };
+
+    const handleRequestAccess = async () => {
+        if (!db || !projectId || !user) return;
+        setIsRequesting(true);
+        try {
+            const docRef = doc(db, "cases", projectId);
+            await updateDoc(docRef, {
+                accessRequest: {
+                    uid: user.uid,
+                    displayName: user.displayName || user.email,
+                    email: user.email,
+                    timestamp: new Date().toISOString(),
+                    status: 'pending'
+                }
+            });
+        } catch (err) {
+            console.error("Failed to request access", err);
+            setIsRequesting(false);
+        }
+    };
+
+    const handleAcceptRequest = async () => {
+        if (!db || !projectId || !incomingRequest) return;
+        try {
+            // 1. Save work
+            await saveProject();
+
+            // 2. Release lock and update request status
+            const docRef = doc(db, "cases", projectId);
+            await updateDoc(docRef, {
+                editingBy: null,
+                accessRequest: {
+                    ...incomingRequest,
+                    status: 'accepted'
+                }
+            });
+
+            // 3. Clear local state and navigate
+            setIncomingRequest(null);
+            navigate('/');
+        } catch (err) {
+            console.error("Failed to accept request", err);
+        }
+    };
+
+    const handleDeclineRequest = async () => {
+        if (!db || !projectId || !incomingRequest) return;
+        try {
+            const docRef = doc(db, "cases", projectId);
+            await updateDoc(docRef, {
+                accessRequest: {
+                    ...incomingRequest,
+                    status: 'declined'
+                }
+            });
+            setIncomingRequest(null);
+        } catch (err) {
+            console.error("Failed to decline request", err);
+        }
+    };
+
+    const handleOverrideLock = async () => {
+        if (!db || !projectId || !user) return;
+        if (!window.confirm("Attacking an active lock may cause the other user to lose unsaved changes. Continue?")) return;
+
+        try {
+            const docRef = doc(db, "cases", projectId);
+            const lockData = {
+                uid: user.uid,
+                displayName: user.displayName || user.email,
+                email: user.email,
+                timestamp: new Date().toISOString(),
+                photoURL: user.photoURL || ""
+            };
+            await updateDoc(docRef, {
+                editingBy: lockData,
+                accessRequest: null // Clear any pending requests
+            });
+            setShowLockedModal(false);
+            setRequestFeedback(null);
+            setIsRequesting(false);
+        } catch (err) {
+            console.error("Failed to override lock", err);
         }
     };
 
@@ -1555,13 +1675,88 @@ const Editor = () => {
                                         <span className="w-1.5 h-1.5 rounded-full bg-emerald-500 animate-pulse"></span>
                                         Live Status: Currently Editing
                                     </div>
+
+                                    <div className="flex flex-col gap-2 w-full mt-2">
+                                        {requestFeedback === 'declined' ? (
+                                            <div className="p-3 bg-red-500/10 border border-red-500/20 rounded-xl text-red-400 text-xs font-bold animate-shake">
+                                                Access Request Declined
+                                            </div>
+                                        ) : requestFeedback === 'accepted' ? (
+                                            <div className="p-3 bg-emerald-500/10 border border-emerald-500/20 rounded-xl text-emerald-400 text-xs font-bold">
+                                                Access Granted! Releasing Lock...
+                                            </div>
+                                        ) : isRequesting ? (
+                                            <div className="flex items-center justify-center gap-3 w-full h-12 bg-white/5 rounded-xl border border-white/10 text-zinc-400 text-sm font-bold animate-pulse">
+                                                <div className="w-4 h-4 border-2 border-indigo-500 border-t-transparent rounded-full animate-spin"></div>
+                                                Waiting for Response...
+                                            </div>
+                                        ) : (
+                                            <>
+                                                <Button
+                                                    onClick={handleOverrideLock}
+                                                    variant="destructive"
+                                                    className="w-full bg-red-600/20 hover:bg-red-600/40 text-red-200 border-red-500/30 font-bold h-12 rounded-xl"
+                                                >
+                                                    Override (Force Access)
+                                                </Button>
+                                                <Button
+                                                    onClick={handleRequestAccess}
+                                                    variant="primary"
+                                                    className="w-full font-bold h-12 rounded-xl"
+                                                >
+                                                    Request Access
+                                                </Button>
+                                            </>
+                                        )}
+                                    </div>
+
                                     <Button
                                         onClick={() => navigate('/')}
-                                        className="w-full bg-white hover:bg-zinc-200 text-black font-bold h-12 rounded-xl"
+                                        variant="ghost"
+                                        className="w-full text-zinc-500 hover:text-white hover:bg-white/5 font-medium h-10 rounded-xl"
                                     >
                                         Return to Dashboard
                                     </Button>
                                 </div>
+                            </div>
+                        </motion.div>
+                    </div>
+                )}
+                {/* Incoming Access Request Modal */}
+                {incomingRequest && (
+                    <div className="fixed inset-0 z-[300] flex items-end justify-center p-6 md:items-center pointer-events-none">
+                        <motion.div
+                            initial={{ y: 100, opacity: 0 }}
+                            animate={{ y: 0, opacity: 1 }}
+                            exit={{ y: 100, opacity: 0 }}
+                            className="bg-zinc-950 border border-indigo-500/50 p-6 rounded-2xl max-w-sm w-full shadow-[0_20px_60px_rgba(0,0,0,0.8)] pointer-events-auto"
+                        >
+                            <div className="flex items-start gap-4 mb-6">
+                                <div className="p-3 bg-indigo-500/20 rounded-xl border border-indigo-500/30">
+                                    <User className="w-6 h-6 text-indigo-400" />
+                                </div>
+                                <div>
+                                    <h3 className="text-lg font-bold text-white tracking-tight">Access Requested</h3>
+                                    <p className="text-zinc-400 text-xs leading-relaxed mt-1">
+                                        <span className="text-indigo-400 font-bold">{incomingRequest.displayName}</span> is requesting permission to edit this case file.
+                                    </p>
+                                </div>
+                            </div>
+
+                            <div className="flex gap-3">
+                                <Button
+                                    onClick={handleDeclineRequest}
+                                    variant="ghost"
+                                    className="flex-1 text-zinc-500 hover:text-white hover:bg-white/5 font-bold rounded-xl"
+                                >
+                                    Decline
+                                </Button>
+                                <Button
+                                    onClick={handleAcceptRequest}
+                                    className="flex-1 bg-indigo-600 hover:bg-indigo-500 text-white font-bold rounded-xl shadow-[0_0_20px_rgba(79,70,229,0.3)]"
+                                >
+                                    Accept & Release
+                                </Button>
                             </div>
                         </motion.div>
                     </div>
