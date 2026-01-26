@@ -657,6 +657,42 @@ const ProgressReportModal = ({ onClose }) => {
                         </div>
                     ) : (
                         <div className="space-y-12">
+                            {/* High Level Stats */}
+                            <div className="grid grid-cols-1 md:grid-cols-4 gap-6">
+                                <StatCard
+                                    icon={<Target className="w-6 h-6" />}
+                                    title="Missions Attempted"
+                                    value={stats.totalGames}
+                                    color="text-blue-400"
+                                    bg="bg-blue-500/10"
+                                    border="border-blue-500/20"
+                                />
+                                <StatCard
+                                    icon={<Award className="w-6 h-6" />}
+                                    title="Success Rate"
+                                    value={`${stats.winRate}%`}
+                                    color="text-emerald-400"
+                                    bg="bg-emerald-500/10"
+                                    border="border-emerald-500/20"
+                                />
+                                <StatCard
+                                    icon={<Clock className="w-6 h-6" />}
+                                    title="Field Time"
+                                    value={`${Math.floor(stats.totalTime / 60)}m ${stats.totalTime % 60}s`}
+                                    color="text-amber-400"
+                                    bg="bg-amber-500/10"
+                                    border="border-amber-500/20"
+                                />
+                                <StatCard
+                                    icon={<BarChart2 className="w-6 h-6" />}
+                                    title="Skills Tracked"
+                                    value={Object.keys(stats.objectiveStats).length}
+                                    color="text-fuchsia-400"
+                                    bg="bg-fuchsia-500/10"
+                                    border="border-fuchsia-500/20"
+                                />
+                            </div>
+
                             {/* NEW: Personal Growth Story Section */}
                             <div className="bg-gradient-to-br from-indigo-950/40 via-zinc-900/40 to-black rounded-3xl border border-indigo-500/20 p-8 relative overflow-hidden shadow-2xl">
                                 <div className="absolute top-0 right-0 w-96 h-96 bg-indigo-500/5 blur-[120px] rounded-full"></div>
@@ -698,42 +734,6 @@ const ProgressReportModal = ({ onClose }) => {
                                         </div>
                                     </div>
                                 </div>
-                            </div>
-
-                            {/* High Level Stats */}
-                            <div className="grid grid-cols-1 md:grid-cols-4 gap-6">
-                                <StatCard
-                                    icon={<Target className="w-6 h-6" />}
-                                    title="Missions Attempted"
-                                    value={stats.totalGames}
-                                    color="text-blue-400"
-                                    bg="bg-blue-500/10"
-                                    border="border-blue-500/20"
-                                />
-                                <StatCard
-                                    icon={<Award className="w-6 h-6" />}
-                                    title="Success Rate"
-                                    value={`${stats.winRate}%`}
-                                    color="text-emerald-400"
-                                    bg="bg-emerald-500/10"
-                                    border="border-emerald-500/20"
-                                />
-                                <StatCard
-                                    icon={<Clock className="w-6 h-6" />}
-                                    title="Field Time"
-                                    value={`${Math.floor(stats.totalTime / 60)}m ${stats.totalTime % 60}s`}
-                                    color="text-amber-400"
-                                    bg="bg-amber-500/10"
-                                    border="border-amber-500/20"
-                                />
-                                <StatCard
-                                    icon={<BarChart2 className="w-6 h-6" />}
-                                    title="Skills Tracked"
-                                    value={Object.keys(stats.objectiveStats).length}
-                                    color="text-fuchsia-400"
-                                    bg="bg-fuchsia-500/10"
-                                    border="border-fuchsia-500/20"
-                                />
                             </div>
 
                             {/* Objective Breakdown */}
