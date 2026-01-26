@@ -1,4 +1,5 @@
 import React, { useState, useCallback, useRef, useEffect, useMemo } from 'react';
+import ErrorBoundary from '../components/ErrorBoundary';
 import ReactFlow, {
     ReactFlowProvider,
     addEdge,
@@ -160,6 +161,7 @@ const Editor = () => {
     const [isPaletteCollapsed, setIsPaletteCollapsed] = useState(false);
     const [isLocked, setIsLocked] = useState(false);
     const [isDarkMode, setIsDarkMode] = useState(true);
+    const [enableThreeD, setEnableThreeD] = useState(true);
     const [caseTitle, setCaseTitle] = useState("");
     const [validationReport, setValidationReport] = useState(null);
     const [learningObjectives, setLearningObjectives] = useState([]);
@@ -454,11 +456,12 @@ const Editor = () => {
                     onChange: onNodeUpdate,
                     onDuplicate: onDuplicateNode,
                     onUngroup: onUngroup,
-                    learningObjectives // Inject global objectives
+                    learningObjectives, // Inject global objectives
+                    enableThreeD
                 }
             })));
         }
-    }, [nodes.length, onNodeUpdate, onDuplicateNode, setNodes, learningObjectives]);
+    }, [nodes.length, onNodeUpdate, onDuplicateNode, onUngroup, setNodes, learningObjectives, enableThreeD]);
 
     const onDrop = useCallback((event) => {
         event.preventDefault();
@@ -507,6 +510,7 @@ const Editor = () => {
                     if (data.meta) {
                         if (data.meta.timeLimit) setTimeLimit(data.meta.timeLimit);
                         if (data.meta.learningObjectives) setLearningObjectives(data.meta.learningObjectives);
+                        if (data.meta.enableThreeD !== undefined) setEnableThreeD(data.meta.enableThreeD);
                     }
                     if (data.isLocked !== undefined) setIsLocked(data.isLocked);
                     if (data.title) setCaseTitle(data.title);
@@ -717,7 +721,7 @@ const Editor = () => {
         const cleanEdges = edges.map(e => cleanForFirestore(e));
 
         try {
-            const flow = { nodes: cleanNodes, edges: cleanEdges, meta: { timeLimit, learningObjectives } };
+            const flow = { nodes: cleanNodes, edges: cleanEdges, meta: { timeLimit, learningObjectives, enableThreeD } };
             const docRef = doc(db, "cases", projectId);
 
             // Log for debugging if it fails again
@@ -1228,7 +1232,7 @@ const Editor = () => {
                     </div>
 
                     <div className={`flex-1 overflow-y-auto ${isPaletteCollapsed ? 'px-2 space-y-2' : 'px-4 space-y-1.5'}`}>
-                        {PALETTE_ITEMS.map((item) => (
+                        {PALETTE_ITEMS.filter(item => item.type !== 'threed' || enableThreeD).map((item) => (
                             <div
                                 key={item.type}
                                 onDragStart={(event) => onDragStart(event, item.type)}
@@ -1326,131 +1330,196 @@ const Editor = () => {
                 {/* Settings Modal */}
                 {showSettings && (
                     <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/80 backdrop-blur-sm">
-                        <div className="bg-zinc-950 border border-zinc-800 p-6 rounded-xl max-w-2xl w-full shadow-2xl max-h-[85vh] overflow-y-auto">
-                            <h2 className="text-xl font-bold text-white mb-4 flex items-center gap-2">
-                                <Settings className="w-6 h-6 text-indigo-500" />
-                                Game Configuration
-                            </h2>
-                            <div className="space-y-4">
-                                <div>
-                                    <label className="block text-xs font-bold text-zinc-500 uppercase tracking-wider mb-2">Time Limit (Minutes)</label>
-                                    <div className="flex items-center gap-4">
-                                        <input
-                                            type="number"
-                                            min="1"
-                                            max="120"
-                                            value={timeLimit}
-                                            onChange={(e) => setTimeLimit(parseInt(e.target.value) || 15)}
-                                            className="bg-black border border-zinc-700 rounded px-3 py-2 text-white w-24 text-center text-lg font-bold focus:border-indigo-500 outline-none"
-                                        />
-                                        <span className="text-zinc-400 text-sm">Minutes to solve the case.</span>
-                                    </div>
+                        <div className="bg-zinc-950 border border-zinc-800 p-8 rounded-3xl max-w-2xl w-full shadow-2xl max-h-[90vh] overflow-y-auto relative">
+                            {/* Close Button */}
+                            <button
+                                onClick={() => setShowSettings(false)}
+                                className="absolute top-6 right-6 p-2 rounded-full bg-white/5 hover:bg-white/10 text-zinc-500 hover:text-white transition-all"
+                            >
+                                <X className="w-5 h-5" />
+                            </button>
+
+                            {/* High-Visibility Header */}
+                            <div className="mb-10 flex items-start justify-between">
+                                <div className="space-y-1">
+                                    <h2 className="text-3xl font-black text-white uppercase tracking-tighter flex items-center gap-3">
+                                        <Settings className="w-8 h-8 text-indigo-500" />
+                                        Session Architect
+                                    </h2>
+                                    <p className="text-zinc-500 text-[10px] font-bold uppercase tracking-[0.3em] pl-1">Configuration & Neural Parameters</p>
                                 </div>
                             </div>
 
-                            <div className="border-t border-zinc-800 pt-6">
-                                <h3 className="text-sm font-bold text-zinc-400 uppercase tracking-wider mb-4">Learning Objectives</h3>
+                            <div className="space-y-10">
+                                {/* PRIMARY SYSTEM CAPABILITIES SECTION */}
+                                <section className="space-y-4">
+                                    <div className="flex items-center gap-2 mb-4">
+                                        <div className="h-px flex-1 bg-gradient-to-r from-transparent via-cyan-500/50 to-transparent"></div>
+                                        <span className="text-[12px] font-black text-cyan-400 uppercase tracking-[0.3em] whitespace-nowrap px-6">Mission Capabilities</span>
+                                        <div className="h-px flex-1 bg-gradient-to-r from-transparent via-cyan-500/50 to-transparent"></div>
+                                    </div>
 
-                                <div className="bg-zinc-900/30 border border-zinc-800 rounded-xl p-5 mb-8">
-                                    <div className="flex gap-4">
-                                        <div className="flex-1 space-y-1.5">
-                                            <label className="text-[10px] font-bold text-zinc-500 uppercase tracking-wider ml-1">New Category Title</label>
-                                            <input
-                                                type="text"
-                                                placeholder="e.g. Cyber Security Fundamentals"
-                                                value={newCategory.name}
-                                                onChange={(e) => setNewCategory({ name: e.target.value })}
-                                                onKeyDown={(e) => e.key === 'Enter' && addCategory()}
-                                                className="w-full bg-black border border-zinc-700 rounded px-3 py-2 text-sm text-white focus:border-indigo-500 outline-none"
-                                            />
-                                        </div>
-                                        <div className="flex items-end">
-                                            <Button size="sm" onClick={addCategory} disabled={!newCategory.name.trim()} className="h-10 px-6 font-bold shadow-lg shadow-indigo-600/20">
-                                                <Plus className="w-4 h-4 mr-2" /> Add Category
-                                            </Button>
+                                    <div className={`p-6 border rounded-2xl transition-all duration-700 relative overflow-hidden group ${enableThreeD ? 'bg-cyan-500/5 border-cyan-500/40 shadow-[0_0_40px_rgba(6,182,212,0.15)]' : 'bg-black border-zinc-800 opacity-60'}`}>
+                                        {enableThreeD && <div className="absolute inset-0 bg-gradient-to-br from-cyan-500/10 via-transparent to-indigo-500/5 pointer-events-none" />}
+
+                                        <div className="flex items-center justify-between relative z-10">
+                                            <div className="flex items-center gap-5">
+                                                <div className={`p-4 rounded-xl transition-colors ${enableThreeD ? 'bg-cyan-500/20 text-cyan-400' : 'bg-zinc-900 text-zinc-500'}`}>
+                                                    <Box className="w-8 h-8" />
+                                                </div>
+                                                <div>
+                                                    <h4 className="text-lg font-black text-white uppercase tracking-tight">3D Neural Reconstruction</h4>
+                                                    <p className="text-xs text-zinc-500 font-medium">Allow AI Holodeck world generation & spatial exploration</p>
+                                                </div>
+                                            </div>
+
+                                            <div className="flex flex-col items-end gap-2">
+                                                <button
+                                                    onClick={() => setEnableThreeD(!enableThreeD)}
+                                                    className={`w-16 h-8 rounded-full transition-all flex items-center px-1.5 ${enableThreeD ? 'bg-cyan-600 shadow-[0_0_20px_rgba(6,182,212,0.5)]' : 'bg-zinc-800'}`}
+                                                >
+                                                    <div className={`w-5 h-5 rounded-full bg-white transition-all transform duration-500 ease-out ${enableThreeD ? 'translate-x-8' : 'translate-x-0'}`} />
+                                                </button>
+                                                <span className={`text-[9px] font-black uppercase tracking-widest ${enableThreeD ? 'text-cyan-400' : 'text-zinc-600'}`}>
+                                                    {enableThreeD ? 'Authorized' : 'Deactivated'}
+                                                </span>
+                                            </div>
                                         </div>
                                     </div>
-                                </div>
+                                </section>
 
-                                <div className="space-y-4">
-                                    {learningObjectives.map((cat) => (
-                                        <div key={cat.id} className="bg-zinc-900/50 rounded-lg p-4 border border-zinc-800">
-                                            <div className="flex items-center justify-between mb-4 border-b border-zinc-800/50 pb-3">
-                                                <span className="font-extrabold text-indigo-400 text-lg uppercase tracking-tight">{cat.category}</span>
-                                                <button onClick={() => deleteCategory(cat.id)} className="text-zinc-500 hover:text-red-400 transition-colors p-2 bg-black/40 rounded-lg border border-transparent hover:border-red-900/30" title="Delete Category">
-                                                    <Trash2 className="w-4 h-4" />
-                                                </button>
+                                {/* CORE PARAMETERS SECTION */}
+                                <section className="space-y-6">
+                                    <div className="flex items-center gap-2 mb-4">
+                                        <div className="h-px flex-1 bg-gradient-to-r from-transparent via-indigo-500/30 to-transparent"></div>
+                                        <span className="text-[10px] font-black text-indigo-400 uppercase tracking-[0.2em] whitespace-nowrap px-4">Core Parameters</span>
+                                        <div className="h-px flex-1 bg-gradient-to-r from-transparent via-indigo-500/30 to-transparent"></div>
+                                    </div>
+
+                                    <div className="p-6 bg-zinc-900/30 border border-zinc-800 rounded-2xl flex items-center justify-between">
+                                        <div className="space-y-1">
+                                            <p className="text-sm font-bold text-white uppercase tracking-tight">Mission Duration</p>
+                                            <p className="text-[10px] text-zinc-500 font-medium uppercase tracking-widest">Time limit to solve the case</p>
+                                        </div>
+                                        <div className="flex items-center gap-4">
+                                            <input
+                                                type="number"
+                                                min="1"
+                                                max="120"
+                                                value={timeLimit}
+                                                onChange={(e) => setTimeLimit(parseInt(e.target.value) || 15)}
+                                                className="bg-black border border-zinc-700 rounded-xl px-4 py-3 text-white w-24 text-center text-xl font-black focus:border-indigo-500 outline-none transition-all"
+                                            />
+                                            <span className="text-zinc-500 text-[10px] font-black uppercase">Minutes</span>
+                                        </div>
+                                    </div>
+                                </section>
+
+                                {/* ANALYTICAL FRAMEWORK SECTION */}
+                                <section className="space-y-6 border-t border-zinc-800 pt-10">
+                                    <h3 className="text-xs font-black text-indigo-400 uppercase tracking-[0.2em] mb-6">Analytical Framework (Learning Objectives)</h3>
+
+                                    <div className="bg-zinc-900/30 border border-zinc-800 rounded-xl p-5 mb-8">
+                                        <div className="flex gap-4">
+                                            <div className="flex-1 space-y-1.5">
+                                                <label className="text-[10px] font-bold text-zinc-500 uppercase tracking-wider ml-1">New Category Title</label>
+                                                <input
+                                                    type="text"
+                                                    placeholder="e.g. Cyber Security Fundamentals"
+                                                    value={newCategory.name}
+                                                    onChange={(e) => setNewCategory({ name: e.target.value })}
+                                                    onKeyDown={(e) => e.key === 'Enter' && addCategory()}
+                                                    className="w-full bg-black border border-zinc-700 rounded px-3 py-2 text-sm text-white focus:border-indigo-500 outline-none"
+                                                />
                                             </div>
-
-                                            <div className="space-y-3 mb-6">
-                                                {cat.objectives.length === 0 && (
-                                                    <div className="text-xs text-zinc-600 italic px-2">No specific learning objectives added yet.</div>
-                                                )}
-                                                {cat.objectives.map((obj, idx) => (
-                                                    <div key={idx} className="bg-black/40 border border-zinc-800/50 rounded-xl p-4 group relative">
-                                                        <div className="flex items-start justify-between gap-4">
-                                                            <div className="flex-1 space-y-2">
-                                                                <div className="flex items-center gap-2">
-                                                                    <div className="w-1.5 h-1.5 rounded-full bg-indigo-500"></div>
-                                                                    <span className="font-bold text-sm text-zinc-200">{typeof obj === 'string' ? obj : obj.learningObjective}</span>
-                                                                </div>
-                                                                {typeof obj !== 'string' && (
-                                                                    <div className="pl-3 space-y-1.5">
-                                                                        {obj.objective && <p className="text-[11px] text-zinc-400 leading-relaxed italic border-l border-zinc-800 pl-3">{obj.objective}</p>}
-                                                                        {obj.keyTakeaway && (
-                                                                            <div className="flex items-center gap-2 text-[10px] text-emerald-400 font-bold uppercase tracking-wider bg-emerald-500/5 w-fit px-2 py-0.5 rounded border border-emerald-500/10">
-                                                                                <CheckCircle className="w-3 h-3" /> {obj.keyTakeaway}
-                                                                            </div>
-                                                                        )}
-                                                                    </div>
-                                                                )}
-                                                            </div>
-                                                            <button onClick={() => deleteObjective(cat.id, idx)} className="text-zinc-600 hover:text-red-400 transition-all p-2 bg-black/80 rounded-lg border border-zinc-800 hover:border-red-900/30">
-                                                                <Trash2 className="w-3.5 h-3.5" />
-                                                            </button>
-                                                        </div>
-                                                    </div>
-                                                ))}
-                                            </div>
-
-                                            <div className="bg-zinc-900/80 border border-zinc-800 rounded-xl p-4 space-y-3">
-                                                <p className="text-[10px] font-black text-indigo-400 uppercase tracking-widest px-1 mb-1">Add New Objective</p>
-                                                <div className="space-y-3">
-                                                    <InputField
-                                                        placeholder="Learning Objective (e.g. Identify Phishing emails)"
-                                                        value={newObjective.categoryId === cat.id ? newObjective.title : ""}
-                                                        onChange={(e) => setNewObjective({ ...newObjective, categoryId: cat.id, title: e.target.value })}
-                                                        className="!bg-black !border-zinc-800 focus:!border-indigo-500"
-                                                    />
-                                                    <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
-                                                        <InputField
-                                                            placeholder="Detail / Description"
-                                                            value={newObjective.categoryId === cat.id ? newObjective.detail : ""}
-                                                            onChange={(e) => setNewObjective({ ...newObjective, categoryId: cat.id, detail: e.target.value })}
-                                                            className="!bg-black !border-zinc-800 focus:!border-indigo-500"
-                                                        />
-                                                        <InputField
-                                                            placeholder="Key Takeaway"
-                                                            value={newObjective.categoryId === cat.id ? newObjective.takeaway : ""}
-                                                            onChange={(e) => setNewObjective({ ...newObjective, categoryId: cat.id, takeaway: e.target.value })}
-                                                            className="!bg-black !border-zinc-800 focus:!border-indigo-500"
-                                                        />
-                                                    </div>
-                                                </div>
-                                                <div className="flex justify-end">
-                                                    <Button
-                                                        size="sm"
-                                                        onClick={() => addObjective(cat.id)}
-                                                        disabled={newObjective.categoryId !== cat.id || !newObjective.title.trim()}
-                                                        className="h-9 px-4 text-xs"
-                                                    >
-                                                        <Plus className="w-3.5 h-3.5 mr-2" /> Save Objective
-                                                    </Button>
-                                                </div>
+                                            <div className="flex items-end">
+                                                <Button size="sm" onClick={addCategory} disabled={!newCategory.name.trim()} className="h-10 px-6 font-bold shadow-lg shadow-indigo-600/20">
+                                                    <Plus className="w-4 h-4 mr-2" /> Add Category
+                                                </Button>
                                             </div>
                                         </div>
-                                    ))}
-                                </div>
+                                    </div>
+
+                                    <div className="space-y-4">
+                                        {learningObjectives.map((cat) => (
+                                            <div key={cat.id} className="bg-zinc-900/50 rounded-lg p-4 border border-zinc-800">
+                                                <div className="flex items-center justify-between mb-4 border-b border-zinc-800/50 pb-3">
+                                                    <span className="font-extrabold text-indigo-400 text-lg uppercase tracking-tight">{cat.category}</span>
+                                                    <button onClick={() => deleteCategory(cat.id)} className="text-zinc-500 hover:text-red-400 transition-colors p-2 bg-black/40 rounded-lg border border-transparent hover:border-red-900/30" title="Delete Category">
+                                                        <Trash2 className="w-4 h-4" />
+                                                    </button>
+                                                </div>
+
+                                                <div className="space-y-3 mb-6">
+                                                    {cat.objectives.length === 0 && (
+                                                        <div className="text-xs text-zinc-600 italic px-2">No specific learning objectives added yet.</div>
+                                                    )}
+                                                    {cat.objectives.map((obj, idx) => (
+                                                        <div key={idx} className="bg-black/40 border border-zinc-800/50 rounded-xl p-4 group relative">
+                                                            <div className="flex items-start justify-between gap-4">
+                                                                <div className="flex-1 space-y-2">
+                                                                    <div className="flex items-center gap-2">
+                                                                        <div className="w-1.5 h-1.5 rounded-full bg-indigo-500"></div>
+                                                                        <span className="font-bold text-sm text-zinc-200">{typeof obj === 'string' ? obj : obj.learningObjective}</span>
+                                                                    </div>
+                                                                    {typeof obj !== 'string' && (
+                                                                        <div className="pl-3 space-y-1.5">
+                                                                            {obj.objective && <p className="text-[11px] text-zinc-400 leading-relaxed italic border-l border-zinc-800 pl-3">{obj.objective}</p>}
+                                                                            {obj.keyTakeaway && (
+                                                                                <div className="flex items-center gap-2 text-[10px] text-emerald-400 font-bold uppercase tracking-wider bg-emerald-500/5 w-fit px-2 py-0.5 rounded border border-emerald-500/10">
+                                                                                    <CheckCircle className="w-3 h-3" /> {obj.keyTakeaway}
+                                                                                </div>
+                                                                            )}
+                                                                        </div>
+                                                                    )}
+                                                                </div>
+                                                                <button onClick={() => deleteObjective(cat.id, idx)} className="text-zinc-600 hover:text-red-400 transition-all p-2 bg-black/80 rounded-lg border border-zinc-800 hover:border-red-900/30">
+                                                                    <Trash2 className="w-3.5 h-3.5" />
+                                                                </button>
+                                                            </div>
+                                                        </div>
+                                                    ))}
+                                                </div>
+
+                                                <div className="bg-zinc-900/80 border border-zinc-800 rounded-xl p-4 space-y-3">
+                                                    <p className="text-[10px] font-black text-indigo-400 uppercase tracking-widest px-1 mb-1">Add New Objective</p>
+                                                    <div className="space-y-3">
+                                                        <InputField
+                                                            placeholder="Learning Objective (e.g. Identify Phishing emails)"
+                                                            value={newObjective.categoryId === cat.id ? newObjective.title : ""}
+                                                            onChange={(e) => setNewObjective({ ...newObjective, categoryId: cat.id, title: e.target.value })}
+                                                            className="!bg-black !border-zinc-800 focus:!border-indigo-500"
+                                                        />
+                                                        <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
+                                                            <InputField
+                                                                placeholder="Detail / Description"
+                                                                value={newObjective.categoryId === cat.id ? newObjective.detail : ""}
+                                                                onChange={(e) => setNewObjective({ ...newObjective, categoryId: cat.id, detail: e.target.value })}
+                                                                className="!bg-black !border-zinc-800 focus:!border-indigo-500"
+                                                            />
+                                                            <InputField
+                                                                placeholder="Key Takeaway"
+                                                                value={newObjective.categoryId === cat.id ? newObjective.takeaway : ""}
+                                                                onChange={(e) => setNewObjective({ ...newObjective, categoryId: cat.id, takeaway: e.target.value })}
+                                                                className="!bg-black !border-zinc-800 focus:!border-indigo-500"
+                                                            />
+                                                        </div>
+                                                    </div>
+                                                    <div className="flex justify-end">
+                                                        <Button
+                                                            size="sm"
+                                                            onClick={() => addObjective(cat.id)}
+                                                            disabled={newObjective.categoryId !== cat.id || !newObjective.title.trim()}
+                                                            className="h-9 px-4 text-xs"
+                                                        >
+                                                            <Plus className="w-3.5 h-3.5 mr-2" /> Save Objective
+                                                        </Button>
+                                                    </div>
+                                                </div>
+                                            </div>
+                                        ))}
+                                    </div>
+                                </section>
                             </div>
                             <div className="mt-8 flex justify-end gap-2">
                                 <Button onClick={() => setShowSettings(false)}>
@@ -1459,7 +1528,8 @@ const Editor = () => {
                             </div>
                         </div>
                     </div>
-                )}
+                )
+                }
 
                 {/* Edge Editor Modal */}
                 {
@@ -1531,7 +1601,7 @@ const Editor = () => {
             </AnimatePresence >
 
             {/* Validation Report Modal */}
-            < AnimatePresence >
+            <AnimatePresence>
                 {validationReport && (
                     <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/50 backdrop-blur-sm" onClick={() => setValidationReport(null)}>
                         <motion.div
@@ -1619,173 +1689,179 @@ const Editor = () => {
                     </div>
                 )}
                 {/* Delete Category Confirmation Modal */}
-                {confirmDeleteCat && (
-                    <div className="fixed inset-0 z-[100] flex items-center justify-center p-4 bg-black/60 backdrop-blur-sm">
-                        <motion.div
-                            initial={{ scale: 0.95, opacity: 0 }}
-                            animate={{ scale: 1, opacity: 1 }}
-                            className="bg-zinc-950 border border-zinc-900 p-8 rounded-2xl max-w-sm w-full shadow-2xl space-y-6"
-                        >
-                            <div className="flex flex-col items-center text-center space-y-4">
-                                <div className="p-3 bg-red-500/10 rounded-full border border-red-500/20">
-                                    <AlertTriangle className="w-8 h-8 text-red-500" />
-                                </div>
-                                <div>
-                                    <h3 className="text-xl font-bold text-white uppercase tracking-tight">Destructive Action</h3>
-                                    <p className="text-zinc-500 text-sm mt-2">
-                                        Are you sure you want to delete <span className="text-zinc-200 font-bold">{learningObjectives.find(c => c.id === confirmDeleteCat)?.category}</span> and all its associated objectives?
-                                    </p>
-                                </div>
-                            </div>
-                            <div className="flex gap-3">
-                                <Button
-                                    variant="ghost"
-                                    className="flex-1 border border-zinc-800 hover:bg-zinc-900"
-                                    onClick={() => setConfirmDeleteCat(null)}
-                                >
-                                    Cancel
-                                </Button>
-                                <Button
-                                    className="flex-1 bg-red-600 hover:bg-red-700 text-white border-0 shadow-lg shadow-red-900/20"
-                                    onClick={confirmDeleteCategory}
-                                >
-                                    Delete All
-                                </Button>
-                            </div>
-                        </motion.div>
-                    </div>
-                )}
-                {/* Case Locked Modal */}
-                {showLockedModal && (
-                    <div className="fixed inset-0 z-[200] flex items-center justify-center p-4 bg-black/90 backdrop-blur-md">
-                        <motion.div
-                            initial={{ scale: 0.9, opacity: 0 }}
-                            animate={{ scale: 1, opacity: 1 }}
-                            className="bg-zinc-950 border border-indigo-500/30 p-8 rounded-3xl max-w-md w-full shadow-[0_0_50px_rgba(79,70,229,0.2)] text-center relative overflow-hidden"
-                        >
-                            <div className="absolute top-0 left-0 w-full h-1 bg-gradient-to-r from-transparent via-indigo-500 to-transparent"></div>
-                            <div className="flex flex-col items-center gap-6">
-                                <div className="relative">
-                                    <div className="absolute inset-0 bg-indigo-500/20 blur-2xl rounded-full"></div>
-                                    <div className="relative w-20 h-20 bg-zinc-900 rounded-2xl border border-white/10 flex items-center justify-center">
-                                        <Lock className="w-10 h-10 text-indigo-400" />
+                {
+                    confirmDeleteCat && (
+                        <div className="fixed inset-0 z-[100] flex items-center justify-center p-4 bg-black/60 backdrop-blur-sm">
+                            <motion.div
+                                initial={{ scale: 0.95, opacity: 0 }}
+                                animate={{ scale: 1, opacity: 1 }}
+                                className="bg-zinc-950 border border-zinc-900 p-8 rounded-2xl max-w-sm w-full shadow-2xl space-y-6"
+                            >
+                                <div className="flex flex-col items-center text-center space-y-4">
+                                    <div className="p-3 bg-red-500/10 rounded-full border border-red-500/20">
+                                        <AlertTriangle className="w-8 h-8 text-red-500" />
                                     </div>
-                                    <div className="absolute -bottom-2 -right-2 w-8 h-8 bg-amber-500 rounded-full border-4 border-zinc-950 flex items-center justify-center">
-                                        <AlertTriangle className="w-4 h-4 text-black" />
+                                    <div>
+                                        <h3 className="text-xl font-bold text-white uppercase tracking-tight">Destructive Action</h3>
+                                        <p className="text-zinc-500 text-sm mt-2">
+                                            Are you sure you want to delete <span className="text-zinc-200 font-bold">{learningObjectives.find(c => c.id === confirmDeleteCat)?.category}</span> and all its associated objectives?
+                                        </p>
                                     </div>
                                 </div>
-
-                                <div className="space-y-2">
-                                    <h2 className="text-2xl font-black text-white tracking-tight">Case is Occupied</h2>
-                                    <p className="text-zinc-400 text-sm leading-relaxed">
-                                        <span className="text-indigo-400 font-bold">{editingBy?.displayName || 'Another detective'}</span> is currently working on this case file. To prevent data corruption, simultaneous editing is prohibited.
-                                    </p>
-                                </div>
-
-                                <div className="w-full h-px bg-zinc-800"></div>
-
-                                <div className="flex flex-col gap-3 w-full">
-                                    <div className="flex items-center justify-center gap-2 text-[10px] font-bold text-emerald-500 bg-emerald-500/10 py-2 rounded-lg border border-emerald-500/20 uppercase tracking-widest">
-                                        <span className="w-1.5 h-1.5 rounded-full bg-emerald-500 animate-pulse"></span>
-                                        Live Status: Currently Editing
-                                    </div>
-
-                                    <div className="flex flex-col gap-2 w-full mt-2">
-                                        {requestFeedback === 'declined' ? (
-                                            <div className="p-3 bg-red-500/10 border border-red-500/20 rounded-xl text-red-400 text-xs font-bold animate-shake">
-                                                Access Request Declined
-                                            </div>
-                                        ) : requestFeedback === 'accepted' ? (
-                                            <div className="p-3 bg-emerald-500/10 border border-emerald-500/20 rounded-xl text-emerald-400 text-xs font-bold">
-                                                Access Granted! Releasing Lock...
-                                            </div>
-                                        ) : isRequesting ? (
-                                            <div className="flex items-center justify-center gap-3 w-full h-12 bg-white/5 rounded-xl border border-white/10 text-zinc-400 text-sm font-bold animate-pulse">
-                                                <div className="w-4 h-4 border-2 border-indigo-500 border-t-transparent rounded-full animate-spin"></div>
-                                                Waiting for Response...
-                                            </div>
-                                        ) : (
-                                            <>
-                                                <Button
-                                                    onClick={handleOverrideLock}
-                                                    variant="destructive"
-                                                    className="w-full bg-red-600/20 hover:bg-red-600/40 text-red-200 border-red-500/30 font-bold h-12 rounded-xl"
-                                                >
-                                                    Override (Force Access)
-                                                </Button>
-                                                <Button
-                                                    onClick={handleRequestAccess}
-                                                    variant="primary"
-                                                    className="w-full font-bold h-12 rounded-xl"
-                                                >
-                                                    Request Access
-                                                </Button>
-                                            </>
-                                        )}
-                                    </div>
-
+                                <div className="flex gap-3">
                                     <Button
-                                        onClick={() => navigate('/')}
                                         variant="ghost"
-                                        className="w-full text-zinc-500 hover:text-white hover:bg-white/5 font-medium h-10 rounded-xl"
+                                        className="flex-1 border border-zinc-800 hover:bg-zinc-900"
+                                        onClick={() => setConfirmDeleteCat(null)}
                                     >
-                                        Return to Dashboard
+                                        Cancel
+                                    </Button>
+                                    <Button
+                                        className="flex-1 bg-red-600 hover:bg-red-700 text-white border-0 shadow-lg shadow-red-900/20"
+                                        onClick={confirmDeleteCategory}
+                                    >
+                                        Delete All
                                     </Button>
                                 </div>
-                            </div>
-                        </motion.div>
-                    </div>
-                )}
-                {/* Incoming Access Request Modal */}
-                {incomingRequest && (
-                    <div className="fixed inset-0 z-[300] flex items-end justify-center p-6 md:items-center pointer-events-none">
-                        <motion.div
-                            initial={{ y: 100, opacity: 0 }}
-                            animate={{ y: 0, opacity: 1 }}
-                            exit={{ y: 100, opacity: 0 }}
-                            className="bg-zinc-950 border border-indigo-500/50 p-6 rounded-2xl max-w-sm w-full shadow-[0_20px_60px_rgba(0,0,0,0.8)] pointer-events-auto"
-                        >
-                            <div className="flex items-start gap-4 mb-6">
-                                <div className="p-3 bg-indigo-500/20 rounded-xl border border-indigo-500/30">
-                                    <User className="w-6 h-6 text-indigo-400" />
-                                </div>
-                                <div>
-                                    <h3 className="text-lg font-bold text-white tracking-tight">Access Requested</h3>
-                                    <p className="text-zinc-400 text-xs leading-relaxed mt-1">
-                                        <span className="text-indigo-400 font-bold">{incomingRequest.displayName}</span> is requesting permission to edit this case file.
-                                    </p>
-                                </div>
-                            </div>
+                            </motion.div>
+                        </div>
+                    )
+                }
+                {/* Case Locked Modal */}
+                {
+                    showLockedModal && (
+                        <div className="fixed inset-0 z-[200] flex items-center justify-center p-4 bg-black/90 backdrop-blur-md">
+                            <motion.div
+                                initial={{ scale: 0.9, opacity: 0 }}
+                                animate={{ scale: 1, opacity: 1 }}
+                                className="bg-zinc-950 border border-indigo-500/30 p-8 rounded-3xl max-w-md w-full shadow-[0_0_50px_rgba(79,70,229,0.2)] text-center relative overflow-hidden"
+                            >
+                                <div className="absolute top-0 left-0 w-full h-1 bg-gradient-to-r from-transparent via-indigo-500 to-transparent"></div>
+                                <div className="flex flex-col items-center gap-6">
+                                    <div className="relative">
+                                        <div className="absolute inset-0 bg-indigo-500/20 blur-2xl rounded-full"></div>
+                                        <div className="relative w-20 h-20 bg-zinc-900 rounded-2xl border border-white/10 flex items-center justify-center">
+                                            <Lock className="w-10 h-10 text-indigo-400" />
+                                        </div>
+                                        <div className="absolute -bottom-2 -right-2 w-8 h-8 bg-amber-500 rounded-full border-4 border-zinc-950 flex items-center justify-center">
+                                            <AlertTriangle className="w-4 h-4 text-black" />
+                                        </div>
+                                    </div>
 
-                            <div className="flex gap-3">
-                                <Button
-                                    onClick={handleDeclineRequest}
-                                    variant="ghost"
-                                    className="flex-1 text-zinc-500 hover:text-white hover:bg-white/5 font-bold rounded-xl"
-                                >
-                                    Decline
-                                </Button>
-                                <Button
-                                    onClick={handleAcceptRequest}
-                                    className="flex-1 bg-indigo-600 hover:bg-indigo-500 text-white font-bold rounded-xl shadow-[0_0_20px_rgba(79,70,229,0.3)]"
-                                >
-                                    Accept & Release
-                                </Button>
-                            </div>
-                        </motion.div>
-                    </div>
-                )}
+                                    <div className="space-y-2">
+                                        <h2 className="text-2xl font-black text-white tracking-tight">Case is Occupied</h2>
+                                        <p className="text-zinc-400 text-sm leading-relaxed">
+                                            <span className="text-indigo-400 font-bold">{editingBy?.displayName || 'Another detective'}</span> is currently working on this case file. To prevent data corruption, simultaneous editing is prohibited.
+                                        </p>
+                                    </div>
+
+                                    <div className="w-full h-px bg-zinc-800"></div>
+
+                                    <div className="flex flex-col gap-3 w-full">
+                                        <div className="flex items-center justify-center gap-2 text-[10px] font-bold text-emerald-500 bg-emerald-500/10 py-2 rounded-lg border border-emerald-500/20 uppercase tracking-widest">
+                                            <span className="w-1.5 h-1.5 rounded-full bg-emerald-500 animate-pulse"></span>
+                                            Live Status: Currently Editing
+                                        </div>
+
+                                        <div className="flex flex-col gap-2 w-full mt-2">
+                                            {requestFeedback === 'declined' ? (
+                                                <div className="p-3 bg-red-500/10 border border-red-500/20 rounded-xl text-red-400 text-xs font-bold animate-shake">
+                                                    Access Request Declined
+                                                </div>
+                                            ) : requestFeedback === 'accepted' ? (
+                                                <div className="p-3 bg-emerald-500/10 border border-emerald-500/20 rounded-xl text-emerald-400 text-xs font-bold">
+                                                    Access Granted! Releasing Lock...
+                                                </div>
+                                            ) : isRequesting ? (
+                                                <div className="flex items-center justify-center gap-3 w-full h-12 bg-white/5 rounded-xl border border-white/10 text-zinc-400 text-sm font-bold animate-pulse">
+                                                    <div className="w-4 h-4 border-2 border-indigo-500 border-t-transparent rounded-full animate-spin"></div>
+                                                    Waiting for Response...
+                                                </div>
+                                            ) : (
+                                                <>
+                                                    <Button
+                                                        onClick={handleOverrideLock}
+                                                        variant="destructive"
+                                                        className="w-full bg-red-600/20 hover:bg-red-600/40 text-red-200 border-red-500/30 font-bold h-12 rounded-xl"
+                                                    >
+                                                        Override (Force Access)
+                                                    </Button>
+                                                    <Button
+                                                        onClick={handleRequestAccess}
+                                                        variant="primary"
+                                                        className="w-full font-bold h-12 rounded-xl"
+                                                    >
+                                                        Request Access
+                                                    </Button>
+                                                </>
+                                            )}
+                                        </div>
+
+                                        <Button
+                                            onClick={() => navigate('/')}
+                                            variant="ghost"
+                                            className="w-full text-zinc-500 hover:text-white hover:bg-white/5 font-medium h-10 rounded-xl"
+                                        >
+                                            Return to Dashboard
+                                        </Button>
+                                    </div>
+                                </div>
+                            </motion.div>
+                        </div>
+                    )
+                }
+                {/* Incoming Access Request Modal */}
+                {
+                    incomingRequest && (
+                        <div className="fixed inset-0 z-[300] flex items-end justify-center p-6 md:items-center pointer-events-none">
+                            <motion.div
+                                initial={{ y: 100, opacity: 0 }}
+                                animate={{ y: 0, opacity: 1 }}
+                                exit={{ y: 100, opacity: 0 }}
+                                className="bg-zinc-950 border border-indigo-500/50 p-6 rounded-2xl max-w-sm w-full shadow-[0_20px_60px_rgba(0,0,0,0.8)] pointer-events-auto"
+                            >
+                                <div className="flex items-start gap-4 mb-6">
+                                    <div className="p-3 bg-indigo-500/20 rounded-xl border border-indigo-500/30">
+                                        <User className="w-6 h-6 text-indigo-400" />
+                                    </div>
+                                    <div>
+                                        <h3 className="text-lg font-bold text-white tracking-tight">Access Requested</h3>
+                                        <p className="text-zinc-400 text-xs leading-relaxed mt-1">
+                                            <span className="text-indigo-400 font-bold">{incomingRequest.displayName}</span> is requesting permission to edit this case file.
+                                        </p>
+                                    </div>
+                                </div>
+
+                                <div className="flex gap-3">
+                                    <Button
+                                        onClick={handleDeclineRequest}
+                                        variant="ghost"
+                                        className="flex-1 text-zinc-500 hover:text-white hover:bg-white/5 font-bold rounded-xl"
+                                    >
+                                        Decline
+                                    </Button>
+                                    <Button
+                                        onClick={handleAcceptRequest}
+                                        className="flex-1 bg-indigo-600 hover:bg-indigo-500 text-white font-bold rounded-xl shadow-[0_0_20px_rgba(79,70,229,0.3)]"
+                                    >
+                                        Accept & Release
+                                    </Button>
+                                </div>
+                            </motion.div>
+                        </div>
+                    )
+                }
             </AnimatePresence >
-        </div >
+        </div>
     );
 };
 
-import ErrorBoundary from '../components/ErrorBoundary';
-
-export default () => (
+const EditorPage = () => (
     <ErrorBoundary>
         <ReactFlowProvider>
             <Editor />
         </ReactFlowProvider>
     </ErrorBoundary>
 );
+
+export default EditorPage;

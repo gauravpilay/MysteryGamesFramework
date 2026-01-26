@@ -1,6 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
-import { X, Settings, Shield, Key, Sliders, Save, AlertTriangle, Cpu, Globe } from 'lucide-react';
+import { X, Settings, Shield, Key, Sliders, Save, AlertTriangle, Cpu, Globe, Box } from 'lucide-react';
 import { useConfig } from '../lib/config';
 import { Button, Input, Label } from './ui/shared';
 
@@ -10,6 +10,7 @@ const SystemSettingsModal = ({ onClose }) => {
         aiApiKey: settings.aiApiKey || '',
         maxAIRequests: settings.maxAIRequests || 10,
         systemName: settings.systemName || 'Mystery Architect Central',
+        enableThreeD: settings.enableThreeD !== undefined ? settings.enableThreeD : true,
     });
     const [isSaving, setIsSaving] = useState(false);
     const [status, setStatus] = useState(null); // { type, message }
@@ -20,6 +21,7 @@ const SystemSettingsModal = ({ onClose }) => {
             aiApiKey: settings.aiApiKey || '',
             maxAIRequests: settings.maxAIRequests || 10,
             systemName: settings.systemName || 'Mystery Architect Central',
+            enableThreeD: settings.enableThreeD !== undefined ? settings.enableThreeD : true,
         });
     }, [settings]);
 
@@ -154,7 +156,30 @@ const SystemSettingsModal = ({ onClose }) => {
                         </div>
                     </div>
 
-                    {/* System Identity */}
+                    {/* Global Architecture Override */}
+                    <div className="space-y-6">
+                        <div className="flex items-center gap-2 border-l-2 border-cyan-500 pl-4">
+                            <Box className="w-4 h-4 text-cyan-500" />
+                            <h3 className="text-sm font-black text-white uppercase tracking-[0.2em]">Global Architecture Override</h3>
+                        </div>
+
+                        <div className="p-4 bg-cyan-500/5 border border-cyan-500/10 rounded-xl">
+                            <div className="flex items-center justify-between">
+                                <div className="space-y-1">
+                                    <p className="text-sm font-bold text-white uppercase tracking-tight">3D Neural Reconstruction</p>
+                                    <p className="text-[10px] text-zinc-500 font-medium leading-relaxed italic">
+                                        Enable/Disable Holodeck hardware acceleration across all missions.
+                                    </p>
+                                </div>
+                                <button
+                                    onClick={() => setFormData(prev => ({ ...prev, enableThreeD: !prev.enableThreeD }))}
+                                    className={`w-12 h-6 rounded-full transition-all flex items-center px-1 ${formData.enableThreeD ? 'bg-cyan-600' : 'bg-zinc-800'}`}
+                                >
+                                    <div className={`w-4 h-4 rounded-full bg-white transition-all transform ${formData.enableThreeD ? 'translate-x-6' : 'translate-x-0'}`} />
+                                </button>
+                            </div>
+                        </div>
+                    </div>
                     <div className="space-y-6">
                         <div className="flex items-center gap-2 border-l-2 border-purple-500 pl-4">
                             <Globe className="w-4 h-4 text-purple-500" />
