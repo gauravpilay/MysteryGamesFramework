@@ -336,11 +336,20 @@ const GamePreview = ({ nodes, edges, onClose, gameMetadata, onGameEnd }) => {
 
     // Scoring State
     const [score, setScore] = useState(0);
+    const [scoreDelta, setScoreDelta] = useState(null);
     const [playerObjectiveScores, setPlayerObjectiveScores] = useState({}); // { objId: score }
     const [scoredNodes, setScoredNodes] = useState(new Set());
     const [aiRequestCount, setAiRequestCount] = useState(0);
     const [userAnswers, setUserAnswers] = useState(new Set()); // Set of selected option IDs for Question Nodes
     const lastNodeId = useRef(null);
+
+    // Clear score delta after animation
+    useEffect(() => {
+        if (scoreDelta) {
+            const timer = setTimeout(() => setScoreDelta(null), 2000);
+            return () => clearTimeout(timer);
+        }
+    }, [scoreDelta]);
 
     // Timer Logic
     useEffect(() => {
@@ -475,6 +484,7 @@ const GamePreview = ({ nodes, edges, onClose, gameMetadata, onGameEnd }) => {
 
         if (!scoredNodes.has(currentNode.id)) {
             setScore(s => s + currentNode.data.score);
+            setScoreDelta(currentNode.data.score);
 
             // Objective Scoring
             rewardObjectivePoints(currentNode, currentNode.data.score);
@@ -695,6 +705,7 @@ const GamePreview = ({ nodes, edges, onClose, gameMetadata, onGameEnd }) => {
                 // Award Score for Terminal Hack
                 if (activeModalNode.data.score && !scoredNodes.has(activeModalNode.id)) {
                     setScore(s => s + activeModalNode.data.score);
+                    setScoreDelta(activeModalNode.data.score);
 
                     // Objective Scoring
                     rewardObjectivePoints(activeModalNode, activeModalNode.data.score);
@@ -713,6 +724,7 @@ const GamePreview = ({ nodes, edges, onClose, gameMetadata, onGameEnd }) => {
             const penalty = activeModalNode.data.penalty || 0;
             if (penalty > 0) {
                 setScore(s => Math.max(0, s - penalty));
+                setScoreDelta(-penalty);
                 addLog(`HACK PROTECTION DETECTED: -${penalty} Points`);
 
                 rewardObjectivePoints(activeModalNode, -penalty);
@@ -747,6 +759,7 @@ const GamePreview = ({ nodes, edges, onClose, gameMetadata, onGameEnd }) => {
         if (isCorrect) {
             if (activeAccusationNode && activeAccusationNode.data.score) {
                 setScore(s => s + activeAccusationNode.data.score);
+                setScoreDelta(activeAccusationNode.data.score);
                 addLog(`CASE CLOSED: +${activeAccusationNode.data.score} Points`);
 
                 rewardObjectivePoints(activeAccusationNode, activeAccusationNode.data.score);
@@ -756,6 +769,7 @@ const GamePreview = ({ nodes, edges, onClose, gameMetadata, onGameEnd }) => {
             if (activeAccusationNode && activeAccusationNode.data.penalty) {
                 const penalty = activeAccusationNode.data.penalty;
                 setScore(s => Math.max(0, s - penalty));
+                setScoreDelta(-penalty);
                 addLog(`WRONG ACCUSATION: -${penalty} Points`);
 
                 rewardObjectivePoints(activeAccusationNode, -penalty);
@@ -780,6 +794,7 @@ const GamePreview = ({ nodes, edges, onClose, gameMetadata, onGameEnd }) => {
             // Award points
             if (activeModalNode.data.score && !scoredNodes.has(activeModalNode.id)) {
                 setScore(s => s + (activeModalNode.data.score || 0));
+                setScoreDelta(activeModalNode.data.score || 0);
 
                 // Objective Scoring (Reward)
                 rewardObjectivePoints(activeModalNode, activeModalNode.data.score || 0);
@@ -800,7 +815,8 @@ const GamePreview = ({ nodes, edges, onClose, gameMetadata, onGameEnd }) => {
             const penalty = activeModalNode.data.penalty || 0;
             if (penalty > 0) {
                 setScore(s => Math.max(0, s - penalty));
-                addLog(`QUIZ PENALTY: -${penalty} Points`);
+                setScoreDelta(-penalty);
+                addLog(`QUIZ PROTECTION: -${penalty} Points`);
 
                 rewardObjectivePoints(activeModalNode, -penalty);
             }
@@ -1032,18 +1048,67 @@ const GamePreview = ({ nodes, edges, onClose, gameMetadata, onGameEnd }) => {
                     <div className="bg-red-600 px-2 py-1 rounded text-xs font-bold text-white uppercase tracking-widest animate-pulse">
                         Case Active
                     </div>
-                    {/* Score Display */}
-                    {/* Score Display - Prominent */}
-                    <div className="flex items-center gap-3 px-4 py-2 bg-yellow-950/20 border border-yellow-600/50 rounded-xl shadow-[0_0_15px_rgba(234,179,8,0.15)] hover:bg-yellow-900/20 transition-colors">
-                        <div className="p-1.5 bg-yellow-500/10 rounded-lg border border-yellow-500/20">
-                            <Star className="w-5 h-5 text-yellow-500 fill-yellow-500 drop-shadow-md" />
-                        </div>
-                        <div className="flex flex-col leading-none">
-                            <span className="text-[10px] text-yellow-600 font-black uppercase tracking-wider mb-0.5">Score</span>
-                            <span className="text-2xl font-black text-yellow-400 font-mono tracking-widest drop-shadow-sm">{score}</span>
-                        </div>
+                    {/* Score Display - Enhanced UI */}
+                    <div className="relative">
+                        <AnimatePresence>
+                            {scoreDelta && (
+                                <motion.div
+                                    key={score + (scoreDelta || 0)}
+                                    initial={{ opacity: 0, y: 0, scale: 0.5 }}
+                                    animate={{ opacity: 1, y: -40, scale: 1.2 }}
+                                    exit={{ opacity: 0, y: -80, scale: 1 }}
+                                    className={`absolute left-1/2 -translate-x-1/2 font-black text-xl pointer-events-none z-[110] drop-shadow-lg ${scoreDelta > 0 ? 'text-amber-400' : 'text-red-500'}`}
+                                >
+                                    {scoreDelta > 0 ? `+${scoreDelta}` : scoreDelta}
+                                </motion.div>
+                            )}
+                        </AnimatePresence>
+                        <motion.div
+                            layout
+                            className="flex items-center gap-4 px-5 py-2.5 bg-zinc-900/40 border border-amber-500/20 rounded-2xl shadow-[0_0_20px_rgba(0,0,0,0.3)] backdrop-blur-xl group hover:border-amber-500/40 transition-all duration-500 overflow-hidden relative"
+                        >
+                            {/* Animated background shine effect */}
+                            <div className="absolute inset-0 bg-gradient-to-r from-transparent via-amber-500/5 to-transparent -translate-x-full group-hover:translate-x-full transition-transform duration-1000 ease-in-out" />
+
+                            <div className="relative">
+                                <motion.div
+                                    animate={{
+                                        scale: [1, 1.15, 1],
+                                        rotate: [0, 5, -5, 0]
+                                    }}
+                                    transition={{
+                                        duration: 4,
+                                        repeat: Infinity,
+                                        ease: "easeInOut"
+                                    }}
+                                    className="absolute inset-0 bg-amber-500 blur-xl opacity-20"
+                                />
+                                <div className="relative p-2 bg-amber-500/10 rounded-xl border border-amber-500/20 shadow-inner group-hover:rotate-6 transition-transform duration-300">
+                                    <Star className="w-5 h-5 text-amber-400 fill-amber-400 drop-shadow-[0_0_8px_rgba(245,158,11,0.6)]" />
+                                </div>
+                            </div>
+
+                            <div className="flex flex-col">
+                                <span className="text-[9px] text-amber-500/50 font-black uppercase tracking-[0.3em] leading-none mb-1">Total Score</span>
+                                <div className="flex items-center gap-1.5">
+                                    <AnimatePresence mode="popLayout">
+                                        <motion.span
+                                            key={score}
+                                            initial={{ y: 15, opacity: 0, filter: 'blur(5px)' }}
+                                            animate={{ y: 0, opacity: 1, filter: 'blur(0px)' }}
+                                            exit={{ y: -15, opacity: 0, filter: 'blur(5px)' }}
+                                            transition={{ type: "spring", stiffness: 400, damping: 25 }}
+                                            className="text-2xl font-black text-white font-mono tracking-wider drop-shadow-[0_0_10px_rgba(245,158,11,0.3)]"
+                                        >
+                                            {score}
+                                        </motion.span>
+                                    </AnimatePresence>
+                                    <span className="text-[10px] font-bold text-amber-500/40 self-end mb-1">PTS</span>
+                                </div>
+                            </div>
+                        </motion.div>
                     </div>
-                    {/* Timer Logic */}
+
                     {/* Timer Logic - Always Visible & Prominent */}
                     <div className={`fixed top-2 md:top-4 left-1/2 -translate-x-1/2 px-6 py-2 md:px-8 md:py-3 rounded-xl border-2 shadow-[0_0_20px_rgba(0,0,0,0.5)] z-[120] flex items-center gap-3 backdrop-blur-xl transition-all duration-300 ${timeLeft < 60 || !missionStarted ? 'bg-red-950/90 border-red-500 text-red-500' : 'bg-black/90 border-indigo-500 text-indigo-400'}`}>
                         <Clock className={`w-5 h-5 md:w-6 md:h-6 ${timeLeft < 60 ? 'animate-pulse' : ''}`} />
@@ -1056,7 +1121,6 @@ const GamePreview = ({ nodes, edges, onClose, gameMetadata, onGameEnd }) => {
                             </span>
                         </div>
                     </div>
-
                 </div>
                 <div className="flex items-center gap-3">
                     {/* Audio Toggle */}
@@ -1704,6 +1768,8 @@ const GamePreview = ({ nodes, edges, onClose, gameMetadata, onGameEnd }) => {
                                         // Handle score/points if needed
                                         if (activeModalNode.data.score && !scoredNodes.has(activeModalNode.id)) {
                                             setScore(s => s + activeModalNode.data.score);
+                                            setScoreDelta(activeModalNode.data.score);
+                                            // Objective Scoring
                                             rewardObjectivePoints(activeModalNode, activeModalNode.data.score);
                                             setScoredNodes(prev => new Set([...prev, activeModalNode.id]));
                                             addLog(`INTERROGATION REWARD: +${activeModalNode.data.score} Points`);
