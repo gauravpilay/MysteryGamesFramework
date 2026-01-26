@@ -4,10 +4,13 @@ import { collection, query, where, getDocs, orderBy, deleteDoc, doc, writeBatch 
 import { useAuth } from '../lib/auth';
 import { useConfig } from '../lib/config';
 import { motion, AnimatePresence } from 'framer-motion';
-import { X, TrendingUp, Calendar, Target, Award, Clock, BarChart2, Filter, ChevronDown, CheckCircle, AlertTriangle, Trash2, Download, CircleHelp } from 'lucide-react';
+import { X, Brain, Zap, Sparkles, TrendingUp, Calendar, Target, Award, Clock, BarChart2, Filter, ChevronDown, CheckCircle, AlertTriangle, Trash2, Download, CircleHelp, Shield } from 'lucide-react';
 import { jsPDF } from 'jspdf';
 import autoTable from 'jspdf-autotable';
 import { Button, Card } from './ui/shared';
+import { generateAssessment } from '../utils/AssessmentEngine';
+import RadarChart from './reports/RadarChart';
+
 
 const ProgressReportModal = ({ onClose }) => {
     const { user } = useAuth();
@@ -125,18 +128,48 @@ const ProgressReportModal = ({ onClose }) => {
         filteredData.forEach(game => {
             const scores = game.objectiveScores || {};
             Object.entries(scores).forEach(([objId, score]) => {
-                // Key is usually category_id:idx OR a readable name (new format).
-                // We use key as is for stats
-                if (!objectiveStats[objId]) objectiveStats[objId] = { total: 0, count: 0, min: 0, max: 0, runs: [] };
+                let name = objMap[objId] || objId;
+                if (!objMap[objId]) {
+                    if (objId.includes(':')) {
+                        const [prefix, suffix] = objId.split(':');
+                        if (objMap[prefix]) {
+                            name = `${objMap[prefix]}: Objective ${parseInt(suffix) + 1}`;
+                        } else {
+                            name = prefix.split('_').map(s => s.charAt(0).toUpperCase() + s.slice(1)).join(' ');
+                        }
+                    }
+                }
 
-                objectiveStats[objId].total += score;
-                objectiveStats[objId].count += 1;
-                objectiveStats[objId].runs.push({ date: game.playedAt, score });
+                if (!objectiveStats[name]) objectiveStats[name] = { total: 0, count: 0, runs: [] };
+
+                objectiveStats[name].total += score;
+                objectiveStats[name].count += 1;
+                objectiveStats[name].runs.push({ date: game.playedAt, score });
             });
         });
 
-        return { caseOptions, totalGames, winRate, totalTime, objectiveStats };
-    }, [rawData, filteredData]);
+        // Group by Mission for assessment
+        const byMission = {};
+        filteredData.forEach(game => {
+            if (!byMission[game.caseId]) {
+                byMission[game.caseId] = {
+                    title: game.caseTitle,
+                    games: []
+                };
+            }
+            byMission[game.caseId].games.push(game);
+        });
+
+        const assessmentData = {
+            stats: { totalPlayed: totalGames, totalWins: totalWins, totalTime, winRate },
+            objectiveStats,
+            byMission
+        };
+
+        const assessment = generateAssessment(assessmentData, objMap);
+
+        return { caseOptions, totalGames, winRate, totalTime, objectiveStats, assessment };
+    }, [rawData, filteredData, objMap]);
 
 
     const handleClearHistory = () => {
@@ -215,19 +248,33 @@ const ProgressReportModal = ({ onClose }) => {
             doc.setTextColor(50);
             doc.text("SUMMARY STATISTICS", 18, 56);
 
-            doc.setFontSize(12);
-            doc.setTextColor(0);
-            doc.text(`Missions: ${stats.totalGames}`, 18, 65);
-            doc.text(`Success Rate: ${stats.winRate}%`, 65, 65);
-            doc.text(`Field Time: ${Math.floor(stats.totalTime / 60)}m ${stats.totalTime % 60}s`, 120, 65);
+            doc.setFontSize(11);
+            doc.setTextColor(50);
+            doc.text(`Archetype: ${stats.assessment?.archetype || 'Special Agent'}`, 20, 65);
+            doc.text(`Exp Level: ${stats.totalGames > 10 ? 'Senior' : 'Junior'}`, 75, 65);
+            doc.text(`Consistency: ${stats.winRate}%`, 130, 65);
 
-            let detailY = 88;
+            // Summary Block
+            const summaryText = `Assessment: "${stats.assessment?.summary}"`;
+            const splitSummary = doc.splitTextToSize(summaryText, pageWidth - 40);
+            const summaryLineHeight = 4;
+            const summaryHeight = (splitSummary.length * summaryLineHeight) + 6;
+
+            doc.setFillColor(235, 240, 255);
+            doc.rect(14, 76, pageWidth - 28, summaryHeight, 'F');
+            doc.setFontSize(8);
+            doc.setTextColor(60);
+            doc.text(splitSummary, 20, 81);
+
+            let currentY = 76 + summaryHeight + 12;
 
             // Learning Objectives Table
             if (Object.keys(stats.objectiveStats).length > 0) {
                 doc.setFontSize(14);
                 doc.setTextColor(63, 81, 181);
-                doc.text("Learning Objectives Analysis", 14, 88);
+                doc.text("Learning Objectives Analysis", 14, currentY);
+
+                let chartY = currentY + 15;
 
                 const objectiveData = Object.entries(
                     Object.entries(stats.objectiveStats).reduce((acc, [key, data]) => {
@@ -254,7 +301,11 @@ const ProgressReportModal = ({ onClose }) => {
                 );
 
                 // Visual Progression Chart
-                let chartY = 105;
+                if (currentY > 230) {
+                    doc.addPage();
+                    currentY = 20;
+                }
+                chartY = currentY + 15;
                 doc.setFontSize(8);
                 doc.setTextColor(150);
                 doc.setFont(undefined, 'bold');
@@ -392,18 +443,18 @@ const ProgressReportModal = ({ onClose }) => {
                 });
 
                 // Detailed Learning Paths Section
-                detailY = doc.lastAutoTable ? doc.lastAutoTable.finalY + 15 : 70;
+                currentY = doc.lastAutoTable ? doc.lastAutoTable.finalY + 15 : currentY + 20;
 
                 // Check for page break
-                if (detailY > 240) {
+                if (currentY > 240) {
                     doc.addPage();
-                    detailY = 20;
+                    currentY = 20;
                 }
 
                 doc.setFontSize(14);
                 doc.setTextColor(63, 81, 181);
-                doc.text("Detailed Learning Path Analysis", 14, detailY);
-                detailY += 10;
+                doc.text("Detailed Learning Path Analysis", 14, currentY);
+                currentY += 10;
 
                 const objectivesUsed = Object.keys(stats.objectiveStats);
 
@@ -426,16 +477,16 @@ const ProgressReportModal = ({ onClose }) => {
 
                         const blockHeight = (splitTitle.length * 6) + (splitFocus.length * 4) + (splitDetail.length * 4) + (splitTakeaway.length * 4) + 12;
 
-                        if (detailY + blockHeight > 270) {
+                        if (currentY + blockHeight > 270) {
                             doc.addPage();
-                            detailY = 20;
+                            currentY = 20;
                         }
 
                         doc.setDrawColor(230);
                         doc.setFillColor(250, 250, 252);
-                        doc.rect(14, detailY, pageWidth - 28, blockHeight, 'F');
+                        doc.rect(14, currentY, pageWidth - 28, blockHeight, 'F');
 
-                        let innerY = detailY + 7;
+                        let innerY = currentY + 7;
                         doc.setFontSize(10);
                         doc.setTextColor(63, 81, 181);
                         doc.setFont(undefined, 'bold');
@@ -461,13 +512,13 @@ const ProgressReportModal = ({ onClose }) => {
                             innerY += (splitTakeaway.length * 4);
                         }
 
-                        detailY += blockHeight + 5;
+                        currentY += blockHeight + 5;
                     }
                 });
             }
 
             // Recent Sessions Table
-            let finalY = detailY + 10;
+            let finalY = currentY + 10;
             if (finalY > 260) {
                 doc.addPage();
                 finalY = 20;
@@ -605,7 +656,50 @@ const ProgressReportModal = ({ onClose }) => {
                             <p>Analyzing Performance Data...</p>
                         </div>
                     ) : (
-                        <div className="space-y-8">
+                        <div className="space-y-12">
+                            {/* NEW: Personal Growth Story Section */}
+                            <div className="bg-gradient-to-br from-indigo-950/40 via-zinc-900/40 to-black rounded-3xl border border-indigo-500/20 p-8 relative overflow-hidden shadow-2xl">
+                                <div className="absolute top-0 right-0 w-96 h-96 bg-indigo-500/5 blur-[120px] rounded-full"></div>
+                                <div className="relative z-10 grid grid-cols-1 lg:grid-cols-12 gap-10 items-center">
+                                    <div className="lg:col-span-12">
+                                        <div className="flex items-center gap-3 mb-6">
+                                            <div className="px-3 py-1 bg-indigo-500 text-white text-[10px] font-black uppercase tracking-[0.2em] rounded">Career Path</div>
+                                            <h3 className="text-2xl font-black text-white flex items-center gap-3 uppercase tracking-tight">
+                                                {stats.assessment?.archetype} Status
+                                                <Sparkles className="w-5 h-5 text-indigo-400" />
+                                            </h3>
+                                        </div>
+                                        <div className="flex flex-col lg:flex-row gap-10">
+                                            <div className="flex-1 space-y-6">
+                                                <p className="text-xl text-zinc-300 leading-relaxed font-medium italic border-l-4 border-indigo-500 pl-8 py-2">
+                                                    "{stats.assessment?.summary}"
+                                                </p>
+                                                <div className="flex flex-wrap gap-3 pt-4">
+                                                    {stats.assessment?.recommendations.map((rec, i) => (
+                                                        <div key={i} className="flex items-center gap-3 bg-zinc-800/80 border border-zinc-700/50 rounded-2xl px-5 py-3 text-sm text-zinc-300 group hover:border-indigo-500/50 transition-all cursor-default shadow-lg">
+                                                            <div className="w-6 h-6 rounded-full bg-indigo-500/20 flex items-center justify-center">
+                                                                <Zap className="w-3 h-3 text-indigo-400" />
+                                                            </div>
+                                                            {rec}
+                                                        </div>
+                                                    ))}
+                                                </div>
+                                            </div>
+
+                                            {/* Skills Radar integrated in story */}
+                                            <div className="lg:w-[320px] flex flex-col items-center justify-center bg-black/20 rounded-3xl p-6 border border-white/5">
+                                                <h4 className="text-[10px] font-black text-indigo-400 uppercase tracking-[0.2em] mb-4">Competency Radar</h4>
+                                                <RadarChart
+                                                    data={stats.assessment?.competencies}
+                                                    size={240}
+                                                    color="#6366f1"
+                                                />
+                                            </div>
+                                        </div>
+                                    </div>
+                                </div>
+                            </div>
+
                             {/* High Level Stats */}
                             <div className="grid grid-cols-1 md:grid-cols-4 gap-6">
                                 <StatCard
@@ -681,31 +775,7 @@ const ProgressReportModal = ({ onClose }) => {
                                     </div>
 
                                     <div className="grid grid-cols-1 md:grid-cols-2 gap-8">
-                                        {Object.entries(
-                                            Object.entries(stats.objectiveStats).reduce((acc, [key, data]) => {
-                                                let name = objMap[key] || key;
-                                                if (!objMap[key]) {
-                                                    if (key.includes(':')) {
-                                                        const [prefix, suffix] = key.split(':');
-                                                        if (objMap[prefix]) {
-                                                            name = `${objMap[prefix]}: Objective ${parseInt(suffix) + 1}`;
-                                                        } else {
-                                                            name = prefix.split('_').map(s => s.charAt(0).toUpperCase() + s.slice(1)).join(' ');
-                                                        }
-                                                    } else if (key.length > 20 && !key.includes(' ')) {
-                                                        name = "Unknown Objective";
-                                                    }
-                                                }
-                                                if (!acc[name]) {
-                                                    acc[name] = { ...data };
-                                                } else {
-                                                    acc[name].total += data.total;
-                                                    acc[name].count += data.count;
-                                                    acc[name].runs = [...acc[name].runs, ...data.runs];
-                                                }
-                                                return acc;
-                                            }, {})
-                                        ).map(([readableName, data]) => {
+                                        {Object.entries(stats.objectiveStats).map(([readableName, data]) => {
                                             const avgScore = Math.round(data.total / data.count);
 
                                             return (
@@ -724,7 +794,7 @@ const ProgressReportModal = ({ onClose }) => {
                                                     </div>
                                                     <div className="flex justify-between text-[10px] text-zinc-500 uppercase tracking-wider">
                                                         <span>{data.count} Data Points</span>
-                                                        <span>History: {data.runs.map(r => r.score).join(', ')}</span>
+                                                        <span>{avgScore >= 75 ? 'Peak performance achieved.' : 'Further field experience recommended.'}</span>
                                                     </div>
                                                 </div>
                                             );
