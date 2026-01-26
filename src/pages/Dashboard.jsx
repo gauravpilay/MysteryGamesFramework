@@ -1,7 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import { useAuth } from '../lib/auth';
 import { db } from '../lib/firebase';
-import { collection, addDoc, deleteDoc, updateDoc, doc, onSnapshot, query, orderBy } from 'firebase/firestore';
+import { collection, addDoc, deleteDoc, updateDoc, setDoc, doc, onSnapshot, query, orderBy } from 'firebase/firestore';
 import { Button, Card, Input, Label } from '../components/ui/shared';
 import { Logo } from '../components/ui/Logo';
 import { Plus, FolderOpen, LogOut, Search, Trash2, Rocket, Copy, Users, BookOpen, Lock, Unlock, Activity, FileText, CheckCircle, Clock, TrendingUp, Pencil, Fingerprint, Trophy, AlertTriangle } from 'lucide-react';
@@ -140,7 +140,7 @@ const Dashboard = () => {
 
         const newStatus = project.status === 'published' ? 'draft' : 'published';
         try {
-            await updateDoc(doc(db, "cases", project.id), { status: newStatus });
+            await setDoc(doc(db, "cases", project.id), { status: newStatus }, { merge: true });
         } catch (e) {
             console.error("Status update failed:", e);
         }
@@ -163,7 +163,7 @@ const Dashboard = () => {
         setIsRequesting(true);
         try {
             const docRef = doc(db, "cases", lockedProject.id);
-            await updateDoc(docRef, {
+            await setDoc(docRef, {
                 accessRequest: {
                     uid: user.uid,
                     displayName: user.displayName || user.email,
@@ -171,7 +171,7 @@ const Dashboard = () => {
                     timestamp: new Date().toISOString(),
                     status: 'pending'
                 }
-            });
+            }, { merge: true });
         } catch (err) {
             console.error("Failed to request access", err);
             setIsRequesting(false);
@@ -182,13 +182,13 @@ const Dashboard = () => {
         if (!db || !project || !request) return;
         try {
             const docRef = doc(db, "cases", project.id);
-            await updateDoc(docRef, {
+            await setDoc(docRef, {
                 editingBy: null,
                 accessRequest: {
                     ...request,
                     status: 'accepted'
                 }
-            });
+            }, { merge: true });
             setIncomingRequest(null);
         } catch (err) {
             console.error("Failed to accept request", err);
@@ -199,12 +199,12 @@ const Dashboard = () => {
         if (!db || !project || !request) return;
         try {
             const docRef = doc(db, "cases", project.id);
-            await updateDoc(docRef, {
+            await setDoc(docRef, {
                 accessRequest: {
                     ...request,
                     status: 'declined'
                 }
-            });
+            }, { merge: true });
             setIncomingRequest(null);
         } catch (err) {
             console.error("Failed to decline request", err);
@@ -222,7 +222,7 @@ const Dashboard = () => {
                 if (currentProject.accessRequest && currentProject.accessRequest.uid === user.uid) {
                     if (currentProject.accessRequest.status === 'accepted') {
                         setRequestFeedback('accepted');
-                        updateDoc(doc(db, "cases", currentProject.id), { accessRequest: null }).catch(() => { });
+                        setDoc(doc(db, "cases", currentProject.id), { accessRequest: null }, { merge: true }).catch(() => { });
                         setTimeout(() => {
                             setRequestFeedback(null);
                             setLockedProject(null);
@@ -232,7 +232,7 @@ const Dashboard = () => {
                         setRequestFeedback('declined');
                         setIsRequesting(false);
                         setTimeout(() => {
-                            updateDoc(doc(db, "cases", currentProject.id), { accessRequest: null }).catch(() => { });
+                            setDoc(doc(db, "cases", currentProject.id), { accessRequest: null }, { merge: true }).catch(() => { });
                             setRequestFeedback(null);
                         }, 5000);
                     }

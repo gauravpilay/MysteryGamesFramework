@@ -1,10 +1,12 @@
 import React, { memo, useState, useRef, useEffect } from 'react';
 import ReactDOM from 'react-dom';
 import { Handle, Position, NodeResizer } from 'reactflow';
-import { FileText, User, Search, GitMerge, Terminal, MessageSquare, Music, Image as ImageIcon, Star, MousePointerClick, Trash2, Plus, Copy, Fingerprint, Bell, HelpCircle, ToggleLeft, Unlock, Binary, Grid3x3, Folder, ChevronDown, ChevronUp, Maximize, X, Save, File, FolderOpen, AlertCircle, Brain, Cpu, Send, Loader2, Check, Filter, ShieldAlert } from 'lucide-react';
+import { FileText, User, Search, GitMerge, Terminal, MessageSquare, Music, Image as ImageIcon, Star, MousePointerClick, Trash2, Plus, Copy, Fingerprint, Bell, HelpCircle, ToggleLeft, Unlock, Binary, Grid3x3, Folder, ChevronDown, ChevronUp, Maximize, X, Save, File, FolderOpen, AlertCircle, Brain, Cpu, Send, Loader2, Check, Filter, ShieldAlert, Box, CheckCircle } from 'lucide-react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { storage } from '../../lib/firebase';
 import { ref, uploadBytes, getDownloadURL } from 'firebase/storage';
+import { callAI } from '../../lib/ai';
+import { useConfig } from '../../lib/config';
 
 // ... (existing code for SetterNode) ...
 
@@ -1040,6 +1042,216 @@ export const TerminalNode = memo(({ id, data, selected }) => {
     );
 });
 // AIPersonaModal removed and replaced with inline editing in InterrogationNode
+
+
+export const ThreeDSceneNode = memo(({ id, data, selected }) => {
+    const { settings } = useConfig();
+    const [isUploading, setIsUploading] = useState(false);
+    const [isParsing, setIsParsing] = useState(false);
+    const handleChange = (key, val) => {
+        data.onChange && data.onChange(id, { ...data, [key]: val });
+    };
+
+    const handleFileUpload = async (e) => {
+        const file = e.target.files[0];
+        if (!file) return;
+
+        if (!storage) {
+            alert("Firebase Storage not initialized.");
+            return;
+        }
+
+        setIsUploading(true);
+        try {
+            const storageRef = ref(storage, `blueprints/${Date.now()}_${file.name}`);
+            await uploadBytes(storageRef, file);
+            const url = await getDownloadURL(storageRef);
+            handleChange('blueprintUrl', url);
+        } catch (error) {
+            console.error("Upload failed", error);
+            alert("Blueprint upload failed.");
+        } finally {
+            setIsUploading(false);
+        }
+    };
+
+    const generate3DLayout = async () => {
+        if (!data.blueprintUrl) {
+            alert("Please upload a blueprint first.");
+            return;
+        }
+
+        setIsParsing(true);
+        try {
+            let imageData = null;
+
+            // Only fetch and convert to base64 if we are not in simulation mode
+            if (settings.aiApiKey && settings.aiApiKey !== 'SIMULATION_MODE') {
+                const imgResponse = await fetch(data.blueprintUrl);
+                const blob = await imgResponse.blob();
+                imageData = await new Promise((resolve) => {
+                    const reader = new FileReader();
+                    reader.onloadend = () => resolve(reader.result);
+                    reader.readAsDataURL(blob);
+                });
+            }
+
+            const systemPrompt = `
+                Act as a 3D Floor Plan Parser. 
+                Analyze the provided blueprint and return a JSON object.
+                Geometry Rules:
+                - Use a 20x20 unit grid.
+                - Only extract major walls to keep JSON concise.
+                - Ensure valid JSON syntax (no trailing commas).
+                Format: 
+                {
+                  "rooms": [
+                    {
+                      "name": "Room Name",
+                      "color": "#hexColor",
+                      "center": { "x": number, "z": number },
+                      "walls": [
+                        { "x1": number, "z1": number, "x2": number, "z2": number }
+                      ],
+                      "furniture": [
+                        { "type": "desk|chair|cabinet|box", "position": {"x": number, "z": number}, "rotation": number }
+                      ]
+                    }
+                  ]
+                }
+            `.trim();
+
+            const userMessage = "Analyze floor plan. Output ONLY JSON.";
+
+            const responseText = await callAI(
+                data.aiProvider || 'gemini',
+                systemPrompt,
+                userMessage,
+                settings.aiApiKey || 'SIMULATION_MODE',
+                imageData || data.blueprintUrl // fallback to URL if fetch failed or simulation
+            );
+
+            // Robust JSON extraction
+            let jsonStr = "";
+            const startIdx = responseText.indexOf('{');
+            const endIdx = responseText.lastIndexOf('}');
+
+            if (startIdx !== -1 && endIdx !== -1) {
+                jsonStr = responseText.substring(startIdx, endIdx + 1);
+            } else {
+                jsonStr = responseText; // try whole string
+            }
+
+            try {
+                // Remove potential markdown blocks if AI ignored the response_mime_type
+                const cleanedJson = jsonStr.replace(/```json|```/g, '').trim();
+                const layout = JSON.parse(cleanedJson);
+                handleChange('layout', layout);
+            } catch (pErr) {
+                console.warn("Primary JSON parse failed, attempting secondary cleanup...", pErr);
+                // Attempt to fix trailing commas which are common AI mistakes
+                const secondaryClean = jsonStr.replace(/,\s*([\]}])/g, '$1').trim();
+                const layout = JSON.parse(secondaryClean);
+                handleChange('layout', layout);
+            }
+        } catch (error) {
+            console.error("3D Generation failed", error);
+            alert("3D Generation failed: " + error.message);
+        } finally {
+            setIsParsing(false);
+        }
+    };
+
+    return (
+        <>
+            <Handle type="target" position={Position.Top} className="!bg-zinc-500 !w-3 !h-3 !border-2 !border-black" />
+            <NodeWrapper id={id} title="3D Holodeck" icon={Box} selected={selected} headerClass="bg-cyan-950/30 text-cyan-200" colorClass="border-cyan-900/30" data={data} onLabelChange={(v) => handleChange('label', v)}>
+                <div className="space-y-4">
+                    <div className="p-3 bg-cyan-500/5 border border-cyan-500/10 rounded-xl space-y-3">
+                        <p className="text-[10px] text-cyan-400 font-black uppercase tracking-widest flex items-center gap-2">
+                            <ImageIcon className="w-3.5 h-3.5" /> 2D Blueprint
+                        </p>
+
+                        <div className="relative group">
+                            <input
+                                type="file"
+                                accept="image/*"
+                                className="absolute inset-0 w-full h-full opacity-0 cursor-pointer"
+                                onChange={handleFileUpload}
+                            />
+                            <div className="border border-dashed border-cyan-900/40 p-4 text-center rounded-lg group-hover:bg-cyan-900/10 transition-all">
+                                {isUploading ? (
+                                    <div className="flex flex-col items-center py-2">
+                                        <Loader2 className="w-6 h-6 animate-spin text-cyan-500 mb-2" />
+                                        <p className="text-[10px] text-cyan-500 font-bold uppercase">Uploading Data...</p>
+                                    </div>
+                                ) : data.blueprintUrl ? (
+                                    <img src={data.blueprintUrl} className="max-h-24 mx-auto rounded border border-cyan-900/20" alt="Blueprint" />
+                                ) : (
+                                    <div className="space-y-1">
+                                        <p className="text-[10px] text-cyan-500 font-bold uppercase">Click to upload map</p>
+                                        <p className="text-[8px] text-zinc-500">JPG, PNG or Sketch</p>
+                                    </div>
+                                )}
+                            </div>
+                        </div>
+
+                        <button
+                            onClick={generate3DLayout}
+                            disabled={isParsing || !data.blueprintUrl}
+                            className={`w-full py-3 rounded-lg font-black text-[10px] uppercase tracking-widest flex items-center justify-center gap-2 transition-all ${isParsing
+                                ? "bg-zinc-800 text-zinc-500"
+                                : "bg-cyan-600 hover:bg-cyan-500 text-black shadow-lg shadow-cyan-600/20"
+                                }`}
+                        >
+                            {isParsing ? (
+                                <>
+                                    <Loader2 className="w-3.5 h-3.5 animate-spin" />
+                                    Parsing Geometry...
+                                </>
+                            ) : (
+                                <>
+                                    <Cpu className="w-3.5 h-3.5" />
+                                    Generate 3D World
+                                </>
+                            )}
+                        </button>
+                    </div>
+
+                    {data.layout && (
+                        <div className="p-3 bg-emerald-500/5 border border-emerald-500/10 rounded-xl">
+                            <div className="flex items-center justify-between mb-2">
+                                <p className="text-[9px] text-emerald-400 font-black uppercase tracking-widest flex items-center gap-1.5">
+                                    <CheckCircle className="w-3 h-3" /> 3D Data Ready
+                                </p>
+                                <span className="text-[8px] text-zinc-500 uppercase font-bold">
+                                    {data.layout.rooms?.length || 0} Rooms
+                                </span>
+                            </div>
+                            <div className="flex flex-wrap gap-1">
+                                {data.layout.rooms?.map((r, i) => (
+                                    <span key={i} className="px-1.5 py-0.5 bg-zinc-900 border border-zinc-800 rounded text-[7px] text-zinc-400 uppercase font-black">
+                                        {r.name}
+                                    </span>
+                                ))}
+                            </div>
+                        </div>
+                    )}
+
+                    <div className="p-2 border-t border-cyan-900/20">
+                        <p className="text-[9px] text-zinc-500 mb-2 uppercase font-black">Exploration Goals</p>
+                        <ObjectiveSelector
+                            values={data.learningObjectiveIds}
+                            onChange={(v) => handleChange('learningObjectiveIds', v)}
+                            objectives={data.learningObjectives}
+                        />
+                    </div>
+                </div>
+            </NodeWrapper>
+            <Handle type="source" position={Position.Bottom} className="!bg-cyan-500 !w-3 !h-3 !border-2 !border-black" />
+        </>
+    );
+});
 
 
 export const InterrogationNode = memo(({ id, data, selected }) => {

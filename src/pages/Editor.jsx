@@ -14,7 +14,7 @@ import { useParams, useNavigate } from 'react-router-dom';
 import { Button } from '../components/ui/shared';
 import { Logo } from '../components/ui/Logo';
 import { Save, ArrowLeft, X, FileText, User, Search, GitMerge, Terminal, MessageSquare, CircleHelp, Play, Settings, Music, Image as ImageIcon, MousePointerClick, Fingerprint, Bell, HelpCircle, ChevronLeft, ChevronRight, ToggleLeft, Lock, Sun, Moon, Stethoscope, Unlock, Binary, Grid3x3, CheckCircle, AlertTriangle, Plus, Trash2, Target, Box, FolderOpen, Brain } from 'lucide-react';
-import { StoryNode, SuspectNode, EvidenceNode, LogicNode, TerminalNode, MessageNode, MusicNode, MediaNode, ActionNode, IdentifyNode, NotificationNode, QuestionNode, SetterNode, LockpickNode, DecryptionNode, KeypadNode, GroupNode, InputField, InterrogationNode } from '../components/nodes/CustomNodes';
+import { StoryNode, SuspectNode, EvidenceNode, LogicNode, TerminalNode, MessageNode, MusicNode, MediaNode, ActionNode, IdentifyNode, NotificationNode, QuestionNode, SetterNode, LockpickNode, DecryptionNode, KeypadNode, GroupNode, InputField, InterrogationNode, ThreeDSceneNode } from '../components/nodes/CustomNodes';
 function FolderNode(props) {
     return <GroupNode {...props} />;
 }
@@ -23,7 +23,7 @@ import GamePreview from '../components/GamePreview';
 import { AnimatePresence, motion } from 'framer-motion';
 import JSZip from 'jszip';
 import { db } from '../lib/firebase';
-import { doc, getDoc, updateDoc, increment, addDoc, collection, onSnapshot } from 'firebase/firestore';
+import { doc, getDoc, updateDoc, setDoc, increment, addDoc, collection, onSnapshot } from 'firebase/firestore';
 import { useAuth } from '../lib/auth';
 
 // ... (other imports)
@@ -138,6 +138,7 @@ const PALETTE_ITEMS = [
     { type: 'lockpick', label: 'Lockpick Game', icon: Unlock, className: "hover:border-amber-500/50", iconClass: "text-amber-400" },
     { type: 'decryption', label: 'Decryption', icon: Binary, className: "hover:border-lime-500/50", iconClass: "text-lime-400" },
     { type: 'keypad', label: 'Keypad Lock', icon: Grid3x3, className: "hover:border-slate-500/50", iconClass: "text-slate-400" },
+    { type: 'threed', label: '3D Holodeck', icon: Box, className: "hover:border-cyan-500/50", iconClass: "text-cyan-400" },
 ];
 
 const Editor = () => {
@@ -224,7 +225,8 @@ const Editor = () => {
         lockpick: LockpickNode,
         decryption: DecryptionNode,
         keypad: KeypadNode,
-        group: FolderNode
+        group: FolderNode,
+        threed: ThreeDSceneNode
     }), []);
 
     const [editingEdge, setEditingEdge] = useState(null); // { id: string, label: string }
@@ -551,13 +553,16 @@ const Editor = () => {
                     photoURL: user.photoURL || ""
                 };
 
-                await updateDoc(docRef, { editingBy: lockData });
+                await setDoc(docRef, { editingBy: lockData }, { merge: true });
 
                 // Start heartbeat
                 heartbeatInterval = setInterval(async () => {
-                    await updateDoc(docRef, {
-                        "editingBy.timestamp": new Date().toISOString()
-                    });
+                    await setDoc(docRef, {
+                        editingBy: {
+                            ...lockData,
+                            timestamp: new Date().toISOString()
+                        }
+                    }, { merge: true });
                 }, 30000); // Every 30 seconds
             } catch (err) {
                 console.error("Lock acquisition failed", err);
@@ -587,14 +592,14 @@ const Editor = () => {
                     if (data.accessRequest.status === 'accepted') {
                         setRequestFeedback('accepted');
                         // Clear request from DB after receipt
-                        updateDoc(docRef, { accessRequest: null }).catch(() => { });
+                        setDoc(docRef, { accessRequest: null }, { merge: true }).catch(() => { });
                         setTimeout(() => setRequestFeedback(null), 5000);
                     } else if (data.accessRequest.status === 'declined') {
                         setRequestFeedback('declined');
                         setIsRequesting(false);
                         // Clear request from DB after receipt
                         setTimeout(() => {
-                            updateDoc(docRef, { accessRequest: null }).catch(() => { });
+                            setDoc(docRef, { accessRequest: null }, { merge: true }).catch(() => { });
                             setRequestFeedback(null);
                         }, 5000);
                     }
@@ -630,7 +635,7 @@ const Editor = () => {
                 // To be safe, we only clear if we are NOT re-running because of a project change.
                 getDoc(docRef).then(s => {
                     if (s.exists() && s.data().editingBy?.uid === user.uid) {
-                        updateDoc(docRef, { editingBy: null }).catch(() => { });
+                        setDoc(docRef, { editingBy: null }, { merge: true }).catch(() => { });
                     }
                 }).catch(() => { });
             }
@@ -716,13 +721,11 @@ const Editor = () => {
             const docRef = doc(db, "cases", projectId);
 
             // Log for debugging if it fails again
-            console.log("Saving payload:", flow);
-
-            await updateDoc(docRef, {
+            await setDoc(docRef, {
                 ...flow,
                 updatedAt: new Date().toISOString(),
                 nodeCount: nodes.length
-            });
+            }, { merge: true });
 
             // Visual feedback
             const btn = document.getElementById('save-btn');
@@ -742,7 +745,7 @@ const Editor = () => {
         setIsRequesting(true);
         try {
             const docRef = doc(db, "cases", projectId);
-            await updateDoc(docRef, {
+            await setDoc(docRef, {
                 accessRequest: {
                     uid: user.uid,
                     displayName: user.displayName || user.email,
@@ -750,7 +753,7 @@ const Editor = () => {
                     timestamp: new Date().toISOString(),
                     status: 'pending'
                 }
-            });
+            }, { merge: true });
         } catch (err) {
             console.error("Failed to request access", err);
             setIsRequesting(false);
@@ -765,13 +768,13 @@ const Editor = () => {
 
             // 2. Release lock and update request status
             const docRef = doc(db, "cases", projectId);
-            await updateDoc(docRef, {
+            await setDoc(docRef, {
                 editingBy: null,
                 accessRequest: {
                     ...incomingRequest,
                     status: 'accepted'
                 }
-            });
+            }, { merge: true });
 
             // 3. Clear local state and navigate
             setIncomingRequest(null);
@@ -785,12 +788,12 @@ const Editor = () => {
         if (!db || !projectId || !incomingRequest) return;
         try {
             const docRef = doc(db, "cases", projectId);
-            await updateDoc(docRef, {
+            await setDoc(docRef, {
                 accessRequest: {
                     ...incomingRequest,
                     status: 'declined'
                 }
-            });
+            }, { merge: true });
             setIncomingRequest(null);
         } catch (err) {
             console.error("Failed to decline request", err);
@@ -810,10 +813,10 @@ const Editor = () => {
                 timestamp: new Date().toISOString(),
                 photoURL: user.photoURL || ""
             };
-            await updateDoc(docRef, {
+            await setDoc(docRef, {
                 editingBy: lockData,
                 accessRequest: null // Clear any pending requests
-            });
+            }, { merge: true });
             setShowLockedModal(false);
             setRequestFeedback(null);
             setIsRequesting(false);

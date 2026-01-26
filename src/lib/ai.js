@@ -3,7 +3,7 @@
  * Supports Google Gemini and OpenAI ChatGPT
  */
 
-export const callAI = async (provider, systemPrompt, userMessage, apiKey) => {
+export const callAI = async (provider, systemPrompt, userMessage, apiKey, imageData = null) => {
     // If no API key is provided, use a local simulation mode
     if (!apiKey || apiKey === 'SIMULATION_MODE') {
         return simulateResponse(systemPrompt, userMessage);
@@ -11,16 +11,28 @@ export const callAI = async (provider, systemPrompt, userMessage, apiKey) => {
 
     if (provider === 'gemini') {
         const url = `https://generativelanguage.googleapis.com/v1beta/models/gemini-2.0-flash:generateContent?key=${apiKey}`;
-        const body = {
-            contents: [
-                {
-                    role: 'user',
-                    parts: [{ text: `SYSTEM CONTEXT: ${systemPrompt}\n\nUSER QUESTION: ${userMessage}` }]
+
+        const parts = [
+            { text: `SYSTEM CONTEXT: ${systemPrompt}\n\nUSER QUESTION: ${userMessage}` }
+        ];
+
+        if (imageData) {
+            // Split base64 to remove data:image/png;base64, prefix if present
+            const base64Data = imageData.split(',')[1] || imageData;
+            parts.push({
+                inline_data: {
+                    mime_type: "image/png",
+                    data: base64Data
                 }
-            ],
+            });
+        }
+
+        const body = {
+            contents: [{ role: 'user', parts }],
             generationConfig: {
-                temperature: 0.7,
-                maxOutputTokens: 500,
+                temperature: 0.1, // Lower temperature for more structured JSON output
+                maxOutputTokens: 4000,
+                response_mime_type: "application/json" // Force JSON if possible
             }
         };
 
@@ -85,6 +97,44 @@ export const callAI = async (provider, systemPrompt, userMessage, apiKey) => {
  */
 const simulateResponse = (prompt, message) => {
     const msg = message.toLowerCase();
+
+    // Support for 3D Floor Plan Simulation
+    if (prompt.includes("3D Floor Plan Parser") || message.includes("floor plan")) {
+        return JSON.stringify({
+            rooms: [
+                {
+                    name: "Main Hallway",
+                    color: "#2c3e50",
+                    center: { x: 0, z: 0 },
+                    walls: [
+                        { x1: -5, z1: -5, x2: 5, z2: -5 },
+                        { x1: 5, z1: -5, x2: 5, z2: 5 },
+                        { x1: 5, z1: 5, x2: -5, z2: 5 },
+                        { x1: -5, z1: 5, x2: -5, z2: -5 }
+                    ],
+                    furniture: [
+                        { type: "desk", position: { x: 0, z: -3 }, rotation: 0 },
+                        { type: "chair", position: { x: 0, z: -2.2 }, rotation: Math.PI },
+                        { type: "cabinet", position: { x: -4, z: 0 }, rotation: Math.PI / 2 }
+                    ]
+                },
+                {
+                    name: "Evidence Vault",
+                    color: "#c0392b",
+                    center: { x: 8, z: 0 },
+                    walls: [
+                        { x1: -5, z1: -2, x2: 3, z2: -2 },
+                        { x1: 3, z1: -2, x2: 3, z2: 2 },
+                        { x1: 3, z1: 2, x2: -5, z2: 2 }
+                    ],
+                    furniture: [
+                        { type: "box", position: { x: 0, z: 0 }, rotation: 0 },
+                        { type: "cabinet", position: { x: 2, z: -1 }, rotation: 0 }
+                    ]
+                }
+            ]
+        });
+    }
 
     // Basic common questions
     if (msg.includes("hello") || msg.includes("hi")) return "Hello. I'm busy, so make it quick.";

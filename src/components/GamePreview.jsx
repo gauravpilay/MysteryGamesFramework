@@ -5,6 +5,7 @@ import { motion, AnimatePresence } from 'framer-motion';
 import EvidenceBoard from './EvidenceBoard';
 import AdvancedTerminal from './AdvancedTerminal';
 import AIInterrogation from './AIInterrogation';
+import ThreeDWorld from './ThreeDWorld';
 import {
     checkLogicCondition as checkLogic,
     evaluateLogic as evalLogic,
@@ -656,7 +657,7 @@ const GamePreview = ({ nodes, edges, onClose, gameMetadata, onGameEnd }) => {
         setCurrentNodeId(nodeId);
 
         // If it's a type that requires a popup, set it as active modal AND add to inventory
-        if (node && ['suspect', 'evidence', 'terminal', 'message', 'media', 'notification', 'question', 'lockpick', 'decryption', 'keypad', 'interrogation'].includes(node.type)) {
+        if (node && ['suspect', 'evidence', 'terminal', 'message', 'media', 'notification', 'question', 'lockpick', 'decryption', 'keypad', 'interrogation', 'threed'].includes(node.type)) {
             setActiveModalNode(node);
             if (node.type === 'question') setUserAnswers(new Set());
 
@@ -1494,7 +1495,7 @@ const GamePreview = ({ nodes, edges, onClose, gameMetadata, onGameEnd }) => {
                             initial={{ scale: 0.9, opacity: 0 }}
                             animate={{ scale: 1, opacity: 1 }}
                             exit={{ scale: 0.9, opacity: 0 }}
-                            className="bg-zinc-950 border border-zinc-800 p-0 rounded-2xl max-w-2xl w-full relative overflow-hidden shadow-2xl shadow-black max-h-[90vh] flex flex-col"
+                            className={`bg-zinc-950 border border-zinc-800 p-0 rounded-2xl relative overflow-hidden shadow-2xl shadow-black max-h-[95vh] flex flex-col transition-all duration-500 ${activeModalNode.type === 'threed' ? 'max-w-5xl w-full h-[80vh]' : 'max-w-2xl w-full'}`}
                         >
                             {/* Modal Close Button */}
                             <button
@@ -2034,6 +2035,16 @@ const GamePreview = ({ nodes, edges, onClose, gameMetadata, onGameEnd }) => {
                                         if (next) handleOptionClick(next.target);
                                     }}
                                 />
+                            )}
+
+                            {/* 3D Holodeck Experience */}
+                            {activeModalNode.type === 'threed' && (
+                                <div className="flex-1 w-full min-h-[60vh] relative overflow-hidden rounded-b-2xl">
+                                    <ThreeDWorld
+                                        layout={activeModalNode.data.layout}
+                                        onClose={() => handleCloseModal()}
+                                    />
+                                </div>
                             )}
 
                         </motion.div>
