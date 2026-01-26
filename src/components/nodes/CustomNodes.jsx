@@ -1108,14 +1108,19 @@ export const ThreeDSceneNode = memo(({ id, data, selected }) => {
             }
 
             const systemPrompt = `
-                Act as a Master 3D Architect. 
-                Reconstruct the provided blueprint into a 3D Floor Plan.
+                Act as a Master 3D Architect and Spatial Designer. 
+                Reconstruct the provided blueprint into a highly detailed 3D Holodeck Floor Plan.
                 
                 GEOMETRY RULES:
                 - Use a Global World Coordinate System (X, Z).
-                - Use a 1 unit = 1 meter scale.
-                - For each room, determine its center point and define all contents using Global coordinates.
-                - Doors must be placed at the exact gaps between rooms.
+                - SCALE: 1 unit = 1 meter. This is CRITICAL. 
+                - Walls should be ~3.5m high.
+                - Furniture must be sized realistically (e.g., a desk is roughly 1.5x0.8m, a chair is 0.5x0.5m).
+                
+                FURNITURE RULES:
+                - You MUST provide a "scale": [width, height, depth] for every item.
+                - Use these types: "desk", "chair", "cabinet", "box", "table", "shelf", "computer", "bed".
+                - Place furniture logically against walls or in centers of rooms.
 
                 JSON FORMAT:
                 {
@@ -1126,7 +1131,15 @@ export const ThreeDSceneNode = memo(({ id, data, selected }) => {
                       "center": { "x": number, "z": number },
                       "walls": [{ "x1": number, "z1": number, "x2": number, "z2": number }],
                       "doors": [{ "x1": number, "z1": number, "x2": number, "z2": number }],
-                      "furniture": [{ "type": "desk|chair|cabinet|box", "position": {"x": number, "z": number}, "rotation": number }]
+                      "furniture": [
+                        { 
+                          "type": "desk|chair|cabinet|box|table|shelf|computer|bed", 
+                          "position": {"x": number, "z": number}, 
+                          "scale": [number, number, number],
+                          "rotation": number,
+                          "label": "Brief description of the item"
+                        }
+                      ]
                     }
                   ]
                 }

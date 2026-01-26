@@ -210,40 +210,73 @@ const Floor = ({ width = 100, length = 100 }) => {
 };
 
 // furniture helper
-const Furniture = ({ type, position, rotation = 0, color = "#7f8c8d", scale = [1, 1, 1] }) => {
+const Furniture = ({ type, position, rotation = 0, color = "#7f8c8d", scale = [1, 1, 1], label }) => {
+    // Standardize scale if it comes as an object or missing
+    const s = Array.isArray(scale) ? scale : [1, 1, 1];
+    const hoverScale = 1.02;
+
     return (
         <group position={[position.x, 0.02, position.z]} rotation={[0, rotation, 0]}>
-            {type === 'desk' && (
-                <group position={[0, 0.4, 0]}>
-                    <Box args={[1.5, 0.1, 0.8]}>
-                        <meshStandardMaterial color="#34495e" />
+            <group scale={s}>
+                {type === 'desk' && (
+                    <group>
+                        <Box args={[1, 0.1, 0.6]} position={[0, 0.75, 0]}>
+                            <meshStandardMaterial color="#2c3e50" metalness={0.2} roughness={0.1} />
+                        </Box>
+                        <Box args={[0.08, 0.75, 0.08]} position={[-0.45, 0.375, -0.25]}><meshStandardMaterial color="#1a1a1a" /></Box>
+                        <Box args={[0.08, 0.75, 0.08]} position={[0.45, 0.375, -0.25]}><meshStandardMaterial color="#1a1a1a" /></Box>
+                        <Box args={[0.08, 0.75, 0.08]} position={[-0.45, 0.375, 0.25]}><meshStandardMaterial color="#1a1a1a" /></Box>
+                        <Box args={[0.08, 0.75, 0.08]} position={[0.45, 0.375, 0.25]}><meshStandardMaterial color="#1a1a1a" /></Box>
+                    </group>
+                )}
+                {type === 'cabinet' && (
+                    <group>
+                        <Box args={[1, 1, 0.5]} position={[0, 0.5, 0]}>
+                            <meshStandardMaterial color="#34495e" metalness={0.6} />
+                        </Box>
+                        <Box args={[0.9, 0.4, 0.05]} position={[0, 0.7, 0.23]}><meshStandardMaterial color="#2c3e50" /></Box>
+                        <Box args={[0.9, 0.4, 0.05]} position={[0, 0.25, 0.23]}><meshStandardMaterial color="#2c3e50" /></Box>
+                    </group>
+                )}
+                {type === 'chair' && (
+                    <group position={[0, 0, 0]}>
+                        <Box args={[0.5, 0.1, 0.5]} position={[0, 0.45, 0]}><meshStandardMaterial color="#2c3e50" /></Box>
+                        <Box args={[0.5, 0.6, 0.1]} position={[0, 0.75, -0.2]}><meshStandardMaterial color="#2c3e50" /></Box>
+                        <Box args={[0.05, 0.45, 0.05]} position={[-0.2, 0.225, -0.2]}><meshStandardMaterial color="#000" /></Box>
+                        <Box args={[0.05, 0.45, 0.05]} position={[0.2, 0.225, -0.2]}><meshStandardMaterial color="#000" /></Box>
+                        <Box args={[0.05, 0.45, 0.05]} position={[-0.2, 0.225, 0.2]}><meshStandardMaterial color="#000" /></Box>
+                        <Box args={[0.05, 0.45, 0.05]} position={[0.2, 0.225, 0.2]}><meshStandardMaterial color="#000" /></Box>
+                    </group>
+                )}
+                {type === 'table' && (
+                    <group>
+                        <Box args={[1.5, 0.1, 1.5]} position={[0, 0.75, 0]}>
+                            <meshStandardMaterial color="#7f8c8d" roughness={0.5} />
+                        </Box>
+                        <Box args={[0.1, 0.75, 0.1]} position={[0, 0.375, 0]}><meshStandardMaterial color="#2c3e50" /></Box>
+                    </group>
+                )}
+                {!['desk', 'cabinet', 'chair', 'table'].includes(type) && (
+                    <Box args={[1, 1, 1]} position={[0, 0.5, 0]}>
+                        <meshStandardMaterial color={color} emissive={color} emissiveIntensity={0.1} />
                     </Box>
-                    <Box args={[0.05, 0.8, 0.05]} position={[-0.7, -0.4, -0.35]}><meshStandardMaterial color="#2c3e50" /></Box>
-                    <Box args={[0.05, 0.8, 0.05]} position={[0.7, -0.4, -0.35]}><meshStandardMaterial color="#2c3e50" /></Box>
-                    <Box args={[0.05, 0.8, 0.05]} position={[-0.7, -0.4, 0.35]}><meshStandardMaterial color="#2c3e50" /></Box>
-                    <Box args={[0.05, 0.8, 0.05]} position={[0.7, -0.4, 0.35]}><meshStandardMaterial color="#2c3e50" /></Box>
-                </group>
-            )}
-            {type === 'cabinet' && (
-                <Box args={[1, 2, 0.6]} position={[0, 1, 0]}>
-                    <meshStandardMaterial color="#95a5a6" metalness={0.5} roughness={0.3} />
+                )}
+            </group>
+
+            {/* Holographic Wireframe Highlight for visibility */}
+            <group scale={[s[0] * 1.01, s[1] * 1.01, s[2] * 1.01]} position={[0, s[1] / 2, 0]}>
+                <Box args={[1, 1, 1]}>
+                    <meshBasicMaterial color="#ffffff" wireframe opacity={0.15} transparent />
                 </Box>
-            )}
-            {type === 'chair' && (
-                <group position={[0, 0.45, 0]}>
-                    <Box args={[0.5, 0.1, 0.5]}><meshStandardMaterial color="#2c3e50" /></Box>
-                    <Box args={[0.5, 0.6, 0.05]} position={[0, 0.3, -0.22]}><meshStandardMaterial color="#2c3e50" /></Box>
-                </group>
-            )}
-            {type === 'box' && (
-                <Box args={[0.6, 0.6, 0.6]} position={[0, 0.3, 0]}>
-                    <meshStandardMaterial color="#d35400" roughness={1} />
-                </Box>
-            )}
-            {!['desk', 'cabinet', 'chair', 'box'].includes(type) && (
-                <Box args={scale} position={[0, scale[1] / 2, 0]}>
-                    <meshStandardMaterial color={color} />
-                </Box>
+            </group>
+
+            {/* ID Label */}
+            {label && (
+                <Billboard position={[0, s[1] + 0.5, 0]}>
+                    <Text fontSize={0.15} color="#cyan" anchorX="center" outlineWidth={0.01} outlineColor="black">
+                        {label.toUpperCase()}
+                    </Text>
+                </Billboard>
             )}
         </group>
     );
@@ -320,13 +353,13 @@ export const ThreeDWorld = ({ layout, onClose }) => {
             <Canvas shadows gl={{ antialias: true }}>
                 <PerspectiveCamera makeDefault position={spawnPoint} fov={75} />
                 <PlayerController spawnPoint={spawnPoint} layout={layout} setActiveZone={setActiveZone} />
-                <Sky sunPosition={[-100, -20, -100]} turbidity={0.1} rayleigh={0.1} />
-                <Environment preset="night" />
+                <Sky sunPosition={[10, 20, 10]} turbidity={0.01} rayleigh={0.2} />
+                <Environment preset="city" />
 
-                <ambientLight intensity={0.5} />
-                <pointLight position={[0, 10, 0]} intensity={2.5} castShadow />
-                <pointLight position={[15, 10, 15]} intensity={1.5} />
-                <pointLight position={[-15, 10, -15]} intensity={1.5} />
+                <ambientLight intensity={0.8} />
+                <pointLight position={[0, 10, 0]} intensity={4} castShadow />
+                <pointLight position={[15, 10, 15]} intensity={2.5} />
+                <pointLight position={[-15, 10, -15]} intensity={2.5} />
 
                 {/* Neon Accents */}
                 <pointLight position={spawnPoint} intensity={2} color="#06b6d4" distance={15} />
@@ -362,6 +395,7 @@ export const ThreeDWorld = ({ layout, onClose }) => {
                                     rotation={item.rotation}
                                     color={item.color}
                                     scale={item.scale}
+                                    label={item.label}
                                 />
                             ))}
 
