@@ -1097,30 +1097,25 @@ export const ThreeDSceneNode = memo(({ id, data, selected }) => {
             }
 
             const systemPrompt = `
-                Act as a High-Detail 3D Room Architect. 
+                Act as a Master 3D Architect. 
                 Reconstruct the provided blueprint into a 3D Floor Plan.
                 
-                STRUCTURAL RULES:
-                - Identify every room and create a "rooms" array.
-                - Place DOORS at room transitions.
-                - Populate rooms with furniture (desk, chair, cabinet, box).
-                - Use 20x20 unit coordinate system.
+                GEOMETRY RULES:
+                - Use a Global World Coordinate System (X, Z).
+                - Use a 1 unit = 1 meter scale.
+                - For each room, determine its center point and define all contents using Global coordinates.
+                - Doors must be placed at the exact gaps between rooms.
 
-                JSON INTEGRITY RULES:
-                - Return VALID JSON ONLY.
-                - Double-check for missing commas between array elements.
-                - Ensure all property names are double-quoted.
-                
-                Format: 
+                JSON FORMAT:
                 {
                   "rooms": [
                     {
-                      "name": "string",
+                      "name": "Room Name",
                       "color": "#hex",
                       "center": { "x": number, "z": number },
                       "walls": [{ "x1": number, "z1": number, "x2": number, "z2": number }],
                       "doors": [{ "x1": number, "z1": number, "x2": number, "z2": number }],
-                      "furniture": [{ "type": "string", "position": {"x": number, "z": number}, "rotation": number }]
+                      "furniture": [{ "type": "desk|chair|cabinet|box", "position": {"x": number, "z": number}, "rotation": number }]
                     }
                   ]
                 }

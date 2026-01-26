@@ -9,7 +9,8 @@ import {
     Box,
     Plane,
     Text,
-    useCursor
+    useCursor,
+    Billboard
 } from '@react-three/drei';
 import * as THREE from 'three';
 import { X, Search, Box as BoxIcon, Zap } from 'lucide-react';
@@ -57,28 +58,28 @@ const Door = ({ start, end, height = 3.5, thickness = 0.3 }) => {
     return (
         <group position={[midX, height / 2, midY]} rotation={[0, -angle, 0]}>
             {/* Frame Top */}
-            <Box args={[distance, 0.4, thickness + 0.1]} position={[0, height / 2 - 0.2, 0]}>
+            <Box args={[distance, 0.4, thickness + 0.2]} position={[0, height / 2 - 0.2, 0]}>
                 <meshStandardMaterial color="#34495e" metalness={0.5} />
             </Box>
             {/* Frame Left */}
-            <Box args={[0.2, height, thickness + 0.1]} position={[-distance / 2 + 0.1, 0, 0]}>
+            <Box args={[0.3, height, thickness + 0.2]} position={[-distance / 2 + 0.15, 0, 0]}>
                 <meshStandardMaterial color="#34495e" metalness={0.5} />
             </Box>
             {/* Frame Right */}
-            <Box args={[0.2, height, thickness + 0.1]} position={[distance / 2 - 0.1, 0, 0]}>
+            <Box args={[0.3, height, thickness + 0.2]} position={[distance / 2 - 0.15, 0, 0]}>
                 <meshStandardMaterial color="#34495e" metalness={0.5} />
             </Box>
             {/* The Actual Door (Slightly Open) */}
-            <Box args={[distance - 0.4, height - 0.4, 0.1]} position={[0.2, -0.2, 0.2]} rotation={[0, 0.5, 0]}>
+            <Box args={[distance - 0.6, height - 0.4, 0.15]} position={[0.3, -0.2, 0.3]} rotation={[0, 0.6, 0]}>
                 <meshStandardMaterial
                     color="#3498db"
                     roughness={0.5}
                     emissive="#3498db"
-                    emissiveIntensity={0.2}
+                    emissiveIntensity={0.5}
                 />
             </Box>
             {/* Door Glow Indicator */}
-            <pointLight position={[0, 0, 0.3]} intensity={0.5} distance={2} color="#3498db" />
+            <pointLight position={[0, 0, 0.5]} intensity={1.5} distance={4} color="#3498db" />
         </group>
     );
 };
@@ -104,14 +105,15 @@ function usePersonControls() {
 }
 
 // First Person Player Controller
-const PlayerController = ({ spawnPoint }) => {
+const PlayerController = ({ spawnPoint, layout, setActiveZone }) => {
     const { forward, backward, left, right } = usePersonControls();
     const velocity = useRef(new THREE.Vector3());
     const direction = useRef(new THREE.Vector3());
     const speed = 6;
+    const lastZoneUpdate = useRef(0);
 
     useFrame((state, delta) => {
-        const { camera } = state;
+        const { camera, clock } = state;
 
         // Calculate direction
         direction.current.z = Number(forward) - Number(backward);
@@ -137,6 +139,30 @@ const PlayerController = ({ spawnPoint }) => {
 
         camera.position.x += moveX * delta;
         camera.position.z += moveZ * delta;
+
+        // Zone Detection Logic (Throttle to every 200ms)
+        const now = clock.getElapsedTime();
+        if (now - lastZoneUpdate.current > 0.2) {
+            lastZoneUpdate.current = now;
+            let closestRoom = null;
+            let minDistance = 10; // Detection threshold (meters)
+
+            layout.rooms.forEach(room => {
+                if (!room.center) return;
+                const dist = Math.sqrt(
+                    Math.pow(camera.position.x - room.center.x, 2) +
+                    Math.pow(camera.position.z - room.center.z, 2)
+                );
+                if (dist < minDistance) {
+                    minDistance = dist;
+                    closestRoom = room.name;
+                }
+            });
+
+            if (closestRoom) {
+                setActiveZone(closestRoom);
+            }
+        }
     });
 
     return (
@@ -150,16 +176,24 @@ const PlayerController = ({ spawnPoint }) => {
 // Room Label Component
 const RoomLabel = ({ position, text }) => {
     return (
-        <Text
-            position={[position.x, 2.5, position.y]}
-            fontSize={0.5}
-            color="white"
-            anchorX="center"
-            anchorY="middle"
-            rotation={[0, Math.PI, 0]}
+        <Billboard
+            position={[position.x, 3.2, position.y]}
+            follow={true}
+            lockX={false}
+            lockY={false}
+            lockZ={false}
         >
-            {text}
-        </Text>
+            <Text
+                fontSize={0.4}
+                color="white"
+                anchorX="center"
+                anchorY="middle"
+                font="https://fonts.gstatic.com/s/roboto/v18/KFOmCnqEu92Fr1Mu4mxM.woff"
+            >
+                {text}
+                <meshStandardMaterial emissive="white" emissiveIntensity={0.5} />
+            </Text>
+        </Billboard>
     );
 };
 
@@ -224,6 +258,7 @@ const Furniture = ({ type, position, rotation = 0, color = "#7f8c8d", scale = [1
  */
 export const ThreeDWorld = ({ layout, onClose }) => {
     const [isLocked, setIsLocked] = useState(false);
+    const [activeZone, setActiveZone] = useState(layout?.rooms?.[0]?.name || "Investigation Area");
     const controlsRef = useRef();
 
     if (!layout || !layout.rooms || layout.rooms.length === 0) {
@@ -250,7 +285,7 @@ export const ThreeDWorld = ({ layout, onClose }) => {
                     <h2 className="text-sm font-black text-white uppercase tracking-[0.2em] mb-1">Investigation Zone</h2>
                     <div className="flex items-center gap-2">
                         <div className="w-2 h-2 rounded-full bg-cyan-500 animate-pulse"></div>
-                        <p className="text-[10px] text-cyan-400 font-bold uppercase">{firstRoom.name || "Reconstructed Area"}</p>
+                        <p className="text-[10px] text-cyan-400 font-bold uppercase">{activeZone}</p>
                     </div>
                 </div>
             </div>
@@ -284,7 +319,7 @@ export const ThreeDWorld = ({ layout, onClose }) => {
 
             <Canvas shadows gl={{ antialias: true }}>
                 <PerspectiveCamera makeDefault position={spawnPoint} fov={75} />
-                <PlayerController spawnPoint={spawnPoint} />
+                <PlayerController spawnPoint={spawnPoint} layout={layout} setActiveZone={setActiveZone} />
                 <Sky sunPosition={[-100, -20, -100]} turbidity={0.1} rayleigh={0.1} />
                 <Environment preset="night" />
 
@@ -330,8 +365,9 @@ export const ThreeDWorld = ({ layout, onClose }) => {
                                 />
                             ))}
 
+                            {/* Room Center UI (Absolute) */}
                             {room.center && <RoomLabel position={room.center} text={room.name} />}
-                            {/* Visual Floor for room */}
+
                             {room.center && (
                                 <mesh position={[room.center.x, 0.01, room.center.z]} rotation={[-Math.PI / 2, 0, 0]}>
                                     <circleGeometry args={[1, 32]} />
