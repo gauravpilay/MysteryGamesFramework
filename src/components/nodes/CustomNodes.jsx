@@ -1076,8 +1076,15 @@ export const ThreeDSceneNode = memo(({ id, data, selected }) => {
     };
 
     const generate3DLayout = async () => {
+        // Global Check
+        if (settings.enableThreeD === false) {
+            alert("CRITICAL: Global 3D Neural Reconstruction is disabled by the System Administrator. Architecture generation is currently locked platform-wide.");
+            return;
+        }
+
+        // Local Mission Check
         if (!data.enableThreeD) {
-            alert("3D Holodeck generation is disabled in settings. Existing scenes cannot be modified.");
+            alert("3D Holodeck generation is disabled in mission settings. Existing scenes cannot be modified.");
             return;
         }
         if (!data.blueprintUrl) {
@@ -1232,9 +1239,9 @@ export const ThreeDSceneNode = memo(({ id, data, selected }) => {
                             <input
                                 type="file"
                                 accept="image/*"
-                                className={`absolute inset-0 w-full h-full opacity-0 ${data.enableThreeD ? 'cursor-pointer' : 'cursor-not-allowed'}`}
+                                className={`absolute inset-0 w-full h-full opacity-0 ${(data.enableThreeD && settings.enableThreeD !== false) ? 'cursor-pointer' : 'cursor-not-allowed'}`}
                                 onChange={handleFileUpload}
-                                disabled={!data.enableThreeD || isUploading}
+                                disabled={!data.enableThreeD || settings.enableThreeD === false || isUploading}
                             />
                             <div className="border border-dashed border-cyan-900/40 p-4 text-center rounded-lg group-hover:bg-cyan-900/10 transition-all">
                                 {isUploading ? (
@@ -1255,8 +1262,8 @@ export const ThreeDSceneNode = memo(({ id, data, selected }) => {
 
                         <button
                             onClick={generate3DLayout}
-                            disabled={isParsing || !data.blueprintUrl || !data.enableThreeD}
-                            className={`w-full py-3 rounded-lg font-black text-[10px] uppercase tracking-widest flex items-center justify-center gap-2 transition-all ${isParsing || !data.enableThreeD
+                            disabled={isParsing || !data.blueprintUrl || !data.enableThreeD || settings.enableThreeD === false}
+                            className={`w-full py-3 rounded-lg font-black text-[10px] uppercase tracking-widest flex items-center justify-center gap-2 transition-all ${isParsing || !data.enableThreeD || settings.enableThreeD === false
                                 ? "bg-zinc-800 text-zinc-500 cursor-not-allowed"
                                 : "bg-cyan-600 hover:bg-cyan-500 text-black shadow-lg shadow-cyan-600/20"
                                 }`}
