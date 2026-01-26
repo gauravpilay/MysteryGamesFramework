@@ -125,10 +125,10 @@ const RoomLabel = ({ position, text }) => {
 const Floor = ({ width = 100, length = 100 }) => {
     return (
         <group>
-            <Plane args={[width, length]} rotation={[-Math.PI / 2, 0, 0]} position={[0, 0, 0]} receiveShadow>
-                <meshStandardMaterial color="#0a0a0a" roughness={1} metalness={0} />
+            <Plane args={[width, length]} rotation={[-Math.PI / 2, 0, 0]} position={[0, -0.01, 0]} receiveShadow>
+                <meshStandardMaterial color="#2d3436" roughness={0.6} metalness={0.1} />
             </Plane>
-            <gridHelper args={[width, 50, "#222", "#111"]} position={[0, 0.01, 0]} />
+            <gridHelper args={[width, 50, "#444", "#222"]} position={[0, 0, 0]} />
         </group>
     );
 };
@@ -136,7 +136,7 @@ const Floor = ({ width = 100, length = 100 }) => {
 // furniture helper
 const Furniture = ({ type, position, rotation = 0, color = "#7f8c8d", scale = [1, 1, 1] }) => {
     return (
-        <group position={[position.x, 0, position.z]} rotation={[0, rotation, 0]}>
+        <group position={[position.x, 0.02, position.z]} rotation={[0, rotation, 0]}>
             {type === 'desk' && (
                 <group position={[0, 0.4, 0]}>
                     <Box args={[1.5, 0.1, 0.8]}>
@@ -255,7 +255,7 @@ export const ThreeDWorld = ({ layout, onClose }) => {
                 <Suspense fallback={null}>
                     {/* Render Rooms */}
                     {layout.rooms.map((room, rIdx) => (
-                        <group key={`room-${rIdx}`} position={[room.center?.x || 0, 0, room.center?.z || 0]}>
+                        <group key={`room-${rIdx}`}>
                             {room.walls.map((wall, wIdx) => (
                                 <Wall
                                     key={`wall-${rIdx}-${wIdx}`}
@@ -277,12 +277,14 @@ export const ThreeDWorld = ({ layout, onClose }) => {
                                 />
                             ))}
 
-                            {room.center && <RoomLabel position={{ x: 0, y: 0 }} text={room.name} />}
+                            {room.center && <RoomLabel position={room.center} text={room.name} />}
                             {/* Visual Floor for room */}
-                            <mesh position={[0, 0.01, 0]} rotation={[-Math.PI / 2, 0, 0]}>
-                                <circleGeometry args={[1, 32]} />
-                                <meshStandardMaterial color={room.color} opacity={0.1} transparent />
-                            </mesh>
+                            {room.center && (
+                                <mesh position={[room.center.x, 0.01, room.center.z]} rotation={[-Math.PI / 2, 0, 0]}>
+                                    <circleGeometry args={[1, 32]} />
+                                    <meshStandardMaterial color={room.color} opacity={0.1} transparent />
+                                </mesh>
+                            )}
                         </group>
                     ))}
 
