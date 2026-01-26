@@ -26,13 +26,16 @@ export const ConfigProvider = ({ children }) => {
         const configRef = doc(db, "system_config", "app_settings");
 
         // Listen to live updates from Firestore
-        setLoading(true);
+        // Only set loading to true if we don't have a system name yet (initial load)
+        if (!settings.systemName) {
+            setLoading(true);
+        }
+
         const unsubscribe = onSnapshot(configRef, (docSnap) => {
             if (docSnap.exists()) {
                 setSettings(prev => ({ ...prev, ...docSnap.data() }));
             } else {
                 // If config doesn't exist in DB, seed it from .env if the user is an Admin
-                // to prevent non-admins from creating the config doc
                 const initialSettings = {
                     aiApiKey: import.meta.env.VITE_AI_API_KEY || '',
                     maxAIRequests: parseInt(import.meta.env.VITE_MAX_AI_REQUESTS) || 10,
@@ -45,12 +48,11 @@ export const ConfigProvider = ({ children }) => {
             setLoading(false);
         }, (error) => {
             console.error("Error fetching system config:", error);
-            // On permission error or other failure, stop loading to allow the app to render
             setLoading(false);
         });
 
         return unsubscribe;
-    }, [user, authLoading]);
+    }, [user?.uid, authLoading]);
 
     const updateSettings = async (newSettings) => {
         if (!db) return;

@@ -623,10 +623,19 @@ const Editor = () => {
         return () => {
             if (heartbeatInterval) clearInterval(heartbeatInterval);
             unsubscribe();
-            // Clear lock on unmount if it was ours
-            updateDoc(docRef, { editingBy: null }).catch(() => { });
+            // Clear lock on unmount only if it was ours
+            if (user?.uid) {
+                // We use a small trick: if the component is unmounting AND we were the editor, clear it.
+                // However, the cleanup runs on dependency change too.
+                // To be safe, we only clear if we are NOT re-running because of a project change.
+                getDoc(docRef).then(s => {
+                    if (s.exists() && s.data().editingBy?.uid === user.uid) {
+                        updateDoc(docRef, { editingBy: null }).catch(() => { });
+                    }
+                }).catch(() => { });
+            }
         };
-    }, [projectId, user]);
+    }, [projectId, user?.uid]);
 
     // Close search on click outside
     useEffect(() => {

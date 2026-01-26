@@ -14,37 +14,41 @@ export const AuthProvider = ({ children }) => {
             setLoading(false);
             return;
         }
+
+        let unsubscribeSnapshot = null;
+
         const unsubscribeAuth = onAuthStateChanged(auth, async (u) => {
+            // Clear existing snapshot listener if any
+            if (unsubscribeSnapshot) {
+                unsubscribeSnapshot();
+                unsubscribeSnapshot = null;
+            }
+
             if (u) {
                 if (db) {
                     const userRef = doc(db, "users", u.uid);
-                    // Listen to real-time updates
-                    const unsubscribeSnapshot = onSnapshot(userRef, (docSnap) => {
+                    unsubscribeSnapshot = onSnapshot(userRef, (docSnap) => {
                         if (docSnap.exists()) {
                             const data = docSnap.data();
 
-                            // Auto-sync missing profile info from Auth to Firestore
+                            // Check for depth equality before setting state to avoid flickering
+                            setUser(prev => {
+                                const next = { ...u, ...data };
+                                if (JSON.stringify(prev) === JSON.stringify(next)) return prev;
+                                return next;
+                            });
+
+                            // Auto-sync missing profile info
                             if ((!data.displayName && u.displayName) || (!data.photoURL && u.photoURL)) {
                                 updateDoc(userRef, {
                                     displayName: data.displayName || u.displayName,
                                     photoURL: data.photoURL || u.photoURL
-                                }).catch(err => console.error("Profile sync failed", err));
+                                }).catch(() => { });
                             }
-
-                            setUser({ ...u, ...data });
                         } else {
                             setUser(u);
                         }
                     });
-
-                    // We need to cleanup this snapshot listener when auth state changes or unmount
-                    // But here we are inside the auth listener. 
-                    // A simple way is to just let it run. 
-                    // For a robust app, we'd store the unsubscribe function in a ref or state.
-                    // Given the structure, let's keep it simple: 
-                    // The auth provider usually mounts once.
-                    // However, strictly speaking, we are creating a new listener every time auth state confirms user.
-                    // Ideally we should manage the unsubscription. 
                 } else {
                     setUser(u);
                 }
@@ -53,7 +57,11 @@ export const AuthProvider = ({ children }) => {
             }
             setLoading(false);
         });
-        return unsubscribeAuth;
+
+        return () => {
+            unsubscribeAuth();
+            if (unsubscribeSnapshot) unsubscribeSnapshot();
+        };
     }, []);
 
     const login = async () => {

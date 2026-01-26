@@ -12,8 +12,15 @@ import { ConfigProvider, useConfig } from './lib/config';
 const PrivateRoute = ({ children }) => {
   const { user, loading: authLoading } = useAuth();
   const { loading: configLoading } = useConfig();
+  const hasLoadedOnce = React.useRef(false);
 
-  if (authLoading || configLoading) {
+  if (!authLoading && !configLoading) {
+    hasLoadedOnce.current = true;
+  }
+
+  const showLoader = (authLoading || configLoading) && !hasLoadedOnce.current;
+
+  if (showLoader) {
     return (
       <div className="flex h-screen w-screen items-center justify-center bg-black text-indigo-500 font-mono">
         <div className="flex flex-col items-center gap-4">

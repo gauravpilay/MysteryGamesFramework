@@ -340,23 +340,26 @@ const GamePreview = ({ nodes, edges, onClose, gameMetadata, onGameEnd }) => {
     const [scoredNodes, setScoredNodes] = useState(new Set());
     const [aiRequestCount, setAiRequestCount] = useState(0);
     const [userAnswers, setUserAnswers] = useState(new Set()); // Set of selected option IDs for Question Nodes
+    const lastNodeId = useRef(null);
 
     // Timer Logic
     useEffect(() => {
-        if (!missionStarted || accusationResult) return; // Stop if not started or game ended
-
-        if (timeLeft <= 0) {
-            setAccusationResult('timeout');
-            setShowAccuseModal(true); // Re-use the modal to show failure
-            return;
-        }
+        if (!missionStarted || accusationResult) return;
 
         const timer = setInterval(() => {
-            setTimeLeft(prev => prev - 1);
+            setTimeLeft(prev => {
+                if (prev <= 1) {
+                    setAccusationResult('timeout');
+                    setShowAccuseModal(true);
+                    clearInterval(timer);
+                    return 0;
+                }
+                return prev - 1;
+            });
         }, 1000);
 
         return () => clearInterval(timer);
-    }, [missionStarted, timeLeft, accusationResult]);
+    }, [missionStarted, accusationResult]);
 
     const formatTime = (seconds) => {
         const mins = Math.floor(seconds / 60);
@@ -408,7 +411,10 @@ const GamePreview = ({ nodes, edges, onClose, gameMetadata, onGameEnd }) => {
     };
 
     // Initialize Game
+    const isInitialized = useRef(false);
     useEffect(() => {
+        if (isInitialized.current) return;
+
         // Find a suitable start node logic:
         // 1. Explicit ID 'start'
         let start = nodes.find(n => n.id.toLowerCase().includes('start'));
@@ -429,45 +435,34 @@ const GamePreview = ({ nodes, edges, onClose, gameMetadata, onGameEnd }) => {
             if (roots.length > 0) {
                 // Sort by Y (top to bottom), then X to find top-left node
                 roots.sort((a, b) => {
-                    const ax = a.position?.x || 0;
                     const ay = a.position?.y || 0;
-                    const bx = b.position?.x || 0;
                     const by = b.position?.y || 0;
                     if (Math.abs(ay - by) > 100) return ay - by; // distinct rows
-                    return ax - bx;
+                    return (a.position?.x || 0) - (b.position?.x || 0);
                 });
                 start = roots[0];
             }
         }
 
-        // 4. Fallback: Top-most node overall (Cycle handling or weird state)
+        // 4. Fallback: Top-most node overall
         if (!start && nodes.length > 0) {
-            const sortedAll = [...nodes].sort((a, b) => {
-                const ay = a.position?.y || 0;
-                const by = b.position?.y || 0;
-                return ay - by;
-            });
+            const sortedAll = [...nodes].sort((a, b) => (a.position?.y || 0) - (b.position?.y || 0));
             start = sortedAll[0];
         }
 
         if (start) {
             setCurrentNodeId(start.id);
+            isInitialized.current = true;
 
-            // Auto-Start Mission if not explicitly a "Briefing" node
-            // This ensures the timer starts for games beginning with other node types (media, terminal, etc.)
             const isBriefing = (start.data?.label || '').toLowerCase().includes('briefing');
-            if (!isBriefing) {
-                setMissionStarted(true);
-            }
+            if (!isBriefing) setMissionStarted(true);
 
-            // If start node is a modal type, open it immediately
             if (['media', 'suspect', 'terminal', 'evidence', 'message'].includes(start.type)) {
                 setActiveModalNode(start);
                 setInventory(prev => new Set([...prev, start.id]));
             }
 
-            addLog(`System initialized. Session started at ${new Date().toLocaleTimeString()}`);
-            addLog(`Loaded ${nodes.length} nodes and ${edges.length} connections.`);
+            addLog(`Neural sync established. Data packet received.`);
         }
     }, [nodes, edges]);
 
@@ -609,15 +604,17 @@ const GamePreview = ({ nodes, edges, onClose, gameMetadata, onGameEnd }) => {
 
             // Move Next
             const outEdges = options;
-            if (outEdges.length > 0) {
-                setTimeout(() => setCurrentNodeId(outEdges[0].target), 0);
+            if (outEdges.length > 0 && outEdges[0].target !== currentNodeId) {
+                setCurrentNodeId(outEdges[0].target);
             }
         }
 
-        // Reset content ready state on new node
-        setIsContentReady(false);
-
-    }, [currentNode, inventory, options, nodeOutputs]);
+        // Reset content ready state ONLY on new node entry
+        if (lastNodeId.current !== currentNode.id) {
+            setIsContentReady(false);
+            lastNodeId.current = currentNode.id;
+        }
+    }, [currentNode?.id, inventory, options, nodeOutputs]);
 
     // ...
 
@@ -940,7 +937,7 @@ const GamePreview = ({ nodes, edges, onClose, gameMetadata, onGameEnd }) => {
 
 
         // Story Node (Briefing or Narrative)
-        const isBriefing = data.label.toLowerCase().includes('briefing') || history.length === 0;
+        const isBriefing = (data?.label || "").toLowerCase().includes('briefing') || history.length === 0;
 
         return (
             <div className="space-y-8 animate-in fade-in slide-in-from-bottom-4 duration-700 relative z-10">
@@ -1118,7 +1115,7 @@ const GamePreview = ({ nodes, edges, onClose, gameMetadata, onGameEnd }) => {
                         {renderContent()}
 
                         {/* Begin Mission Button (Only for Briefing Node) */}
-                        {currentNode && (currentNode.data.label.toLowerCase().includes('briefing') || history.length === 0) && !missionStarted ? (
+                        {currentNode && ((currentNode.data?.label || "").toLowerCase().includes('briefing') || history.length === 0) && !missionStarted ? (
                             <div className="mt-12 flex justify-center animate-in fade-in slide-in-from-bottom-8 duration-1000 delay-500">
                                 <Button
                                     onClick={() => setMissionStarted(true)}
