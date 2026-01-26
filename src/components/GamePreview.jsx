@@ -1604,16 +1604,16 @@ const GamePreview = ({ nodes, edges, onClose, gameMetadata, onGameEnd }) => {
                                                 animate={{ opacity: 1, y: 0 }}
                                                 className="mb-16 relative"
                                             >
-                                                <div className="flex items-center gap-3 mb-6">
-                                                    <div className="w-8 h-8 rounded-xl bg-indigo-500/10 border border-indigo-500/20 flex items-center justify-center">
-                                                        <MessageSquare className="w-4 h-4 text-indigo-500" />
+                                                <div className="flex items-center gap-2.5 mb-5 opacity-80">
+                                                    <div className="w-7 h-7 rounded-lg bg-indigo-500/10 border border-indigo-500/20 flex items-center justify-center">
+                                                        <MessageSquare className="w-3.5 h-3.5 text-indigo-500" />
                                                     </div>
-                                                    <h3 className="text-sm font-black text-white uppercase tracking-[0.2em]">Intercepted Testimony</h3>
+                                                    <h3 className="text-[11px] font-bold text-zinc-400 uppercase tracking-[0.3em]">Intercepted Testimony</h3>
                                                 </div>
 
                                                 <div className="relative group">
                                                     <div className="absolute -inset-4 bg-gradient-to-r from-indigo-500/5 via-transparent to-transparent opacity-0 group-hover:opacity-100 transition-opacity rounded-3xl blur-2xl"></div>
-                                                    <div className="relative p-10 bg-zinc-900/40 border border-white/5 border-l-indigo-500 border-l-4 rounded-2xl backdrop-blur-3xl shadow-2xl">
+                                                    <div className="relative p-8 bg-zinc-900/40 border border-white/5 border-l-indigo-500 border-l-4 rounded-2xl backdrop-blur-3xl shadow-2xl">
                                                         <div className="absolute top-4 right-6 flex items-center gap-4">
                                                             <div className="flex items-center gap-1.5">
                                                                 <div className="w-1.5 h-1.5 rounded-full bg-red-500 animate-[ping_2s_linear_infinite]"></div>
@@ -1621,7 +1621,7 @@ const GamePreview = ({ nodes, edges, onClose, gameMetadata, onGameEnd }) => {
                                                             </div>
                                                         </div>
 
-                                                        <p className="text-xl md:text-3xl font-medium text-white leading-relaxed italic tracking-tight mb-8">
+                                                        <p className="text-lg md:text-xl font-medium text-white/90 leading-relaxed italic tracking-tight mb-6">
                                                             "{activeModalNode.data.alibi || "I have nothing to say to you. I was nowhere near the scene when it happened."}"
                                                         </p>
 
