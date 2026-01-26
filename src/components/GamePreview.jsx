@@ -1,6 +1,6 @@
 import React, { useState, useEffect, useMemo, useRef } from 'react';
 import { Button, Card } from './ui/shared';
-import { X, User, Search, Terminal, MessageSquare, FileText, ArrowRight, ShieldAlert, CheckCircle, AlertTriangle, Volume2, VolumeX, Image as ImageIcon, Briefcase, Star, MousePointerClick, Bell, HelpCircle, Clock, ZoomIn, LayoutGrid, ChevronRight } from 'lucide-react';
+import { X, User, Search, Terminal, MessageSquare, FileText, ArrowRight, ShieldAlert, CheckCircle, AlertTriangle, Volume2, VolumeX, Image as ImageIcon, Briefcase, Star, MousePointerClick, Bell, HelpCircle, Clock, ZoomIn, LayoutGrid, ChevronRight, Fingerprint, Cpu } from 'lucide-react';
 import { motion, AnimatePresence } from 'framer-motion';
 import EvidenceBoard from './EvidenceBoard';
 import AdvancedTerminal from './AdvancedTerminal';
@@ -1495,214 +1495,319 @@ const GamePreview = ({ nodes, edges, onClose, gameMetadata, onGameEnd }) => {
                             initial={{ scale: 0.9, opacity: 0 }}
                             animate={{ scale: 1, opacity: 1 }}
                             exit={{ scale: 0.9, opacity: 0 }}
-                            className={`bg-zinc-950 border border-zinc-800 p-0 rounded-2xl relative overflow-hidden shadow-2xl shadow-black max-h-[95vh] flex flex-col transition-all duration-500 ${activeModalNode.type === 'threed' ? 'max-w-5xl w-full h-[80vh]' : 'max-w-2xl w-full'}`}
+                            className={`bg-zinc-950 border border-zinc-800 p-0 rounded-2xl relative overflow-hidden shadow-2xl shadow-black max-h-[95vh] flex flex-col transition-all duration-500 ${(activeModalNode.type === 'threed' || activeModalNode.type === 'suspect' || activeModalNode.type === 'interrogation') ? 'max-w-6xl w-full h-[85vh]' : 'max-w-3xl w-full'}`}
                         >
-                            {/* Modal Close Button */}
+                            {/* Modal Close Button - Elevated to top priority */}
                             <button
                                 onClick={handleCloseModal}
-                                className="absolute top-4 right-4 z-[110] p-2 bg-black/40 hover:bg-black/60 text-zinc-400 hover:text-white rounded-full backdrop-blur-md transition-all border border-white/5 hover:border-white/20"
+                                className="absolute top-4 right-4 z-[250] p-2 bg-black/40 hover:bg-black/60 text-zinc-400 hover:text-white rounded-full backdrop-blur-md transition-all border border-white/5 hover:border-white/20"
                             >
                                 <X className="w-5 h-5" />
                             </button>
                             {activeModalNode.type === 'suspect' && (
-                                <div className="flex flex-col flex-1 overflow-hidden">
-                                    <div className="h-32 bg-gradient-to-r from-zinc-900 to-black relative shrink-0">
-                                        <div className={`absolute inset-0 bg-gradient-to-br ${getAvatarColor(activeModalNode.data.name)} opacity-20`}></div>
+                                <div className="flex flex-col md:flex-row flex-1 overflow-hidden h-full">
+                                    {/* LEFT SIDEBAR: BIOMETRIC PROFILE */}
+                                    <div className="w-full md:w-[380px] bg-zinc-950 border-r border-white/5 flex flex-col shrink-0 relative overflow-hidden">
+                                        {/* Cinematic Background Glow */}
+                                        <div className={`absolute top-0 left-0 w-full h-[500px] bg-gradient-to-b ${getAvatarColor(activeModalNode.data.name)} opacity-10 blur-[100px] pointer-events-none`}></div>
 
-                                        <div className="absolute -bottom-10 left-8 flex items-end">
-                                            <div className={`w-24 h-24 rounded-2xl bg-gradient-to-br ${getAvatarColor(activeModalNode.data.name)} p-1 shadow-xl border-4 border-zinc-950`}>
-                                                <div className="w-full h-full bg-black/20 rounded-xl flex items-center justify-center">
-                                                    <span className="text-4xl font-bold text-white">{(activeModalNode.data.name || 'S').charAt(0)}</span>
+                                        {/* Dossier Header */}
+                                        <div className="p-6 md:p-8 relative z-10">
+                                            <div className="flex items-center gap-2 mb-8">
+                                                <div className="h-px flex-1 bg-gradient-to-r from-transparent via-zinc-800 to-transparent"></div>
+                                                <span className="text-[10px] font-black text-zinc-500 uppercase tracking-[0.4em] whitespace-nowrap px-4">Subject Dossier</span>
+                                                <div className="h-px flex-1 bg-gradient-to-r from-transparent via-zinc-800 to-transparent"></div>
+                                            </div>
+
+                                            {/* Profile Image & Status */}
+                                            <div className="flex flex-col items-center mb-8">
+                                                <div className="relative group">
+                                                    {/* Animated Rings */}
+                                                    <div className="absolute -inset-4 border border-indigo-500/20 rounded-full animate-[spin_20s_linear_infinite]"></div>
+                                                    <div className="absolute -inset-8 border border-white/5 rounded-full animate-[spin_30s_linear_infinite_reverse]"></div>
+
+                                                    <div className={`w-48 h-48 rounded-2xl bg-gradient-to-br ${getAvatarColor(activeModalNode.data.name)} p-1 shadow-[0_0_50px_rgba(0,0,0,0.5)] border-2 border-white/10 relative z-10 overflow-hidden`}>
+                                                        <div className="w-full h-full bg-zinc-950 rounded-xl flex items-center justify-center relative overflow-hidden group">
+                                                            <span className="text-7xl font-black text-white/10 group-hover:text-white/20 transition-all duration-700 select-none">{(activeModalNode.data.name || 'S').charAt(0)}</span>
+                                                            {/* Scanning Line Effect */}
+                                                            <div className="absolute inset-0 bg-gradient-to-b from-transparent via-white/5 to-transparent h-12 w-full animate-[scanline_4s_linear_infinite] pointer-events-none"></div>
+                                                            <User className="absolute inset-0 m-auto w-24 h-24 text-white opacity-40 group-hover:scale-110 transition-transform duration-700" />
+                                                        </div>
+                                                    </div>
+
+                                                    {/* Status Badge */}
+                                                    <div className="absolute -bottom-3 left-1/2 -translate-x-1/2 px-4 py-1.5 bg-zinc-900 border border-indigo-500/40 rounded-full shadow-xl z-20 flex items-center gap-2">
+                                                        <div className="w-2 h-2 rounded-full bg-emerald-500 animate-pulse"></div>
+                                                        <span className="text-[10px] font-black text-white uppercase tracking-widest">Signal Stable</span>
+                                                    </div>
+                                                </div>
+                                            </div>
+
+                                            {/* Primary Info */}
+                                            <div className="text-center space-y-2 mb-6 md:mb-10">
+                                                <h2 className="text-3xl md:text-4xl font-black text-white uppercase tracking-tighter leading-none">{activeModalNode.data.name}</h2>
+                                                <p className="text-xs md:text-sm font-bold text-red-500/80 uppercase tracking-widest">{activeModalNode.data.role}</p>
+                                                <div className="flex items-center justify-center gap-2 mt-4">
+                                                    <div className="px-2 py-1 bg-zinc-900 border border-zinc-800 rounded font-mono text-[9px] text-zinc-500 tracking-wider">
+                                                        UID: {activeModalNode.id.substring(0, 8).toUpperCase()}
+                                                    </div>
+                                                    <div className="px-2 py-1 bg-zinc-900 border border-zinc-800 rounded font-mono text-[9px] text-zinc-500 tracking-wider uppercase">
+                                                        LVL: {activeModalNode.data.difficulty || 'BETA'}
+                                                    </div>
+                                                </div>
+                                            </div>
+
+                                            {/* BIOMETRICS Section */}
+                                            <div className="space-y-6 pt-6 border-t border-white/5">
+                                                <div className="flex items-center gap-3">
+                                                    <Fingerprint className="w-4 h-4 text-indigo-500" />
+                                                    <span className="text-[10px] font-black text-zinc-400 uppercase tracking-widest">Biometric Analysis</span>
+                                                </div>
+
+                                                <div className="space-y-4">
+                                                    {/* Stress Level */}
+                                                    <div className="space-y-2">
+                                                        <div className="flex justify-between items-end">
+                                                            <span className="text-[10px] font-bold text-zinc-500 uppercase tracking-wider">Cortisol / Stress</span>
+                                                            <span className="text-[9px] font-mono text-indigo-400">{(inventory.size * 12.5).toFixed(1)}%</span>
+                                                        </div>
+                                                        <div className="h-1.5 bg-zinc-900 rounded-full overflow-hidden border border-white/5 p-px">
+                                                            <motion.div
+                                                                initial={{ width: "5%" }}
+                                                                animate={{ width: `${Math.min(95, 5 + (inventory.size * 12.5))}%` }}
+                                                                className="h-full bg-gradient-to-r from-emerald-500 via-amber-500 to-red-500 rounded-full"
+                                                            />
+                                                        </div>
+                                                    </div>
+
+                                                    {/* Deception Probability */}
+                                                    <div className="flex justify-between items-center p-3 bg-zinc-900/50 border border-white/5 rounded-xl group hover:border-indigo-500/20 transition-all">
+                                                        <div className="flex flex-col">
+                                                            <span className="text-[9px] font-bold text-zinc-600 uppercase">Deception Probability</span>
+                                                            <span className="text-xs font-black text-indigo-400 uppercase tracking-tighter">Analyzing Vitals...</span>
+                                                        </div>
+                                                        <div className="w-8 h-8 rounded-lg bg-indigo-500/5 border border-indigo-500/10 flex items-center justify-center">
+                                                            <Cpu className="w-4 h-4 text-indigo-500 animate-pulse" />
+                                                        </div>
+                                                    </div>
                                                 </div>
                                             </div>
                                         </div>
                                     </div>
 
-                                    <div className="pt-14 px-8 pb-8 flex-1 overflow-y-auto flex flex-col">
-                                        <div className="flex items-start justify-between mb-8">
-                                            <div>
-                                                <h2 className="text-3xl font-black text-white uppercase tracking-tighter">{activeModalNode.data.name}</h2>
-                                                <div className="flex items-center gap-2 mt-1">
-                                                    <span className="px-2 py-0.5 bg-red-500/20 text-red-400 text-[10px] font-black tracking-widest uppercase rounded border border-red-500/30">
-                                                        {activeModalNode.data.role}
-                                                    </span>
-                                                    <span className="px-2 py-0.5 bg-zinc-800 text-zinc-500 text-[10px] font-bold uppercase rounded border border-zinc-700">
-                                                        Interrogating
-                                                    </span>
+                                    {/* RIGHT HUB: INVESTIGATION CONSOLE */}
+                                    <div className="flex-1 bg-[radial-gradient(circle_at_top_right,rgba(43,43,43,0.3),transparent)] flex flex-col overflow-hidden min-h-[400px]">
+                                        <div className="flex-1 overflow-y-auto p-6 md:p-12 custom-scrollbar">
+                                            {/* RECORDED TESTIMONY */}
+                                            <motion.section
+                                                initial={{ opacity: 0, y: 20 }}
+                                                animate={{ opacity: 1, y: 0 }}
+                                                className="mb-16 relative"
+                                            >
+                                                <div className="flex items-center gap-3 mb-6">
+                                                    <div className="w-8 h-8 rounded-xl bg-indigo-500/10 border border-indigo-500/20 flex items-center justify-center">
+                                                        <MessageSquare className="w-4 h-4 text-indigo-500" />
+                                                    </div>
+                                                    <h3 className="text-sm font-black text-white uppercase tracking-[0.2em]">Intercepted Testimony</h3>
                                                 </div>
-                                            </div>
-                                            <div className="hidden sm:flex flex-col items-end gap-1">
-                                                <div className="text-[9px] font-bold text-zinc-600 uppercase tracking-widest">Case Profile</div>
-                                                <div className="px-3 py-1 bg-zinc-950 border border-zinc-800 rounded font-mono text-[10px] text-zinc-500">
-                                                    #{activeModalNode.id.substring(0, 8).toUpperCase()}
-                                                </div>
-                                            </div>
-                                        </div>
 
-                                        {/* THE STATEMENT (DENIAL) */}
-                                        <div className="relative mb-10 group">
-                                            <div className="absolute -inset-2 bg-gradient-to-r from-red-500/5 to-indigo-500/5 rounded-3xl blur-xl opacity-0 group-hover:opacity-100 transition-opacity"></div>
-                                            <div className="relative bg-zinc-900/40 border-l-4 border-indigo-500 p-8 rounded-r-2xl shadow-2xl backdrop-blur-md">
-                                                <div className="flex items-center gap-2 mb-4">
-                                                    <MessageSquare className="w-4 h-4 text-indigo-400" />
-                                                    <span className="text-[10px] font-black text-indigo-400/70 uppercase tracking-[0.3em]">Current Testimony</span>
-                                                </div>
-                                                <p className="text-xl md:text-2xl font-medium text-zinc-100 leading-relaxed italic tracking-tight">
-                                                    "{activeModalNode.data.alibi || "I have nothing to say to you. I was nowhere near the scene when it happened."}"
-                                                </p>
-                                                <div className="mt-6 flex items-center justify-between border-t border-white/5 pt-4">
-                                                    <div className="flex items-center gap-4">
-                                                        <div className="flex flex-col">
-                                                            <span className="text-[9px] font-bold text-zinc-600 uppercase tracking-widest">Stress Level</span>
-                                                            <div className="w-32 h-1.5 bg-zinc-800 rounded-full mt-1 overflow-hidden">
-                                                                <motion.div
-                                                                    initial={{ width: "10%" }}
-                                                                    animate={{ width: inventory.size > 0 ? `${Math.min(90, 10 + (inventory.size * 15))}%` : "10%" }}
-                                                                    className="h-full bg-gradient-to-r from-emerald-500 to-amber-500"
-                                                                />
+                                                <div className="relative group">
+                                                    <div className="absolute -inset-4 bg-gradient-to-r from-indigo-500/5 via-transparent to-transparent opacity-0 group-hover:opacity-100 transition-opacity rounded-3xl blur-2xl"></div>
+                                                    <div className="relative p-10 bg-zinc-900/40 border border-white/5 border-l-indigo-500 border-l-4 rounded-2xl backdrop-blur-3xl shadow-2xl">
+                                                        <div className="absolute top-4 right-6 flex items-center gap-4">
+                                                            <div className="flex items-center gap-1.5">
+                                                                <div className="w-1.5 h-1.5 rounded-full bg-red-500 animate-[ping_2s_linear_infinite]"></div>
+                                                                <span className="text-[9px] font-black text-zinc-600 uppercase tracking-widest whitespace-nowrap">Rec: Local Node</span>
+                                                            </div>
+                                                        </div>
+
+                                                        <p className="text-xl md:text-3xl font-medium text-white leading-relaxed italic tracking-tight mb-8">
+                                                            "{activeModalNode.data.alibi || "I have nothing to say to you. I was nowhere near the scene when it happened."}"
+                                                        </p>
+
+                                                        <div className="flex items-center justify-between border-t border-white/5 pt-6">
+                                                            <div className="flex gap-6">
+                                                                <div className="flex flex-col">
+                                                                    <span className="text-[8px] font-black text-zinc-600 uppercase tracking-widest mb-1">Authenticity</span>
+                                                                    <span className="text-[10px] font-bold text-amber-500 uppercase tracking-tighter">Inconclusive</span>
+                                                                </div>
+                                                                <div className="flex flex-col">
+                                                                    <span className="text-[8px] font-black text-zinc-600 uppercase tracking-widest mb-1">Tone Analysis</span>
+                                                                    <span className="text-[10px] font-bold text-indigo-400 uppercase tracking-tighter">Defensive</span>
+                                                                </div>
+                                                            </div>
+                                                            <div className="px-3 py-1 bg-white/5 rounded-full border border-white/10">
+                                                                <span className="text-[9px] font-mono text-zinc-500">TS: {new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit', second: '2-digit' })}</span>
                                                             </div>
                                                         </div>
                                                     </div>
-                                                    <span className="text-[10px] font-bold text-zinc-500 animate-pulse uppercase tracking-wider">Analyzing Statement...</span>
                                                 </div>
+                                            </motion.section>
+
+                                            {/* ACTION HUB GRID */}
+                                            <div className="grid grid-cols-1 lg:grid-cols-2 gap-12">
+                                                {/* CONFRONTATION PANEL */}
+                                                <motion.div
+                                                    initial={{ opacity: 0, x: -20 }}
+                                                    animate={{ opacity: 1, x: 0 }}
+                                                    transition={{ delay: 0.2 }}
+                                                >
+                                                    <div className="flex items-center justify-between mb-6">
+                                                        <div className="flex items-center gap-3">
+                                                            <div className="w-8 h-8 rounded-xl bg-amber-500/10 border border-amber-500/20 flex items-center justify-center">
+                                                                <Search className="w-4 h-4 text-amber-500" />
+                                                            </div>
+                                                            <h3 className="text-sm font-black text-white uppercase tracking-[0.2em]">Confrontation</h3>
+                                                        </div>
+                                                    </div>
+
+                                                    <div className="bg-black/40 border border-white/5 rounded-3xl p-8 shadow-inner backdrop-blur-md min-h-[300px]">
+                                                        {(() => {
+                                                            const collectedEvidence = Array.from(inventory)
+                                                                .map(id => nodes.find(n => n.id === id && n.type === 'evidence'))
+                                                                .filter(Boolean);
+
+                                                            if (collectedEvidence.length === 0) {
+                                                                return (
+                                                                    <div className="h-full flex flex-col items-center justify-center py-12 opacity-40">
+                                                                        <div className="p-4 bg-zinc-900 rounded-2xl mb-4 border border-zinc-800">
+                                                                            <Briefcase className="w-8 h-8 text-zinc-600" />
+                                                                        </div>
+                                                                        <p className="text-sm font-black text-zinc-500 uppercase tracking-widest">No evidence logged</p>
+                                                                        <p className="text-[10px] text-zinc-700 mt-2 uppercase">Collect files or objects in the field</p>
+                                                                    </div>
+                                                                );
+                                                            }
+
+                                                            return (
+                                                                <div className="grid grid-cols-2 sm:grid-cols-3 gap-6">
+                                                                    {collectedEvidence.map(eNode => (
+                                                                        <motion.button
+                                                                            key={eNode.id}
+                                                                            whileHover={{ y: -8, scale: 1.02 }}
+                                                                            whileTap={{ scale: 0.98 }}
+                                                                            onClick={() => {
+                                                                                const match = edges.find(e =>
+                                                                                    e.source === activeModalNode.id &&
+                                                                                    (e.label?.toLowerCase() === eNode.data.label?.toLowerCase() || e.data?.evidenceId === eNode.id)
+                                                                                );
+                                                                                if (match) {
+                                                                                    addLog(`BREAKTHROUGH: Confronted ${activeModalNode.data.name} with ${eNode.data.label}.`);
+                                                                                    setActiveModalNode(null);
+                                                                                    handleOptionClick(match.target);
+                                                                                } else {
+                                                                                    addLog(`STALEMATE: Evidence dismissed by ${activeModalNode.data.name}.`);
+                                                                                }
+                                                                            }}
+                                                                            className="group"
+                                                                        >
+                                                                            <div className="aspect-[4/5] bg-zinc-900 border border-zinc-800 rounded-2xl overflow-hidden group-hover:border-amber-500/50 transition-all duration-500 shadow-2xl relative">
+                                                                                {eNode.data.image ? (
+                                                                                    <img src={eNode.data.image} alt="" className="w-full h-full object-cover grayscale opacity-40 group-hover:grayscale-0 group-hover:opacity-100 transition-all duration-700" />
+                                                                                ) : (
+                                                                                    <div className="w-full h-full flex items-center justify-center">
+                                                                                        <Search className="w-8 h-8 text-zinc-800 group-hover:text-amber-500" />
+                                                                                    </div>
+                                                                                )}
+                                                                                <div className="absolute inset-0 bg-gradient-to-t from-black via-black/20 to-transparent opacity-80 group-hover:opacity-40 transition-opacity" />
+                                                                                <div className="absolute inset-x-0 bottom-0 p-4 text-center">
+                                                                                    <div className="text-[10px] font-black text-white uppercase truncate tracking-widest">{eNode.data.label}</div>
+                                                                                </div>
+                                                                            </div>
+                                                                        </motion.button>
+                                                                    ))}
+                                                                </div>
+                                                            );
+                                                        })()}
+                                                    </div>
+                                                </motion.div>
+
+                                                {/* DIALOGUE PANEL */}
+                                                <motion.div
+                                                    initial={{ opacity: 0, x: 20 }}
+                                                    animate={{ opacity: 1, x: 0 }}
+                                                    transition={{ delay: 0.3 }}
+                                                >
+                                                    <div className="flex items-center gap-3 mb-6">
+                                                        <div className="w-8 h-8 rounded-xl bg-indigo-500/10 border border-indigo-500/20 flex items-center justify-center">
+                                                            <Terminal className="w-4 h-4 text-indigo-500" />
+                                                        </div>
+                                                        <h3 className="text-sm font-black text-white uppercase tracking-[0.2em]">Interrogation Threads</h3>
+                                                    </div>
+
+                                                    <div className="space-y-4">
+                                                        {(() => {
+                                                            const nodeActions = activeModalNode.data.actions || [];
+                                                            const dialogueEdges = edges.filter(e => e.source === activeModalNode.id && !e.label?.startsWith('evidence:') && !e.data?.isEvidenceLink);
+                                                            const handledEdgeIds = new Set();
+
+                                                            const actionThreads = nodeActions.map(action => {
+                                                                const edge = dialogueEdges.find(e => e.sourceHandle === action.id);
+                                                                if (edge) handledEdgeIds.add(edge.id);
+                                                                return { id: action.id, label: action.label, target: edge?.target };
+                                                            }).filter(t => t.target);
+
+                                                            const genericThreads = dialogueEdges.filter(e => !handledEdgeIds.has(e.id)).map(e => {
+                                                                const targetNode = nodes.find(n => n.id === e.target);
+                                                                return { id: e.id, label: e.label || getEdgeLabel(targetNode), target: e.target };
+                                                            });
+
+                                                            const allThreads = [...actionThreads, ...genericThreads];
+
+                                                            if (allThreads.length === 0) {
+                                                                return (
+                                                                    <div className="h-[300px] flex flex-col items-center justify-center p-10 text-center border-2 border-dashed border-white/5 rounded-3xl bg-black/20">
+                                                                        <div className="p-3 bg-zinc-900 rounded-xl mb-4">
+                                                                            <ShieldAlert className="w-6 h-6 text-zinc-700" />
+                                                                        </div>
+                                                                        <p className="text-zinc-600 font-black text-[10px] uppercase tracking-[0.3em]">Neural Paths Exhausted</p>
+                                                                    </div>
+                                                                );
+                                                            }
+
+                                                            return allThreads.map((thread) => (
+                                                                <button
+                                                                    key={thread.id}
+                                                                    onClick={() => { setActiveModalNode(null); handleOptionClick(thread.target); }}
+                                                                    className="w-full flex items-center justify-between p-6 bg-zinc-900/40 border border-white/5 hover:border-indigo-500/40 hover:bg-indigo-500/10 rounded-2xl transition-all group overflow-hidden relative shadow-xl"
+                                                                >
+                                                                    {/* Hover Background Shine */}
+                                                                    <div className="absolute inset-0 bg-gradient-to-r from-transparent via-white/5 to-transparent -translate-x-full group-hover:translate-x-full transition-transform duration-1000 ease-in-out" />
+
+                                                                    <div className="flex items-center gap-6 relative z-10">
+                                                                        <div className="w-12 h-12 rounded-xl bg-zinc-800 border border-zinc-700 flex items-center justify-center group-hover:bg-indigo-600 group-hover:border-indigo-500 transition-all duration-500 shadow-inner group-hover:shadow-[0_0_20px_rgba(79,70,229,0.4)]">
+                                                                            <ChevronRight className="w-6 h-6 text-zinc-500 group-hover:text-white group-hover:translate-x-0.5 transition-all" />
+                                                                        </div>
+                                                                        <div className="flex flex-col items-start text-left">
+                                                                            <span className="text-[10px] font-black text-indigo-500/50 uppercase tracking-[0.2em] mb-1 leading-none">Query Node</span>
+                                                                            <span className="text-base font-bold text-zinc-300 group-hover:text-white transition-colors tracking-tight uppercase leading-none">
+                                                                                {thread.label}
+                                                                            </span>
+                                                                        </div>
+                                                                    </div>
+                                                                    <ArrowRight className="w-5 h-5 text-zinc-800 group-hover:text-indigo-400 group-hover:translate-x-2 transition-all duration-500 relative z-10" />
+                                                                </button>
+                                                            ));
+                                                        })()}
+                                                    </div>
+                                                </motion.div>
                                             </div>
                                         </div>
 
-                                        <div className="grid grid-cols-1 gap-12 flex-1">
-                                            {/* EVIDENCE PANEL (Primary Interaction) */}
-                                            <div className="space-y-6">
-                                                <div className="bg-black/60 border border-zinc-800/50 rounded-3xl p-6 shadow-inner relative overflow-hidden">
-                                                    <div className="absolute top-0 right-0 p-4 opacity-5">
-                                                        <Search className="w-24 h-24 text-white" />
-                                                    </div>
-
-                                                    {(() => {
-                                                        const collectedEvidence = Array.from(inventory)
-                                                            .map(id => nodes.find(n => n.id === id && n.type === 'evidence'))
-                                                            .filter(Boolean);
-
-                                                        return (
-                                                            <>
-                                                                <div className="flex items-center justify-between mb-6">
-                                                                    <div className="flex items-center gap-3">
-                                                                        <div className="w-8 h-8 rounded-lg bg-amber-500/10 border border-amber-500/30 flex items-center justify-center">
-                                                                            <Search className="w-4 h-4 text-amber-500" />
-                                                                        </div>
-                                                                        <div>
-                                                                            <h4 className="text-sm font-black text-white uppercase tracking-wider">Confront with Evidence</h4>
-                                                                            <p className="text-[10px] text-zinc-500 uppercase font-bold tracking-tight">Challenge the subject's statement to force a breakthrough</p>
-                                                                        </div>
-                                                                    </div>
-                                                                    <div className="px-3 py-1 bg-amber-500/10 border border-amber-500/20 rounded-full">
-                                                                        <span className="text-[9px] font-black text-amber-500 uppercase">{collectedEvidence.length} Items Logged</span>
-                                                                    </div>
-                                                                </div>
-
-                                                                {collectedEvidence.length > 0 ? (
-                                                                    <div className="grid grid-cols-2 sm:grid-cols-4 md:grid-cols-6 lg:grid-cols-8 gap-4">
-                                                                        {collectedEvidence.map(eNode => (
-                                                                            <motion.button
-                                                                                key={eNode.id}
-                                                                                whileHover={{ y: -5, scale: 1.05 }}
-                                                                                whileTap={{ scale: 0.95 }}
-                                                                                onClick={() => {
-                                                                                    const match = edges.find(e =>
-                                                                                        e.source === activeModalNode.id &&
-                                                                                        (e.label?.toLowerCase() === eNode.data.label?.toLowerCase() || e.data?.evidenceId === eNode.id)
-                                                                                    );
-                                                                                    if (match) {
-                                                                                        addLog(`BREAKTHROUGH: Subject's story collapsed when confronted with ${eNode.data.label}.`);
-                                                                                        setActiveModalNode(null);
-                                                                                        setIsConfronting(false);
-                                                                                        handleOptionClick(match.target);
-                                                                                    } else {
-                                                                                        addLog(`STALEMATE: ${activeModalNode.data.name} remains defiant. ${eNode.data.label} was dismissed.`);
-                                                                                    }
-                                                                                }}
-                                                                                className="group"
-                                                                            >
-                                                                                <div className="aspect-square bg-zinc-900 border border-zinc-800 rounded-2xl overflow-hidden group-hover:border-amber-500 transition-all shadow-lg shadow-black/80 relative">
-                                                                                    {eNode.data.image ? (
-                                                                                        <img src={eNode.data.image} alt="" className="w-full h-full object-cover grayscale opacity-60 group-hover:grayscale-0 group-hover:opacity-100 transition-all duration-500" />
-                                                                                    ) : (
-                                                                                        <div className="w-full h-full flex items-center justify-center">
-                                                                                            <Search className="w-6 h-6 text-zinc-800 group-hover:text-amber-500" />
-                                                                                        </div>
-                                                                                    )}
-                                                                                    <div className="absolute inset-0 bg-gradient-to-t from-black via-black/20 to-transparent opacity-60 group-hover:opacity-20 transition-opacity" />
-                                                                                    <div className="absolute inset-x-0 bottom-0 p-2 text-center pointer-events-none">
-                                                                                        <div className="text-[8px] font-black text-white/50 group-hover:text-white uppercase truncate tracking-widest">{eNode.data.label}</div>
-                                                                                    </div>
-                                                                                </div>
-                                                                            </motion.button>
-                                                                        ))}
-                                                                    </div>
-                                                                ) : (
-                                                                    <div className="py-12 flex flex-col items-center justify-center border-2 border-dashed border-zinc-900 rounded-3xl bg-zinc-900/10">
-                                                                        <Briefcase className="w-10 h-10 text-zinc-800 mb-4" />
-                                                                        <p className="text-zinc-600 font-bold uppercase tracking-widest text-xs">No physical evidence in possession</p>
-                                                                        <p className="text-[10px] text-zinc-700 mt-1 uppercase">Acquire clues from the field to proceed</p>
-                                                                    </div>
-                                                                )}
-                                                            </>
-                                                        );
-                                                    })()}
+                                        {/* OPTIONAL: FOOTER STATUS BAR */}
+                                        <div className="h-10 md:h-12 border-t border-white/5 bg-black/60 backdrop-blur-3xl px-6 md:px-12 flex items-center justify-between shrink-0">
+                                            <div className="flex items-center gap-4 md:gap-6">
+                                                <div className="flex items-center gap-2">
+                                                    <div className="w-1 h-1 md:w-1.5 md:h-1.5 rounded-full bg-indigo-500 animate-pulse"></div>
+                                                    <span className="text-[7px] md:text-[8px] text-zinc-600 font-black uppercase tracking-[0.3em] whitespace-nowrap">Case-Link: Active</span>
+                                                </div>
+                                                <div className="hidden sm:flex items-center gap-2">
+                                                    <div className="w-1.5 h-1.5 rounded-full bg-emerald-500 animate-[pulse_3s_linear_infinite]"></div>
+                                                    <span className="text-[8px] text-zinc-600 font-black uppercase tracking-[0.3em] whitespace-nowrap">Logic-Sync: Synced</span>
                                                 </div>
                                             </div>
-
-                                            {/* DIALOGUE PANEL (Branching paths) */}
-                                            <div className="space-y-6">
-                                                <div className="flex items-center gap-3">
-                                                    <div className="w-8 h-8 rounded-lg bg-indigo-500/10 border border-indigo-500/30 flex items-center justify-center">
-                                                        <MessageSquare className="w-4 h-4 text-indigo-500" />
-                                                    </div>
-                                                    <h4 className="text-sm font-black text-white uppercase tracking-wider">Investigation Threads</h4>
-                                                </div>
-
-                                                <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
-                                                    {(() => {
-                                                        const nodeActions = activeModalNode.data.actions || [];
-                                                        const dialogueEdges = edges.filter(e => e.source === activeModalNode.id && !e.label?.startsWith('evidence:') && !e.data?.isEvidenceLink);
-                                                        const handledEdgeIds = new Set();
-
-                                                        const actionThreads = nodeActions.map(action => {
-                                                            const edge = dialogueEdges.find(e => e.sourceHandle === action.id);
-                                                            if (edge) handledEdgeIds.add(edge.id);
-                                                            return { id: action.id, label: action.label, target: edge?.target };
-                                                        }).filter(t => t.target);
-
-                                                        const genericThreads = dialogueEdges.filter(e => !handledEdgeIds.has(e.id)).map(e => {
-                                                            const targetNode = nodes.find(n => n.id === e.target);
-                                                            return { id: e.id, label: e.label || getEdgeLabel(targetNode), target: e.target };
-                                                        });
-
-                                                        const allThreads = [...actionThreads, ...genericThreads];
-
-                                                        return allThreads.map((thread) => (
-                                                            <button
-                                                                key={thread.id}
-                                                                onClick={() => { setActiveModalNode(null); setIsConfronting(false); handleOptionClick(thread.target); }}
-                                                                className="flex items-center justify-between p-5 bg-zinc-950 border border-zinc-900 hover:border-indigo-500/50 hover:bg-indigo-500/5 rounded-2xl transition-all group"
-                                                            >
-                                                                <div className="flex items-center gap-4">
-                                                                    <div className="w-10 h-10 rounded-xl bg-zinc-900 border border-zinc-800 flex items-center justify-center group-hover:bg-indigo-600 group-hover:border-indigo-500 transition-all shadow-inner">
-                                                                        <ChevronRight className="w-5 h-5 text-zinc-600 group-hover:text-white" />
-                                                                    </div>
-                                                                    <span className="text-[13px] font-bold text-zinc-400 group-hover:text-white transition-colors tracking-tight uppercase">
-                                                                        {thread.label}
-                                                                    </span>
-                                                                </div>
-                                                                <ArrowRight className="w-4 h-4 text-zinc-800 group-hover:text-indigo-400 group-hover:translate-x-1 transition-all" />
-                                                            </button>
-                                                        ));
-                                                    })()}
-
-                                                    {edges.filter(e => e.source === activeModalNode.id && !e.label?.startsWith('evidence:') && !e.data?.isEvidenceLink).length === 0 && (
-                                                        <div className="md:col-span-2 p-10 text-center border-2 border-dashed border-zinc-900 rounded-3xl">
-                                                            <p className="text-zinc-700 font-black text-[10px] uppercase tracking-[0.3em]">No further dialogue paths identified</p>
-                                                        </div>
-                                                    )}
-                                                </div>
+                                            <div className="flex items-center gap-2">
+                                                <span className="text-[7px] md:text-[8px] text-zinc-700 font-black uppercase tracking-[0.3em] whitespace-nowrap">Holographic Interface V2.4.0</span>
                                             </div>
                                         </div>
                                     </div>
