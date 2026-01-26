@@ -1322,42 +1322,37 @@ const GamePreview = ({ nodes, edges, onClose, gameMetadata, onGameEnd }) => {
                                                         icon = MousePointerClick;
                                                         title = item.label;
                                                         actionLabel = "";
-                                                        // Base style: Dynamic scale, glass border, rich shadow
-                                                        const baseShadow = "transition-all duration-300 hover:scale-[1.02] border backdrop-blur-sm shadow-lg";
+                                                        // Base style: Sleeker, refined border, sophisticated hover
+                                                        const baseShadow = "transition-all duration-500 hover:tracking-widest border border-white/10 backdrop-blur-md shadow-2xl";
 
                                                         switch (item.variant) {
-                                                            case 'danger': // Intense Red Pulse
-                                                                color = "text-white";
-                                                                bg = `bg-gradient-to-r from-red-600 to-red-900 border-red-400/50 hover:border-red-400 hover:from-red-500 hover:to-red-800 hover:shadow-[0_0_30px_rgba(220,38,38,0.5)] ${baseShadow}`;
+                                                            case 'danger':
+                                                                color = "text-red-100";
+                                                                bg = `bg-gradient-to-r from-red-600/40 via-red-500/10 to-transparent border-red-500/30 hover:border-red-400 hover:from-red-600/60 hover:shadow-[0_0_25px_rgba(239,68,68,0.2)] ${baseShadow}`;
                                                                 break;
-                                                            case 'primary': // Electric Blue
-                                                                color = "text-white";
-                                                                bg = `bg-gradient-to-r from-blue-600 to-indigo-900 border-blue-400/50 hover:border-blue-400 hover:from-blue-500 hover:to-indigo-800 hover:shadow-[0_0_30px_rgba(37,99,235,0.5)] ${baseShadow}`;
+                                                            case 'primary':
+                                                                color = "text-indigo-100";
+                                                                bg = `bg-gradient-to-r from-indigo-600/40 via-indigo-500/10 to-transparent border-indigo-500/30 hover:border-indigo-400 hover:from-indigo-600/60 hover:shadow-[0_0_25px_rgba(99,102,241,0.2)] ${baseShadow}`;
                                                                 break;
-                                                            case 'success': // Cyber Green
-                                                                color = "text-white";
-                                                                bg = `bg-gradient-to-r from-emerald-500 to-green-900 border-emerald-400/50 hover:border-emerald-400 hover:from-emerald-400 hover:to-green-800 hover:shadow-[0_0_30px_rgba(16,185,129,0.5)] ${baseShadow}`;
+                                                            case 'success':
+                                                                color = "text-emerald-100";
+                                                                bg = `bg-gradient-to-r from-emerald-500/40 via-emerald-400/10 to-transparent border-emerald-500/30 hover:border-emerald-400 hover:from-emerald-500/60 hover:shadow-[0_0_25px_rgba(16,185,129,0.2)] ${baseShadow}`;
                                                                 break;
-                                                            case 'warning': // Neon Amber
-                                                                color = "text-black";
-                                                                bg = `bg-gradient-to-r from-amber-400 to-orange-600 border-amber-300/50 hover:border-amber-300 hover:from-amber-300 hover:to-orange-500 hover:shadow-[0_0_30px_rgba(245,158,11,0.5)] ${baseShadow}`;
+                                                            case 'warning':
+                                                                color = "text-amber-100";
+                                                                bg = `bg-gradient-to-r from-amber-400/40 via-amber-300/10 to-transparent border-amber-300/30 hover:border-amber-200 hover:from-amber-400/60 hover:shadow-[0_0_25px_rgba(245,158,11,0.2)] ${baseShadow}`;
                                                                 break;
-                                                            case 'mystic': // Deep Void Purple
-                                                                color = "text-white";
-                                                                bg = `bg-gradient-to-r from-violet-600 to-fuchsia-900 border-violet-400/50 hover:border-violet-400 hover:from-violet-500 hover:to-fuchsia-800 hover:shadow-[0_0_30px_rgba(139,92,246,0.5)] ${baseShadow}`;
+                                                            case 'mystic':
+                                                                color = "text-purple-100";
+                                                                bg = `bg-gradient-to-r from-purple-600/40 via-purple-500/10 to-transparent border-purple-500/30 hover:border-purple-400 hover:from-purple-600/60 hover:shadow-[0_0_25px_rgba(168,85,247,0.2)] ${baseShadow}`;
                                                                 break;
-                                                            case 'tech': // Holographic Cyan
-                                                                color = "text-black";
-                                                                bg = `bg-gradient-to-r from-cyan-400 to-blue-600 border-cyan-300/50 hover:border-cyan-300 hover:from-cyan-300 hover:to-blue-500 hover:shadow-[0_0_30px_rgba(34,211,238,0.5)] ${baseShadow}`;
-                                                                break;
-                                                            case 'outline': // Ghost Wireframe
-                                                                color = "text-zinc-300";
-                                                                bg = `bg-transparent border border-zinc-500 hover:border-white hover:bg-white/5 hover:shadow-[0_0_15px_rgba(255,255,255,0.1)] ${baseShadow}`;
+                                                            case 'tech':
+                                                                color = "text-cyan-100";
+                                                                bg = `bg-gradient-to-r from-cyan-400/40 via-cyan-300/10 to-transparent border-cyan-500/30 hover:border-cyan-400 hover:from-cyan-400/60 hover:shadow-[0_0_25px_rgba(34,211,238,0.2)] ${baseShadow}`;
                                                                 break;
                                                             default:
-                                                                // Metallic Zinc
                                                                 color = "text-zinc-100";
-                                                                bg = `bg-gradient-to-r from-zinc-700 to-zinc-900 border-zinc-500/50 hover:border-zinc-400 hover:from-zinc-600 hover:to-zinc-800 hover:shadow-[0_0_20px_rgba(113,113,122,0.3)] ${baseShadow}`;
+                                                                bg = `bg-gradient-to-r from-zinc-700/40 via-zinc-600/10 to-transparent border-zinc-700/30 hover:border-zinc-500 hover:from-zinc-700/60 hover:shadow-[0_0_20px_rgba(255,255,255,0.05)] ${baseShadow}`;
                                                                 break;
                                                         }
                                                     }
@@ -1365,8 +1360,8 @@ const GamePreview = ({ nodes, edges, onClose, gameMetadata, onGameEnd }) => {
                                                     // "Disabled" state look
                                                     if (!item.target) {
                                                         color = "text-zinc-600";
-                                                        bg = "bg-zinc-800/50";
-                                                        title = item.label || "Unconnected Path";
+                                                        bg = "bg-zinc-800/20";
+                                                        title = item.label || "Locked Path";
                                                         actionLabel = "UNAVAILABLE";
                                                     }
 
@@ -1377,39 +1372,47 @@ const GamePreview = ({ nodes, edges, onClose, gameMetadata, onGameEnd }) => {
                                                             key={`${item.id}-${idx}`}
                                                             data-testid={`option-${item.target}`}
                                                             layout
-                                                            initial={{ opacity: 0, x: -20 }}
-                                                            animate={{ opacity: 1, x: 0 }}
-                                                            transition={{ delay: idx * 0.1 }}
-                                                            whileHover={item.target ? { scale: 1.02, x: 5 } : {}}
-                                                            whileTap={item.target ? { scale: 0.98 } : {}}
+                                                            initial={{ opacity: 0, y: 10 }}
+                                                            animate={{ opacity: 1, y: 0 }}
+                                                            transition={{ delay: idx * 0.08, ease: "easeOut" }}
+                                                            whileHover={item.target ? { x: 8 } : {}}
+                                                            whileTap={item.target ? { scale: 0.99 } : {}}
                                                             onClick={() => item.target && handleOptionClick(item.target)}
                                                             disabled={!item.target}
-                                                            className={`w-full text-left rounded-xl transition-all group relative overflow-hidden flex items-center gap-4 
-                                                            ${!item.target ? 'cursor-not-allowed border border-zinc-900 opacity-60 p-4' : 'cursor-pointer'}
+                                                            className={`w-full text-left rounded-2xl transition-all duration-500 group relative overflow-hidden flex items-center gap-4 
+                                                            ${!item.target ? 'cursor-not-allowed border border-white/5 opacity-40 p-3' : 'cursor-pointer'}
                                                             ${item.isAction && item.target
-                                                                    ? `${bg} p-4 md:p-5 border-t border-white/10`
-                                                                    : "bg-zinc-900/40 border border-zinc-800/50 hover:border-indigo-500/50 hover:bg-zinc-900/80 shadow-none hover:shadow-xl hover:shadow-indigo-500/5 p-4"
+                                                                    ? `${bg} p-3.5 md:p-4 border-t border-white/10 shadow-xl`
+                                                                    : "bg-zinc-950/40 border border-white/5 hover:border-indigo-500/30 hover:bg-zinc-900/60 p-3.5"
                                                                 }`}
                                                         >
-                                                            <div className={`rounded-lg ${item.isAction ? 'bg-black/30' : bg} ${item.isAction ? 'p-2' : 'p-3'} border border-white/5 ${item.target && 'group-hover:scale-110'} transition-transform shrink-0`}>
-                                                                <Icon className={`${item.isAction ? 'w-6 h-6' : 'w-5 h-5'} ${color}`} />
+                                                            {/* Delicate light flare effect on hover */}
+                                                            {item.target && (
+                                                                <div className="absolute inset-0 bg-gradient-to-r from-white/0 via-white/5 to-white/0 -translate-x-full group-hover:translate-x-full transition-transform duration-1000" />
+                                                            )}
+
+                                                            <div className={`rounded-xl ${item.isAction ? 'bg-black/40' : bg} ${item.isAction ? 'p-2.5' : 'p-3'} border border-white/10 ${item.target && 'group-hover:rotate-6'} transition-transform shrink-0`}>
+                                                                <Icon className={`${item.isAction ? 'w-5 h-5' : 'w-4 h-4'} ${color} transition-colors duration-500`} />
                                                             </div>
 
                                                             <div className="flex-1 min-w-0 flex flex-col items-center justify-center">
                                                                 {actionLabel && (
-                                                                    <div className={`text-[10px] font-bold tracking-widest uppercase mb-1 ${color} opacity-70 group-hover:opacity-100 transition-opacity`}>
+                                                                    <div className={`text-[8px] font-black tracking-[0.2em] uppercase mb-1 ${color} opacity-40 group-hover:opacity-100 transition-opacity`}>
                                                                         {actionLabel}
                                                                     </div>
                                                                 )}
-                                                                <div className={`truncate transition-colors ${item.isAction ? `${color} drop-shadow-md text-xl font-bold uppercase tracking-[0.15em]` : 'text-zinc-200 group-hover:text-white text-lg font-bold'}`}>
+                                                                <div className={`truncate transition-all duration-500 ${item.isAction ? `${color} drop-shadow-md text-lg font-bold uppercase tracking-[0.2em]` : 'text-zinc-400 group-hover:text-white text-base font-bold tracking-tight'}`}>
                                                                     {title}
                                                                 </div>
                                                             </div>
 
                                                             {item.target && (
-                                                                <ArrowRight className={`w-5 h-5 transform group-hover:translate-x-1 transition-all shrink-0 ${item.isAction ? color : 'text-zinc-600 group-hover:text-indigo-400'}`} />
+                                                                <div className="w-8 h-8 rounded-full bg-white/5 flex items-center justify-center border border-white/5 group-hover:border-white/20 transition-all shrink-0">
+                                                                    <ArrowRight className={`w-3 h-3 ${item.isAction ? color : 'text-zinc-600 group-hover:text-white'} transition-all`} />
+                                                                </div>
                                                             )}
                                                         </motion.button>
+
                                                     );
                                                 });
                                             })()}
@@ -1671,7 +1674,7 @@ const GamePreview = ({ nodes, edges, onClose, gameMetadata, onGameEnd }) => {
 
                                     <div className="flex justify-end">
                                         <Button
-                                            className="bg-yellow-600 hover:bg-yellow-500 text-black font-black uppercase tracking-wider shadow-[0_0_20px_rgba(234,179,8,0.2)] hover:shadow-[0_0_30px_rgba(234,179,8,0.4)] transition-all border-t border-white/30"
+                                            className="bg-yellow-600 hover:bg-yellow-500 text-black font-black uppercase tracking-[0.15em] text-[11px] h-11 px-8 shadow-[0_8px_20px_rgba(234,179,8,0.2)] hover:shadow-[0_12px_30px_rgba(234,179,8,0.3)] transition-all border-t border-white/20 rounded-xl"
                                             onClick={() => {
                                                 const next = edges.find(e => e.source === activeModalNode.id);
                                                 setActiveModalNode(null);
@@ -1811,7 +1814,7 @@ const GamePreview = ({ nodes, edges, onClose, gameMetadata, onGameEnd }) => {
 
                                     <div className="p-4 border-t border-zinc-800 bg-zinc-900/50 flex justify-end shrink-0 z-20">
                                         <Button
-                                            className="bg-orange-600 hover:bg-orange-500 text-white font-black uppercase tracking-widest shadow-[0_0_20px_rgba(249,115,22,0.2)] hover:shadow-[0_0_30px_rgba(249,115,22,0.4)] transition-all border-t border-white/20"
+                                            className="bg-orange-600 hover:bg-orange-500 text-white font-black uppercase tracking-[0.15em] text-[11px] h-11 px-8 shadow-[0_8px_20px_rgba(249,115,22,0.2)] hover:shadow-[0_12px_30px_rgba(249,115,22,0.3)] transition-all border-t border-white/20 rounded-xl"
                                             onClick={() => {
                                                 const next = edges.find(e => e.source === activeModalNode.id);
                                                 setActiveModalNode(null);
@@ -1835,11 +1838,11 @@ const GamePreview = ({ nodes, edges, onClose, gameMetadata, onGameEnd }) => {
                                         {activeModalNode.data.message}
                                     </p>
                                     <Button
-                                        className={`w-full max-w-xs py-4 text-sm font-black tracking-[0.2em] uppercase transition-all duration-300 transform hover:scale-105 active:scale-95 group overflow-hidden relative shadow-2xl border-t border-white/20 ${activeModalNode.data.buttonStyle === 'danger' ? 'bg-gradient-to-r from-red-600 to-red-800 hover:from-red-500 hover:to-red-700 shadow-red-900/40 text-white' :
+                                        className={`w-full max-w-xs h-12 text-[11px] font-black tracking-[0.2em] uppercase transition-all duration-500 transform hover:scale-[1.02] active:scale-95 group overflow-hidden relative shadow-2xl border-t border-white/10 rounded-xl ${activeModalNode.data.buttonStyle === 'danger' ? 'bg-gradient-to-r from-red-600 to-red-800 hover:from-red-500 hover:to-red-700 shadow-red-900/40 text-white' :
                                             activeModalNode.data.buttonStyle === 'primary' ? 'bg-gradient-to-r from-blue-600 to-indigo-700 hover:from-blue-500 hover:to-indigo-600 shadow-blue-900/40 text-white' :
                                                 activeModalNode.data.buttonStyle === 'success' ? 'bg-gradient-to-r from-emerald-600 to-green-700 hover:from-emerald-500 hover:to-green-600 shadow-emerald-900/40 text-white' :
                                                     activeModalNode.data.buttonStyle === 'warning' ? 'bg-gradient-to-r from-amber-400 to-orange-500 hover:from-amber-300 hover:to-orange-400 shadow-amber-900/40 text-black' :
-                                                        'bg-white text-black hover:bg-zinc-100 shadow-white/10'
+                                                        'bg-white text-black hover:bg-zinc-100 shadow-white/10 font-bold'
                                             }`}
                                         onClick={() => {
                                             const next = edges.find(e => e.source === activeModalNode.id);
@@ -1903,7 +1906,7 @@ const GamePreview = ({ nodes, edges, onClose, gameMetadata, onGameEnd }) => {
                                     <div className="mt-8 pt-4 border-t border-zinc-800 flex justify-end">
                                         <Button
                                             id="quiz-submit-btn"
-                                            className="bg-fuchsia-600 hover:bg-fuchsia-500 text-white px-8 py-4 text-sm font-black tracking-[0.2em] uppercase transition-all duration-300 transform hover:scale-105 active:scale-95 group overflow-hidden relative shadow-2xl border-t border-white/20"
+                                            className="bg-fuchsia-600 hover:bg-fuchsia-500 text-white px-10 h-12 text-[11px] font-black tracking-[0.2em] uppercase transition-all duration-500 transform hover:scale-[1.02] active:scale-95 group overflow-hidden relative shadow-2xl border-t border-white/20 rounded-xl"
                                             onClick={handleQuestionSubmit}
                                             disabled={userAnswers.size === 0}
                                         >
