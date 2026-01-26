@@ -16,7 +16,7 @@ import { X, Search, Box as BoxIcon, Zap } from 'lucide-react';
 import { motion, AnimatePresence } from 'framer-motion';
 
 // Wall Component
-const Wall = ({ start, end, height = 3.5, thickness = 0.25, color = "#1e272e" }) => {
+const Wall = ({ start, end, height = 3.5, thickness = 0.25, color = "#2c3e50" }) => {
     const dx = end.x - start.x;
     const dy = end.y - start.y;
     const distance = Math.sqrt(dx * dx + dy * dy);
@@ -29,14 +29,56 @@ const Wall = ({ start, end, height = 3.5, thickness = 0.25, color = "#1e272e" })
             <Box args={[distance, height, thickness]}>
                 <meshStandardMaterial
                     color={color}
-                    metalness={0.2}
-                    roughness={0.8}
+                    metalness={0.1}
+                    roughness={0.9}
                 />
+            </Box>
+            {/* Baseboard */}
+            <Box args={[distance + 0.05, 0.2, thickness + 0.02]} position={[0, -height / 2 + 0.1, 0]}>
+                <meshStandardMaterial color="#1a1a1a" />
             </Box>
             {/* Top Trim */}
             <Box args={[distance + 0.1, 0.1, thickness + 0.05]} position={[0, height / 2, 0]}>
                 <meshStandardMaterial color="#000000" />
             </Box>
+        </group>
+    );
+};
+
+// Door Component
+const Door = ({ start, end, height = 3.5, thickness = 0.3 }) => {
+    const dx = end.x - start.x;
+    const dy = end.y - start.y;
+    const distance = Math.sqrt(dx * dx + dy * dy);
+    const angle = Math.atan2(dy, dx);
+    const midX = (start.x + end.x) / 2;
+    const midY = (start.y + end.y) / 2;
+
+    return (
+        <group position={[midX, height / 2, midY]} rotation={[0, -angle, 0]}>
+            {/* Frame Top */}
+            <Box args={[distance, 0.4, thickness + 0.1]} position={[0, height / 2 - 0.2, 0]}>
+                <meshStandardMaterial color="#34495e" metalness={0.5} />
+            </Box>
+            {/* Frame Left */}
+            <Box args={[0.2, height, thickness + 0.1]} position={[-distance / 2 + 0.1, 0, 0]}>
+                <meshStandardMaterial color="#34495e" metalness={0.5} />
+            </Box>
+            {/* Frame Right */}
+            <Box args={[0.2, height, thickness + 0.1]} position={[distance / 2 - 0.1, 0, 0]}>
+                <meshStandardMaterial color="#34495e" metalness={0.5} />
+            </Box>
+            {/* The Actual Door (Slightly Open) */}
+            <Box args={[distance - 0.4, height - 0.4, 0.1]} position={[0.2, -0.2, 0.2]} rotation={[0, 0.5, 0]}>
+                <meshStandardMaterial
+                    color="#3498db"
+                    roughness={0.5}
+                    emissive="#3498db"
+                    emissiveIntensity={0.2}
+                />
+            </Box>
+            {/* Door Glow Indicator */}
+            <pointLight position={[0, 0, 0.3]} intensity={0.5} distance={2} color="#3498db" />
         </group>
     );
 };
@@ -126,9 +168,9 @@ const Floor = ({ width = 100, length = 100 }) => {
     return (
         <group>
             <Plane args={[width, length]} rotation={[-Math.PI / 2, 0, 0]} position={[0, -0.01, 0]} receiveShadow>
-                <meshStandardMaterial color="#2d3436" roughness={0.6} metalness={0.1} />
+                <meshStandardMaterial color="#4a4a4a" roughness={0.8} metalness={0.1} />
             </Plane>
-            <gridHelper args={[width, 50, "#444", "#222"]} position={[0, 0, 0]} />
+            <gridHelper args={[width, 50, "#666", "#333"]} position={[0, 0, 0]} />
         </group>
     );
 };
@@ -246,11 +288,13 @@ export const ThreeDWorld = ({ layout, onClose }) => {
                 <Sky sunPosition={[-100, -20, -100]} turbidity={0.1} rayleigh={0.1} />
                 <Environment preset="night" />
 
-                <ambientLight intensity={0.2} />
-                <pointLight position={[10, 10, 10]} intensity={2.5} castShadow />
+                <ambientLight intensity={0.5} />
+                <pointLight position={[0, 10, 0]} intensity={2.5} castShadow />
+                <pointLight position={[15, 10, 15]} intensity={1.5} />
+                <pointLight position={[-15, 10, -15]} intensity={1.5} />
 
                 {/* Neon Accents */}
-                <pointLight position={spawnPoint} intensity={1.5} color="#06b6d4" distance={10} />
+                <pointLight position={spawnPoint} intensity={2} color="#06b6d4" distance={15} />
 
                 <Suspense fallback={null}>
                     {/* Render Rooms */}
@@ -261,7 +305,16 @@ export const ThreeDWorld = ({ layout, onClose }) => {
                                     key={`wall-${rIdx}-${wIdx}`}
                                     start={{ x: wall.x1, y: wall.z1 }}
                                     end={{ x: wall.x2, y: wall.z2 }}
-                                    color={room.color || "#1e272e"}
+                                    color={room.color || "#2c3e50"}
+                                />
+                            ))}
+
+                            {/* Render Doors */}
+                            {room.doors?.map((door, dIdx) => (
+                                <Door
+                                    key={`door-${rIdx}-${dIdx}`}
+                                    start={{ x: door.x1, y: door.z1 }}
+                                    end={{ x: door.x2, y: door.z2 }}
                                 />
                             ))}
 

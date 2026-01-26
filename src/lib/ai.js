@@ -112,6 +112,9 @@ const simulateResponse = (prompt, message) => {
                         { x1: 5, z1: 5, x2: -5, z2: 5 },
                         { x1: -5, z1: 5, x2: -5, z2: -5 }
                     ],
+                    doors: [
+                        { x1: 5, z1: -1, x2: 5, z2: 1 }
+                    ],
                     furniture: [
                         { type: "desk", position: { x: 0, z: -3 }, rotation: 0 },
                         { type: "chair", position: { x: 0, z: -2.2 }, rotation: Math.PI },
@@ -121,15 +124,18 @@ const simulateResponse = (prompt, message) => {
                 {
                     name: "Evidence Vault",
                     color: "#c0392b",
-                    center: { x: 8, z: 0 },
+                    center: { x: 10, z: 0 },
                     walls: [
-                        { x1: -5, z1: -2, x2: 3, z2: -2 },
-                        { x1: 3, z1: -2, x2: 3, z2: 2 },
-                        { x1: 3, z1: 2, x2: -5, z2: 2 }
+                        { x1: 5, z1: -4, x2: 15, z2: -4 },
+                        { x1: 15, z1: -4, x2: 15, z2: 4 },
+                        { x1: 15, z1: 4, x2: 5, z2: 4 }
+                    ],
+                    doors: [
+                        { x1: 5, z1: -1, x2: 5, z2: 1 }
                     ],
                     furniture: [
-                        { type: "box", position: { x: 0, z: 0 }, rotation: 0 },
-                        { type: "cabinet", position: { x: 2, z: -1 }, rotation: 0 }
+                        { type: "box", position: { x: 10, z: 0 }, rotation: 0 },
+                        { type: "cabinet", position: { x: 14, z: -3 }, rotation: 0 }
                     ]
                 }
             ]

@@ -406,7 +406,7 @@ const NodeWrapper = ({ children, title, icon: Icon, colorClass = "border-zinc-70
                     DROP ACTION TO LINK
                 </div>
             </div>
-        </div>
+        </div >
     );
 };
 
@@ -1097,25 +1097,30 @@ export const ThreeDSceneNode = memo(({ id, data, selected }) => {
             }
 
             const systemPrompt = `
-                Act as a 3D Floor Plan Parser. 
-                Analyze the provided blueprint and return a JSON object.
-                Geometry Rules:
-                - Use a 20x20 unit grid.
-                - Only extract major walls to keep JSON concise.
-                - Ensure valid JSON syntax (no trailing commas).
+                Act as a High-Detail 3D Room Architect. 
+                Reconstruct the provided blueprint into a 3D Floor Plan.
+                
+                STRUCTURAL RULES:
+                - Identify every room and create a "rooms" array.
+                - Place DOORS at room transitions.
+                - Populate rooms with furniture (desk, chair, cabinet, box).
+                - Use 20x20 unit coordinate system.
+
+                JSON INTEGRITY RULES:
+                - Return VALID JSON ONLY.
+                - Double-check for missing commas between array elements.
+                - Ensure all property names are double-quoted.
+                
                 Format: 
                 {
                   "rooms": [
                     {
-                      "name": "Room Name",
-                      "color": "#hexColor",
+                      "name": "string",
+                      "color": "#hex",
                       "center": { "x": number, "z": number },
-                      "walls": [
-                        { "x1": number, "z1": number, "x2": number, "z2": number }
-                      ],
-                      "furniture": [
-                        { "type": "desk|chair|cabinet|box", "position": {"x": number, "z": number}, "rotation": number }
-                      ]
+                      "walls": [{ "x1": number, "z1": number, "x2": number, "z2": number }],
+                      "doors": [{ "x1": number, "z1": number, "x2": number, "z2": number }],
+                      "furniture": [{ "type": "string", "position": {"x": number, "z": number}, "rotation": number }]
                     }
                   ]
                 }
@@ -1131,29 +1136,81 @@ export const ThreeDSceneNode = memo(({ id, data, selected }) => {
                 imageData || data.blueprintUrl // fallback to URL if fetch failed or simulation
             );
 
-            // Robust JSON extraction
-            let jsonStr = "";
-            const startIdx = responseText.indexOf('{');
-            const endIdx = responseText.lastIndexOf('}');
+            // NEW: Ultra-Robust JSON Extraction & Repair
+            // NEW: Recursive Repair Engine for AI-Generated Geometry
+            const extractAndRepairJSON = (raw) => {
+                const firstBrace = raw.indexOf('{');
+                const lastBrace = raw.lastIndexOf('}');
+                if (firstBrace === -1 || lastBrace === -1) throw new Error("No JSON object detected in AI response.");
 
-            if (startIdx !== -1 && endIdx !== -1) {
-                jsonStr = responseText.substring(startIdx, endIdx + 1);
-            } else {
-                jsonStr = responseText; // try whole string
-            }
+                let json = raw.substring(firstBrace, lastBrace + 1);
 
-            try {
-                // Remove potential markdown blocks if AI ignored the response_mime_type
-                const cleanedJson = jsonStr.replace(/```json|```/g, '').trim();
-                const layout = JSON.parse(cleanedJson);
-                handleChange('layout', layout);
-            } catch (pErr) {
-                console.warn("Primary JSON parse failed, attempting secondary cleanup...", pErr);
-                // Attempt to fix trailing commas which are common AI mistakes
-                const secondaryClean = jsonStr.replace(/,\s*([\]}])/g, '$1').trim();
-                const layout = JSON.parse(secondaryClean);
-                handleChange('layout', layout);
-            }
+                // 1. Level 1 NormalIZATION: Remove control characters and markdown
+                json = json
+                    .replace(/```json|```/g, '')
+                    .replace(/[\u0000-\u001F\u007F-\u009F]/g, '')
+                    .trim();
+
+                const deepRepair = (str) => {
+                    let cleaned = str
+                        .replace(/,\s*([\]}])/g, '$1')        // Trailing commas
+                        .replace(/}\s*({|")/g, '},$1')        // Missing comma between objects or key
+                        .replace(/]\s*({|")/g, '],$1')        // Missing comma after array
+                        .replace(/([0-9]|"|true|false|null)\s*({|")/g, '$1,$2') // Missing comma after value
+                        .replace(/("\w+")\s*("\w+":)/g, '$1,$2') // Missing comma between key-value pairs
+                        .replace(/([{,])\s*([a-zA-Z0-9_]+)\s*:/g, '$1"$2":') // Unquoted keys (middle)
+                        .replace(/^{\s*([a-zA-Z0-9_]+)\s*:/g, '{"$1":')    // Unquoted keys (start)
+                        .replace(/:\s*'([^']*)'/g, ': "$1"') // Single to double quotes
+                        .replace(/(\d+)\s*\.\s*(\d+)/g, '$1.$2') // Fix spaced decimals
+                        .trim();
+
+                    // Recursive fix for common missing commas like "value" "other"
+                    for (let i = 0; i < 3; i++) {
+                        cleaned = cleaned.replace(/("[\w\s]+")\s+(")/g, '$1,$2');
+                    }
+                    return cleaned;
+                };
+
+                // Fast path
+                try {
+                    return JSON.parse(json);
+                } catch (e1) {
+                    console.warn("Primary JSON parse failed. Initiating Deep Repair...");
+                    try {
+                        const repaired = deepRepair(json);
+                        return JSON.parse(repaired);
+                    } catch (e2) {
+                        console.warn("Deep Repair failed. Attempting Structural Recovery...");
+                        // Level 3: Truncation & Bracing Repair
+                        let fixed = deepRepair(json);
+
+                        const openBraces = (fixed.match(/{/g) || []).length;
+                        const closeBraces = (fixed.match(/}/g) || []).length;
+                        const openBrackets = (fixed.match(/\[/g) || []).length;
+                        const closeBrackets = (fixed.match(/]/g) || []).length;
+
+                        let recovery = fixed;
+                        // Close missing brackets for truncated responses
+                        for (let i = 0; i < openBraces - closeBraces; i++) recovery += '}';
+                        for (let i = 0; i < openBrackets - closeBrackets; i++) recovery += ']';
+
+                        try {
+                            return JSON.parse(recovery);
+                        } catch (e3) {
+                            // Level 4: Emergency Truncation (Find last valid closure)
+                            console.warn("Structural Recovery failed. Truncating to last valid object...");
+                            const lastIdx = Math.max(recovery.lastIndexOf('}'), recovery.lastIndexOf(']'));
+                            if (lastIdx > 0) {
+                                try { return JSON.parse(recovery.substring(0, lastIdx + 1)); } catch (e4) { }
+                            }
+                            throw e2; // Re-throw the original deep-repair error if all fails
+                        }
+                    }
+                }
+            };
+
+            const layout = extractAndRepairJSON(responseText);
+            handleChange('layout', layout);
         } catch (error) {
             console.error("3D Generation failed", error);
             alert("3D Generation failed: " + error.message);
