@@ -12,7 +12,7 @@ import {
     useCursor
 } from '@react-three/drei';
 import * as THREE from 'three';
-import { X, Search, Box as BoxIcon } from 'lucide-react';
+import { X, Search, Box as BoxIcon, Zap } from 'lucide-react';
 import { motion, AnimatePresence } from 'framer-motion';
 
 // Wall Component
@@ -50,6 +50,7 @@ function usePersonControls() {
     useEffect(() => {
         const handleKeyDown = (e) => setMovement((m) => ({ ...m, [moveFieldByKey(e.code)]: true }));
         const handleKeyUp = (e) => setMovement((m) => ({ ...m, [moveFieldByKey(e.code)]: false }));
+        // Attaching to document is standard for first-person controls in a canvas
         document.addEventListener('keydown', handleKeyDown);
         document.addEventListener('keyup', handleKeyUp);
         return () => {
@@ -65,7 +66,7 @@ const PlayerController = ({ spawnPoint }) => {
     const { forward, backward, left, right } = usePersonControls();
     const velocity = useRef(new THREE.Vector3());
     const direction = useRef(new THREE.Vector3());
-    const speed = 4;
+    const speed = 6;
 
     useFrame((state, delta) => {
         const { camera } = state;
@@ -96,7 +97,12 @@ const PlayerController = ({ spawnPoint }) => {
         camera.position.z += moveZ * delta;
     });
 
-    return null;
+    return (
+        <group>
+            {/* Investigation Torch attached to player */}
+            <pointLight position={[0, 0, 0]} intensity={1.5} distance={8} color="#ffffff" />
+        </group>
+    );
 };
 
 // Room Label Component
@@ -176,7 +182,7 @@ const Furniture = ({ type, position, rotation = 0, color = "#7f8c8d", scale = [1
  */
 export const ThreeDWorld = ({ layout, onClose }) => {
     const [isLocked, setIsLocked] = useState(false);
-    const canvasRef = useRef();
+    const controlsRef = useRef();
 
     if (!layout || !layout.rooms || layout.rooms.length === 0) {
         return (
@@ -238,18 +244,18 @@ export const ThreeDWorld = ({ layout, onClose }) => {
                 <PerspectiveCamera makeDefault position={spawnPoint} fov={75} />
                 <PlayerController spawnPoint={spawnPoint} />
                 <Sky sunPosition={[-100, -20, -100]} turbidity={0.1} rayleigh={0.1} />
-                <Environment preset="city" />
+                <Environment preset="night" />
 
-                <ambientLight intensity={0.1} />
-                <pointLight position={[10, 10, 10]} intensity={2} castShadow />
+                <ambientLight intensity={0.2} />
+                <pointLight position={[10, 10, 10]} intensity={2.5} castShadow />
 
                 {/* Neon Accents */}
-                <pointLight position={spawnPoint} intensity={1} color="#06b6d4" distance={10} />
+                <pointLight position={spawnPoint} intensity={1.5} color="#06b6d4" distance={10} />
 
                 <Suspense fallback={null}>
                     {/* Render Rooms */}
                     {layout.rooms.map((room, rIdx) => (
-                        <group key={`room-${rIdx}`}>
+                        <group key={`room-${rIdx}`} position={[room.center?.x || 0, 0, room.center?.z || 0]}>
                             {room.walls.map((wall, wIdx) => (
                                 <Wall
                                     key={`wall-${rIdx}-${wIdx}`}
@@ -271,14 +277,12 @@ export const ThreeDWorld = ({ layout, onClose }) => {
                                 />
                             ))}
 
-                            {room.center && <RoomLabel position={room.center} text={room.name} />}
+                            {room.center && <RoomLabel position={{ x: 0, y: 0 }} text={room.name} />}
                             {/* Visual Floor for room */}
-                            {room.center && (
-                                <mesh position={[room.center.x, 0.01, room.center.z]} rotation={[-Math.PI / 2, 0, 0]}>
-                                    <circleGeometry args={[1, 32]} />
-                                    <meshStandardMaterial color={room.color} opacity={0.1} transparent />
-                                </mesh>
-                            )}
+                            <mesh position={[0, 0.01, 0]} rotation={[-Math.PI / 2, 0, 0]}>
+                                <circleGeometry args={[1, 32]} />
+                                <meshStandardMaterial color={room.color} opacity={0.1} transparent />
+                            </mesh>
                         </group>
                     ))}
 
@@ -286,6 +290,7 @@ export const ThreeDWorld = ({ layout, onClose }) => {
                 </Suspense>
 
                 <PointerLockControls
+                    ref={controlsRef}
                     onLock={() => setIsLocked(true)}
                     onUnlock={() => setIsLocked(false)}
                 />
@@ -306,6 +311,7 @@ export const ThreeDWorld = ({ layout, onClose }) => {
                             <p className="text-zinc-500 text-sm font-medium">Click anywhere to synchronize with the scene</p>
                         </div>
                         <button
+                            onClick={() => controlsRef.current?.lock()}
                             className="px-10 py-4 bg-cyan-600 hover:bg-cyan-500 text-white font-black rounded-2xl shadow-[0_0_30px_rgba(6,182,212,0.3)] transition-all transform hover:scale-105 active:scale-95 uppercase tracking-widest text-sm"
                         >
                             Establish Link
