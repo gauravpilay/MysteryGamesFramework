@@ -16,7 +16,7 @@ import { X, Search, Box as BoxIcon } from 'lucide-react';
 import { motion, AnimatePresence } from 'framer-motion';
 
 // Wall Component
-const Wall = ({ start, end, height = 3.5, thickness = 0.25, color = "#2c3e50" }) => {
+const Wall = ({ start, end, height = 3.5, thickness = 0.25, color = "#1e272e" }) => {
     const dx = end.x - start.x;
     const dy = end.y - start.y;
     const distance = Math.sqrt(dx * dx + dy * dy);
@@ -29,18 +29,74 @@ const Wall = ({ start, end, height = 3.5, thickness = 0.25, color = "#2c3e50" })
             <Box args={[distance, height, thickness]}>
                 <meshStandardMaterial
                     color={color}
-                    metalness={0.1}
-                    roughness={0.9}
-                    emissive={color}
-                    emissiveIntensity={0.05}
+                    metalness={0.2}
+                    roughness={0.8}
                 />
             </Box>
             {/* Top Trim */}
             <Box args={[distance + 0.1, 0.1, thickness + 0.05]} position={[0, height / 2, 0]}>
-                <meshStandardMaterial color="#1a1a1a" />
+                <meshStandardMaterial color="#000000" />
             </Box>
         </group>
     );
+};
+
+// Movement Hook
+function usePersonControls() {
+    const keys = { KeyW: 'forward', KeyS: 'backward', KeyA: 'left', KeyD: 'right', Space: 'jump' };
+    const moveFieldByKey = (key) => keys[key];
+    const [movement, setMovement] = useState({ forward: false, backward: false, left: false, right: false, jump: false });
+
+    useEffect(() => {
+        const handleKeyDown = (e) => setMovement((m) => ({ ...m, [moveFieldByKey(e.code)]: true }));
+        const handleKeyUp = (e) => setMovement((m) => ({ ...m, [moveFieldByKey(e.code)]: false }));
+        document.addEventListener('keydown', handleKeyDown);
+        document.addEventListener('keyup', handleKeyUp);
+        return () => {
+            document.removeEventListener('keydown', handleKeyDown);
+            document.removeEventListener('keyup', handleKeyUp);
+        };
+    }, []);
+    return movement;
+}
+
+// First Person Player Controller
+const PlayerController = ({ spawnPoint }) => {
+    const { forward, backward, left, right } = usePersonControls();
+    const velocity = useRef(new THREE.Vector3());
+    const direction = useRef(new THREE.Vector3());
+    const speed = 4;
+
+    useFrame((state, delta) => {
+        const { camera } = state;
+
+        // Calculate direction
+        direction.current.z = Number(forward) - Number(backward);
+        direction.current.x = Number(right) - Number(left);
+        direction.current.normalize();
+
+        // Update velocity
+        velocity.current.z = direction.current.z * speed;
+        velocity.current.x = direction.current.x * speed;
+
+        // Apply movement relative to camera rotation
+        const sideVector = new THREE.Vector3();
+        const frontVector = new THREE.Vector3();
+
+        camera.getWorldDirection(frontVector);
+        frontVector.y = 0;
+        frontVector.normalize();
+
+        sideVector.crossVectors(camera.up, frontVector);
+
+        const moveX = (frontVector.x * velocity.current.z) + (sideVector.x * velocity.current.x);
+        const moveZ = (frontVector.z * velocity.current.z) + (sideVector.z * velocity.current.x);
+
+        camera.position.x += moveX * delta;
+        camera.position.z += moveZ * delta;
+    });
+
+    return null;
 };
 
 // Room Label Component
@@ -52,7 +108,7 @@ const RoomLabel = ({ position, text }) => {
             color="white"
             anchorX="center"
             anchorY="middle"
-            rotation={[0, Math.PI, 0]} // Face the typical player entrance
+            rotation={[0, Math.PI, 0]}
         >
             {text}
         </Text>
@@ -64,9 +120,9 @@ const Floor = ({ width = 100, length = 100 }) => {
     return (
         <group>
             <Plane args={[width, length]} rotation={[-Math.PI / 2, 0, 0]} position={[0, 0, 0]} receiveShadow>
-                <meshStandardMaterial color="#121212" roughness={0.8} metalness={0.2} />
+                <meshStandardMaterial color="#0a0a0a" roughness={1} metalness={0} />
             </Plane>
-            <gridHelper args={[width, 50, "#333", "#222"]} position={[0, 0.01, 0]} />
+            <gridHelper args={[width, 50, "#222", "#111"]} position={[0, 0.01, 0]} />
         </group>
     );
 };
@@ -102,7 +158,6 @@ const Furniture = ({ type, position, rotation = 0, color = "#7f8c8d", scale = [1
                     <meshStandardMaterial color="#d35400" roughness={1} />
                 </Box>
             )}
-            {/* Fallback primitive */}
             {!['desk', 'cabinet', 'chair', 'box'].includes(type) && (
                 <Box args={scale} position={[0, scale[1] / 2, 0]}>
                     <meshStandardMaterial color={color} />
@@ -110,16 +165,6 @@ const Furniture = ({ type, position, rotation = 0, color = "#7f8c8d", scale = [1
             )}
         </group>
     );
-};
-
-// First Person Player Simulation (Basic)
-const Player = () => {
-    const velocity = useRef(new THREE.Vector3());
-    const direction = useRef(new THREE.Vector3());
-
-    // We'll use PointerLockControls from Drei, so we don't need complex camera logic here
-    // But we might want simple collision or height management later.
-    return null;
 };
 
 /**
@@ -191,6 +236,7 @@ export const ThreeDWorld = ({ layout, onClose }) => {
 
             <Canvas shadows gl={{ antialias: true }}>
                 <PerspectiveCamera makeDefault position={spawnPoint} fov={75} />
+                <PlayerController spawnPoint={spawnPoint} />
                 <Sky sunPosition={[-100, -20, -100]} turbidity={0.1} rayleigh={0.1} />
                 <Environment preset="city" />
 
@@ -209,7 +255,7 @@ export const ThreeDWorld = ({ layout, onClose }) => {
                                     key={`wall-${rIdx}-${wIdx}`}
                                     start={{ x: wall.x1, y: wall.z1 }}
                                     end={{ x: wall.x2, y: wall.z2 }}
-                                    color={room.color || "#2c3e50"}
+                                    color={room.color || "#1e272e"}
                                 />
                             ))}
 
