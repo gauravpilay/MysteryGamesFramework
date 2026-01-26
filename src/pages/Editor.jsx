@@ -601,6 +601,8 @@ const Editor = () => {
                 }
 
                 // Monitor lock status in real-time
+                if (data.isLocked !== undefined) setIsLocked(data.isLocked);
+
                 if (data.editingBy && data.editingBy.uid !== user.uid) {
                     const lastActive = new Date(data.editingBy.timestamp).getTime();
                     const isStillActive = (now - lastActive < 120000);
