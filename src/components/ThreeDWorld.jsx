@@ -8,16 +8,27 @@ import {
     PerspectiveCamera,
     Box,
     Plane,
+    Sphere,
+    Cylinder,
+    Capsule,
     Text,
     useCursor,
-    Billboard
+    Billboard,
+    Sparkles,
+    Float,
+    MeshReflectorMaterial,
+    MeshWobbleMaterial,
+    BakeShadows,
+    SoftShadows,
+    PresentationControls,
+    SpotLight
 } from '@react-three/drei';
 import * as THREE from 'three';
-import { X, Search, Box as BoxIcon, Zap } from 'lucide-react';
+import { X, Search, Box as BoxIcon, Zap, User, Info, MessageSquare, Shield, Activity } from 'lucide-react';
 import { motion, AnimatePresence } from 'framer-motion';
 
-// Wall Component
-const Wall = ({ start, end, height = 3.5, thickness = 0.25, color = "#2c3e50" }) => {
+// Wall Component with realistic textures and trim
+const Wall = ({ start, end, height = 3.5, thickness = 0.2, color = "#2c3e50" }) => {
     const dx = end.x - start.x;
     const dy = end.y - start.y;
     const distance = Math.sqrt(dx * dx + dy * dy);
@@ -27,20 +38,28 @@ const Wall = ({ start, end, height = 3.5, thickness = 0.25, color = "#2c3e50" })
 
     return (
         <group position={[midX, height / 2, midY]} rotation={[0, -angle, 0]}>
+            {/* Main Wall Face */}
             <Box args={[distance, height, thickness]}>
                 <meshStandardMaterial
                     color={color}
-                    metalness={0.1}
-                    roughness={0.9}
+                    metalness={0.2}
+                    roughness={0.8}
+                    emissive={color}
+                    emissiveIntensity={0.05}
                 />
             </Box>
-            {/* Baseboard */}
-            <Box args={[distance + 0.05, 0.2, thickness + 0.02]} position={[0, -height / 2 + 0.1, 0]}>
-                <meshStandardMaterial color="#1a1a1a" />
+
+            {/* Baseboard - Detailed */}
+            <Box args={[distance + 0.05, 0.15, thickness + 0.04]} position={[0, -height / 2 + 0.075, 0]}>
+                <meshStandardMaterial color="#111827" metalness={0.8} roughness={0.2} />
             </Box>
-            {/* Top Trim */}
-            <Box args={[distance + 0.1, 0.1, thickness + 0.05]} position={[0, height / 2, 0]}>
-                <meshStandardMaterial color="#000000" />
+
+            {/* Vertical Accent Lights / Strips for "Hyper-real" sci-fi look */}
+            <Box args={[0.05, height, thickness + 0.02]} position={[distance / 4, 0, 0]}>
+                <meshStandardMaterial color="#38bdf8" emissive="#38bdf8" emissiveIntensity={0.5} />
+            </Box>
+            <Box args={[0.05, height, thickness + 0.02]} position={[-distance / 4, 0, 0]}>
+                <meshStandardMaterial color="#38bdf8" emissive="#38bdf8" emissiveIntensity={0.5} />
             </Box>
         </group>
     );
@@ -59,27 +78,117 @@ const Door = ({ start, end, height = 3.5, thickness = 0.3 }) => {
         <group position={[midX, height / 2, midY]} rotation={[0, -angle, 0]}>
             {/* Frame Top */}
             <Box args={[distance, 0.4, thickness + 0.2]} position={[0, height / 2 - 0.2, 0]}>
-                <meshStandardMaterial color="#34495e" metalness={0.5} />
+                <meshStandardMaterial color="#34495e" metalness={0.5} roughness={0.2} />
             </Box>
             {/* Frame Left */}
             <Box args={[0.3, height, thickness + 0.2]} position={[-distance / 2 + 0.15, 0, 0]}>
-                <meshStandardMaterial color="#34495e" metalness={0.5} />
+                <meshStandardMaterial color="#34495e" metalness={0.5} roughness={0.2} />
             </Box>
             {/* Frame Right */}
             <Box args={[0.3, height, thickness + 0.2]} position={[distance / 2 - 0.15, 0, 0]}>
-                <meshStandardMaterial color="#34495e" metalness={0.5} />
+                <meshStandardMaterial color="#34495e" metalness={0.5} roughness={0.2} />
             </Box>
             {/* The Actual Door (Slightly Open) */}
             <Box args={[distance - 0.6, height - 0.4, 0.15]} position={[0.3, -0.2, 0.3]} rotation={[0, 0.6, 0]}>
                 <meshStandardMaterial
-                    color="#3498db"
-                    roughness={0.5}
+                    color="#1e293b"
+                    roughness={0.2}
+                    metalness={0.8}
                     emissive="#3498db"
-                    emissiveIntensity={0.5}
+                    emissiveIntensity={0.2}
                 />
             </Box>
             {/* Door Glow Indicator */}
-            <pointLight position={[0, 0, 0.5]} intensity={1.5} distance={4} color="#3498db" />
+            <pointLight position={[0.3, 0, 0.5]} intensity={1} distance={3} color="#3498db" />
+        </group>
+    );
+};
+
+// Person / NPC Component
+// Person / NPC Component - Hyper-realistic Hologram Style
+const Person = ({ name, role, position, rotation = 0, description }) => {
+    const groupRef = useRef();
+
+    useFrame((state) => {
+        if (groupRef.current) {
+            groupRef.current.position.y = Math.sin(state.clock.elapsedTime * 2) * 0.05;
+        }
+    });
+
+    return (
+        <group position={[position.x, 0, position.z]} rotation={[0, rotation, 0]}>
+            <group ref={groupRef}>
+                {/* Stylized Humanoid - Using wireframe and glass for high-end look */}
+                <group position={[0, 0.9, 0]}>
+                    {/* Head */}
+                    <Sphere args={[0.18, 24, 24]} position={[0, 0.75, 0]}>
+                        <meshStandardMaterial
+                            color="#38bdf8"
+                            emissive="#38bdf8"
+                            emissiveIntensity={2}
+                            transparent
+                            opacity={0.3}
+                        />
+                        <meshBasicMaterial color="#ffffff" wireframe />
+                    </Sphere>
+
+                    {/* Torso */}
+                    <Capsule args={[0.22, 0.5, 4, 16]} position={[0, 0.2, 0]}>
+                        <meshStandardMaterial
+                            color="#06b6d4"
+                            emissive="#06b6d4"
+                            emissiveIntensity={1}
+                            transparent
+                            opacity={0.2}
+                        />
+                        <meshBasicMaterial color="#38bdf8" wireframe opacity={0.5} transparent />
+                    </Capsule>
+
+                    {/* Floating Tech Rings for premium look */}
+                    <group position={[0, 0.3, 0]} rotation={[Math.PI / 2, 0, 0]}>
+                        <Cylinder args={[0.4, 0.4, 0.02, 32]} rotation={[0, 0, 0]}>
+                            <meshBasicMaterial color="#38bdf8" transparent opacity={0.1} />
+                        </Cylinder>
+                        <Cylinder args={[0.45, 0.45, 0.01, 32]} rotation={[0, 0, 0]}>
+                            <meshBasicMaterial color="#38bdf8" wireframe />
+                        </Cylinder>
+                    </group>
+                </group>
+
+                {/* Base Hologram Field */}
+                <mesh position={[0, 0.05, 0]} rotation={[-Math.PI / 2, 0, 0]}>
+                    <circleGeometry args={[0.6, 32]} />
+                    <meshBasicMaterial color="#38bdf8" transparent opacity={0.1} />
+                </mesh>
+                <Sparkles count={30} scale={1.5} size={2} speed={0.5} color="#38bdf8" />
+            </group>
+
+            {/* Interaction UI */}
+            <Billboard position={[0, 2.4, 0]}>
+                <group>
+                    <Text
+                        fontSize={0.22}
+                        color="white"
+                        anchorX="center"
+                        font="https://fonts.gstatic.com/s/roboto/v18/KFOmCnqEu92Fr1Mu4mxM.woff"
+                        outlineWidth={0.03}
+                        outlineColor="#000000"
+                    >
+                        {name}
+                    </Text>
+                    <Text
+                        position={[0, -0.25, 0]}
+                        fontSize={0.14}
+                        color={role === 'Suspect' ? '#ef4444' : '#38bdf8'}
+                        anchorX="center"
+                        font="https://fonts.gstatic.com/s/roboto/v18/KFOmCnqEu92Fr1Mu4mxM.woff"
+                        outlineWidth={0.02}
+                        outlineColor="#000000"
+                    >
+                        {role.toUpperCase()}
+                    </Text>
+                </group>
+            </Billboard>
         </group>
     );
 };
@@ -197,87 +306,117 @@ const RoomLabel = ({ position, text }) => {
     );
 };
 
-// Floor Component
+// Floor Component - Ultra-premium Reflector Floor
 const Floor = ({ width = 100, length = 100 }) => {
     return (
         <group>
-            <Plane args={[width, length]} rotation={[-Math.PI / 2, 0, 0]} position={[0, -0.01, 0]} receiveShadow>
-                <meshStandardMaterial color="#4a4a4a" roughness={0.8} metalness={0.1} />
-            </Plane>
-            <gridHelper args={[width, 50, "#666", "#333"]} position={[0, 0, 0]} />
+            <mesh rotation={[-Math.PI / 2, 0, 0]} position={[0, -0.01, 0]} receiveShadow>
+                <planeGeometry args={[width, length]} />
+                <MeshReflectorMaterial
+                    blur={[300, 100]}
+                    resolution={1024}
+                    mixBlur={1}
+                    mixStrength={40}
+                    roughness={1}
+                    depthScale={1.2}
+                    minDepthThreshold={0.4}
+                    maxDepthThreshold={1.4}
+                    color="#0a0a0a"
+                    metalness={0.5}
+                />
+            </mesh>
+            <gridHelper args={[width, 50, "#38bdf8", "#111"]} position={[0, 0.01, 0]} opacity={0.1} transparent />
         </group>
     );
 };
 
-// furniture helper
+// furniture helper - Hyper-detailed Props
 const Furniture = ({ type, position, rotation = 0, color = "#7f8c8d", scale = [1, 1, 1], label }) => {
-    // Standardize scale if it comes as an object or missing
     const s = Array.isArray(scale) ? scale : [1, 1, 1];
-    const hoverScale = 1.02;
 
     return (
-        <group position={[position.x, 0.02, position.z]} rotation={[0, rotation, 0]}>
+        <group position={[position.x, 0, position.z]} rotation={[0, rotation, 0]}>
             <group scale={s}>
                 {type === 'desk' && (
                     <group>
-                        <Box args={[1, 0.1, 0.6]} position={[0, 0.75, 0]}>
-                            <meshStandardMaterial color="#2c3e50" metalness={0.2} roughness={0.1} />
+                        {/* Table Top with high-end wood/glass look */}
+                        <Box args={[1, 0.05, 0.6]} position={[0, 0.75, 0]}>
+                            <meshStandardMaterial color="#1e293b" metalness={0.8} roughness={0.1} />
                         </Box>
-                        <Box args={[0.08, 0.75, 0.08]} position={[-0.45, 0.375, -0.25]}><meshStandardMaterial color="#1a1a1a" /></Box>
-                        <Box args={[0.08, 0.75, 0.08]} position={[0.45, 0.375, -0.25]}><meshStandardMaterial color="#1a1a1a" /></Box>
-                        <Box args={[0.08, 0.75, 0.08]} position={[-0.45, 0.375, 0.25]}><meshStandardMaterial color="#1a1a1a" /></Box>
-                        <Box args={[0.08, 0.75, 0.08]} position={[0.45, 0.375, 0.25]}><meshStandardMaterial color="#1a1a1a" /></Box>
+                        {/* Designer Legs */}
+                        <Cylinder args={[0.02, 0.02, 0.75]} position={[-0.45, 0.375, -0.25]}><meshStandardMaterial color="#94a3b8" metalness={1} /></Cylinder>
+                        <Cylinder args={[0.02, 0.02, 0.75]} position={[0.45, 0.375, -0.25]}><meshStandardMaterial color="#94a3b8" metalness={1} /></Cylinder>
+                        <Cylinder args={[0.02, 0.02, 0.75]} position={[-0.45, 0.375, 0.25]}><meshStandardMaterial color="#94a3b8" metalness={1} /></Cylinder>
+                        <Cylinder args={[0.02, 0.02, 0.75]} position={[0.45, 0.375, 0.25]}><meshStandardMaterial color="#94a3b8" metalness={1} /></Cylinder>
                     </group>
                 )}
-                {type === 'cabinet' && (
+                {type === 'monitor' && (
+                    <group position={[0, 0.75, 0]}>
+                        {/* Ultrawide Curve Monitor */}
+                        <group rotation={[0, 0, 0]}>
+                            <Box args={[0.8, 0.4, 0.05]} position={[0, 0.2, 0]}>
+                                <meshStandardMaterial color="#0f172a" />
+                            </Box>
+                            <Box args={[0.78, 0.38, 0.01]} position={[0, 0.2, 0.03]}>
+                                <meshStandardMaterial
+                                    color="#000000"
+                                    emissive="#38bdf8"
+                                    emissiveIntensity={2}
+                                />
+                            </Box>
+                            {/* Stand */}
+                            <Cylinder args={[0.01, 0.01, 0.2]} position={[0, 0.1, -0.02]}><meshStandardMaterial color="#94a3b8" /></Cylinder>
+                            <Box args={[0.2, 0.01, 0.15]} position={[0, 0, 0]}><meshStandardMaterial color="#1e293b" /></Box>
+                        </group>
+                    </group>
+                )}
+                {type === 'server' && (
                     <group>
-                        <Box args={[1, 1, 0.5]} position={[0, 0.5, 0]}>
-                            <meshStandardMaterial color="#34495e" metalness={0.6} />
+                        <Box args={[0.6, 1.8, 0.8]} position={[0, 0.9, 0]}>
+                            <meshStandardMaterial color="#0f172a" metalness={0.8} roughness={0.2} />
                         </Box>
-                        <Box args={[0.9, 0.4, 0.05]} position={[0, 0.7, 0.23]}><meshStandardMaterial color="#2c3e50" /></Box>
-                        <Box args={[0.9, 0.4, 0.05]} position={[0, 0.25, 0.23]}><meshStandardMaterial color="#2c3e50" /></Box>
+                        {/* Blinking Server Lights */}
+                        <Box args={[0.5, 0.02, 0.01]} position={[0, 1.5, 0.41]}>
+                            <meshStandardMaterial color="#22c55e" emissive="#22c55e" emissiveIntensity={5} />
+                        </Box>
+                        <Box args={[0.5, 0.02, 0.01]} position={[0, 1.4, 0.41]}>
+                            <meshStandardMaterial color="#38bdf8" emissive="#38bdf8" emissiveIntensity={3} />
+                        </Box>
+                        <Box args={[0.5, 0.02, 0.01]} position={[0, 1.3, 0.41]}>
+                            <meshStandardMaterial color="#ef4444" emissive="#ef4444" emissiveIntensity={2} />
+                        </Box>
                     </group>
                 )}
-                {type === 'chair' && (
-                    <group position={[0, 0, 0]}>
-                        <Box args={[0.5, 0.1, 0.5]} position={[0, 0.45, 0]}><meshStandardMaterial color="#2c3e50" /></Box>
-                        <Box args={[0.5, 0.6, 0.1]} position={[0, 0.75, -0.2]}><meshStandardMaterial color="#2c3e50" /></Box>
-                        <Box args={[0.05, 0.45, 0.05]} position={[-0.2, 0.225, -0.2]}><meshStandardMaterial color="#000" /></Box>
-                        <Box args={[0.05, 0.45, 0.05]} position={[0.2, 0.225, -0.2]}><meshStandardMaterial color="#000" /></Box>
-                        <Box args={[0.05, 0.45, 0.05]} position={[-0.2, 0.225, 0.2]}><meshStandardMaterial color="#000" /></Box>
-                        <Box args={[0.05, 0.45, 0.05]} position={[0.2, 0.225, 0.2]}><meshStandardMaterial color="#000" /></Box>
-                    </group>
-                )}
-                {type === 'table' && (
+                {type === 'couch' && (
                     <group>
-                        <Box args={[1.5, 0.1, 1.5]} position={[0, 0.75, 0]}>
-                            <meshStandardMaterial color="#7f8c8d" roughness={0.5} />
+                        {/* Modern Sleek Couch */}
+                        <Box args={[2.2, 0.3, 0.9]} position={[0, 0.2, 0]}>
+                            <meshStandardMaterial color="#1e293b" roughness={0.4} />
                         </Box>
-                        <Box args={[0.1, 0.75, 0.1]} position={[0, 0.375, 0]}><meshStandardMaterial color="#2c3e50" /></Box>
+                        <Box args={[2.2, 0.6, 0.2]} position={[0, 0.5, -0.35]}>
+                            <meshStandardMaterial color="#1e293b" roughness={0.4} />
+                        </Box>
+                        <Box args={[0.2, 0.5, 0.9]} position={[-1.0, 0.4, 0]}>
+                            <meshStandardMaterial color="#0f172a" roughness={0.4} />
+                        </Box>
+                        <Box args={[0.2, 0.5, 0.9]} position={[1.0, 0.4, 0]}>
+                            <meshStandardMaterial color="#0f172a" roughness={0.4} />
+                        </Box>
                     </group>
                 )}
-                {!['desk', 'cabinet', 'chair', 'table'].includes(type) && (
+                {!['desk', 'monitor', 'server', 'couch'].includes(type) && (
                     <Box args={[1, 1, 1]} position={[0, 0.5, 0]}>
-                        <meshStandardMaterial color={color} emissive={color} emissiveIntensity={0.1} />
+                        <meshStandardMaterial
+                            color={color}
+                            emissive={color}
+                            emissiveIntensity={0.2}
+                            metalness={0.5}
+                            roughness={0.2}
+                        />
                     </Box>
                 )}
             </group>
 
-            {/* Holographic Wireframe Highlight for visibility */}
-            <group scale={[s[0] * 1.01, s[1] * 1.01, s[2] * 1.01]} position={[0, s[1] / 2, 0]}>
-                <Box args={[1, 1, 1]}>
-                    <meshBasicMaterial color="#ffffff" wireframe opacity={0.15} transparent />
-                </Box>
-            </group>
-
-            {/* ID Label */}
-            {label && (
-                <Billboard position={[0, s[1] + 0.5, 0]}>
-                    <Text fontSize={0.15} color="#cyan" anchorX="center" outlineWidth={0.01} outlineColor="black">
-                        {label.toUpperCase()}
-                    </Text>
-                </Billboard>
-            )}
         </group>
     );
 };
@@ -350,19 +489,25 @@ export const ThreeDWorld = ({ layout, onClose }) => {
                 )}
             </AnimatePresence>
 
-            <Canvas shadows gl={{ antialias: true }}>
-                <PerspectiveCamera makeDefault position={spawnPoint} fov={75} />
+            <Canvas shadows gl={{ antialias: true, stencil: true, depth: true }} dpr={[1, 2]}>
+                <PerspectiveCamera makeDefault position={spawnPoint} fov={65} />
                 <PlayerController spawnPoint={spawnPoint} layout={layout} setActiveZone={setActiveZone} />
-                <Sky sunPosition={[10, 20, 10]} turbidity={0.01} rayleigh={0.2} />
-                <Environment preset="city" />
+                <Sky sunPosition={[10, 5, 10]} turbidity={0.5} rayleigh={0.5} />
+                <Environment preset="night" />
+                <BakeShadows />
+                <SoftShadows size={25} samples={10} focus={0.5} />
 
-                <ambientLight intensity={0.8} />
-                <pointLight position={[0, 10, 0]} intensity={4} castShadow />
-                <pointLight position={[15, 10, 15]} intensity={2.5} />
-                <pointLight position={[-15, 10, -15]} intensity={2.5} />
+                <ambientLight intensity={0.2} />
 
-                {/* Neon Accents */}
-                <pointLight position={spawnPoint} intensity={2} color="#06b6d4" distance={15} />
+                {/* Cinema Lighting Setup */}
+                <SpotLight position={[10, 15, 10]} intensity={500} angle={0.3} penumbra={1} castShadow color="#38bdf8" />
+                <pointLight position={[5, 8, 5]} intensity={200} color="#06b6d4" />
+                <pointLight position={[-5, 8, -5]} intensity={100} color="#ef4444" />
+
+                {/* Volumetric Fog / Particle Effects */}
+                <Sparkles count={200} scale={20} size={1} speed={0.2} color="#38bdf8" />
+
+                <ContactShadows resolution={2048} scale={30} blur={1} opacity={0.6} far={10} color="#000000" />
 
                 <Suspense fallback={null}>
                     {/* Render Rooms */}
@@ -373,7 +518,7 @@ export const ThreeDWorld = ({ layout, onClose }) => {
                                     key={`wall-${rIdx}-${wIdx}`}
                                     start={{ x: wall.x1, y: wall.z1 }}
                                     end={{ x: wall.x2, y: wall.z2 }}
-                                    color={room.color || "#2c3e50"}
+                                    color={room.color || "#111827"}
                                 />
                             ))}
 
@@ -386,7 +531,7 @@ export const ThreeDWorld = ({ layout, onClose }) => {
                                 />
                             ))}
 
-                            {/* Render Furniture */}
+                            {/* Render Props */}
                             {room.furniture?.map((item, fIdx) => (
                                 <Furniture
                                     key={`furn-${rIdx}-${fIdx}`}
@@ -399,14 +544,27 @@ export const ThreeDWorld = ({ layout, onClose }) => {
                                 />
                             ))}
 
-                            {/* Room Center UI (Absolute) */}
-                            {room.center && <RoomLabel position={room.center} text={room.name} />}
+                            {/* Render NPCs */}
+                            {room.people?.map((person, pIdx) => (
+                                <Person
+                                    key={`person-${rIdx}-${pIdx}`}
+                                    name={person.name}
+                                    role={person.role}
+                                    position={person.position}
+                                    rotation={person.rotation}
+                                    description={person.description}
+                                />
+                            ))}
 
+                            {/* Futuristic Room Indicators */}
                             {room.center && (
-                                <mesh position={[room.center.x, 0.01, room.center.z]} rotation={[-Math.PI / 2, 0, 0]}>
-                                    <circleGeometry args={[1, 32]} />
-                                    <meshStandardMaterial color={room.color} opacity={0.1} transparent />
-                                </mesh>
+                                <group position={[room.center.x, 0.05, room.center.z]}>
+                                    <mesh rotation={[-Math.PI / 2, 0, 0]}>
+                                        <ringGeometry args={[1.8, 2, 64]} />
+                                        <meshBasicMaterial color={room.color} transparent opacity={0.2} />
+                                    </mesh>
+                                    <RoomLabel position={{ x: 0, y: -0.05 }} text={room.name} />
+                                </group>
                             )}
                         </group>
                     ))}

@@ -118,7 +118,12 @@ const simulateResponse = (prompt, message) => {
                     furniture: [
                         { type: "desk", position: { x: 0, z: -3 }, rotation: 0 },
                         { type: "chair", position: { x: 0, z: -2.2 }, rotation: Math.PI },
-                        { type: "cabinet", position: { x: -4, z: 0 }, rotation: Math.PI / 2 }
+                        { type: "cabinet", position: { x: -4, z: 0 }, rotation: Math.PI / 2 },
+                        { type: "lamp", position: { x: -4.5, z: -4.5 }, rotation: 0 },
+                        { type: "plant", position: { x: 4.5, z: 4.5 }, rotation: 0 }
+                    ],
+                    people: [
+                        { name: "John Doe", role: "Witness", position: { x: 2, z: 2 }, rotation: Math.PI / 4, description: "Standing nervously by the corner." }
                     ]
                 },
                 {
@@ -135,7 +140,11 @@ const simulateResponse = (prompt, message) => {
                     ],
                     furniture: [
                         { type: "box", position: { x: 10, z: 0 }, rotation: 0 },
-                        { type: "cabinet", position: { x: 14, z: -3 }, rotation: 0 }
+                        { type: "cabinet", position: { x: 14, z: -3 }, rotation: 0 },
+                        { type: "monitor", position: { x: 13, z: 2 }, rotation: -Math.PI / 2 }
+                    ],
+                    people: [
+                        { name: "Agent Smith", role: "Staff", position: { x: 12, z: 0 }, rotation: 0, description: "Guarding the vault." }
                     ]
                 }
             ]

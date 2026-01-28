@@ -1114,13 +1114,18 @@ export const ThreeDSceneNode = memo(({ id, data, selected }) => {
                 GEOMETRY RULES:
                 - Use a Global World Coordinate System (X, Z).
                 - SCALE: 1 unit = 1 meter. This is CRITICAL. 
+                - SPACE: Create spacious, open-plan environments. Rooms should be LARGE (e.g., 10x10m minimum, up to 25x25m).
                 - Walls should be ~3.5m high.
                 - Furniture must be sized realistically (e.g., a desk is roughly 1.5x0.8m, a chair is 0.5x0.5m).
                 
                 FURNITURE RULES:
                 - You MUST provide a "scale": [width, height, depth] for every item.
-                - Use these types: "desk", "chair", "cabinet", "box", "table", "shelf", "computer", "bed".
+                - Use these types: "desk", "chair", "cabinet", "box", "table", "shelf", "computer", "bed", "lamp", "plant", "monitor", "couch", "rug".
                 - Place furniture logically against walls or in centers of rooms.
+
+                PEOPLE RULES:
+                - Add NPCs (people) to relevant rooms to make the scene feel alive.
+                - Each person should have a name, role, and a brief description.
 
                 JSON FORMAT:
                 {
@@ -1133,11 +1138,20 @@ export const ThreeDSceneNode = memo(({ id, data, selected }) => {
                       "doors": [{ "x1": number, "z1": number, "x2": number, "z2": number }],
                       "furniture": [
                         { 
-                          "type": "desk|chair|cabinet|box|table|shelf|computer|bed", 
+                          "type": "desk|chair|cabinet|box|table|shelf|computer|lamp|plant|monitor|couch|rug|server", 
                           "position": {"x": number, "z": number}, 
                           "scale": [number, number, number],
                           "rotation": number,
-                          "label": "Brief description of the item"
+                          "label": "Detailed description for 'neural reconstruction' (e.g., 'Encrypted Data Hub', 'Director's Terminal')"
+                        }
+                      ],
+                      "people": [
+                        {
+                          "name": "Person Name",
+                          "role": "Suspect|Witness|Victim|Staff",
+                          "position": {"x": number, "z": number},
+                          "rotation": number,
+                          "description": "Short description of appearance or action"
                         }
                       ]
                     }
