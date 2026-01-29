@@ -252,3 +252,13 @@
 .hologram-effect {
   animation: holographic-flicker 4s infinite linear;
 }
+
+@keyframes shimmer {
+  0% {
+    transform: translateY(-100%);
+  }
+
+  100% {
+    transform: translateY(100%);
+  }
+}

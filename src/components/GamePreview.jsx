@@ -6,6 +6,7 @@ import EvidenceBoard from './EvidenceBoard';
 import AdvancedTerminal from './AdvancedTerminal';
 import AIInterrogation from './AIInterrogation';
 import ThreeDWorld from './ThreeDWorld';
+import SuspectProfile from './SuspectProfile';
 import {
     checkLogicCondition as checkLogic,
     evaluateLogic as evalLogic,
@@ -532,20 +533,6 @@ const GamePreview = ({ nodes, edges, onClose, gameMetadata, onGameEnd }) => {
         return uniqueTargets;
     }, [currentNodeId, edges, inventory, nodeOutputs, history, nodes]);
 
-    // Debug: Log options when they change
-    useEffect(() => {
-        const suspectOptions = options.filter(e => nodes.find(n => n.id === e.target)?.type === 'suspect');
-        if (currentNode?.data?.label?.includes('Investigation Hub')) {
-            console.log('=== INVESTIGATION HUB DEBUG ===');
-            console.log('Total options:', options.length, 'Suspects:', suspectOptions.length);
-            console.log('Suspect nodes:', suspectOptions.map(e => {
-                const node = nodes.find(n => n.id === e.target);
-                return { name: node?.data?.name, id: e.target };
-            }));
-            console.log('Inventory contains ShowSuspectZara:', inventory.has('ShowSuspectZara'));
-            console.log('================================');
-        }
-    }, [options, nodes, currentNode, inventory]);
 
 
     // Helper to evaluate logic conditions
@@ -657,14 +644,6 @@ const GamePreview = ({ nodes, edges, onClose, gameMetadata, onGameEnd }) => {
     const handleOptionClick = (targetId) => {
         const result = resolveNext(targetId, { nodes, edges, inventory, nodeOutputs, history });
         const { nodeId, node, intermediateIds, localInventory, localOutputs, stateChanged, audioToPlay } = result;
-
-        console.log('Navigation:', node?.data?.label || node?.type, '| State changed:', stateChanged, '| Intermediates:', intermediateIds.length);
-        if (stateChanged) {
-            const newItems = Array.from(localInventory).filter(item => !inventory.has(item));
-            if (newItems.length > 0) {
-                console.log('New inventory items:', newItems);
-            }
-        }
 
         // Commit State Changes
         if (stateChanged) {
@@ -1552,354 +1531,15 @@ const GamePreview = ({ nodes, edges, onClose, gameMetadata, onGameEnd }) => {
                                 <X className="w-5 h-5" />
                             </button>
                             {activeModalNode.type === 'suspect' && (
-                                <div className="flex flex-col md:flex-row flex-1 overflow-hidden h-full">
-                                    {/* LEFT SIDEBAR: BIOMETRIC DOSSIER */}
-                                    <div className="w-full md:w-[420px] bg-zinc-950 border-r border-white/5 flex flex-col shrink-0 relative overflow-hidden biometric-grid">
-                                        <div className={`absolute inset-0 bg-gradient-to-b ${getAvatarColor(activeModalNode.data.name)} opacity-5 blur-[120px] pointer-events-none`}></div>
-
-                                        {/* Scanner Overlay */}
-                                        <div className="absolute top-0 left-0 w-full h-1 bg-indigo-500/20 shadow-[0_0_20px_rgba(99,102,241,0.5)] animate-[scanline_6s_linear_infinite] z-20"></div>
-
-                                        <div className="p-8 relative z-10 flex-1 flex flex-col">
-                                            {/* Dossier ID */}
-                                            <div className="flex items-center justify-between mb-8">
-                                                <div className="flex flex-col">
-                                                    <span className="text-[10px] font-black text-indigo-500 uppercase tracking-[.3em]">Class-4 Subject</span>
-                                                    <span className="text-[8px] font-mono text-zinc-500">REF: {activeModalNode.id.substring(0, 12).toUpperCase()}</span>
-                                                </div>
-                                                <div className="px-3 py-1 bg-zinc-900 border border-white/10 rounded-lg">
-                                                    <Activity className="w-3.5 h-3.5 text-indigo-400 animate-pulse" />
-                                                </div>
-                                            </div>
-
-                                            {/* Profile Visualization */}
-                                            <div className="relative mb-10 flex justify-center">
-                                                <div className="absolute -inset-10 border border-white/5 rounded-full animate-[spin_40s_linear_infinite]"></div>
-                                                <div className="absolute -inset-16 border border-white/5 border-dashed rounded-full animate-[spin_60s_linear_infinite_reverse]"></div>
-
-                                                <div className="w-56 h-56 rounded-[2rem] bg-zinc-900 border-2 border-white/10 p-2 relative z-10 overflow-hidden shadow-2xl group hologram-effect">
-                                                    <div className={`absolute inset-0 opacity-20 bg-gradient-to-br ${getAvatarColor(activeModalNode.data.name)}`}></div>
-                                                    <div className="w-full h-full bg-black/40 rounded-[1.5rem] flex items-center justify-center relative overflow-hidden">
-                                                        <span className="text-8xl font-black text-white/5 select-none absolute">{(activeModalNode.data.name || 'S').charAt(0)}</span>
-                                                        <User className="w-24 h-24 text-white opacity-40 group-hover:scale-110 group-hover:opacity-60 transition-all duration-700" />
-
-                                                        {/* Static Overlay */}
-                                                        <div className="absolute inset-0 bg-[url('https://grainy-gradients.vercel.app/noise.svg')] opacity-10 pointer-events-none"></div>
-                                                    </div>
-                                                </div>
-
-                                                {/* Meta Indicators */}
-                                                <div className="absolute -right-4 top-0 space-y-2">
-                                                    <div className="w-8 h-8 rounded-full bg-zinc-900 border border-white/10 flex items-center justify-center" title="Voice Match"><MessageSquare className="w-3.5 h-3.5 text-zinc-500" /></div>
-                                                    <div className="w-8 h-8 rounded-full bg-zinc-900 border border-white/10 flex items-center justify-center" title="Identity Confirmed"><Shield className="w-3.5 h-3.5 text-emerald-500" /></div>
-                                                </div>
-                                            </div>
-
-                                            {/* Identity Header */}
-                                            <div className="text-center mb-10">
-                                                <motion.h2
-                                                    initial={{ opacity: 0, scale: 0.9 }}
-                                                    animate={{ opacity: 1, scale: 1 }}
-                                                    className="text-4xl font-black text-white uppercase tracking-tighter mb-2"
-                                                >
-                                                    {activeModalNode.data.name}
-                                                </motion.h2>
-                                                <div className="inline-flex items-center gap-2 px-4 py-1.5 bg-red-500/10 border border-red-500/20 rounded-full">
-                                                    <span className="text-[10px] font-black text-red-500 uppercase tracking-[.2em]">{activeModalNode.data.role}</span>
-                                                </div>
-                                            </div>
-
-                                            {/* Biometric Vital Monitor */}
-                                            <div className="bg-zinc-900/40 border border-white/5 rounded-3xl p-6 shadow-inner backdrop-blur-3xl mt-auto">
-                                                <div className="flex items-center justify-between mb-6">
-                                                    <span className="text-[10px] font-black text-zinc-500 uppercase tracking-widest">Neural Stability</span>
-                                                    <div className="flex items-center gap-1.5">
-                                                        <div className="w-1 h-1 rounded-full bg-indigo-500 animate-ping"></div>
-                                                        <span className="text-[9px] font-mono text-indigo-400">SYNC_ACTIVE</span>
-                                                    </div>
-                                                </div>
-
-                                                {/* Waveform Component */}
-                                                <div className="h-16 flex items-end gap-[2px] overflow-hidden opacity-50 relative mb-6">
-                                                    {[...Array(30)].map((_, i) => (
-                                                        <motion.div
-                                                            key={i}
-                                                            animate={{
-                                                                height: [
-                                                                    `${20 + Math.random() * 60}%`,
-                                                                    `${40 + Math.random() * 50}%`,
-                                                                    `${20 + Math.random() * 60}%`
-                                                                ]
-                                                            }}
-                                                            transition={{
-                                                                duration: 0.5 + Math.random() * 0.5,
-                                                                repeat: Infinity,
-                                                                ease: "easeInOut"
-                                                            }}
-                                                            className="flex-1 bg-indigo-500 min-w-[2px] rounded-t-full"
-                                                        />
-                                                    ))}
-                                                    <div className="absolute inset-0 bg-gradient-to-t from-zinc-950/80 via-transparent to-transparent"></div>
-                                                </div>
-
-                                                <div className="grid grid-cols-2 gap-4">
-                                                    <div className="p-3 bg-white/5 border border-white/5 rounded-2xl flex flex-col gap-1">
-                                                        <span className="text-[8px] font-black text-zinc-600 uppercase">Heart Rate</span>
-                                                        <div className="flex items-end gap-1">
-                                                            <span className="text-lg font-black text-white">72</span>
-                                                            <span className="text-[8px] text-zinc-500 mb-1">BPM</span>
-                                                        </div>
-                                                    </div>
-                                                    <div className="p-3 bg-white/5 border border-white/5 rounded-2xl flex flex-col gap-1">
-                                                        <span className="text-[8px] font-black text-zinc-600 uppercase">Pupillary</span>
-                                                        <div className="flex items-end gap-1">
-                                                            <span className="text-lg font-black text-amber-500 tracking-tighter">DILATED</span>
-                                                        </div>
-                                                    </div>
-                                                </div>
-                                            </div>
-                                        </div>
-                                    </div>
-
-                                    {/* RIGHT HUB: INVESTIGATION CONSOLE */}
-                                    <div className="flex-1 bg-[radial-gradient(circle_at_top_right,rgba(43,43,43,0.3),transparent)] flex flex-col overflow-hidden min-h-[400px]">
-                                        <div className="flex-1 overflow-y-auto p-6 md:p-12 custom-scrollbar">
-                                            {/* RECORDED TESTIMONY */}
-                                            <motion.section
-                                                initial={{ opacity: 0, y: 20 }}
-                                                animate={{ opacity: 1, y: 0 }}
-                                                className="mb-16 relative"
-                                            >
-                                                <div className="flex items-center gap-2.5 mb-5 opacity-80">
-                                                    <div className="w-7 h-7 rounded-lg bg-indigo-500/10 border border-indigo-500/20 flex items-center justify-center">
-                                                        <MessageSquare className="w-3.5 h-3.5 text-indigo-500" />
-                                                    </div>
-                                                    <h3 className="text-[11px] font-bold text-zinc-400 uppercase tracking-[0.3em]">Intercepted Testimony</h3>
-                                                </div>
-
-                                                <div className="relative group">
-                                                    <div className="absolute -inset-4 bg-gradient-to-r from-indigo-500/5 via-transparent to-transparent opacity-0 group-hover:opacity-100 transition-opacity rounded-3xl blur-2xl"></div>
-                                                    <div className="relative p-10 bg-zinc-900/40 border border-white/5 border-l-indigo-500 border-l-[6px] rounded-3xl backdrop-blur-3xl shadow-2xl">
-                                                        <div className="absolute top-6 right-8 flex items-center gap-4">
-                                                            <div className="flex items-center gap-2">
-                                                                <div className="w-2 h-2 rounded-full bg-red-500 animate-[pulse_2s_linear_infinite]"></div>
-                                                                <span className="text-[10px] font-black text-zinc-600 uppercase tracking-[.2em] whitespace-nowrap">Source: Audio Intelligence</span>
-                                                            </div>
-                                                        </div>
-
-                                                        <p className="text-lg md:text-xl font-medium text-white/90 leading-relaxed italic tracking-tight mb-6">
-                                                            "{activeModalNode.data.alibi || "I have nothing to say to you. I was nowhere near the scene when it happened."}"
-                                                        </p>
-
-                                                        <div className="flex items-center justify-between border-t border-white/5 pt-6">
-                                                            <div className="flex gap-6">
-                                                                <div className="flex flex-col">
-                                                                    <span className="text-[8px] font-black text-zinc-600 uppercase tracking-widest mb-1">Authenticity</span>
-                                                                    <span className="text-[10px] font-bold text-amber-500 uppercase tracking-tighter">Inconclusive</span>
-                                                                </div>
-                                                                <div className="flex flex-col">
-                                                                    <span className="text-[8px] font-black text-zinc-600 uppercase tracking-widest mb-1">Tone Analysis</span>
-                                                                    <span className="text-[10px] font-bold text-indigo-400 uppercase tracking-tighter">Defensive</span>
-                                                                </div>
-                                                            </div>
-                                                            <div className="px-3 py-1 bg-white/5 rounded-full border border-white/10">
-                                                                <span className="text-[9px] font-mono text-zinc-500">TS: {new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit', second: '2-digit' })}</span>
-                                                            </div>
-                                                        </div>
-                                                    </div>
-                                                </div>
-                                            </motion.section>
-
-                                            {/* ACTION HUB GRID */}
-                                            <div className="grid grid-cols-1 lg:grid-cols-2 gap-12">
-                                                {/* CONFRONTATION PANEL */}
-                                                <motion.div
-                                                    initial={{ opacity: 0, x: -20 }}
-                                                    animate={{ opacity: 1, x: 0 }}
-                                                    transition={{ delay: 0.2 }}
-                                                >
-                                                    <div className="flex items-center justify-between mb-6">
-                                                        <div className="flex items-center gap-3">
-                                                            <div className="w-8 h-8 rounded-xl bg-amber-500/10 border border-amber-500/20 flex items-center justify-center">
-                                                                <Search className="w-4 h-4 text-amber-500" />
-                                                            </div>
-                                                            <h3 className="text-sm font-black text-white uppercase tracking-[0.2em]">Confrontation</h3>
-                                                        </div>
-                                                    </div>
-
-                                                    <div className="bg-black/60 border border-white/10 rounded-[2rem] p-10 shadow-2xl backdrop-blur-xl min-h-[400px] relative overflow-hidden">
-                                                        {/* Grid Accent */}
-                                                        <div className="absolute inset-0 biometric-grid opacity-[0.03] pointer-events-none"></div>
-
-                                                        {(() => {
-                                                            const collectedEvidence = Array.from(inventory)
-                                                                .map(id => nodes.find(n => n.id === id && n.type === 'evidence'))
-                                                                .filter(Boolean);
-
-                                                            if (collectedEvidence.length === 0) {
-                                                                return (
-                                                                    <div className="h-full flex flex-col items-center justify-center py-20 opacity-40">
-                                                                        <div className="p-8 bg-zinc-900/50 rounded-full mb-6 border border-zinc-800 animate-pulse">
-                                                                            <Briefcase className="w-12 h-12 text-zinc-600" />
-                                                                        </div>
-                                                                        <p className="text-sm font-black text-zinc-500 uppercase tracking-[0.4em]">Awaiting Evidence Log</p>
-                                                                    </div>
-                                                                );
-                                                            }
-
-                                                            return (
-                                                                <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-2 gap-10 relative z-10">
-                                                                    {collectedEvidence.map(eNode => (
-                                                                        <motion.button
-                                                                            key={eNode.id}
-                                                                            whileHover={{ y: -15, rotate: 1, scale: 1.02 }}
-                                                                            whileTap={{ scale: 0.98 }}
-                                                                            onClick={() => {
-                                                                                const match = edges.find(e =>
-                                                                                    e.source === activeModalNode.id &&
-                                                                                    (e.label?.toLowerCase() === eNode.data.label?.toLowerCase() || e.data?.evidenceId === eNode.id)
-                                                                                );
-                                                                                if (match) {
-                                                                                    addLog(`BREAKTHROUGH: Confronted subject with ${eNode.data.label}.`);
-                                                                                    setActiveModalNode(null);
-                                                                                    handleOptionClick(match.target);
-                                                                                } else {
-                                                                                    addLog(`DISMISSAL: Subject ignored the ${eNode.data.label}.`);
-                                                                                }
-                                                                            }}
-                                                                            className="relative group flex flex-col items-center"
-                                                                        >
-                                                                            {/* High-Fidelity Photo Card */}
-                                                                            <div className="w-full bg-zinc-900 border-x-4 border-t-4 border-b-[24px] border-white/90 rounded-sm shadow-[0_20px_50px_rgba(0,0,0,0.5)] overflow-hidden transition-all duration-500 group-hover:border-amber-400">
-                                                                                <div className="aspect-square relative overflow-hidden">
-                                                                                    {eNode.data.image ? (
-                                                                                        <img src={eNode.data.image} alt={eNode.data.label} className="w-full h-full object-cover group-hover:scale-110 transition-transform duration-1000" />
-                                                                                    ) : (
-                                                                                        <div className="w-full h-full bg-zinc-800 flex items-center justify-center">
-                                                                                            <Search className="w-16 h-16 text-zinc-700 group-hover:text-amber-500 transition-colors" />
-                                                                                        </div>
-                                                                                    )}
-                                                                                    {/* Technical Overlays */}
-                                                                                    <div className="absolute top-2 right-2 px-2 py-0.5 bg-black/80 backdrop-blur-sm rounded border border-white/10 flex items-center gap-1">
-                                                                                        <span className="text-[7px] font-mono text-white tracking-widest uppercase">SCAN_SIG: {eNode.id.substring(0, 4)}</span>
-                                                                                    </div>
-                                                                                    {/* Scanning Line */}
-                                                                                    <div className="absolute inset-0 bg-indigo-500/10 h-1 w-full animate-[scanline_3s_linear_infinite] opacity-0 group-hover:opacity-100 pointer-events-none"></div>
-                                                                                </div>
-                                                                            </div>
-
-                                                                            <div className="mt-4 flex flex-col items-center">
-                                                                                <div className="text-[11px] font-black text-white uppercase tracking-[0.2em] mb-1 group-hover:text-amber-400 transition-colors">{eNode.data.label}</div>
-                                                                                <div className="flex items-center gap-2">
-                                                                                    <div className="h-0.5 w-6 bg-amber-500/30"></div>
-                                                                                    <span className="text-[8px] font-bold text-zinc-500 uppercase tracking-widest leading-none">Evidence Logged</span>
-                                                                                    <div className="h-0.5 w-6 bg-amber-500/30"></div>
-                                                                                </div>
-                                                                            </div>
-                                                                        </motion.button>
-                                                                    ))}
-                                                                </div>
-                                                            );
-                                                        })()}
-                                                    </div>
-                                                </motion.div>
-
-                                                {/* DIALOGUE PANEL */}
-                                                <motion.div
-                                                    initial={{ opacity: 0, x: 20 }}
-                                                    animate={{ opacity: 1, x: 0 }}
-                                                    transition={{ delay: 0.3 }}
-                                                >
-                                                    <div className="flex items-center gap-3 mb-6">
-                                                        <div className="w-8 h-8 rounded-xl bg-indigo-500/10 border border-indigo-500/20 flex items-center justify-center">
-                                                            <Terminal className="w-4 h-4 text-indigo-500" />
-                                                        </div>
-                                                        <h3 className="text-sm font-black text-white uppercase tracking-[0.2em]">Interrogation Threads</h3>
-                                                    </div>
-
-                                                    <div className="space-y-4">
-                                                        {(() => {
-                                                            const nodeActions = activeModalNode.data.actions || [];
-                                                            const dialogueEdges = edges.filter(e => e.source === activeModalNode.id && !e.label?.startsWith('evidence:') && !e.data?.isEvidenceLink);
-                                                            const handledEdgeIds = new Set();
-
-                                                            const actionThreads = nodeActions.map((action, actionIdx) => {
-                                                                let edge = dialogueEdges.find(e => e.sourceHandle === action.id);
-                                                                if (!edge && dialogueEdges[actionIdx]) {
-                                                                    edge = dialogueEdges[actionIdx];
-                                                                }
-                                                                if (edge) handledEdgeIds.add(edge.id);
-                                                                return { id: action.id, label: action.label, target: edge?.target };
-                                                            }).filter(t => t.target);
-
-                                                            const genericThreads = dialogueEdges.filter(e => !handledEdgeIds.has(e.id)).map(e => {
-                                                                const targetNode = nodes.find(n => n.id === e.target);
-                                                                return { id: e.id, label: e.label || getEdgeLabel(targetNode), target: e.target };
-                                                            });
-
-                                                            const allThreads = [...actionThreads, ...genericThreads];
-
-                                                            if (allThreads.length === 0) {
-                                                                return (
-                                                                    <div className="h-[300px] flex flex-col items-center justify-center p-10 text-center border-2 border-dashed border-white/5 rounded-3xl bg-black/20">
-                                                                        <div className="p-3 bg-zinc-900 rounded-xl mb-4">
-                                                                            <ShieldAlert className="w-6 h-6 text-zinc-700" />
-                                                                        </div>
-                                                                        <p className="text-zinc-600 font-black text-[10px] uppercase tracking-[0.3em]">Neural Paths Exhausted</p>
-                                                                    </div>
-                                                                );
-                                                            }
-
-                                                            return allThreads.map((thread) => (
-                                                                <button
-                                                                    key={thread.id}
-                                                                    onClick={() => { setActiveModalNode(null); handleOptionClick(thread.target); }}
-                                                                    className="w-full flex items-center justify-between p-6 bg-white/5 border border-white/5 hover:border-indigo-500/40 hover:bg-indigo-500/10 rounded-[1.5rem] transition-all group overflow-hidden relative shadow-2xl"
-                                                                >
-                                                                    {/* Hover Background Shine */}
-                                                                    <div className="absolute inset-x-0 bottom-0 h-0.5 bg-indigo-500 scale-x-0 group-hover:scale-x-100 transition-transform duration-700"></div>
-                                                                    <div className="absolute inset-0 bg-gradient-to-r from-transparent via-white/5 to-transparent -translate-x-full group-hover:translate-x-full transition-transform duration-1000 ease-in-out" />
-
-                                                                    <div className="flex items-center gap-6 relative z-10">
-                                                                        <div className="w-14 h-14 rounded-2xl bg-zinc-900 border border-white/5 flex items-center justify-center group-hover:bg-indigo-600 group-hover:border-indigo-500 transition-all duration-500 shadow-inner group-hover:shadow-[0_0_30px_rgba(79,70,229,0.3)]">
-                                                                            <ChevronRight className="w-6 h-6 text-zinc-600 group-hover:text-white group-hover:translate-x-0.5 transition-all" />
-                                                                        </div>
-                                                                        <div className="flex flex-col items-start text-left">
-                                                                            <span className="text-[10px] font-black text-indigo-500 uppercase tracking-[.3em] mb-1 leading-none opacity-60">Cognitive Probe</span>
-                                                                            <span className="text-lg font-black text-zinc-400 group-hover:text-white transition-colors tracking-tight uppercase leading-tight">
-                                                                                {thread.label}
-                                                                            </span>
-                                                                        </div>
-                                                                    </div>
-                                                                    <div className="p-3 bg-white/5 rounded-xl border border-white/5 group-hover:bg-indigo-500/20 group-hover:border-indigo-500/40 transition-all">
-                                                                        <ArrowRight className="w-5 h-5 text-zinc-700 group-hover:text-indigo-400 group-hover:translate-x-1 transition-all" />
-                                                                    </div>
-                                                                </button>
-                                                            ));
-                                                        })()}
-                                                    </div>
-                                                </motion.div>
-                                            </div>
-                                        </div>
-
-                                        {/* OPTIONAL: FOOTER STATUS BAR */}
-                                        <div className="h-10 md:h-12 border-t border-white/5 bg-black/60 backdrop-blur-3xl px-6 md:px-12 flex items-center justify-between shrink-0">
-                                            <div className="flex items-center gap-4 md:gap-6">
-                                                <div className="flex items-center gap-2">
-                                                    <div className="w-1 h-1 md:w-1.5 md:h-1.5 rounded-full bg-indigo-500 animate-pulse"></div>
-                                                    <span className="text-[7px] md:text-[8px] text-zinc-600 font-black uppercase tracking-[0.3em] whitespace-nowrap">Case-Link: Active</span>
-                                                </div>
-                                                <div className="hidden sm:flex items-center gap-2">
-                                                    <div className="w-1.5 h-1.5 rounded-full bg-emerald-500 animate-[pulse_3s_linear_infinite]"></div>
-                                                    <span className="text-[8px] text-zinc-600 font-black uppercase tracking-[0.3em] whitespace-nowrap">Logic-Sync: Synced</span>
-                                                </div>
-                                            </div>
-                                            <div className="flex items-center gap-2">
-                                                <span className="text-[7px] md:text-[8px] text-zinc-700 font-black uppercase tracking-[0.3em] whitespace-nowrap">Holographic Interface V2.4.0</span>
-                                            </div>
-                                        </div>
-                                    </div>
-                                </div>
+                                <SuspectProfile
+                                    suspect={activeModalNode}
+                                    inventory={inventory}
+                                    nodes={nodes}
+                                    edges={edges}
+                                    onClose={() => setActiveModalNode(null)}
+                                    onNavigate={handleOptionClick}
+                                    onLog={addLog}
+                                />
                             )}
                             {activeModalNode.type === 'evidence' && (
                                 <div className="p-8 border-t-4 border-yellow-500 bg-zinc-900/50">
@@ -2260,11 +1900,12 @@ const GamePreview = ({ nodes, edges, onClose, gameMetadata, onGameEnd }) => {
 
                         </motion.div>
                     </div>
-                )}
-            </AnimatePresence>
+                )
+                }
+            </AnimatePresence >
 
             {/* Image Zoom Lightbox */}
-            <AnimatePresence>
+            < AnimatePresence >
                 {zoomedImage && (
                     <div
                         className="fixed inset-0 z-[200] bg-black/95 backdrop-blur-sm flex items-center justify-center cursor-pointer"
@@ -2291,7 +1932,7 @@ const GamePreview = ({ nodes, edges, onClose, gameMetadata, onGameEnd }) => {
                         </motion.div>
                     </div>
                 )}
-            </AnimatePresence>
+            </AnimatePresence >
 
             {/* Evidence Board (Crazy Wall) */}
             < AnimatePresence >
