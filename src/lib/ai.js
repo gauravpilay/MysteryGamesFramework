@@ -151,6 +151,50 @@ const simulateResponse = (prompt, message) => {
         });
     }
 
+    // Support for AI Case Generator Simulation
+    if (systemPrompt.includes("Mystery Architect AI")) {
+        return JSON.stringify({
+            nodes: [
+                {
+                    id: "node-1",
+                    type: "story",
+                    position: { x: 0, y: 0 },
+                    data: { label: "The Beginning", text: "You arrive at the scene of the crime. The air is thick with tension." }
+                },
+                {
+                    id: "node-2",
+                    type: "suspect",
+                    position: { x: 400, y: -200 },
+                    data: { label: "Chief Engineer", name: "Dr. Aris", role: "Maintenance Lead", alibi: "I was in the server room." }
+                },
+                {
+                    id: "node-3",
+                    type: "evidence",
+                    position: { x: 400, y: 200 },
+                    data: { label: "Strange Tool", description: "A plasma cutter with a custom serial number.", variableId: "has_tool" }
+                },
+                {
+                    id: "node-4",
+                    type: "logic",
+                    position: { x: 800, y: 0 },
+                    data: { label: "Check Evidence", variable: "has_tool", operator: "==", value: "true" }
+                },
+                {
+                    id: "node-5",
+                    type: "identify",
+                    position: { x: 1200, y: 0 },
+                    data: { label: "Solve the Case", culpritName: "Dr. Aris" }
+                }
+            ],
+            edges: [
+                { id: "e1-2", source: "node-1", target: "node-2" },
+                { id: "e1-3", source: "node-1", target: "node-3" },
+                { id: "e3-4", source: "node-3", target: "node-4" },
+                { id: "e4-5", source: "node-4", target: "node-5", sourceHandle: "true" }
+            ]
+        });
+    }
+
     // Basic common questions
     if (msg.includes("hello") || msg.includes("hi")) return "Hello. I'm busy, so make it quick.";
     if (msg.includes("who are you") || msg.includes("name")) {

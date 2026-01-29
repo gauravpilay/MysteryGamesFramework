@@ -16,6 +16,7 @@ import { Button } from '../components/ui/shared';
 import { Logo } from '../components/ui/Logo';
 import { Save, ArrowLeft, X, FileText, User, Search, GitMerge, Terminal, MessageSquare, CircleHelp, Play, Settings, Music, Image as ImageIcon, MousePointerClick, Fingerprint, Bell, HelpCircle, ChevronLeft, ChevronRight, ToggleLeft, Lock, Sun, Moon, Stethoscope, Unlock, Binary, Grid3x3, CheckCircle, AlertTriangle, Plus, Trash2, Target, Box, FolderOpen, Brain } from 'lucide-react';
 import { StoryNode, SuspectNode, EvidenceNode, LogicNode, TerminalNode, MessageNode, MusicNode, MediaNode, ActionNode, IdentifyNode, NotificationNode, QuestionNode, SetterNode, LockpickNode, DecryptionNode, KeypadNode, GroupNode, InputField, InterrogationNode, ThreeDSceneNode } from '../components/nodes/CustomNodes';
+import AICaseGeneratorModal from '../components/AICaseGeneratorModal';
 function FolderNode(props) {
     return <GroupNode {...props} />;
 }
@@ -180,6 +181,7 @@ const Editor = () => {
     const [incomingRequest, setIncomingRequest] = useState(null);
     const [requestFeedback, setRequestFeedback] = useState(null); // 'accepted' | 'declined' | null
     const [isRequesting, setIsRequesting] = useState(false);
+    const [showAIGenerator, setShowAIGenerator] = useState(false);
 
     const tutorialSteps = [
         {
@@ -1189,6 +1191,19 @@ const Editor = () => {
                         <Button variant="ghost" size="icon" onClick={validateGraph} title="Validate Graph Health" className="h-8 w-8">
                             <Stethoscope className={`w-4 h-4 ${isDarkMode ? 'text-emerald-400' : 'text-emerald-600'}`} />
                         </Button>
+                        <div className={`w-px h-4 ${isDarkMode ? 'bg-white/10' : 'bg-zinc-300'}`}></div>
+                        <Button
+                            variant="ghost"
+                            size="sm"
+                            onClick={() => setShowAIGenerator(true)}
+                            title="AI Auto-Generate Case"
+                            disabled={isLocked}
+                            className={`h-8 px-3 gap-2 border border-dashed ${isDarkMode ? 'border-indigo-500/30 text-indigo-400 hover:bg-indigo-500/10' : 'border-indigo-300 text-indigo-600 hover:bg-indigo-50'}`}
+                        >
+                            <Brain className="w-4 h-4" />
+                            <span className="text-[10px] font-black uppercase tracking-widest">AI Build</span>
+                        </Button>
+                        <div className={`w-px h-4 ${isDarkMode ? 'bg-white/10' : 'bg-zinc-300'}`}></div>
                         <Button variant="ghost" size="icon" onClick={() => setShowSettings(true)} title="Game Settings" disabled={isLocked} className="h-8 w-8">
                             <Settings className={`w-4 h-4 ${isDarkMode ? 'text-zinc-400' : 'text-zinc-600'}`} />
                         </Button>
@@ -1320,6 +1335,31 @@ const Editor = () => {
                     </ReactFlow>
                 </div>
             </div>
+
+            <AICaseGeneratorModal
+                isOpen={showAIGenerator}
+                onClose={() => setShowAIGenerator(false)}
+                onGenerate={(newNodes, newEdges) => {
+                    const preparedNodes = newNodes.map(node => ({
+                        ...node,
+                        data: {
+                            ...node.data,
+                            onChange: onNodeUpdate,
+                            onDuplicate: onDuplicateNode,
+                            onUngroup: onUngroup,
+                            learningObjectives,
+                            enableThreeD
+                        }
+                    }));
+                    setNodes(preparedNodes);
+                    setEdges(newEdges);
+                    // Force fit view after generation
+                    setTimeout(() => {
+                        if (reactFlowInstance) reactFlowInstance.fitView({ duration: 800 });
+                    }, 100);
+                }}
+            />
+
             <AnimatePresence>
                 {showTutorial && (
                     <TutorialOverlay steps={tutorialSteps} onClose={() => setShowTutorial(false)} />
