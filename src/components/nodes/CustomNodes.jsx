@@ -1100,7 +1100,7 @@ export const ThreeDSceneNode = memo(({ id, data, selected }) => {
         }
     };
 
-    const generate3DLayout = async (mode = 'blueprint') => {
+    const generate3DLayout = async () => {
         // Global Check
         if (settings.useAIAssistance === false) {
             alert("CRITICAL: Global 'AI Assistance' is disabled by the System Administrator. Architecture generation is currently locked platform-wide.");
@@ -1112,14 +1112,8 @@ export const ThreeDSceneNode = memo(({ id, data, selected }) => {
             alert("3D Holodeck generation is disabled in mission settings. Existing scenes cannot be modified.");
             return;
         }
-
-        if (mode === 'blueprint' && !data.blueprintUrl) {
+        if (!data.blueprintUrl) {
             alert("Please upload a blueprint first.");
-            return;
-        }
-
-        if (mode === 'dream' && !data.dreamPrompt) {
-            alert("Please enter a description for the Neural Dreamer.");
             return;
         }
 
@@ -1128,8 +1122,7 @@ export const ThreeDSceneNode = memo(({ id, data, selected }) => {
             let imageData = null;
 
             // Only fetch and convert to base64 if we are not in simulation mode
-            // Only fetch image if in blueprint mode
-            if (mode === 'blueprint' && settings.aiApiKey && settings.aiApiKey !== 'SIMULATION_MODE') {
+            if (settings.aiApiKey && settings.aiApiKey !== 'SIMULATION_MODE') {
                 const imgResponse = await fetch(data.blueprintUrl);
                 const blob = await imgResponse.blob();
                 imageData = await new Promise((resolve) => {
@@ -1139,13 +1132,9 @@ export const ThreeDSceneNode = memo(({ id, data, selected }) => {
                 });
             }
 
-            const promptText = mode === 'blueprint'
-                ? "Reconstruct the provided blueprint into a highly detailed 3D Holodeck Floor Plan."
-                : `Create a highly detailed 3D Holodeck Floor Plan based on this description: "${data.dreamPrompt}"`;
-
             const systemPrompt = `
                 Act as a Master 3D Architect and Spatial Designer. 
-                ${promptText}
+                Reconstruct the provided blueprint into a highly detailed 3D Holodeck Floor Plan.
                 
                 GEOMETRY RULES:
                 - Use a Global World Coordinate System (X, Z).
@@ -1195,16 +1184,14 @@ export const ThreeDSceneNode = memo(({ id, data, selected }) => {
                 }
             `.trim();
 
-            const userMessage = mode === 'blueprint'
-                ? "Analyze floor plan. Output ONLY JSON."
-                : "Dream the spatial architecture based on the provided description. Output ONLY JSON.";
+            const userMessage = "Analyze floor plan. Output ONLY JSON.";
 
             const responseText = await callAI(
                 data.aiProvider || 'gemini',
                 systemPrompt,
                 userMessage,
                 settings.aiApiKey || 'SIMULATION_MODE',
-                mode === 'blueprint' ? (imageData || data.blueprintUrl) : null
+                imageData || data.blueprintUrl // fallback to URL if fetch failed or simulation
             );
 
             // NEW: Ultra-Robust JSON Extraction & Repair
@@ -1326,48 +1313,22 @@ export const ThreeDSceneNode = memo(({ id, data, selected }) => {
                         </div>
 
                         <button
-                            onClick={() => generate3DLayout('blueprint')}
+                            onClick={generate3DLayout}
                             disabled={isParsing || !data.blueprintUrl || !data.enableThreeD || settings.useAIAssistance === false}
-                            className={`w-full py-2.5 rounded-lg font-black text-[9px] uppercase tracking-widest flex items-center justify-center gap-2 transition-all ${isParsing || !data.enableThreeD || settings.useAIAssistance === false
-                                ? "bg-zinc-800 text-zinc-500 cursor-not-allowed"
-                                : "bg-cyan-600/20 hover:bg-cyan-600/40 text-cyan-400 border border-cyan-500/30"
-                                }`}
-                        >
-                            {isParsing ? <Loader2 className="w-3 h-3 animate-spin" /> : <Box className="w-3 h-3" />}
-                            Reconstruct Map
-                        </button>
-                    </div>
-
-                    <div className="p-3 bg-purple-500/5 border border-purple-500/10 rounded-xl space-y-3">
-                        <p className="text-[10px] text-purple-400 font-black uppercase tracking-widest flex items-center gap-2">
-                            <Brain className="w-3.5 h-3.5" /> Neural Dreamer
-                        </p>
-
-                        <textarea
-                            className="w-full bg-black/40 border border-purple-900/30 rounded-lg p-2 text-[10px] text-purple-200 focus:border-purple-500 outline-none resize-none h-16 transition-all"
-                            placeholder="Describe the space... (e.g., 'A cyberpunk server room with rain leaks and hanging wires')"
-                            value={data.dreamPrompt || ''}
-                            onChange={(e) => handleChange('dreamPrompt', e.target.value)}
-                            disabled={!data.enableThreeD || settings.useAIAssistance === false}
-                        />
-
-                        <button
-                            onClick={() => generate3DLayout('dream')}
-                            disabled={isParsing || !data.dreamPrompt || !data.enableThreeD || settings.useAIAssistance === false}
                             className={`w-full py-3 rounded-lg font-black text-[10px] uppercase tracking-widest flex items-center justify-center gap-2 transition-all ${isParsing || !data.enableThreeD || settings.useAIAssistance === false
                                 ? "bg-zinc-800 text-zinc-500 cursor-not-allowed"
-                                : "bg-purple-600 hover:bg-purple-500 text-white shadow-lg shadow-purple-600/20"
+                                : "bg-cyan-600 hover:bg-cyan-500 text-black shadow-lg shadow-cyan-600/20"
                                 }`}
                         >
                             {isParsing ? (
                                 <>
                                     <Loader2 className="w-3.5 h-3.5 animate-spin" />
-                                    Dreaming...
+                                    Parsing Geometry...
                                 </>
                             ) : (
                                 <>
                                     <Cpu className="w-3.5 h-3.5" />
-                                    Dream 3D World
+                                    Generate 3D World
                                 </>
                             )}
                         </button>
