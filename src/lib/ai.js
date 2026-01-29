@@ -159,36 +159,47 @@ const simulateResponse = (prompt, message) => {
                     id: "node-1",
                     type: "story",
                     position: { x: 0, y: 0 },
-                    data: { label: "The Beginning", text: "You arrive at the scene of the crime. The air is thick with tension." }
+                    data: {
+                        label: "The Beginning",
+                        text: "You arrive at the scene of the crime. The air is thick with tension.",
+                        actions: [
+                            { id: "act-1", label: "Talk to Witness", variant: "primary" },
+                            { id: "act-2", label: "Inspect the Safe", variant: "success" }
+                        ]
+                    }
                 },
                 {
                     id: "node-2",
                     type: "suspect",
-                    position: { x: 400, y: -200 },
+                    position: { x: 400, y: -150 },
                     data: { label: "Chief Engineer", name: "Dr. Aris", role: "Maintenance Lead", alibi: "I was in the server room." }
                 },
                 {
                     id: "node-3",
                     type: "evidence",
-                    position: { x: 400, y: 200 },
-                    data: { label: "Strange Tool", description: "A plasma cutter with a custom serial number.", variableId: "has_tool" }
+                    position: { x: 400, y: 150 },
+                    data: { label: "Safe Contents", description: "The safe is empty, but there is a strange residue on the dial.", variableId: "has_residue" }
                 },
                 {
                     id: "node-4",
                     type: "logic",
                     position: { x: 800, y: 0 },
-                    data: { label: "Check Evidence", variable: "has_tool", operator: "==", value: "true" }
+                    data: { label: "Check Evidence", variable: "has_residue", operator: "==", value: "true", logicType: "if" }
                 },
                 {
                     id: "node-5",
                     type: "identify",
                     position: { x: 1200, y: 0 },
-                    data: { label: "Solve the Case", culpritName: "Dr. Aris" }
+                    data: {
+                        label: "Solve the Case",
+                        culpritName: "Dr. Aris",
+                        reasoning: "The chemical residue found on the safe matches the lubricant used only by the maintenance team lead."
+                    }
                 }
             ],
             edges: [
-                { id: "e1-2", source: "node-1", target: "node-2" },
-                { id: "e1-3", source: "node-1", target: "node-3" },
+                { id: "e1-2", source: "node-1", target: "node-2", sourceHandle: "act-1" },
+                { id: "e1-3", source: "node-1", target: "node-3", sourceHandle: "act-2" },
                 { id: "e3-4", source: "node-3", target: "node-4" },
                 { id: "e4-5", source: "node-4", target: "node-5", sourceHandle: "true" }
             ]

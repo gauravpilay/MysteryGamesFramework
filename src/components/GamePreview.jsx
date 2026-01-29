@@ -622,7 +622,11 @@ const GamePreview = ({ nodes, edges, onClose, gameMetadata, onGameEnd }) => {
 
         // Reset content ready state ONLY on new node entry
         if (lastNodeId.current !== currentNode.id) {
-            setIsContentReady(false);
+            if (currentNode.type === 'story') {
+                setIsContentReady(false);
+            } else {
+                setIsContentReady(true);
+            }
             lastNodeId.current = currentNode.id;
         }
     }, [currentNode?.id, inventory, options, nodeOutputs]);
@@ -692,10 +696,8 @@ const GamePreview = ({ nodes, edges, onClose, gameMetadata, onGameEnd }) => {
         if (forceSuccess || isLegacyMatch || input.includes('grep')) {
             addLog(`COMMAND SUCCESS: ${input}`);
 
-            // Find next node (usually just one output)
-            const nodeOptions = edges.filter(e => e.source === activeModalNode.id);
-
-            if (nodeOptions.length > 0) {
+            const next = options[0];
+            if (next) {
                 // Add to inventory that we beat this terminal
                 // Add to inventory that we beat this terminal
                 const successIds = [activeModalNode.id];
@@ -717,7 +719,7 @@ const GamePreview = ({ nodes, edges, onClose, gameMetadata, onGameEnd }) => {
 
                 // Close modal and move to next
                 setActiveModalNode(null); // Close first
-                handleOptionClick(nodeOptions[0].target);
+                handleOptionClick(next.target);
             }
         } else {
             addLog(`COMMAND FAILED: Access Denied.`);
@@ -870,7 +872,7 @@ const GamePreview = ({ nodes, edges, onClose, gameMetadata, onGameEnd }) => {
     const handleCloseModal = () => {
         if (!activeModalNode) return;
 
-        const MODAL_TYPES = ['suspect', 'evidence', 'terminal', 'message', 'media', 'notification', 'question', 'lockpick', 'decryption', 'keypad', 'identify', 'interrogation'];
+        const MODAL_TYPES = ['suspect', 'evidence', 'terminal', 'message', 'media', 'notification', 'question', 'lockpick', 'decryption', 'keypad', 'identify', 'interrogation', 'threed'];
         const SKIP_TYPES = ['logic', 'setter', 'music', ...MODAL_TYPES];
 
         // If the modal node is the current navigational node, closing it should revert to the previous narrative
@@ -940,6 +942,24 @@ const GamePreview = ({ nodes, edges, onClose, gameMetadata, onGameEnd }) => {
         if (!currentNode) return <div className="text-zinc-500 animate-pulse">Initializing Neural Link...</div>;
 
         const { type, data } = currentNode;
+
+        if (type === 'action') {
+            return (
+                <div className="space-y-8 animate-in fade-in slide-in-from-bottom-4 duration-700 relative z-10">
+                    <div className="flex items-center justify-center gap-4 mb-6">
+                        <MousePointerClick className="w-12 h-12 text-indigo-400 animate-pulse" />
+                        <h2 className="text-4xl md:text-5xl font-black text-transparent bg-clip-text bg-gradient-to-r from-white via-zinc-200 to-zinc-500 uppercase tracking-tighter drop-shadow-2xl">
+                            {data.label || "Requested Action"}
+                        </h2>
+                    </div>
+                    <Card className="bg-zinc-900/50 border-zinc-800 p-8 backdrop-blur-md border-t-4 border-t-indigo-600 shadow-2xl">
+                        <p className="text-zinc-400 text-center uppercase tracking-[0.2em] text-xs font-bold">
+                            Interactive node active // proceed with selection below
+                        </p>
+                    </Card>
+                </div>
+            )
+        }
 
         if (type !== 'story') {
             return (
@@ -1260,13 +1280,12 @@ const GamePreview = ({ nodes, edges, onClose, gameMetadata, onGameEnd }) => {
                                                 const usedEdges = new Set();
 
                                                 // 1. Explicit Actions
-                                                const actionItems = actions.map(action => {
+                                                const actionItems = actions.map((action, actionIdx) => {
                                                     let edge = options.find(e => e.sourceHandle === action.id);
 
                                                     // Intelligent Fallback:
-                                                    // Map to default edge if not explicitly wired.
+                                                    // 1. Map to default edge if not explicitly wired.
                                                     if (!edge) {
-                                                        // Broad check for "null" handle
                                                         const defaultEdge = options.find(e =>
                                                             (!e.sourceHandle || e.sourceHandle === 'null') &&
                                                             !usedEdges.has(e.id)
@@ -1277,6 +1296,9 @@ const GamePreview = ({ nodes, edges, onClose, gameMetadata, onGameEnd }) => {
                                                         } else if (actions.length === 1 && options.length === 1 && !usedEdges.has(options[0].id)) {
                                                             // Desperation Fallback: 1 Action, 1 Edge -> Just Link Them
                                                             edge = options[0];
+                                                        } else if (options[actionIdx] && !usedEdges.has(options[actionIdx].id)) {
+                                                            // Index Fallback: If AI just listed edges in order, map them by index
+                                                            edge = options[actionIdx];
                                                         }
                                                     }
 
@@ -1741,8 +1763,11 @@ const GamePreview = ({ nodes, edges, onClose, gameMetadata, onGameEnd }) => {
                                                             const dialogueEdges = edges.filter(e => e.source === activeModalNode.id && !e.label?.startsWith('evidence:') && !e.data?.isEvidenceLink);
                                                             const handledEdgeIds = new Set();
 
-                                                            const actionThreads = nodeActions.map(action => {
-                                                                const edge = dialogueEdges.find(e => e.sourceHandle === action.id);
+                                                            const actionThreads = nodeActions.map((action, actionIdx) => {
+                                                                let edge = dialogueEdges.find(e => e.sourceHandle === action.id);
+                                                                if (!edge && dialogueEdges[actionIdx]) {
+                                                                    edge = dialogueEdges[actionIdx];
+                                                                }
                                                                 if (edge) handledEdgeIds.add(edge.id);
                                                                 return { id: action.id, label: action.label, target: edge?.target };
                                                             }).filter(t => t.target);
@@ -1843,7 +1868,7 @@ const GamePreview = ({ nodes, edges, onClose, gameMetadata, onGameEnd }) => {
                                         <Button
                                             className="bg-yellow-600 hover:bg-yellow-500 text-black font-black uppercase tracking-[0.15em] text-[11px] h-11 px-8 shadow-[0_8px_20px_rgba(234,179,8,0.2)] hover:shadow-[0_12px_30px_rgba(234,179,8,0.3)] transition-all border-t border-white/20 rounded-xl"
                                             onClick={() => {
-                                                const next = edges.find(e => e.source === activeModalNode.id);
+                                                const next = options[0];
                                                 setActiveModalNode(null);
                                                 if (next) handleOptionClick(next.target);
                                             }}
@@ -1881,10 +1906,10 @@ const GamePreview = ({ nodes, edges, onClose, gameMetadata, onGameEnd }) => {
                                             addLog(`INTERROGATION REWARD: +${activeModalNode.data.score} Points`);
                                         }
 
-                                        const nodeOptions = edges.filter(e => e.source === activeModalNode.id);
-                                        if (nodeOptions.length > 0) {
+                                        const next = options[0];
+                                        if (next) {
                                             setActiveModalNode(null);
-                                            handleOptionClick(nodeOptions[0].target);
+                                            handleOptionClick(next.target);
                                         } else {
                                             handleCloseModal();
                                         }
@@ -1914,7 +1939,7 @@ const GamePreview = ({ nodes, edges, onClose, gameMetadata, onGameEnd }) => {
                                             variant="outline"
                                             className="border-violet-500/50 text-violet-200 hover:bg-violet-500/10 hover:border-violet-400 font-bold uppercase tracking-widest text-xs"
                                             onClick={() => {
-                                                const next = edges.find(e => e.source === activeModalNode.id);
+                                                const next = options[0];
                                                 setActiveModalNode(null);
                                                 if (next) handleOptionClick(next.target);
                                             }}
@@ -1985,7 +2010,7 @@ const GamePreview = ({ nodes, edges, onClose, gameMetadata, onGameEnd }) => {
                                         <Button
                                             className="bg-orange-600 hover:bg-orange-500 text-white font-black uppercase tracking-[0.15em] text-[11px] h-11 px-8 shadow-[0_8px_20px_rgba(249,115,22,0.2)] hover:shadow-[0_12px_30px_rgba(249,115,22,0.3)] transition-all border-t border-white/20 rounded-xl"
                                             onClick={() => {
-                                                const next = edges.find(e => e.source === activeModalNode.id);
+                                                const next = options[0];
                                                 setActiveModalNode(null);
                                                 if (next) handleOptionClick(next.target);
                                             }}
@@ -2014,7 +2039,7 @@ const GamePreview = ({ nodes, edges, onClose, gameMetadata, onGameEnd }) => {
                                                         'bg-white text-black hover:bg-zinc-100 shadow-white/10 font-bold'
                                             }`}
                                         onClick={() => {
-                                            const next = edges.find(e => e.source === activeModalNode.id);
+                                            const next = options[0];
                                             setActiveModalNode(null);
                                             if (next) handleOptionClick(next.target);
                                         }}
@@ -2094,7 +2119,7 @@ const GamePreview = ({ nodes, edges, onClose, gameMetadata, onGameEnd }) => {
                                 <LockpickMinigame
                                     node={activeModalNode}
                                     onSuccess={() => {
-                                        const next = edges.find(e => e.source === activeModalNode.id);
+                                        const next = options[0];
                                         // Set Success Variable
                                         if (activeModalNode.data.variableId) {
                                             setInventory(prev => new Set([...prev, activeModalNode.data.variableId]));
@@ -2115,7 +2140,7 @@ const GamePreview = ({ nodes, edges, onClose, gameMetadata, onGameEnd }) => {
                                 <KeypadMinigame
                                     node={activeModalNode}
                                     onSuccess={() => {
-                                        const next = edges.find(e => e.source === activeModalNode.id);
+                                        const next = options[0];
                                         if (activeModalNode.data.variableId) {
                                             setInventory(prev => new Set([...prev, activeModalNode.data.variableId]));
                                             setNodeOutputs(prev => ({ ...prev, [activeModalNode.data.variableId]: true }));
@@ -2131,7 +2156,7 @@ const GamePreview = ({ nodes, edges, onClose, gameMetadata, onGameEnd }) => {
                                 <DecryptionMinigame
                                     node={activeModalNode}
                                     onSuccess={() => {
-                                        const next = edges.find(e => e.source === activeModalNode.id);
+                                        const next = options[0];
                                         if (activeModalNode.data.variableId) {
                                             setInventory(prev => new Set([...prev, activeModalNode.data.variableId]));
                                             setNodeOutputs(prev => ({ ...prev, [activeModalNode.data.variableId]: true }));

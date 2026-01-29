@@ -145,9 +145,20 @@ const AICaseGeneratorModal = ({ isOpen, onClose, onGenerate }) => {
                                             value={objectives}
                                             onChange={(e) => setObjectives(e.target.value)}
                                         />
-                                        <p className="text-[10px] text-zinc-600 italic">
-                                            The AI will weave these objectives into the evidence, suspect dialogues, and terminal challenges.
-                                        </p>
+                                        <div className="flex flex-col gap-2">
+                                            <p className="text-[10px] text-zinc-600 italic">
+                                                The AI will weave these objectives into the evidence, suspect dialogues, and terminal challenges.
+                                            </p>
+                                            <div className="p-3 bg-indigo-500/5 border border-indigo-500/10 rounded-xl space-y-2">
+                                                <span className="text-[9px] font-black text-indigo-400 uppercase tracking-widest">Example Objective:</span>
+                                                <button
+                                                    onClick={() => setObjectives("Identify common social engineering red flags: Unusual Urgency, Mismatched Domains, and Unsolicited Attachments.")}
+                                                    className="block text-left text-[11px] text-zinc-400 hover:text-indigo-300 transition-colors italic leading-relaxed"
+                                                >
+                                                    "Identify common social engineering red flags: Unusual Urgency, Mismatched Domains, and Unsolicited Attachments."
+                                                </button>
+                                            </div>
+                                        </div>
                                     </motion.div>
                                 ) : (
                                     <motion.div
@@ -165,6 +176,15 @@ const AICaseGeneratorModal = ({ isOpen, onClose, onGenerate }) => {
                                             value={prompt}
                                             onChange={(e) => setPrompt(e.target.value)}
                                         />
+                                        <div className="p-3 bg-amber-500/5 border border-amber-500/10 rounded-xl space-y-2">
+                                            <span className="text-[9px] font-black text-amber-400 uppercase tracking-widest">Example Briefing:</span>
+                                            <button
+                                                onClick={() => setPrompt("A cyber-heist at a luxury space-hotel. The CEO's private encryption keys were stolen from his terminal.")}
+                                                className="block text-left text-[11px] text-zinc-400 hover:text-amber-300 transition-colors italic leading-relaxed"
+                                            >
+                                                "A cyber-heist at a luxury space-hotel. The CEO's private encryption keys were stolen from his terminal."
+                                            </button>
+                                        </div>
                                     </motion.div>
                                 )}
 
