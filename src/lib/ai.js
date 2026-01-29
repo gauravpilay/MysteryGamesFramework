@@ -3,7 +3,7 @@
  * Supports Google Gemini and OpenAI ChatGPT
  */
 
-export const callAI = async (provider, systemPrompt, userMessage, apiKey, imageData = null) => {
+export const callAI = async (provider, systemPrompt, userMessage, apiKey, imageData = null, responseFormat = 'text') => {
     // If no API key is provided, use a local simulation mode
     if (!apiKey || apiKey === 'SIMULATION_MODE') {
         return simulateResponse(systemPrompt, userMessage);
@@ -27,13 +27,19 @@ export const callAI = async (provider, systemPrompt, userMessage, apiKey, imageD
             });
         }
 
+        const generationConfig = {
+            temperature: 0.1,
+            maxOutputTokens: 4000
+        };
+
+        // Only add JSON response format if explicitly requested
+        if (responseFormat === 'json') {
+            generationConfig.response_mime_type = "application/json";
+        }
+
         const body = {
             contents: [{ role: 'user', parts }],
-            generationConfig: {
-                temperature: 0.1, // Lower temperature for more structured JSON output
-                maxOutputTokens: 4000,
-                response_mime_type: "application/json" // Force JSON if possible
-            }
+            generationConfig
         };
 
         const response = await fetch(url, {
@@ -69,6 +75,11 @@ export const callAI = async (provider, systemPrompt, userMessage, apiKey, imageD
             temperature: 0.7,
             max_tokens: 500
         };
+
+        // Only add JSON response format if explicitly requested
+        if (responseFormat === 'json') {
+            body.response_format = { type: "json_object" };
+        }
 
         const response = await fetch(url, {
             method: 'POST',

@@ -532,8 +532,25 @@ const GamePreview = ({ nodes, edges, onClose, gameMetadata, onGameEnd }) => {
         return uniqueTargets;
     }, [currentNodeId, edges, inventory, nodeOutputs, history, nodes]);
 
+    // Debug: Log options when they change
+    useEffect(() => {
+        const suspectOptions = options.filter(e => nodes.find(n => n.id === e.target)?.type === 'suspect');
+        if (currentNode?.data?.label?.includes('Investigation Hub')) {
+            console.log('=== INVESTIGATION HUB DEBUG ===');
+            console.log('Total options:', options.length, 'Suspects:', suspectOptions.length);
+            console.log('Suspect nodes:', suspectOptions.map(e => {
+                const node = nodes.find(n => n.id === e.target);
+                return { name: node?.data?.name, id: e.target };
+            }));
+            console.log('Inventory contains ShowSuspectZara:', inventory.has('ShowSuspectZara'));
+            console.log('================================');
+        }
+    }, [options, nodes, currentNode, inventory]);
+
+
     // Helper to evaluate logic conditions
     const checkLogicCondition = (condition) => checkLogic(condition, inventory, history);
+
 
 
     // Effect to handle "Auto-traverse" nodes (Logic) or State Updates (Evidence)
@@ -640,6 +657,14 @@ const GamePreview = ({ nodes, edges, onClose, gameMetadata, onGameEnd }) => {
     const handleOptionClick = (targetId) => {
         const result = resolveNext(targetId, { nodes, edges, inventory, nodeOutputs, history });
         const { nodeId, node, intermediateIds, localInventory, localOutputs, stateChanged, audioToPlay } = result;
+
+        console.log('Navigation:', node?.data?.label || node?.type, '| State changed:', stateChanged, '| Intermediates:', intermediateIds.length);
+        if (stateChanged) {
+            const newItems = Array.from(localInventory).filter(item => !inventory.has(item));
+            if (newItems.length > 0) {
+                console.log('New inventory items:', newItems);
+            }
+        }
 
         // Commit State Changes
         if (stateChanged) {
@@ -1226,7 +1251,7 @@ const GamePreview = ({ nodes, edges, onClose, gameMetadata, onGameEnd }) => {
                                             {!(missionStarted && currentNode && currentNode.data.label.toLowerCase().includes('briefing')) && (
                                                 <div className="flex items-center gap-2 text-zinc-400 text-sm font-bold tracking-wider uppercase">
                                                     <User className="w-4 h-4" />
-                                                    <span>Suspect Database Matches ({options.length})</span>
+                                                    <span>Suspect Database Matches ({options.filter(e => nodes.find(n => n.id === e.target)?.type === 'suspect').length})</span>
                                                 </div>
                                             )}
                                             <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
@@ -1977,9 +2002,12 @@ const GamePreview = ({ nodes, edges, onClose, gameMetadata, onGameEnd }) => {
                                             variant="outline"
                                             className="border-violet-500/50 text-violet-200 hover:bg-violet-500/10 hover:border-violet-400 font-bold uppercase tracking-widest text-xs"
                                             onClick={() => {
-                                                const next = options[0];
+                                                // Use raw edge to ensure setter nodes are processed
+                                                const rawEdges = edges.filter(e => e.source === activeModalNode.id);
                                                 setActiveModalNode(null);
-                                                if (next) handleOptionClick(next.target);
+                                                if (rawEdges.length > 0) {
+                                                    handleOptionClick(rawEdges[0].target);
+                                                }
                                             }}
                                         >
                                             Close Transmission
@@ -2048,9 +2076,12 @@ const GamePreview = ({ nodes, edges, onClose, gameMetadata, onGameEnd }) => {
                                         <Button
                                             className="bg-orange-600 hover:bg-orange-500 text-white font-black uppercase tracking-[0.15em] text-[11px] h-11 px-8 shadow-[0_8px_20px_rgba(249,115,22,0.2)] hover:shadow-[0_12px_30px_rgba(249,115,22,0.3)] transition-all border-t border-white/20 rounded-xl"
                                             onClick={() => {
-                                                const next = options[0];
+                                                // Use raw edge to ensure setter nodes are processed
+                                                const rawEdges = edges.filter(e => e.source === activeModalNode.id);
                                                 setActiveModalNode(null);
-                                                if (next) handleOptionClick(next.target);
+                                                if (rawEdges.length > 0) {
+                                                    handleOptionClick(rawEdges[0].target);
+                                                }
                                             }}
                                         >
                                             Continue <ArrowRight className="w-4 h-4 ml-2" />
@@ -2077,9 +2108,12 @@ const GamePreview = ({ nodes, edges, onClose, gameMetadata, onGameEnd }) => {
                                                         'bg-white text-black hover:bg-zinc-100 shadow-white/10 font-bold'
                                             }`}
                                         onClick={() => {
-                                            const next = options[0];
+                                            // Use raw edge to ensure setter nodes are processed
+                                            const rawEdges = edges.filter(e => e.source === activeModalNode.id);
                                             setActiveModalNode(null);
-                                            if (next) handleOptionClick(next.target);
+                                            if (rawEdges.length > 0) {
+                                                handleOptionClick(rawEdges[0].target);
+                                            }
                                         }}
                                     >
                                         <div className="absolute inset-0 bg-gradient-to-r from-transparent via-white/10 to-transparent -translate-x-full group-hover:translate-x-full transition-transform duration-1000" />
@@ -2157,14 +2191,17 @@ const GamePreview = ({ nodes, edges, onClose, gameMetadata, onGameEnd }) => {
                                 <LockpickMinigame
                                     node={activeModalNode}
                                     onSuccess={() => {
-                                        const next = options[0];
                                         // Set Success Variable
                                         if (activeModalNode.data.variableId) {
                                             setInventory(prev => new Set([...prev, activeModalNode.data.variableId]));
                                             setNodeOutputs(prev => ({ ...prev, [activeModalNode.data.variableId]: true }));
                                         }
+                                        // Use raw edge to ensure setter nodes are processed
+                                        const rawEdges = edges.filter(e => e.source === activeModalNode.id);
                                         setActiveModalNode(null);
-                                        if (next) handleOptionClick(next.target);
+                                        if (rawEdges.length > 0) {
+                                            handleOptionClick(rawEdges[0].target);
+                                        }
                                     }}
                                     onFail={() => {
                                         // Maybe damage score or just retry? For now, retry is standard.
@@ -2178,13 +2215,16 @@ const GamePreview = ({ nodes, edges, onClose, gameMetadata, onGameEnd }) => {
                                 <KeypadMinigame
                                     node={activeModalNode}
                                     onSuccess={() => {
-                                        const next = options[0];
                                         if (activeModalNode.data.variableId) {
                                             setInventory(prev => new Set([...prev, activeModalNode.data.variableId]));
                                             setNodeOutputs(prev => ({ ...prev, [activeModalNode.data.variableId]: true }));
                                         }
+                                        // Use raw edge to ensure setter nodes are processed
+                                        const rawEdges = edges.filter(e => e.source === activeModalNode.id);
                                         setActiveModalNode(null);
-                                        if (next) handleOptionClick(next.target);
+                                        if (rawEdges.length > 0) {
+                                            handleOptionClick(rawEdges[0].target);
+                                        }
                                     }}
                                 />
                             )}
@@ -2194,13 +2234,16 @@ const GamePreview = ({ nodes, edges, onClose, gameMetadata, onGameEnd }) => {
                                 <DecryptionMinigame
                                     node={activeModalNode}
                                     onSuccess={() => {
-                                        const next = options[0];
                                         if (activeModalNode.data.variableId) {
                                             setInventory(prev => new Set([...prev, activeModalNode.data.variableId]));
                                             setNodeOutputs(prev => ({ ...prev, [activeModalNode.data.variableId]: true }));
                                         }
+                                        // Use raw edge to ensure setter nodes are processed
+                                        const rawEdges = edges.filter(e => e.source === activeModalNode.id);
                                         setActiveModalNode(null);
-                                        if (next) handleOptionClick(next.target);
+                                        if (rawEdges.length > 0) {
+                                            handleOptionClick(rawEdges[0].target);
+                                        }
                                     }}
                                 />
                             )}
