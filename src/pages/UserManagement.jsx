@@ -1,7 +1,7 @@
 import React, { useEffect, useState } from "react";
 import { useAuth } from "../lib/auth";
 import { db } from "../lib/firebase";
-import { collection, getDocs, doc, updateDoc, deleteField } from "firebase/firestore";
+import { collection, getDocs, doc, updateDoc, deleteField, deleteDoc, setDoc } from "firebase/firestore";
 import { Button, Card } from "../components/ui/shared";
 import {
     Table,
@@ -11,7 +11,7 @@ import {
     TableHeader,
     TableRow
 } from "../components/ui/table";
-import { Shield, ShieldAlert, User, ArrowLeft, MoreHorizontal, Check, X, FolderLock, Lock } from "lucide-react";
+import { Shield, ShieldAlert, User, ArrowLeft, MoreHorizontal, Check, X, FolderLock, Lock, Trash2, UserX, UserCheck } from "lucide-react";
 import { useNavigate } from "react-router-dom";
 
 const UserManagement = () => {
@@ -24,6 +24,7 @@ const UserManagement = () => {
     // Case Management State
     const [cases, setCases] = useState([]);
     const [managingUser, setManagingUser] = useState(null);
+    const [confirmDeleteUser, setConfirmDeleteUser] = useState(null);
     const [tempAssignedIds, setTempAssignedIds] = useState([]);
     const [isCustomAccess, setIsCustomAccess] = useState(false);
 
@@ -156,19 +157,65 @@ const UserManagement = () => {
 
     const handleRoleChange = async (userId, newRole) => {
         if (!db) {
-            // Mock update
             setUsers(users.map(u => u.id === userId ? { ...u, role: newRole } : u));
             return;
         }
 
         try {
             const userRef = doc(db, "users", userId);
-            await updateDoc(userRef, { role: newRole });
-            // Update local state
+            await setDoc(userRef, { role: newRole }, { merge: true });
             setUsers(users.map(u => u.id === userId ? { ...u, role: newRole } : u));
         } catch (err) {
             console.error("Error updating role:", err);
-            setError("Failed to update user role.");
+            setError("Failed to update user role. Check permissions.");
+        }
+    };
+
+    const handleToggleStatus = async (userId, currentStatus) => {
+        const newStatus = (currentStatus === 'deactivated' || currentStatus === 'Deactivated') ? 'active' : 'deactivated';
+
+        if (!db) {
+            setUsers(users.map(u => u.id === userId ? { ...u, status: newStatus } : u));
+            return;
+        }
+
+        try {
+            const userRef = doc(db, "users", userId);
+            // Using setDoc with merge: true is safer than updateDoc it ensure the doc exists
+            await setDoc(userRef, { status: newStatus }, { merge: true });
+
+            setUsers(users.map(u => u.id === userId ? { ...u, status: newStatus } : u));
+
+            // If we deactivated someone, show a brief success indicator
+            console.log(`User ${userId} status updated to ${newStatus}`);
+        } catch (err) {
+            console.error("Error toggling status:", err);
+            setError(`Failed to update user status: ${err.message}`);
+        }
+    };
+
+    const handleRemoveUser = (targetUser) => {
+        setConfirmDeleteUser(targetUser);
+    };
+
+    const executeRemoveUser = async () => {
+        if (!confirmDeleteUser) return;
+        const userId = confirmDeleteUser.id;
+
+        if (!db) {
+            setUsers(users.filter(u => u.id !== userId));
+            setConfirmDeleteUser(null);
+            return;
+        }
+
+        try {
+            await deleteDoc(doc(db, "users", userId));
+            setUsers(users.filter(u => u.id !== userId));
+            setConfirmDeleteUser(null);
+        } catch (err) {
+            console.error("Error removing user:", err);
+            setError("Failed to remove user record.");
+            setConfirmDeleteUser(null);
         }
     };
 
@@ -234,9 +281,10 @@ const UserManagement = () => {
                         <TableHeader className="bg-black/40 border-b border-white/5">
                             <TableRow className="hover:bg-transparent">
                                 <TableHead className="text-zinc-400 font-bold uppercase text-xs tracking-wider py-4 pl-6">Personnel Email</TableHead>
-                                <TableHead className="text-zinc-400 font-bold uppercase text-xs tracking-wider py-4">Current Clearance</TableHead>
+                                <TableHead className="text-zinc-400 font-bold uppercase text-xs tracking-wider py-4">Clearance</TableHead>
+                                <TableHead className="text-zinc-400 font-bold uppercase text-xs tracking-wider py-4">Status</TableHead>
                                 <TableHead className="text-right text-zinc-400 font-bold uppercase text-xs tracking-wider py-4">Access Control</TableHead>
-                                <TableHead className="text-right text-zinc-400 font-bold uppercase text-xs tracking-wider py-4 pr-6">Permissions</TableHead>
+                                <TableHead className="text-right text-zinc-400 font-bold uppercase text-xs tracking-wider py-4 pr-6">Management</TableHead>
                             </TableRow>
                         </TableHeader>
                         <TableBody>
@@ -260,6 +308,16 @@ const UserManagement = () => {
                                         </span>
                                     </TableCell>
 
+                                    <TableCell className="py-4">
+                                        <span className={`inline-flex items-center px-2.5 py-1 rounded-md text-xs font-bold uppercase tracking-wider shadow-sm ${(u.status === 'deactivated' || u.status === 'Deactivated')
+                                            ? 'bg-zinc-800 text-zinc-500 border border-zinc-700'
+                                            : 'bg-indigo-500/10 text-indigo-400 border border-indigo-500/20 shadow-[0_0_10px_rgba(99,102,241,0.1)]'
+                                            }`}>
+                                            {(u.status === 'deactivated' || u.status === 'Deactivated') ? <UserX className="w-3.5 h-3.5 mr-1.5" /> : <UserCheck className="w-3.5 h-3.5 mr-1.5" />}
+                                            {(u.status === 'deactivated' || u.status === 'Deactivated') ? 'Deactivated' : 'Active'}
+                                        </span>
+                                    </TableCell>
+
                                     <TableCell className="text-right w-[160px] py-4">
                                         <Button
                                             size="sm"
@@ -272,7 +330,7 @@ const UserManagement = () => {
                                             Case Files
                                         </Button>
                                     </TableCell>
-                                    <TableCell className="text-right w-[200px] py-4 pr-6">
+                                    <TableCell className="text-right w-[240px] py-4 pr-6">
                                         <div className="flex justify-end gap-2 opacity-60 group-hover:opacity-100 transition-opacity">
                                             {u.role !== 'Admin' ? (
                                                 <Button
@@ -285,13 +343,36 @@ const UserManagement = () => {
                                             ) : (
                                                 <Button
                                                     size="sm"
-                                                    className="bg-zinc-800 hover:bg-zinc-700 text-zinc-300 border border-zinc-700"
+                                                    variant="outline"
+                                                    className="border-zinc-800 hover:bg-zinc-800 text-zinc-400"
                                                     onClick={() => handleRoleChange(u.id, 'User')}
                                                     disabled={u.id === user.uid}
                                                 >
                                                     Demote
                                                 </Button>
                                             )}
+
+                                            <Button
+                                                size="sm"
+                                                variant="ghost"
+                                                className={`h-8 w-8 p-0 ${(u.status === 'deactivated' || u.status === 'Deactivated') ? 'text-emerald-400 hover:bg-emerald-500/10' : 'text-amber-400 hover:bg-amber-500/10'}`}
+                                                onClick={() => handleToggleStatus(u.id, u.status)}
+                                                disabled={u.id === user.uid || u.id === user.id}
+                                                title={(u.status === 'deactivated' || u.status === 'Deactivated') ? "Activate User" : "Deactivate User"}
+                                            >
+                                                {(u.status === 'deactivated' || u.status === 'Deactivated') ? <UserCheck className="w-4 h-4" /> : <UserX className="w-4 h-4" />}
+                                            </Button>
+
+                                            <Button
+                                                size="sm"
+                                                variant="ghost"
+                                                className="h-8 w-8 p-0 text-red-500 hover:bg-red-500/10"
+                                                onClick={() => handleRemoveUser(u)}
+                                                disabled={u.id === user.uid || u.id === user.id}
+                                                title="Remove User"
+                                            >
+                                                <Trash2 className="w-4 h-4" />
+                                            </Button>
                                         </div>
                                     </TableCell>
                                 </TableRow>
@@ -373,6 +454,38 @@ const UserManagement = () => {
                         <div className="p-4 border-t border-zinc-800 bg-zinc-900/50 flex justify-end gap-3">
                             <Button variant="ghost" onClick={() => setManagingUser(null)}>Cancel</Button>
                             <Button onClick={handleSaveAccess}>Save Changes</Button>
+                        </div>
+                    </div>
+                </div>
+            )}
+
+            {/* Delete Confirmation Modal */}
+            {confirmDeleteUser && (
+                <div className="fixed inset-0 z-[70] flex items-center justify-center bg-black/90 backdrop-blur-md p-4 animate-in fade-in duration-300">
+                    <div className="w-full max-w-sm bg-zinc-950 border border-red-500/30 rounded-2xl shadow-[0_0_50px_rgba(239,68,68,0.1)] overflow-hidden">
+                        <div className="p-8 text-center">
+                            <div className="w-16 h-16 bg-red-500/10 rounded-full flex items-center justify-center mx-auto mb-6 border border-red-500/20">
+                                <Trash2 className="w-8 h-8 text-red-500" />
+                            </div>
+                            <h3 className="text-xl font-bold text-white mb-2">Purge Personnel Record?</h3>
+                            <p className="text-zinc-400 text-sm mb-6">
+                                You are about to permanently delete <span className="text-red-400 font-mono font-bold">{confirmDeleteUser.email}</span>. This action is irreversible and will revoke all access immediately.
+                            </p>
+                            <div className="flex flex-col gap-3">
+                                <Button
+                                    className="w-full bg-red-600 hover:bg-red-700 text-white font-bold py-6 shadow-[0_0_20px_rgba(220,38,38,0.4)]"
+                                    onClick={executeRemoveUser}
+                                >
+                                    CONFIRM PURGE
+                                </Button>
+                                <Button
+                                    variant="ghost"
+                                    className="w-full text-zinc-500 hover:text-white"
+                                    onClick={() => setConfirmDeleteUser(null)}
+                                >
+                                    Abort Operation
+                                </Button>
+                            </div>
                         </div>
                     </div>
                 </div>
