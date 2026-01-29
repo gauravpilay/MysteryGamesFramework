@@ -12,7 +12,6 @@ import {
     resolveNextNode as resolveNext,
     resolveEdgeTarget as resolveTarget
 } from '../lib/gameLogic';
-import { useConfig } from '../lib/config';
 
 const BackgroundEffect = () => (
     <div className="fixed inset-0 pointer-events-none z-0 overflow-hidden">
@@ -309,8 +308,6 @@ const DecryptionMinigame = ({ node, onSuccess }) => {
 };
 
 const GamePreview = ({ nodes, edges, onClose, gameMetadata, onGameEnd }) => {
-    const { settings } = useConfig();
-    const useAIAssistanceGlobal = settings.useAIAssistance !== undefined ? settings.useAIAssistance : true;
     // Game State
     const [currentNodeId, setCurrentNodeId] = useState(null);
     const [isContentReady, setIsContentReady] = useState(false);
@@ -2211,29 +2208,10 @@ const GamePreview = ({ nodes, edges, onClose, gameMetadata, onGameEnd }) => {
                             {/* 3D Holodeck Experience */}
                             {activeModalNode.type === 'threed' && (
                                 <div className="flex-1 w-full min-h-[60vh] relative overflow-hidden rounded-b-2xl">
-                                    {useAIAssistanceGlobal ? (
-                                        <ThreeDWorld
-                                            layout={activeModalNode.data.layout}
-                                            onClose={() => handleCloseModal()}
-                                        />
-                                    ) : (
-                                        <div className="flex flex-col items-center justify-center h-full min-h-[60vh] bg-black/40 backdrop-blur-md p-12 text-center pointer-events-auto">
-                                            <div className="p-4 bg-rose-500/10 rounded-full border border-rose-500/20 mb-6">
-                                                <Cpu className="w-12 h-12 text-rose-500 animate-pulse" />
-                                            </div>
-                                            <h2 className="text-2xl font-black text-rose-500 uppercase tracking-tighter mb-4">Neural Subsystem Offline</h2>
-                                            <p className="max-w-md text-zinc-400 font-mono text-sm leading-relaxed uppercase mx-auto">
-                                                AI Reconstruction services have been restricted by the system administrator. 3D Holodeck protocols are currently inaccessible.
-                                            </p>
-                                            <Button
-                                                variant="outline"
-                                                className="mt-8 border-rose-500/30 text-rose-400 hover:bg-rose-500/10"
-                                                onClick={() => handleCloseModal()}
-                                            >
-                                                Return to Command
-                                            </Button>
-                                        </div>
-                                    )}
+                                    <ThreeDWorld
+                                        layout={activeModalNode.data.layout}
+                                        onClose={() => handleCloseModal()}
+                                    />
                                 </div>
                             )}
 

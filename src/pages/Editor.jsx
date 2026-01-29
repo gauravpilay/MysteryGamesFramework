@@ -27,7 +27,6 @@ import JSZip from 'jszip';
 import { db } from '../lib/firebase';
 import { doc, getDoc, updateDoc, setDoc, increment, addDoc, collection, onSnapshot } from 'firebase/firestore';
 import { useAuth } from '../lib/auth';
-import { useConfig } from '../lib/config';
 
 // ... (other imports)
 
@@ -163,8 +162,6 @@ const Editor = () => {
     const [isPaletteCollapsed, setIsPaletteCollapsed] = useState(false);
     const [isLocked, setIsLocked] = useState(false);
     const [isDarkMode, setIsDarkMode] = useState(true);
-    const { settings } = useConfig();
-    const useAIAssistanceGlobal = settings.useAIAssistance !== undefined ? settings.useAIAssistance : true;
     const [enableThreeD, setEnableThreeD] = useState(true);
     const [caseTitle, setCaseTitle] = useState("");
     const [validationReport, setValidationReport] = useState(null);
@@ -1195,19 +1192,17 @@ const Editor = () => {
                             <Stethoscope className={`w-4 h-4 ${isDarkMode ? 'text-emerald-400' : 'text-emerald-600'}`} />
                         </Button>
                         <div className={`w-px h-4 ${isDarkMode ? 'bg-white/10' : 'bg-zinc-300'}`}></div>
-                        {useAIAssistanceGlobal && (
-                            <Button
-                                variant="ghost"
-                                size="sm"
-                                onClick={() => setShowAIGenerator(true)}
-                                title="AI Auto-Generate Case"
-                                disabled={isLocked}
-                                className={`h-8 px-3 gap-2 border border-dashed ${isDarkMode ? 'border-indigo-500/30 text-indigo-400 hover:bg-indigo-500/10' : 'border-indigo-300 text-indigo-600 hover:bg-indigo-50'}`}
-                            >
-                                <Brain className="w-4 h-4" />
-                                <span className="text-[10px] font-black uppercase tracking-widest">AI Build</span>
-                            </Button>
-                        )}
+                        <Button
+                            variant="ghost"
+                            size="sm"
+                            onClick={() => setShowAIGenerator(true)}
+                            title="AI Auto-Generate Case"
+                            disabled={isLocked}
+                            className={`h-8 px-3 gap-2 border border-dashed ${isDarkMode ? 'border-indigo-500/30 text-indigo-400 hover:bg-indigo-500/10' : 'border-indigo-300 text-indigo-600 hover:bg-indigo-50'}`}
+                        >
+                            <Brain className="w-4 h-4" />
+                            <span className="text-[10px] font-black uppercase tracking-widest">AI Build</span>
+                        </Button>
                         <div className={`w-px h-4 ${isDarkMode ? 'bg-white/10' : 'bg-zinc-300'}`}></div>
                         <Button variant="ghost" size="icon" onClick={() => setShowSettings(true)} title="Game Settings" disabled={isLocked} className="h-8 w-8">
                             <Settings className={`w-4 h-4 ${isDarkMode ? 'text-zinc-400' : 'text-zinc-600'}`} />
@@ -1252,7 +1247,7 @@ const Editor = () => {
                     </div>
 
                     <div className={`flex-1 overflow-y-auto ${isPaletteCollapsed ? 'px-2 space-y-2' : 'px-4 space-y-1.5'}`}>
-                        {PALETTE_ITEMS.filter(item => item.type !== 'threed' || useAIAssistanceGlobal).map((item) => (
+                        {PALETTE_ITEMS.filter(item => item.type !== 'threed' || enableThreeD).map((item) => (
                             <div
                                 key={item.type}
                                 onDragStart={(event) => onDragStart(event, item.type)}
@@ -1413,7 +1408,7 @@ const Editor = () => {
                                                     <Box className="w-8 h-8" />
                                                 </div>
                                                 <div>
-                                                    <h4 className="text-lg font-black text-white uppercase tracking-tight">Use AI Assistance</h4>
+                                                    <h4 className="text-lg font-black text-white uppercase tracking-tight">3D Neural Reconstruction</h4>
                                                     <p className="text-xs text-zinc-500 font-medium">Allow AI Holodeck world generation & spatial exploration</p>
                                                 </div>
                                             </div>
