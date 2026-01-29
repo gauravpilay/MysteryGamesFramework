@@ -260,8 +260,30 @@ export default function SuspectProfile({
 
                             <div className="space-y-5">
                                 {(() => {
+                                    // Get collected evidence IDs to filter them out from interrogation threads
+                                    const collectedEvidenceIds = Array.from(inventory)
+                                        .map(id => nodes.find(n => n.id === id && n.type === 'evidence'))
+                                        .filter(Boolean)
+                                        .map(e => e.id);
+
                                     const nodeActions = suspect.data.actions || [];
-                                    const dialogueEdges = edges.filter(e => e.source === suspect.id && !e.label?.startsWith('evidence:') && !e.data?.isEvidenceLink);
+
+                                    // Filter out evidence-based edges - they're shown in confrontation section
+                                    const dialogueEdges = edges.filter(e => {
+                                        if (e.source !== suspect.id) return false;
+                                        if (e.label?.startsWith('evidence:')) return false;
+                                        if (e.data?.isEvidenceLink) return false;
+
+                                        // Also exclude edges that match evidence by label or evidenceId
+                                        const hasEvidenceMatch = collectedEvidenceIds.some(evidenceId => {
+                                            const evidence = nodes.find(n => n.id === evidenceId);
+                                            return e.label?.toLowerCase() === evidence?.data?.label?.toLowerCase() ||
+                                                e.data?.evidenceId === evidenceId;
+                                        });
+
+                                        return !hasEvidenceMatch;
+                                    });
+
                                     const handledEdgeIds = new Set();
 
                                     const actionThreads = nodeActions.map((action, actionIdx) => {
