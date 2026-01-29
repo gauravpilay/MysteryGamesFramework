@@ -1,6 +1,6 @@
 import React, { useState, useEffect, useMemo, useRef } from 'react';
 import { Button, Card } from './ui/shared';
-import { X, User, Search, Terminal, MessageSquare, FileText, ArrowRight, ShieldAlert, CheckCircle, AlertTriangle, Volume2, VolumeX, Image as ImageIcon, Briefcase, Star, MousePointerClick, Bell, HelpCircle, Clock, ZoomIn, LayoutGrid, ChevronRight, Fingerprint, Cpu } from 'lucide-react';
+import { X, User, Search, Terminal, MessageSquare, FileText, ArrowRight, ShieldAlert, CheckCircle, AlertTriangle, Volume2, VolumeX, Image as ImageIcon, Briefcase, Star, MousePointerClick, Bell, HelpCircle, Clock, ZoomIn, LayoutGrid, ChevronRight, Fingerprint, Cpu, Activity, Shield, Hash, Box as BoxIcon } from 'lucide-react';
 import { motion, AnimatePresence } from 'framer-motion';
 import EvidenceBoard from './EvidenceBoard';
 import AdvancedTerminal from './AdvancedTerminal';
@@ -1531,88 +1531,107 @@ const GamePreview = ({ nodes, edges, onClose, gameMetadata, onGameEnd }) => {
                             </button>
                             {activeModalNode.type === 'suspect' && (
                                 <div className="flex flex-col md:flex-row flex-1 overflow-hidden h-full">
-                                    {/* LEFT SIDEBAR: BIOMETRIC PROFILE */}
-                                    <div className="w-full md:w-[380px] bg-zinc-950 border-r border-white/5 flex flex-col shrink-0 relative overflow-hidden">
-                                        {/* Cinematic Background Glow */}
-                                        <div className={`absolute top-0 left-0 w-full h-[500px] bg-gradient-to-b ${getAvatarColor(activeModalNode.data.name)} opacity-10 blur-[100px] pointer-events-none`}></div>
+                                    {/* LEFT SIDEBAR: BIOMETRIC DOSSIER */}
+                                    <div className="w-full md:w-[420px] bg-zinc-950 border-r border-white/5 flex flex-col shrink-0 relative overflow-hidden biometric-grid">
+                                        <div className={`absolute inset-0 bg-gradient-to-b ${getAvatarColor(activeModalNode.data.name)} opacity-5 blur-[120px] pointer-events-none`}></div>
 
-                                        {/* Dossier Header */}
-                                        <div className="p-6 md:p-8 relative z-10">
-                                            <div className="flex items-center gap-2 mb-8">
-                                                <div className="h-px flex-1 bg-gradient-to-r from-transparent via-zinc-800 to-transparent"></div>
-                                                <span className="text-[10px] font-black text-zinc-500 uppercase tracking-[0.4em] whitespace-nowrap px-4">Subject Dossier</span>
-                                                <div className="h-px flex-1 bg-gradient-to-r from-transparent via-zinc-800 to-transparent"></div>
-                                            </div>
+                                        {/* Scanner Overlay */}
+                                        <div className="absolute top-0 left-0 w-full h-1 bg-indigo-500/20 shadow-[0_0_20px_rgba(99,102,241,0.5)] animate-[scanline_6s_linear_infinite] z-20"></div>
 
-                                            {/* Profile Image & Status */}
-                                            <div className="flex flex-col items-center mb-8">
-                                                <div className="relative group">
-                                                    {/* Animated Rings */}
-                                                    <div className="absolute -inset-4 border border-indigo-500/20 rounded-full animate-[spin_20s_linear_infinite]"></div>
-                                                    <div className="absolute -inset-8 border border-white/5 rounded-full animate-[spin_30s_linear_infinite_reverse]"></div>
-
-                                                    <div className={`w-48 h-48 rounded-2xl bg-gradient-to-br ${getAvatarColor(activeModalNode.data.name)} p-1 shadow-[0_0_50px_rgba(0,0,0,0.5)] border-2 border-white/10 relative z-10 overflow-hidden`}>
-                                                        <div className="w-full h-full bg-zinc-950 rounded-xl flex items-center justify-center relative overflow-hidden group">
-                                                            <span className="text-7xl font-black text-white/10 group-hover:text-white/20 transition-all duration-700 select-none">{(activeModalNode.data.name || 'S').charAt(0)}</span>
-                                                            {/* Scanning Line Effect */}
-                                                            <div className="absolute inset-0 bg-gradient-to-b from-transparent via-white/5 to-transparent h-12 w-full animate-[scanline_4s_linear_infinite] pointer-events-none"></div>
-                                                            <User className="absolute inset-0 m-auto w-24 h-24 text-white opacity-40 group-hover:scale-110 transition-transform duration-700" />
-                                                        </div>
-                                                    </div>
-
-                                                    {/* Status Badge */}
-                                                    <div className="absolute -bottom-3 left-1/2 -translate-x-1/2 px-4 py-1.5 bg-zinc-900 border border-indigo-500/40 rounded-full shadow-xl z-20 flex items-center gap-2">
-                                                        <div className="w-2 h-2 rounded-full bg-emerald-500 animate-pulse"></div>
-                                                        <span className="text-[10px] font-black text-white uppercase tracking-widest">Signal Stable</span>
-                                                    </div>
+                                        <div className="p-8 relative z-10 flex-1 flex flex-col">
+                                            {/* Dossier ID */}
+                                            <div className="flex items-center justify-between mb-8">
+                                                <div className="flex flex-col">
+                                                    <span className="text-[10px] font-black text-indigo-500 uppercase tracking-[.3em]">Class-4 Subject</span>
+                                                    <span className="text-[8px] font-mono text-zinc-500">REF: {activeModalNode.id.substring(0, 12).toUpperCase()}</span>
+                                                </div>
+                                                <div className="px-3 py-1 bg-zinc-900 border border-white/10 rounded-lg">
+                                                    <Activity className="w-3.5 h-3.5 text-indigo-400 animate-pulse" />
                                                 </div>
                                             </div>
 
-                                            {/* Primary Info */}
-                                            <div className="text-center space-y-2 mb-6 md:mb-10">
-                                                <h2 className="text-3xl md:text-4xl font-black text-white uppercase tracking-tighter leading-none">{activeModalNode.data.name}</h2>
-                                                <p className="text-xs md:text-sm font-bold text-red-500/80 uppercase tracking-widest">{activeModalNode.data.role}</p>
-                                                <div className="flex items-center justify-center gap-2 mt-4">
-                                                    <div className="px-2 py-1 bg-zinc-900 border border-zinc-800 rounded font-mono text-[9px] text-zinc-500 tracking-wider">
-                                                        UID: {activeModalNode.id.substring(0, 8).toUpperCase()}
+                                            {/* Profile Visualization */}
+                                            <div className="relative mb-10 flex justify-center">
+                                                <div className="absolute -inset-10 border border-white/5 rounded-full animate-[spin_40s_linear_infinite]"></div>
+                                                <div className="absolute -inset-16 border border-white/5 border-dashed rounded-full animate-[spin_60s_linear_infinite_reverse]"></div>
+
+                                                <div className="w-56 h-56 rounded-[2rem] bg-zinc-900 border-2 border-white/10 p-2 relative z-10 overflow-hidden shadow-2xl group hologram-effect">
+                                                    <div className={`absolute inset-0 opacity-20 bg-gradient-to-br ${getAvatarColor(activeModalNode.data.name)}`}></div>
+                                                    <div className="w-full h-full bg-black/40 rounded-[1.5rem] flex items-center justify-center relative overflow-hidden">
+                                                        <span className="text-8xl font-black text-white/5 select-none absolute">{(activeModalNode.data.name || 'S').charAt(0)}</span>
+                                                        <User className="w-24 h-24 text-white opacity-40 group-hover:scale-110 group-hover:opacity-60 transition-all duration-700" />
+
+                                                        {/* Static Overlay */}
+                                                        <div className="absolute inset-0 bg-[url('https://grainy-gradients.vercel.app/noise.svg')] opacity-10 pointer-events-none"></div>
                                                     </div>
-                                                    <div className="px-2 py-1 bg-zinc-900 border border-zinc-800 rounded font-mono text-[9px] text-zinc-500 tracking-wider uppercase">
-                                                        LVL: {activeModalNode.data.difficulty || 'BETA'}
-                                                    </div>
+                                                </div>
+
+                                                {/* Meta Indicators */}
+                                                <div className="absolute -right-4 top-0 space-y-2">
+                                                    <div className="w-8 h-8 rounded-full bg-zinc-900 border border-white/10 flex items-center justify-center" title="Voice Match"><MessageSquare className="w-3.5 h-3.5 text-zinc-500" /></div>
+                                                    <div className="w-8 h-8 rounded-full bg-zinc-900 border border-white/10 flex items-center justify-center" title="Identity Confirmed"><Shield className="w-3.5 h-3.5 text-emerald-500" /></div>
                                                 </div>
                                             </div>
 
-                                            {/* BIOMETRICS Section */}
-                                            <div className="space-y-6 pt-6 border-t border-white/5">
-                                                <div className="flex items-center gap-3">
-                                                    <Fingerprint className="w-4 h-4 text-indigo-500" />
-                                                    <span className="text-[10px] font-black text-zinc-400 uppercase tracking-widest">Biometric Analysis</span>
+                                            {/* Identity Header */}
+                                            <div className="text-center mb-10">
+                                                <motion.h2
+                                                    initial={{ opacity: 0, scale: 0.9 }}
+                                                    animate={{ opacity: 1, scale: 1 }}
+                                                    className="text-4xl font-black text-white uppercase tracking-tighter mb-2"
+                                                >
+                                                    {activeModalNode.data.name}
+                                                </motion.h2>
+                                                <div className="inline-flex items-center gap-2 px-4 py-1.5 bg-red-500/10 border border-red-500/20 rounded-full">
+                                                    <span className="text-[10px] font-black text-red-500 uppercase tracking-[.2em]">{activeModalNode.data.role}</span>
+                                                </div>
+                                            </div>
+
+                                            {/* Biometric Vital Monitor */}
+                                            <div className="bg-zinc-900/40 border border-white/5 rounded-3xl p-6 shadow-inner backdrop-blur-3xl mt-auto">
+                                                <div className="flex items-center justify-between mb-6">
+                                                    <span className="text-[10px] font-black text-zinc-500 uppercase tracking-widest">Neural Stability</span>
+                                                    <div className="flex items-center gap-1.5">
+                                                        <div className="w-1 h-1 rounded-full bg-indigo-500 animate-ping"></div>
+                                                        <span className="text-[9px] font-mono text-indigo-400">SYNC_ACTIVE</span>
+                                                    </div>
                                                 </div>
 
-                                                <div className="space-y-4">
-                                                    {/* Stress Level */}
-                                                    <div className="space-y-2">
-                                                        <div className="flex justify-between items-end">
-                                                            <span className="text-[10px] font-bold text-zinc-500 uppercase tracking-wider">Cortisol / Stress</span>
-                                                            <span className="text-[9px] font-mono text-indigo-400">{(inventory.size * 12.5).toFixed(1)}%</span>
-                                                        </div>
-                                                        <div className="h-1.5 bg-zinc-900 rounded-full overflow-hidden border border-white/5 p-px">
-                                                            <motion.div
-                                                                initial={{ width: "5%" }}
-                                                                animate={{ width: `${Math.min(95, 5 + (inventory.size * 12.5))}%` }}
-                                                                className="h-full bg-gradient-to-r from-emerald-500 via-amber-500 to-red-500 rounded-full"
-                                                            />
+                                                {/* Waveform Component */}
+                                                <div className="h-16 flex items-end gap-[2px] overflow-hidden opacity-50 relative mb-6">
+                                                    {[...Array(30)].map((_, i) => (
+                                                        <motion.div
+                                                            key={i}
+                                                            animate={{
+                                                                height: [
+                                                                    `${20 + Math.random() * 60}%`,
+                                                                    `${40 + Math.random() * 50}%`,
+                                                                    `${20 + Math.random() * 60}%`
+                                                                ]
+                                                            }}
+                                                            transition={{
+                                                                duration: 0.5 + Math.random() * 0.5,
+                                                                repeat: Infinity,
+                                                                ease: "easeInOut"
+                                                            }}
+                                                            className="flex-1 bg-indigo-500 min-w-[2px] rounded-t-full"
+                                                        />
+                                                    ))}
+                                                    <div className="absolute inset-0 bg-gradient-to-t from-zinc-950/80 via-transparent to-transparent"></div>
+                                                </div>
+
+                                                <div className="grid grid-cols-2 gap-4">
+                                                    <div className="p-3 bg-white/5 border border-white/5 rounded-2xl flex flex-col gap-1">
+                                                        <span className="text-[8px] font-black text-zinc-600 uppercase">Heart Rate</span>
+                                                        <div className="flex items-end gap-1">
+                                                            <span className="text-lg font-black text-white">72</span>
+                                                            <span className="text-[8px] text-zinc-500 mb-1">BPM</span>
                                                         </div>
                                                     </div>
-
-                                                    {/* Deception Probability */}
-                                                    <div className="flex justify-between items-center p-3 bg-zinc-900/50 border border-white/5 rounded-xl group hover:border-indigo-500/20 transition-all">
-                                                        <div className="flex flex-col">
-                                                            <span className="text-[9px] font-bold text-zinc-600 uppercase">Deception Probability</span>
-                                                            <span className="text-xs font-black text-indigo-400 uppercase tracking-tighter">Analyzing Vitals...</span>
-                                                        </div>
-                                                        <div className="w-8 h-8 rounded-lg bg-indigo-500/5 border border-indigo-500/10 flex items-center justify-center">
-                                                            <Cpu className="w-4 h-4 text-indigo-500 animate-pulse" />
+                                                    <div className="p-3 bg-white/5 border border-white/5 rounded-2xl flex flex-col gap-1">
+                                                        <span className="text-[8px] font-black text-zinc-600 uppercase">Pupillary</span>
+                                                        <div className="flex items-end gap-1">
+                                                            <span className="text-lg font-black text-amber-500 tracking-tighter">DILATED</span>
                                                         </div>
                                                     </div>
                                                 </div>
@@ -1638,11 +1657,11 @@ const GamePreview = ({ nodes, edges, onClose, gameMetadata, onGameEnd }) => {
 
                                                 <div className="relative group">
                                                     <div className="absolute -inset-4 bg-gradient-to-r from-indigo-500/5 via-transparent to-transparent opacity-0 group-hover:opacity-100 transition-opacity rounded-3xl blur-2xl"></div>
-                                                    <div className="relative p-8 bg-zinc-900/40 border border-white/5 border-l-indigo-500 border-l-4 rounded-2xl backdrop-blur-3xl shadow-2xl">
-                                                        <div className="absolute top-4 right-6 flex items-center gap-4">
-                                                            <div className="flex items-center gap-1.5">
-                                                                <div className="w-1.5 h-1.5 rounded-full bg-red-500 animate-[ping_2s_linear_infinite]"></div>
-                                                                <span className="text-[9px] font-black text-zinc-600 uppercase tracking-widest whitespace-nowrap">Rec: Local Node</span>
+                                                    <div className="relative p-10 bg-zinc-900/40 border border-white/5 border-l-indigo-500 border-l-[6px] rounded-3xl backdrop-blur-3xl shadow-2xl">
+                                                        <div className="absolute top-6 right-8 flex items-center gap-4">
+                                                            <div className="flex items-center gap-2">
+                                                                <div className="w-2 h-2 rounded-full bg-red-500 animate-[pulse_2s_linear_infinite]"></div>
+                                                                <span className="text-[10px] font-black text-zinc-600 uppercase tracking-[.2em] whitespace-nowrap">Source: Audio Intelligence</span>
                                                             </div>
                                                         </div>
 
@@ -1686,7 +1705,10 @@ const GamePreview = ({ nodes, edges, onClose, gameMetadata, onGameEnd }) => {
                                                         </div>
                                                     </div>
 
-                                                    <div className="bg-black/40 border border-white/5 rounded-3xl p-8 shadow-inner backdrop-blur-md min-h-[300px]">
+                                                    <div className="bg-black/60 border border-white/10 rounded-[2rem] p-10 shadow-2xl backdrop-blur-xl min-h-[400px] relative overflow-hidden">
+                                                        {/* Grid Accent */}
+                                                        <div className="absolute inset-0 biometric-grid opacity-[0.03] pointer-events-none"></div>
+
                                                         {(() => {
                                                             const collectedEvidence = Array.from(inventory)
                                                                 .map(id => nodes.find(n => n.id === id && n.type === 'evidence'))
@@ -1694,22 +1716,21 @@ const GamePreview = ({ nodes, edges, onClose, gameMetadata, onGameEnd }) => {
 
                                                             if (collectedEvidence.length === 0) {
                                                                 return (
-                                                                    <div className="h-full flex flex-col items-center justify-center py-12 opacity-40">
-                                                                        <div className="p-4 bg-zinc-900 rounded-2xl mb-4 border border-zinc-800">
-                                                                            <Briefcase className="w-8 h-8 text-zinc-600" />
+                                                                    <div className="h-full flex flex-col items-center justify-center py-20 opacity-40">
+                                                                        <div className="p-8 bg-zinc-900/50 rounded-full mb-6 border border-zinc-800 animate-pulse">
+                                                                            <Briefcase className="w-12 h-12 text-zinc-600" />
                                                                         </div>
-                                                                        <p className="text-sm font-black text-zinc-500 uppercase tracking-widest">No evidence logged</p>
-                                                                        <p className="text-[10px] text-zinc-700 mt-2 uppercase">Collect files or objects in the field</p>
+                                                                        <p className="text-sm font-black text-zinc-500 uppercase tracking-[0.4em]">Awaiting Evidence Log</p>
                                                                     </div>
                                                                 );
                                                             }
 
                                                             return (
-                                                                <div className="grid grid-cols-2 sm:grid-cols-3 gap-6">
+                                                                <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-2 gap-10 relative z-10">
                                                                     {collectedEvidence.map(eNode => (
                                                                         <motion.button
                                                                             key={eNode.id}
-                                                                            whileHover={{ y: -8, scale: 1.02 }}
+                                                                            whileHover={{ y: -15, rotate: 1, scale: 1.02 }}
                                                                             whileTap={{ scale: 0.98 }}
                                                                             onClick={() => {
                                                                                 const match = edges.find(e =>
@@ -1717,26 +1738,40 @@ const GamePreview = ({ nodes, edges, onClose, gameMetadata, onGameEnd }) => {
                                                                                     (e.label?.toLowerCase() === eNode.data.label?.toLowerCase() || e.data?.evidenceId === eNode.id)
                                                                                 );
                                                                                 if (match) {
-                                                                                    addLog(`BREAKTHROUGH: Confronted ${activeModalNode.data.name} with ${eNode.data.label}.`);
+                                                                                    addLog(`BREAKTHROUGH: Confronted subject with ${eNode.data.label}.`);
                                                                                     setActiveModalNode(null);
                                                                                     handleOptionClick(match.target);
                                                                                 } else {
-                                                                                    addLog(`STALEMATE: Evidence dismissed by ${activeModalNode.data.name}.`);
+                                                                                    addLog(`DISMISSAL: Subject ignored the ${eNode.data.label}.`);
                                                                                 }
                                                                             }}
-                                                                            className="group"
+                                                                            className="relative group flex flex-col items-center"
                                                                         >
-                                                                            <div className="aspect-[4/5] bg-zinc-900 border border-zinc-800 rounded-2xl overflow-hidden group-hover:border-amber-500/50 transition-all duration-500 shadow-2xl relative">
-                                                                                {eNode.data.image ? (
-                                                                                    <img src={eNode.data.image} alt="" className="w-full h-full object-cover grayscale opacity-40 group-hover:grayscale-0 group-hover:opacity-100 transition-all duration-700" />
-                                                                                ) : (
-                                                                                    <div className="w-full h-full flex items-center justify-center">
-                                                                                        <Search className="w-8 h-8 text-zinc-800 group-hover:text-amber-500" />
+                                                                            {/* High-Fidelity Photo Card */}
+                                                                            <div className="w-full bg-zinc-900 border-x-4 border-t-4 border-b-[24px] border-white/90 rounded-sm shadow-[0_20px_50px_rgba(0,0,0,0.5)] overflow-hidden transition-all duration-500 group-hover:border-amber-400">
+                                                                                <div className="aspect-square relative overflow-hidden">
+                                                                                    {eNode.data.image ? (
+                                                                                        <img src={eNode.data.image} alt={eNode.data.label} className="w-full h-full object-cover group-hover:scale-110 transition-transform duration-1000" />
+                                                                                    ) : (
+                                                                                        <div className="w-full h-full bg-zinc-800 flex items-center justify-center">
+                                                                                            <Search className="w-16 h-16 text-zinc-700 group-hover:text-amber-500 transition-colors" />
+                                                                                        </div>
+                                                                                    )}
+                                                                                    {/* Technical Overlays */}
+                                                                                    <div className="absolute top-2 right-2 px-2 py-0.5 bg-black/80 backdrop-blur-sm rounded border border-white/10 flex items-center gap-1">
+                                                                                        <span className="text-[7px] font-mono text-white tracking-widest uppercase">SCAN_SIG: {eNode.id.substring(0, 4)}</span>
                                                                                     </div>
-                                                                                )}
-                                                                                <div className="absolute inset-0 bg-gradient-to-t from-black via-black/20 to-transparent opacity-80 group-hover:opacity-40 transition-opacity" />
-                                                                                <div className="absolute inset-x-0 bottom-0 p-4 text-center">
-                                                                                    <div className="text-[10px] font-black text-white uppercase truncate tracking-widest">{eNode.data.label}</div>
+                                                                                    {/* Scanning Line */}
+                                                                                    <div className="absolute inset-0 bg-indigo-500/10 h-1 w-full animate-[scanline_3s_linear_infinite] opacity-0 group-hover:opacity-100 pointer-events-none"></div>
+                                                                                </div>
+                                                                            </div>
+
+                                                                            <div className="mt-4 flex flex-col items-center">
+                                                                                <div className="text-[11px] font-black text-white uppercase tracking-[0.2em] mb-1 group-hover:text-amber-400 transition-colors">{eNode.data.label}</div>
+                                                                                <div className="flex items-center gap-2">
+                                                                                    <div className="h-0.5 w-6 bg-amber-500/30"></div>
+                                                                                    <span className="text-[8px] font-bold text-zinc-500 uppercase tracking-widest leading-none">Evidence Logged</span>
+                                                                                    <div className="h-0.5 w-6 bg-amber-500/30"></div>
                                                                                 </div>
                                                                             </div>
                                                                         </motion.button>
@@ -1797,23 +1832,26 @@ const GamePreview = ({ nodes, edges, onClose, gameMetadata, onGameEnd }) => {
                                                                 <button
                                                                     key={thread.id}
                                                                     onClick={() => { setActiveModalNode(null); handleOptionClick(thread.target); }}
-                                                                    className="w-full flex items-center justify-between p-6 bg-zinc-900/40 border border-white/5 hover:border-indigo-500/40 hover:bg-indigo-500/10 rounded-2xl transition-all group overflow-hidden relative shadow-xl"
+                                                                    className="w-full flex items-center justify-between p-6 bg-white/5 border border-white/5 hover:border-indigo-500/40 hover:bg-indigo-500/10 rounded-[1.5rem] transition-all group overflow-hidden relative shadow-2xl"
                                                                 >
                                                                     {/* Hover Background Shine */}
+                                                                    <div className="absolute inset-x-0 bottom-0 h-0.5 bg-indigo-500 scale-x-0 group-hover:scale-x-100 transition-transform duration-700"></div>
                                                                     <div className="absolute inset-0 bg-gradient-to-r from-transparent via-white/5 to-transparent -translate-x-full group-hover:translate-x-full transition-transform duration-1000 ease-in-out" />
 
                                                                     <div className="flex items-center gap-6 relative z-10">
-                                                                        <div className="w-12 h-12 rounded-xl bg-zinc-800 border border-zinc-700 flex items-center justify-center group-hover:bg-indigo-600 group-hover:border-indigo-500 transition-all duration-500 shadow-inner group-hover:shadow-[0_0_20px_rgba(79,70,229,0.4)]">
-                                                                            <ChevronRight className="w-6 h-6 text-zinc-500 group-hover:text-white group-hover:translate-x-0.5 transition-all" />
+                                                                        <div className="w-14 h-14 rounded-2xl bg-zinc-900 border border-white/5 flex items-center justify-center group-hover:bg-indigo-600 group-hover:border-indigo-500 transition-all duration-500 shadow-inner group-hover:shadow-[0_0_30px_rgba(79,70,229,0.3)]">
+                                                                            <ChevronRight className="w-6 h-6 text-zinc-600 group-hover:text-white group-hover:translate-x-0.5 transition-all" />
                                                                         </div>
                                                                         <div className="flex flex-col items-start text-left">
-                                                                            <span className="text-[10px] font-black text-indigo-500/50 uppercase tracking-[0.2em] mb-1 leading-none">Query Node</span>
-                                                                            <span className="text-base font-bold text-zinc-300 group-hover:text-white transition-colors tracking-tight uppercase leading-none">
+                                                                            <span className="text-[10px] font-black text-indigo-500 uppercase tracking-[.3em] mb-1 leading-none opacity-60">Cognitive Probe</span>
+                                                                            <span className="text-lg font-black text-zinc-400 group-hover:text-white transition-colors tracking-tight uppercase leading-tight">
                                                                                 {thread.label}
                                                                             </span>
                                                                         </div>
                                                                     </div>
-                                                                    <ArrowRight className="w-5 h-5 text-zinc-800 group-hover:text-indigo-400 group-hover:translate-x-2 transition-all duration-500 relative z-10" />
+                                                                    <div className="p-3 bg-white/5 rounded-xl border border-white/5 group-hover:bg-indigo-500/20 group-hover:border-indigo-500/40 transition-all">
+                                                                        <ArrowRight className="w-5 h-5 text-zinc-700 group-hover:text-indigo-400 group-hover:translate-x-1 transition-all" />
+                                                                    </div>
                                                                 </button>
                                                             ));
                                                         })()}

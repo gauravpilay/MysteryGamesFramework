@@ -1,7 +1,7 @@
 import React, { memo, useState, useRef, useEffect } from 'react';
 import ReactDOM from 'react-dom';
 import { Handle, Position, NodeResizer } from 'reactflow';
-import { FileText, User, Search, GitMerge, Terminal, MessageSquare, Music, Image as ImageIcon, Star, MousePointerClick, Trash2, Plus, Copy, Fingerprint, Bell, HelpCircle, ToggleLeft, Unlock, Binary, Grid3x3, Folder, ChevronDown, ChevronUp, Maximize, X, Save, File, FolderOpen, AlertCircle, Brain, Cpu, Send, Loader2, Check, Filter, ShieldAlert, Box, CheckCircle } from 'lucide-react';
+import { FileText, User, Search, GitMerge, Terminal, MessageSquare, Music, Image as ImageIcon, Star, MousePointerClick, Trash2, Plus, Copy, Fingerprint, Bell, HelpCircle, ToggleLeft, Unlock, Binary, Grid3x3, Folder, ChevronDown, ChevronUp, Maximize, X, Save, File, FolderOpen, AlertCircle, Brain, Cpu, Send, Loader2, Check, Filter, ShieldAlert, Box, CheckCircle, Activity, Shield, Hash } from 'lucide-react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { storage } from '../../lib/firebase';
 import { ref, uploadBytes, getDownloadURL } from 'firebase/storage';
@@ -479,12 +479,37 @@ export const SuspectNode = memo(({ id, data, selected }) => {
     return (
         <>
             <Handle type="target" position={Position.Top} className="!bg-zinc-500 !w-3 !h-3 !border-2 !border-black" />
-            <Handle type="target" position={Position.Top} className="!bg-zinc-500 !w-3 !h-3 !border-2 !border-black" />
             <NodeWrapper id={id} title="Suspect Profile" icon={User} selected={selected} headerClass="bg-red-950/30 text-red-200" colorClass="border-red-900/30" data={data} onLabelChange={(v) => handleChange('label', v)}>
-                <div className="space-y-2">
+                <div className="space-y-3">
                     <InputField placeholder="Suspect Name" value={data.name} onChange={(e) => handleChange('name', e.target.value)} />
                     <InputField placeholder="Role / Title" value={data.role} onChange={(e) => handleChange('role', e.target.value)} />
-                    <TextArea placeholder="Alibi Description" rows={2} value={data.alibi} onChange={(e) => handleChange('alibi', e.target.value)} />
+
+                    <div className="flex gap-2">
+                        <div className="flex-1">
+                            <p className="text-[8px] text-zinc-500 uppercase font-black mb-1 ml-1 tracking-widest">Security Level</p>
+                            <select
+                                value={data.difficulty || 'BETA'}
+                                onChange={(e) => handleChange('difficulty', e.target.value)}
+                                className="w-full bg-black/40 border border-zinc-800 rounded px-2 py-1.5 text-[10px] text-zinc-300 focus:outline-none focus:border-red-500 transition-colors"
+                            >
+                                <option value="ALPHA">ALPHA (Easy)</option>
+                                <option value="BETA">BETA (Medium)</option>
+                                <option value="OMEGA">OMEGA (Hard)</option>
+                            </select>
+                        </div>
+                    </div>
+
+                    <TextArea placeholder="Alibi Description / Intercepted Testimony" rows={3} value={data.alibi} onChange={(e) => handleChange('alibi', e.target.value)} />
+
+                    <div className="pt-2 border-t border-zinc-800/50">
+                        <div className="flex items-center justify-between opacity-50">
+                            <span className="text-[8px] font-mono text-zinc-500 tracking-tighter">ID: {id.split('-')[0].toUpperCase()}</span>
+                            <div className="flex gap-1">
+                                <Activity className="w-2.5 h-2.5 text-red-900" />
+                                <Shield className="w-2.5 h-2.5 text-zinc-800" />
+                            </div>
+                        </div>
+                    </div>
                 </div>
             </NodeWrapper>
             {(!data.actions || data.actions.length === 0) && (
