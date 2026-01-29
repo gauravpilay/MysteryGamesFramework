@@ -24,8 +24,18 @@ import {
     SpotLight
 } from '@react-three/drei';
 import * as THREE from 'three';
-import { X, Search, Box as BoxIcon, Zap, User, Info, MessageSquare, Shield, Activity } from 'lucide-react';
+import { X, Search, Box as BoxIcon, Zap, User, Info, MessageSquare, Shield, Activity, Target, Cpu, Hash } from 'lucide-react';
 import { motion, AnimatePresence } from 'framer-motion';
+import {
+    EffectComposer,
+    Bloom,
+    Vignette,
+    Noise,
+    Scanline,
+    ChromaticAberration,
+    DepthOfField
+} from '@react-three/postprocessing';
+import { BlendFunction } from 'postprocessing';
 
 // Wall Component with realistic textures and trim
 const Wall = ({ start, end, height = 3.5, thickness = 0.2, color = "#2c3e50" }) => {
@@ -38,29 +48,40 @@ const Wall = ({ start, end, height = 3.5, thickness = 0.2, color = "#2c3e50" }) 
 
     return (
         <group position={[midX, height / 2, midY]} rotation={[0, -angle, 0]}>
-            {/* Main Wall Face */}
+            {/* Main Wall Face - Upgraded to Physical Material */}
             <Box args={[distance, height, thickness]}>
-                <meshStandardMaterial
+                <meshPhysicalMaterial
                     color={color}
-                    metalness={0.2}
-                    roughness={0.8}
+                    metalness={0.6}
+                    roughness={0.1}
+                    clearcoat={1}
+                    clearcoatRoughness={0.1}
                     emissive={color}
-                    emissiveIntensity={0.05}
+                    emissiveIntensity={0.02}
                 />
             </Box>
 
-            {/* Baseboard - Detailed */}
-            <Box args={[distance + 0.05, 0.15, thickness + 0.04]} position={[0, -height / 2 + 0.075, 0]}>
-                <meshStandardMaterial color="#111827" metalness={0.8} roughness={0.2} />
+            {/* Premium Metallic Trim */}
+            <Box args={[distance + 0.1, 0.2, thickness + 0.1]} position={[0, -height / 2 + 0.1, 0]}>
+                <meshStandardMaterial color="#334155" metalness={1} roughness={0.1} />
+            </Box>
+            <Box args={[distance + 0.1, 0.1, thickness + 0.1]} position={[0, height / 2 - 0.05, 0]}>
+                <meshStandardMaterial color="#334155" metalness={1} roughness={0.1} />
             </Box>
 
-            {/* Vertical Accent Lights / Strips for "Hyper-real" sci-fi look */}
-            <Box args={[0.05, height, thickness + 0.02]} position={[distance / 4, 0, 0]}>
-                <meshStandardMaterial color="#38bdf8" emissive="#38bdf8" emissiveIntensity={0.5} />
-            </Box>
-            <Box args={[0.05, height, thickness + 0.02]} position={[-distance / 4, 0, 0]}>
-                <meshStandardMaterial color="#38bdf8" emissive="#38bdf8" emissiveIntensity={0.5} />
-            </Box>
+            {/* Recessed Vertical Neon Strips */}
+            <group position={[distance / 3, 0, 0]}>
+                <Box args={[0.08, height - 0.4, thickness + 0.05]}>
+                    <meshStandardMaterial color="#0ea5e9" emissive="#0ea5e9" emissiveIntensity={4} />
+                </Box>
+                <pointLight position={[0, 0, 0.5]} intensity={1.5} distance={3} color="#0ea5e9" />
+            </group>
+            <group position={[-distance / 3, 0, 0]}>
+                <Box args={[0.08, height - 0.4, thickness + 0.05]}>
+                    <meshStandardMaterial color="#0ea5e9" emissive="#0ea5e9" emissiveIntensity={4} />
+                </Box>
+                <pointLight position={[0, 0, 0.5]} intensity={1.5} distance={3} color="#0ea5e9" />
+            </group>
         </group>
     );
 };
@@ -108,89 +129,115 @@ const Door = ({ start, end, height = 3.5, thickness = 0.3 }) => {
 // Person / NPC Component - Hyper-realistic Hologram Style
 const Person = ({ name, role, position, rotation = 0, description }) => {
     const groupRef = useRef();
+    const [opacity, setOpacity] = useState(0.4);
 
     useFrame((state) => {
         if (groupRef.current) {
-            groupRef.current.position.y = Math.sin(state.clock.elapsedTime * 2) * 0.05;
+            // Floating & Breathing
+            groupRef.current.position.y = Math.sin(state.clock.elapsedTime * 2) * 0.08;
+
+            // Random Flicker for "Holodeck" glitch look
+            if (Math.random() > 0.98) {
+                setOpacity(Math.random() * 0.5 + 0.1);
+                setTimeout(() => setOpacity(0.4), 50);
+            }
         }
     });
 
     return (
         <group position={[position.x, 0, position.z]} rotation={[0, rotation, 0]}>
             <group ref={groupRef}>
-                {/* Stylized Humanoid - Using wireframe and glass for high-end look */}
+                {/* Stylized Humanoid - Upgraded with scanlines and glow */}
                 <group position={[0, 0.9, 0]}>
                     {/* Head */}
-                    <Sphere args={[0.18, 24, 24]} position={[0, 0.75, 0]}>
+                    <Sphere args={[0.2, 32, 32]} position={[0, 0.8, 0]}>
                         <meshStandardMaterial
                             color="#38bdf8"
                             emissive="#38bdf8"
-                            emissiveIntensity={2}
+                            emissiveIntensity={4}
                             transparent
-                            opacity={0.3}
+                            opacity={opacity}
                         />
                         <meshBasicMaterial color="#ffffff" wireframe />
                     </Sphere>
 
                     {/* Torso */}
-                    <Capsule args={[0.22, 0.5, 4, 16]} position={[0, 0.2, 0]}>
+                    <Capsule args={[0.25, 0.6, 8, 32]} position={[0, 0.2, 0]}>
                         <meshStandardMaterial
-                            color="#06b6d4"
-                            emissive="#06b6d4"
-                            emissiveIntensity={1}
+                            color="#0ea5e9"
+                            emissive="#0ea5e9"
+                            emissiveIntensity={2}
                             transparent
-                            opacity={0.2}
+                            opacity={opacity * 0.8}
                         />
-                        <meshBasicMaterial color="#38bdf8" wireframe opacity={0.5} transparent />
+                        <meshBasicMaterial color="#ffffff" wireframe opacity={0.3} transparent />
                     </Capsule>
 
-                    {/* Floating Tech Rings for premium look */}
-                    <group position={[0, 0.3, 0]} rotation={[Math.PI / 2, 0, 0]}>
-                        <Cylinder args={[0.4, 0.4, 0.02, 32]} rotation={[0, 0, 0]}>
-                            <meshBasicMaterial color="#38bdf8" transparent opacity={0.1} />
-                        </Cylinder>
-                        <Cylinder args={[0.45, 0.45, 0.01, 32]} rotation={[0, 0, 0]}>
-                            <meshBasicMaterial color="#38bdf8" wireframe />
-                        </Cylinder>
+                    {/* Scrolling Scan Rings */}
+                    <group position={[0, 0.3, 0]}>
+                        <Suspense fallback={null}>
+                            <Cylinder args={[0.6, 0.6, 0.02, 32]} position={[0, Math.sin(Date.now() / 1000) * 0.8, 0]}>
+                                <meshBasicMaterial color="#38bdf8" transparent opacity={0.6} />
+                            </Cylinder>
+                        </Suspense>
                     </group>
                 </group>
 
-                {/* Base Hologram Field */}
-                <mesh position={[0, 0.05, 0]} rotation={[-Math.PI / 2, 0, 0]}>
-                    <circleGeometry args={[0.6, 32]} />
-                    <meshBasicMaterial color="#38bdf8" transparent opacity={0.1} />
+                {/* Base Hologram Platform */}
+                <mesh position={[0, 0.02, 0]} rotation={[-Math.PI / 2, 0, 0]}>
+                    <ringGeometry args={[0.5, 0.8, 32]} />
+                    <meshBasicMaterial color="#38bdf8" transparent opacity={0.2} />
                 </mesh>
-                <Sparkles count={30} scale={1.5} size={2} speed={0.5} color="#38bdf8" />
+                <Sparkles count={50} scale={2} size={3} speed={0.8} color="#38bdf8" />
             </group>
 
-            {/* Interaction UI */}
-            <Billboard position={[0, 2.4, 0]}>
+            {/* Interaction UI - Upgraded with background */}
+            <Billboard position={[0, 2.6, 0]}>
                 <group>
                     <Text
-                        fontSize={0.22}
+                        fontSize={0.24}
                         color="white"
                         anchorX="center"
                         font="https://fonts.gstatic.com/s/roboto/v18/KFOmCnqEu92Fr1Mu4mxM.woff"
-                        outlineWidth={0.03}
+                        outlineWidth={0.04}
                         outlineColor="#000000"
                     >
                         {name}
                     </Text>
                     <Text
-                        position={[0, -0.25, 0]}
-                        fontSize={0.14}
-                        color={role === 'Suspect' ? '#ef4444' : '#38bdf8'}
+                        position={[0, -0.3, 0]}
+                        fontSize={0.16}
+                        color={role === 'Suspect' ? '#f43f5e' : '#0ea5e9'}
                         anchorX="center"
                         font="https://fonts.gstatic.com/s/roboto/v18/KFOmCnqEu92Fr1Mu4mxM.woff"
-                        outlineWidth={0.02}
+                        outlineWidth={0.03}
                         outlineColor="#000000"
                     >
                         {role.toUpperCase()}
+                    </Text>
+                    {/* Role Icon */}
+                    <Text
+                        position={[-0.6, 0, 0]}
+                        fontSize={0.3}
+                        color="white"
+                    >
+                        {role === 'Suspect' ? '⚠️' : '👤'}
                     </Text>
                 </group>
             </Billboard>
         </group>
     );
+};
+
+// Handheld Camera Effect Component
+const HandheldCamera = () => {
+    useFrame((state) => {
+        const t = state.clock.elapsedTime;
+        state.camera.position.y += Math.sin(t * 1.5) * 0.0012;
+        state.camera.rotation.z += Math.cos(t * 0.8) * 0.0008;
+        state.camera.rotation.x += Math.sin(t * 1.2) * 0.0006;
+    });
+    return null;
 };
 
 // Movement Hook
@@ -202,7 +249,6 @@ function usePersonControls() {
     useEffect(() => {
         const handleKeyDown = (e) => setMovement((m) => ({ ...m, [moveFieldByKey(e.code)]: true }));
         const handleKeyUp = (e) => setMovement((m) => ({ ...m, [moveFieldByKey(e.code)]: false }));
-        // Attaching to document is standard for first-person controls in a canvas
         document.addEventListener('keydown', handleKeyDown);
         document.addEventListener('keyup', handleKeyUp);
         return () => {
@@ -276,8 +322,16 @@ const PlayerController = ({ spawnPoint, layout, setActiveZone }) => {
 
     return (
         <group>
-            {/* Investigation Torch attached to player */}
-            <pointLight position={[0, 0, 0]} intensity={1.5} distance={8} color="#ffffff" />
+            {/* Investigation Torch attached to player - Enhanced with flicker */}
+            <SpotLight
+                position={[0, 0, 0]}
+                intensity={2.5}
+                distance={12}
+                angle={0.4}
+                penumbra={0.5}
+                color="#ffffff"
+            />
+            <pointLight position={[0, 0, 0.5]} intensity={0.5} distance={2} color="#ffffff" />
         </group>
     );
 };
@@ -306,7 +360,35 @@ const RoomLabel = ({ position, text }) => {
     );
 };
 
-// Floor Component - Ultra-premium Reflector Floor
+// Floating Data Node - Extra premium detail
+const FloatingDataNode = ({ position }) => {
+    const meshRef = useRef();
+    useFrame((state) => {
+        const t = state.clock.elapsedTime;
+        meshRef.current.position.y = position[1] + Math.sin(t * 0.5) * 0.2;
+        meshRef.current.rotation.y = t * 0.25;
+        meshRef.current.rotation.z = t * 0.15;
+    });
+
+    return (
+        <group position={position}>
+            <Float speed={2} rotationIntensity={1} floatIntensity={1}>
+                <mesh ref={meshRef}>
+                    <icosahedronGeometry args={[0.15, 0]} />
+                    <meshStandardMaterial
+                        color="#0ea5e9"
+                        emissive="#38bdf8"
+                        emissiveIntensity={10}
+                        wireframe
+                    />
+                </mesh>
+            </Float>
+            <pointLight intensity={1} distance={4} color="#38bdf8" />
+        </group>
+    );
+};
+
+// Floor Component - Ultra-premium Reflector Floor with Grid
 const Floor = ({ width = 100, length = 100 }) => {
     return (
         <group>
@@ -316,16 +398,22 @@ const Floor = ({ width = 100, length = 100 }) => {
                     blur={[300, 100]}
                     resolution={1024}
                     mixBlur={1}
-                    mixStrength={40}
+                    mixStrength={60}
                     roughness={1}
-                    depthScale={1.2}
+                    depthScale={1.5}
                     minDepthThreshold={0.4}
                     maxDepthThreshold={1.4}
                     color="#0a0a0a"
-                    metalness={0.5}
+                    metalness={0.8}
+                    mirror={0.8}
                 />
             </mesh>
-            <gridHelper args={[width, 50, "#38bdf8", "#111"]} position={[0, 0.01, 0]} opacity={0.1} transparent />
+            {/* Animated Grid Floor */}
+            <mesh rotation={[-Math.PI / 2, 0, 0]} position={[0, 0.01, 0]}>
+                <planeGeometry args={[width, length]} />
+                <meshBasicMaterial color="#0ea5e9" transparent opacity={0.08} wireframe />
+            </mesh>
+            <gridHelper args={[width, 80, "#0ea5e9", "#000"]} position={[0, 0.02, 0]} opacity={0.15} transparent />
         </group>
     );
 };
@@ -376,15 +464,34 @@ const Furniture = ({ type, position, rotation = 0, color = "#7f8c8d", scale = [1
                             <meshStandardMaterial color="#0f172a" metalness={0.8} roughness={0.2} />
                         </Box>
                         {/* Blinking Server Lights */}
-                        <Box args={[0.5, 0.02, 0.01]} position={[0, 1.5, 0.41]}>
+                        <Box args={[0.5, 0.05, 0.01]} position={[0, 1.6, 0.41]}>
                             <meshStandardMaterial color="#22c55e" emissive="#22c55e" emissiveIntensity={5} />
                         </Box>
-                        <Box args={[0.5, 0.02, 0.01]} position={[0, 1.4, 0.41]}>
+                        <Box args={[0.5, 0.05, 0.01]} position={[0, 1.4, 0.41]}>
                             <meshStandardMaterial color="#38bdf8" emissive="#38bdf8" emissiveIntensity={3} />
                         </Box>
-                        <Box args={[0.5, 0.02, 0.01]} position={[0, 1.3, 0.41]}>
+                        <Box args={[0.5, 0.05, 0.01]} position={[0, 1.2, 0.41]}>
                             <meshStandardMaterial color="#ef4444" emissive="#ef4444" emissiveIntensity={2} />
                         </Box>
+                        <pointLight position={[0, 1.4, 0.6]} intensity={2} distance={3} color="#38bdf8" />
+                    </group>
+                )}
+                {type === 'cabinet' && (
+                    <group>
+                        <Box args={[0.8, 1.2, 0.4]} position={[0, 0.6, 0]}>
+                            <meshStandardMaterial color="#334155" metalness={0.5} roughness={0.2} />
+                        </Box>
+                        {/* Handles */}
+                        <Box args={[0.1, 0.02, 0.05]} position={[0, 0.9, 0.22]}><meshStandardMaterial color="#94a3b8" metalness={1} /></Box>
+                        <Box args={[0.1, 0.02, 0.05]} position={[0, 0.4, 0.22]}><meshStandardMaterial color="#94a3b8" metalness={1} /></Box>
+                    </group>
+                )}
+                {type === 'chair' && (
+                    <group position={[0, 0.45, 0]}>
+                        <Box args={[0.4, 0.1, 0.4]}><meshStandardMaterial color="#1e293b" /></Box>
+                        <Box args={[0.4, 0.5, 0.05]} position={[0, 0.3, -0.18]}><meshStandardMaterial color="#1e293b" /></Box>
+                        <Cylinder args={[0.02, 0.02, 0.4]} position={[0, -0.22, 0]}><meshStandardMaterial color="#94a3b8" /></Cylinder>
+                        <Box args={[0.4, 0.02, 0.4]} position={[0, -0.4, 0]}><meshStandardMaterial color="#334155" /></Box>
                     </group>
                 )}
                 {type === 'couch' && (
@@ -404,14 +511,18 @@ const Furniture = ({ type, position, rotation = 0, color = "#7f8c8d", scale = [1
                         </Box>
                     </group>
                 )}
-                {!['desk', 'monitor', 'server', 'couch'].includes(type) && (
+                {!['desk', 'monitor', 'server', 'couch', 'cabinet', 'chair'].includes(type) && (
                     <Box args={[1, 1, 1]} position={[0, 0.5, 0]}>
-                        <meshStandardMaterial
+                        <meshPhysicalMaterial
                             color={color}
                             emissive={color}
                             emissiveIntensity={0.2}
-                            metalness={0.5}
-                            roughness={0.2}
+                            metalness={0.9}
+                            roughness={0.1}
+                            transparent
+                            opacity={0.9}
+                            transmission={0.5}
+                            thickness={0.5}
                         />
                     </Box>
                 )}
@@ -451,15 +562,50 @@ export const ThreeDWorld = ({ layout, onClose }) => {
 
     return (
         <div className="relative w-full h-full bg-black select-none">
-            {/* HUD Overlay */}
-            <div className="absolute top-6 left-6 z-10 pointer-events-none">
-                <div className="p-4 bg-black/40 backdrop-blur-md rounded-2xl border border-white/5">
-                    <h2 className="text-sm font-black text-white uppercase tracking-[0.2em] mb-1">Investigation Zone</h2>
-                    <div className="flex items-center gap-2">
-                        <div className="w-2 h-2 rounded-full bg-cyan-500 animate-pulse"></div>
-                        <p className="text-[10px] text-cyan-400 font-bold uppercase">{activeZone}</p>
+            {/* Minority Report Style HUD Overlay */}
+            <div className="absolute top-8 left-8 z-10 pointer-events-none">
+                <motion.div
+                    initial={{ opacity: 0, x: -50 }}
+                    animate={{ opacity: 1, x: 0 }}
+                    className="p-6 bg-black/40 backdrop-blur-xl rounded-3xl border border-white/10 relative overflow-hidden group shadow-[0_0_50px_rgba(0,0,0,0.5)]"
+                >
+                    {/* Animated Scanning Line */}
+                    <motion.div
+                        animate={{ top: ['0%', '100%', '0%'] }}
+                        transition={{ duration: 4, repeat: Infinity, ease: "linear" }}
+                        className="absolute left-0 right-0 h-0.5 bg-cyan-500/30 blur-sm pointer-events-none"
+                    />
+
+                    <div className="relative flex items-center gap-6">
+                        <div className="relative">
+                            <div className="absolute inset-0 bg-cyan-500/20 blur-xl animate-pulse rounded-full"></div>
+                            <div className="p-3 bg-cyan-500/10 rounded-2xl border border-cyan-500/30">
+                                <Activity className="w-8 h-8 text-cyan-400" />
+                            </div>
+                        </div>
+
+                        <div className="space-y-1">
+                            <h2 className="text-[10px] font-black text-white uppercase tracking-[0.4em] mb-1 opacity-50 flex items-center gap-2">
+                                <Target className="w-3 h-3 text-cyan-500" /> Current Sector
+                            </h2>
+                            <div className="flex items-center gap-3">
+                                <div className="w-2.5 h-2.5 rounded-full bg-cyan-500 animate-ping"></div>
+                                <p className="text-2xl font-black text-white uppercase tracking-tighter drop-shadow-[0_0_10px_rgba(6,182,212,0.5)]">{activeZone}</p>
+                            </div>
+                        </div>
                     </div>
-                </div>
+
+                    <div className="mt-6 pt-4 border-t border-white/5 flex gap-6">
+                        <div className="space-y-1">
+                            <p className="text-[8px] font-black text-zinc-500 uppercase tracking-widest">Neural Link</p>
+                            <p className="text-[10px] font-bold text-emerald-400 uppercase tracking-tight">STABLE_OAK_82</p>
+                        </div>
+                        <div className="space-y-1 text-right ml-auto">
+                            <p className="text-[8px] font-black text-zinc-500 uppercase tracking-widest">Refresh Rate</p>
+                            <p className="text-[10px] font-bold text-cyan-400 uppercase tracking-tight">144.02 MHz</p>
+                        </div>
+                    </div>
+                </motion.div>
             </div>
 
             <button
@@ -492,24 +638,76 @@ export const ThreeDWorld = ({ layout, onClose }) => {
             <Canvas shadows gl={{ antialias: true, stencil: true, depth: true }} dpr={[1, 2]}>
                 <PerspectiveCamera makeDefault position={spawnPoint} fov={65} />
                 <PlayerController spawnPoint={spawnPoint} layout={layout} setActiveZone={setActiveZone} />
-                <Sky sunPosition={[10, 5, 10]} turbidity={0.5} rayleigh={0.5} />
-                <Environment preset="night" />
+                <HandheldCamera />
+
+                <Sky sunPosition={[100, 20, 100]} turbidity={0.1} rayleigh={0.1} inclination={0.6} distance={450000} />
+                <Environment preset="city" />
                 <BakeShadows />
                 <SoftShadows size={25} samples={10} focus={0.5} />
 
-                <ambientLight intensity={0.2} />
+                <ambientLight intensity={0.5} />
 
-                {/* Cinema Lighting Setup */}
-                <SpotLight position={[10, 15, 10]} intensity={500} angle={0.3} penumbra={1} castShadow color="#38bdf8" />
-                <pointLight position={[5, 8, 5]} intensity={200} color="#06b6d4" />
-                <pointLight position={[-5, 8, -5]} intensity={100} color="#ef4444" />
+                {/* Cinema Lighting Setup - Volumetric Spottlights */}
+                <SpotLight
+                    position={[15, 20, 15]}
+                    intensity={800}
+                    angle={0.25}
+                    penumbra={1}
+                    castShadow
+                    color="#38bdf8"
+                    distance={50}
+                    shadow-mapSize={[2048, 2048]}
+                />
+                <SpotLight
+                    position={[-15, 18, -10]}
+                    intensity={600}
+                    angle={0.3}
+                    penumbra={1}
+                    castShadow
+                    color="#f43f5e"
+                    distance={45}
+                />
+                <pointLight position={[0, 10, 0]} intensity={250} color="#0ea5e9" distance={30} />
 
-                {/* Volumetric Fog / Particle Effects */}
-                <Sparkles count={200} scale={20} size={1} speed={0.2} color="#38bdf8" />
+                {/* Atmosphere FX */}
+                <Sparkles count={400} scale={25} size={2} speed={0.4} color="#38bdf8" />
+                <fog attach="fog" args={['#000000', 5, 45]} />
 
-                <ContactShadows resolution={2048} scale={30} blur={1} opacity={0.6} far={10} color="#000000" />
+                <EffectComposer multisampling={4}>
+                    <Bloom
+                        intensity={1.2}
+                        luminanceThreshold={0.4}
+                        luminanceSmoothing={0.9}
+                        mipmapBlur={true}
+                    />
+                    <ChromaticAberration
+                        blendFunction={BlendFunction.NORMAL}
+                        offset={new THREE.Vector2(0.001, 0.001)}
+                    />
+                    <Scanline
+                        blendFunction={BlendFunction.OVERLAY}
+                        density={1.2}
+                        opacity={0.1}
+                    />
+                    <Noise
+                        opacity={0.05}
+                        blendFunction={BlendFunction.SOFT_LIGHT}
+                    />
+                    <Vignette
+                        eskil={false}
+                        offset={0.1}
+                        darkness={1.1}
+                    />
+                </EffectComposer>
+
+                <ContactShadows resolution={2048} scale={30} blur={2} opacity={0.4} far={10} color="#000000" />
 
                 <Suspense fallback={null}>
+                    {/* Background Data Nodes */}
+                    <FloatingDataNode position={[10, 4, 10]} />
+                    <FloatingDataNode position={[-8, 3, 5]} />
+                    <FloatingDataNode position={[5, 5, -12]} />
+
                     {/* Render Rooms */}
                     {layout.rooms.map((room, rIdx) => (
                         <group key={`room-${rIdx}`}>
