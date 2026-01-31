@@ -10,6 +10,10 @@ import autoTable from 'jspdf-autotable';
 import { Button, Card } from './ui/shared';
 import { generateAssessment } from '../utils/AssessmentEngine';
 import RadarChart from './reports/RadarChart';
+import AnimatedStatCard from './reports/AnimatedStatCard';
+import AchievementBadge from './reports/AchievementBadge';
+import JourneyTimeline from './reports/JourneyTimeline';
+import ProgressCelebration from './reports/ProgressCelebration';
 
 
 const ProgressReportModal = ({ onClose }) => {
@@ -21,6 +25,8 @@ const ProgressReportModal = ({ onClose }) => {
     const [timeRange, setTimeRange] = useState('all'); // 'all', 'week', 'month'
     const [showConfirmWipe, setShowConfirmWipe] = useState(false);
     const [showHelp, setShowHelp] = useState(false);
+    const [celebration, setCelebration] = useState(null);
+    const [showTimeline, setShowTimeline] = useState(false);
 
     const [objMap, setObjMap] = useState({});
 
@@ -168,7 +174,71 @@ const ProgressReportModal = ({ onClose }) => {
 
         const assessment = generateAssessment(assessmentData, objMap);
 
-        return { caseOptions, totalGames, winRate, totalTime, objectiveStats, assessment };
+        // Calculate achievements
+        const achievements = [
+            {
+                id: 'first_mission',
+                name: 'First Steps',
+                description: 'Complete your first mission',
+                icon: 'target',
+                rarity: 'common',
+                unlocked: totalGames > 0,
+                progress: totalGames > 0 ? 100 : 0,
+                unlockedAt: totalGames > 0 ? filteredData[filteredData.length - 1]?.playedAt : null
+            },
+            {
+                id: 'five_missions',
+                name: 'Getting Started',
+                description: 'Complete 5 missions',
+                icon: 'zap',
+                rarity: 'rare',
+                unlocked: totalGames >= 5,
+                progress: Math.min(100, (totalGames / 5) * 100),
+                unlockedAt: totalGames >= 5 ? filteredData[4]?.playedAt : null
+            },
+            {
+                id: 'ten_missions',
+                name: 'Dedicated Detective',
+                description: 'Complete 10 missions',
+                icon: 'shield',
+                rarity: 'epic',
+                unlocked: totalGames >= 10,
+                progress: Math.min(100, (totalGames / 10) * 100),
+                unlockedAt: totalGames >= 10 ? filteredData[9]?.playedAt : null
+            },
+            {
+                id: 'perfect_score',
+                name: 'Perfectionist',
+                description: 'Achieve 100% success rate with at least 5 missions',
+                icon: 'award',
+                rarity: 'legendary',
+                unlocked: winRate === 100 && totalGames >= 5,
+                progress: totalGames >= 5 ? winRate : (totalGames / 5) * 100,
+                unlockedAt: winRate === 100 && totalGames >= 5 ? filteredData[filteredData.length - 1]?.playedAt : null
+            },
+            {
+                id: 'high_achiever',
+                name: 'High Achiever',
+                description: 'Maintain 80% or higher success rate',
+                icon: 'trophy',
+                rarity: 'epic',
+                unlocked: winRate >= 80 && totalGames >= 3,
+                progress: Math.min(100, winRate),
+                unlockedAt: winRate >= 80 && totalGames >= 3 ? filteredData[filteredData.length - 1]?.playedAt : null
+            },
+            {
+                id: 'speed_demon',
+                name: 'Speed Demon',
+                description: 'Complete a mission in under 5 minutes',
+                icon: 'zap',
+                rarity: 'rare',
+                unlocked: filteredData.some(g => g.timeSpentSeconds < 300),
+                progress: filteredData.some(g => g.timeSpentSeconds < 300) ? 100 : Math.min(100, (300 - Math.min(...filteredData.map(g => g.timeSpentSeconds || 999))) / 300 * 100),
+                unlockedAt: filteredData.find(g => g.timeSpentSeconds < 300)?.playedAt
+            }
+        ];
+
+        return { caseOptions, totalGames, winRate, totalTime, objectiveStats, assessment, achievements };
     }, [rawData, filteredData, objMap]);
 
 
@@ -657,39 +727,46 @@ const ProgressReportModal = ({ onClose }) => {
                         </div>
                     ) : (
                         <div className="space-y-12">
-                            {/* High Level Stats */}
+                            {/* High Level Stats - Enhanced with Animations */}
                             <div className="grid grid-cols-1 md:grid-cols-4 gap-6">
-                                <StatCard
-                                    icon={<Target className="w-6 h-6" />}
+                                <AnimatedStatCard
+                                    icon={Target}
                                     title="Missions Attempted"
                                     value={stats.totalGames}
                                     color="text-blue-400"
                                     bg="bg-blue-500/10"
                                     border="border-blue-500/20"
+                                    delay={0}
+                                    sparkle={true}
                                 />
-                                <StatCard
-                                    icon={<Award className="w-6 h-6" />}
+                                <AnimatedStatCard
+                                    icon={Award}
                                     title="Success Rate"
-                                    value={`${stats.winRate}%`}
+                                    value={stats.winRate}
+                                    suffix="%"
                                     color="text-emerald-400"
                                     bg="bg-emerald-500/10"
                                     border="border-emerald-500/20"
+                                    delay={0.1}
+                                    sparkle={stats.winRate >= 80}
                                 />
-                                <StatCard
-                                    icon={<Clock className="w-6 h-6" />}
+                                <AnimatedStatCard
+                                    icon={Clock}
                                     title="Field Time"
                                     value={`${Math.floor(stats.totalTime / 60)}m ${stats.totalTime % 60}s`}
                                     color="text-amber-400"
                                     bg="bg-amber-500/10"
                                     border="border-amber-500/20"
+                                    delay={0.2}
                                 />
-                                <StatCard
-                                    icon={<BarChart2 className="w-6 h-6" />}
+                                <AnimatedStatCard
+                                    icon={BarChart2}
                                     title="Skills Tracked"
                                     value={Object.keys(stats.objectiveStats).length}
                                     color="text-fuchsia-400"
                                     bg="bg-fuchsia-500/10"
                                     border="border-fuchsia-500/20"
+                                    delay={0.3}
                                 />
                             </div>
 
@@ -735,6 +812,79 @@ const ProgressReportModal = ({ onClose }) => {
                                     </div>
                                 </div>
                             </div>
+
+                            {/* Achievements Showcase */}
+                            {stats.achievements && stats.achievements.length > 0 && (
+                                <motion.div
+                                    initial={{ opacity: 0, y: 50 }}
+                                    animate={{ opacity: 1, y: 0 }}
+                                    transition={{ duration: 0.6, delay: 0.4 }}
+                                    className="bg-gradient-to-br from-zinc-900/40 via-black/40 to-zinc-900/40 rounded-3xl border border-zinc-800/50 p-8 relative overflow-hidden"
+                                >
+                                    {/* Background Glow */}
+                                    <div className="absolute top-0 left-1/2 transform -translate-x-1/2 w-96 h-96 bg-amber-500/5 blur-[120px] rounded-full" />
+
+                                    <div className="relative z-10">
+                                        <div className="flex items-center justify-between mb-6">
+                                            <div>
+                                                <div className="flex items-center gap-3 mb-2">
+                                                    <div className="px-3 py-1 bg-amber-500 text-white text-[10px] font-black uppercase tracking-[0.2em] rounded">
+                                                        Achievements
+                                                    </div>
+                                                    <Sparkles className="w-5 h-5 text-amber-400" />
+                                                </div>
+                                                <h3 className="text-2xl font-black text-white uppercase tracking-tight">
+                                                    Hall of Fame
+                                                </h3>
+                                                <p className="text-sm text-zinc-500 mt-1">
+                                                    {stats.achievements.filter(a => a.unlocked).length} of {stats.achievements.length} unlocked
+                                                </p>
+                                            </div>
+                                        </div>
+
+                                        {/* Achievement Badges Grid */}
+                                        <div className="grid grid-cols-3 md:grid-cols-6 gap-6 justify-items-center">
+                                            {stats.achievements.map((achievement, index) => (
+                                                <motion.div
+                                                    key={achievement.id}
+                                                    initial={{ opacity: 0, scale: 0.5, rotate: -180 }}
+                                                    animate={{ opacity: 1, scale: 1, rotate: 0 }}
+                                                    transition={{
+                                                        duration: 0.5,
+                                                        delay: 0.5 + (index * 0.1),
+                                                        type: 'spring',
+                                                        stiffness: 200
+                                                    }}
+                                                >
+                                                    <AchievementBadge
+                                                        {...achievement}
+                                                        size="lg"
+                                                        showTooltip={true}
+                                                    />
+                                                </motion.div>
+                                            ))}
+                                        </div>
+
+                                        {/* Progress Bar */}
+                                        <div className="mt-8 pt-6 border-t border-zinc-800">
+                                            <div className="flex justify-between text-sm mb-2">
+                                                <span className="text-zinc-400">Overall Progress</span>
+                                                <span className="text-amber-400 font-bold">
+                                                    {Math.round((stats.achievements.filter(a => a.unlocked).length / stats.achievements.length) * 100)}%
+                                                </span>
+                                            </div>
+                                            <div className="h-3 bg-zinc-800 rounded-full overflow-hidden">
+                                                <motion.div
+                                                    className="h-full bg-gradient-to-r from-amber-500 to-orange-600 rounded-full"
+                                                    initial={{ width: 0 }}
+                                                    animate={{ width: `${(stats.achievements.filter(a => a.unlocked).length / stats.achievements.length) * 100}%` }}
+                                                    transition={{ duration: 1.5, delay: 1, ease: 'easeOut' }}
+                                                />
+                                            </div>
+                                        </div>
+                                    </div>
+                                </motion.div>
+                            )}
 
                             {/* Objective Breakdown */}
                             {Object.keys(stats.objectiveStats).length > 0 && (
@@ -803,34 +953,35 @@ const ProgressReportModal = ({ onClose }) => {
                                 </div>
                             )}
 
-                            {/* Recent Sessions Timeline */}
-                            <div className="space-y-4">
-                                <h3 className="text-lg font-bold text-white flex items-center gap-2">
-                                    <Clock className="w-5 h-5 text-zinc-500" />
-                                    Recent Sessions
-                                </h3>
 
-                                {filteredData.map(game => (
-                                    <div key={game.id} className="bg-zinc-900 border border-zinc-800 rounded-lg p-4 flex items-center justify-between hover:bg-zinc-800 transition-colors">
-                                        <div className="flex items-center gap-4">
-                                            <div className={`p-2 rounded-full ${game.outcome === 'success' ? 'bg-emerald-500/10 text-emerald-500' : game.outcome === 'timeout' ? 'bg-amber-500/10 text-amber-500' : 'bg-red-500/10 text-red-500'}`}>
-                                                {game.outcome === 'success' ? <CheckCircle className="w-5 h-5" /> :
-                                                    game.outcome === 'timeout' ? <Clock className="w-5 h-5" /> :
-                                                        <AlertTriangle className="w-5 h-5" />}
-                                            </div>
-                                            <div>
-                                                <h4 className="font-bold text-zinc-200">{game.caseTitle}</h4>
-                                                <p className="text-xs text-zinc-500">
-                                                    {new Date(game.playedAt).toLocaleString()} • {Math.floor(game.timeSpentSeconds / 60)}m {game.timeSpentSeconds % 60}s
-                                                </p>
-                                            </div>
-                                        </div>
-                                        <div className="text-right">
-                                            <div className="text-xl font-mono font-bold text-white">{game.score} PTS</div>
-                                            <div className="text-[10px] text-zinc-500 uppercase tracking-wider">{game.outcome}</div>
-                                        </div>
+                            {/* Mission Journey Timeline */}
+                            <div className="bg-zinc-900/30 border border-zinc-800 rounded-xl p-6">
+                                <div className="flex items-center justify-between mb-6">
+                                    <h3 className="text-lg font-bold text-white flex items-center gap-2">
+                                        <TrendingUp className="w-5 h-5 text-indigo-500" />
+                                        Mission Journey
+                                    </h3>
+                                    <button
+                                        onClick={() => setShowTimeline(!showTimeline)}
+                                        className="px-4 py-2 bg-indigo-500/10 hover:bg-indigo-500/20 border border-indigo-500/30 rounded-lg text-sm font-bold text-indigo-400 transition-colors"
+                                    >
+                                        {showTimeline ? 'Hide Timeline' : 'Show Timeline'}
+                                    </button>
+                                </div>
+
+                                {showTimeline ? (
+                                    <JourneyTimeline
+                                        missions={filteredData}
+                                        onMissionClick={(mission) => {
+                                            console.log('Mission clicked:', mission);
+                                        }}
+                                    />
+                                ) : (
+                                    <div className="text-center py-12 text-zinc-500">
+                                        <TrendingUp className="w-12 h-12 mx-auto mb-4 opacity-50" />
+                                        <p>Click "Show Timeline" to view your mission journey</p>
                                     </div>
-                                ))}
+                                )}
 
                                 {filteredData.length === 0 && (
                                     <p className="text-zinc-500 text-center py-8 italic">No records found for this period.</p>
@@ -839,6 +990,18 @@ const ProgressReportModal = ({ onClose }) => {
                         </div>
                     )}
                 </div>
+
+                {/* Celebration Component */}
+                <ProgressCelebration
+                    show={celebration !== null}
+                    type={celebration?.type || 'achievement'}
+                    message={celebration?.message || ''}
+                    subtitle={celebration?.subtitle || ''}
+                    onComplete={() => setCelebration(null)}
+                    duration={3000}
+                    enableSound={false}
+                />
+
                 {/* Wipe Confirmation Modal */}
                 <AnimatePresence>
                     {showConfirmWipe && (
