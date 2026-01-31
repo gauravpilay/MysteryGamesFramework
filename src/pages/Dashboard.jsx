@@ -4,12 +4,13 @@ import { db } from '../lib/firebase';
 import { collection, addDoc, deleteDoc, updateDoc, setDoc, doc, onSnapshot, query, orderBy } from 'firebase/firestore';
 import { Button, Card, Input, Label } from '../components/ui/shared';
 import { Logo } from '../components/ui/Logo';
-import { Plus, FolderOpen, LogOut, Search, Trash2, Rocket, Copy, Users, BookOpen, Lock, Unlock, Activity, FileText, CheckCircle, Clock, TrendingUp, Pencil, Fingerprint, Trophy, AlertTriangle } from 'lucide-react';
+import { Plus, FolderOpen, LogOut, Search, Trash2, Rocket, Copy, Users, BookOpen, Lock, Unlock, Activity, FileText, CheckCircle, Clock, TrendingUp, Pencil, Fingerprint, Trophy, AlertTriangle, Package } from 'lucide-react';
 import { useNavigate } from 'react-router-dom';
 import { motion, AnimatePresence } from 'framer-motion';
 import ProgressReportModal from '../components/ProgressReportModal';
 import AdminProgressModal from '../components/AdminProgressModal';
 import SystemSettingsModal from '../components/SystemSettingsModal';
+import MarketplaceModal from '../components/marketplace/MarketplaceModal';
 import { Settings } from 'lucide-react';
 import { useConfig } from '../lib/config';
 
@@ -23,6 +24,7 @@ const Dashboard = () => {
     const [showProgressModal, setShowProgressModal] = useState(false);
     const [showAdminProgressModal, setShowAdminProgressModal] = useState(false);
     const [showSettingsModal, setShowSettingsModal] = useState(false);
+    const [showMarketplaceModal, setShowMarketplaceModal] = useState(false);
     const [deleteId, setDeleteId] = useState(null);
     const [duplicateId, setDuplicateId] = useState(null);
     const [duplicateName, setDuplicateName] = useState('');
@@ -304,6 +306,14 @@ const Dashboard = () => {
                         >
                             <Trophy className="w-4 h-4 text-yellow-500" />
                             <span className="hidden md:inline">Leaderboard</span>
+                        </Button>
+                        <Button
+                            variant="ghost"
+                            className="text-zinc-400 hover:text-white flex items-center gap-2"
+                            onClick={() => setShowMarketplaceModal(true)}
+                        >
+                            <Package className="w-4 h-4 text-indigo-400" />
+                            <span className="hidden md:inline">Marketplace</span>
                         </Button>
                         {isAdmin && (
                             <>
@@ -636,6 +646,14 @@ const Dashboard = () => {
 
                 {showSettingsModal && isAdmin && (
                     <SystemSettingsModal onClose={() => setShowSettingsModal(false)} />
+                )}
+
+                {showMarketplaceModal && (
+                    <MarketplaceModal
+                        isOpen={showMarketplaceModal}
+                        onClose={() => setShowMarketplaceModal(false)}
+                        currentUser={user}
+                    />
                 )}
 
                 {/* Incoming Access Request Modal */}
