@@ -7,6 +7,7 @@ import AdvancedTerminal from './AdvancedTerminal';
 import AIInterrogation from './AIInterrogation';
 import ThreeDWorld from './ThreeDWorld';
 import SuspectProfile from './SuspectProfile';
+import CinematicCutscene from './CinematicCutscene';
 import {
     checkLogicCondition as checkLogic,
     evaluateLogic as evalLogic,
@@ -328,6 +329,7 @@ const GamePreview = ({ nodes, edges, onClose, gameMetadata, onGameEnd }) => {
     const [boardConnections, setBoardConnections] = useState([]);
     const [boardNotes, setBoardNotes] = useState([]);
     const [isConfronting, setIsConfronting] = useState(false);
+    const [showCutscene, setShowCutscene] = useState(false);
 
     // Logic/Outputs State
     const [nodeOutputs, setNodeOutputs] = useState({});
@@ -677,6 +679,10 @@ const GamePreview = ({ nodes, edges, onClose, gameMetadata, onGameEnd }) => {
             });
 
             setInventory(prev => new Set([...prev, ...idsToAdd]));
+        } else if (node && node.type === 'cutscene') {
+            // Show full-screen cutscene
+            setShowCutscene(true);
+            setInventory(prev => new Set([...prev, nodeId, ...intermediateIds]));
         } else if (node && node.type === 'identify') {
             setActiveAccusationNode(node);
             setShowAccuseModal(true);
@@ -2110,6 +2116,31 @@ const GamePreview = ({ nodes, edges, onClose, gameMetadata, onGameEnd }) => {
                     </div>
                 )}
             </AnimatePresence >
+
+            {/* Cinematic Cutscene */}
+            <AnimatePresence>
+                {showCutscene && currentNode && currentNode.type === 'cutscene' && (
+                    <CinematicCutscene
+                        storyText={currentNode.data.text || ''}
+                        characterName={currentNode.data.characterName}
+                        characterImage={currentNode.data.characterImage}
+                        mood={currentNode.data.mood || 'neutral'}
+                        cameraAngle={currentNode.data.cameraAngle || 'medium'}
+                        onComplete={() => {
+                            setShowCutscene(false);
+                            setIsContentReady(true);
+
+                            // Auto-advance to next node after cutscene
+                            const outEdges = options.filter(e => e.source === currentNode.id);
+                            if (outEdges.length > 0) {
+                                setTimeout(() => handleOptionClick(outEdges[0].target), 500);
+                            }
+                        }}
+                        autoPlay={true}
+                        showControls={true}
+                    />
+                )}
+            </AnimatePresence>
         </div >
     );
 };

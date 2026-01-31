@@ -1,7 +1,7 @@
 import React, { memo, useState, useRef, useEffect } from 'react';
 import ReactDOM from 'react-dom';
 import { Handle, Position, NodeResizer } from 'reactflow';
-import { FileText, User, Search, GitMerge, Terminal, MessageSquare, Music, Image as ImageIcon, Star, MousePointerClick, Trash2, Plus, Copy, Fingerprint, Bell, HelpCircle, ToggleLeft, Unlock, Binary, Grid3x3, Folder, ChevronDown, ChevronUp, Maximize, X, Save, File, FolderOpen, AlertCircle, Brain, Cpu, Send, Loader2, Check, Filter, ShieldAlert, Box, CheckCircle, Activity, Shield, Hash } from 'lucide-react';
+import { FileText, User, Search, GitMerge, Terminal, MessageSquare, Music, Image as ImageIcon, Star, MousePointerClick, Trash2, Plus, Copy, Fingerprint, Bell, HelpCircle, ToggleLeft, Unlock, Binary, Grid3x3, Folder, ChevronDown, ChevronUp, Maximize, X, Save, File, FolderOpen, AlertCircle, Brain, Cpu, Send, Loader2, Check, Filter, ShieldAlert, Box, CheckCircle, Activity, Shield, Hash, Film } from 'lucide-react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { storage } from '../../lib/firebase';
 import { ref, uploadBytes, getDownloadURL } from 'firebase/storage';
@@ -467,6 +467,155 @@ export const StoryNode = memo(({ id, data, selected }) => {
             </NodeWrapper>
             {(!data.actions || data.actions.length === 0) && (
                 <Handle type="source" position={Position.Bottom} className="!bg-blue-500 !w-3 !h-3 !border-2 !border-black" />
+            )}
+        </>
+    );
+});
+
+export const CutsceneNode = memo(({ id, data, selected }) => {
+    const handleChange = (key, val) => {
+        data.onChange && data.onChange(id, { ...data, [key]: val });
+    };
+    const [isUploading, setIsUploading] = useState(false);
+
+    const handleFileUpload = async (e) => {
+        const file = e.target.files[0];
+        if (!file) return;
+
+        if (!storage) {
+            alert("Firebase Storage not initialized.");
+            return;
+        }
+
+        setIsUploading(true);
+        try {
+            const storageRef = ref(storage, `cutscenes/${Date.now()}_${file.name}`);
+            await uploadBytes(storageRef, file);
+            const url = await getDownloadURL(storageRef);
+            handleChange('characterImage', url);
+        } catch (error) {
+            console.error("Upload failed", error);
+            alert("Upload failed. Check console.");
+        } finally {
+            setIsUploading(false);
+        }
+    };
+
+    return (
+        <>
+            <Handle type="target" position={Position.Top} className="!bg-zinc-500 !w-3 !h-3 !border-2 !border-black" />
+            <Handle type="target" position={Position.Top} className="!bg-zinc-500 !w-3 !h-3 !border-2 !border-black" />
+            <NodeWrapper id={id} title="Cinematic Cutscene" icon={Film} selected={selected} headerClass="bg-purple-950/30 text-purple-200" colorClass="border-purple-900/30" data={data} onLabelChange={(v) => handleChange('label', v)}>
+                <div className="space-y-3">
+                    <div className="p-2 bg-purple-950/20 border border-purple-900/30 rounded text-center">
+                        <p className="text-[10px] text-purple-300 font-bold uppercase tracking-wider mb-1">Cinematic Mode</p>
+                        <p className="text-[10px] text-zinc-400">Full-screen animated cutscene</p>
+                    </div>
+
+                    <TextArea
+                        placeholder="Enter cutscene dialogue/narrative..."
+                        rows={4}
+                        value={data.text}
+                        onChange={(e) => handleChange('text', e.target.value)}
+                    />
+
+                    <div className="grid grid-cols-2 gap-2">
+                        <div>
+                            <p className="text-[10px] text-zinc-500 mb-1">Mood</p>
+                            <select
+                                value={data.mood || 'neutral'}
+                                onChange={(e) => handleChange('mood', e.target.value)}
+                                className="w-full bg-black/40 border border-zinc-800 rounded px-2 py-1.5 text-[10px] text-zinc-300 focus:outline-none focus:border-purple-500 transition-colors"
+                            >
+                                <option value="neutral">Neutral</option>
+                                <option value="tense">Tense</option>
+                                <option value="dramatic">Dramatic</option>
+                                <option value="mysterious">Mysterious</option>
+                                <option value="action">Action</option>
+                            </select>
+                        </div>
+
+                        <div>
+                            <p className="text-[10px] text-zinc-500 mb-1">Camera Angle</p>
+                            <select
+                                value={data.cameraAngle || 'medium'}
+                                onChange={(e) => handleChange('cameraAngle', e.target.value)}
+                                className="w-full bg-black/40 border border-zinc-800 rounded px-2 py-1.5 text-[10px] text-zinc-300 focus:outline-none focus:border-purple-500 transition-colors"
+                            >
+                                <option value="closeup">Close-up</option>
+                                <option value="medium">Medium Shot</option>
+                                <option value="wide">Wide Shot</option>
+                                <option value="dramatic">Dramatic</option>
+                            </select>
+                        </div>
+                    </div>
+
+                    <div>
+                        <p className="text-[10px] text-zinc-500 mb-1">Character Name (Optional)</p>
+                        <InputField
+                            placeholder="e.g. Detective Morgan"
+                            value={data.characterName}
+                            onChange={(e) => handleChange('characterName', e.target.value)}
+                        />
+                    </div>
+
+                    {/* Character Image Upload */}
+                    <div className="relative group">
+                        {data.characterImage ? (
+                            <div className="relative w-full h-32 bg-zinc-900 rounded overflow-hidden mb-1 border border-zinc-800 group-hover:border-zinc-600 transition-colors">
+                                <img src={data.characterImage} alt="Character" className="w-full h-full object-cover" />
+                                <button
+                                    onClick={(e) => { e.stopPropagation(); handleChange('characterImage', null); }}
+                                    className="absolute top-2 right-2 p-1.5 bg-black/60 hover:bg-black/90 backdrop-blur-sm rounded-full text-white transition-all shadow-lg"
+                                    title="Remove Image"
+                                >
+                                    <Trash2 className="w-3 h-3" />
+                                </button>
+                            </div>
+                        ) : (
+                            <div className="relative w-full">
+                                <input
+                                    type="file"
+                                    accept="image/*"
+                                    className="absolute inset-0 w-full h-full opacity-0 cursor-pointer z-10"
+                                    onChange={handleFileUpload}
+                                    disabled={isUploading}
+                                />
+                                <div className="p-3 border border-dashed border-zinc-700 rounded text-center text-zinc-500 group-hover:bg-zinc-900/50 group-hover:border-zinc-500 transition-colors cursor-pointer">
+                                    <div className="flex flex-col items-center gap-1">
+                                        <ImageIcon className="w-4 h-4 mb-1" />
+                                        <span className="text-[10px] uppercase font-bold tracking-wider">
+                                            {isUploading ? "Uploading..." : "Upload Character Image"}
+                                        </span>
+                                    </div>
+                                </div>
+                            </div>
+                        )}
+                    </div>
+
+                    <div className="mt-2 p-2 bg-black/40 border border-purple-900/20 rounded-lg space-y-2">
+                        <div className="flex items-center justify-between">
+                            <p className="text-[9px] font-bold text-purple-400 uppercase tracking-wider flex items-center gap-1">
+                                <Star className="w-3 h-3" /> Rewards
+                            </p>
+                            <InputField
+                                type="number"
+                                placeholder="Pts"
+                                value={data.score}
+                                onChange={(e) => handleChange('score', parseInt(e.target.value) || 0)}
+                                className="w-20 text-right bg-purple-950/30 border-purple-900/30 text-purple-200"
+                            />
+                        </div>
+                        <ObjectiveSelector
+                            values={data.learningObjectiveIds}
+                            onChange={(v) => handleChange('learningObjectiveIds', v)}
+                            objectives={data.learningObjectives}
+                        />
+                    </div>
+                </div>
+            </NodeWrapper>
+            {(!data.actions || data.actions.length === 0) && (
+                <Handle type="source" position={Position.Bottom} className="!bg-purple-500 !w-3 !h-3 !border-2 !border-black" />
             )}
         </>
     );

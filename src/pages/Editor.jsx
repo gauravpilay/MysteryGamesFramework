@@ -14,8 +14,8 @@ import 'reactflow/dist/style.css';
 import { useParams, useNavigate } from 'react-router-dom';
 import { Button } from '../components/ui/shared';
 import { Logo } from '../components/ui/Logo';
-import { Save, ArrowLeft, X, FileText, User, Search, GitMerge, Terminal, MessageSquare, CircleHelp, Play, Settings, Music, Image as ImageIcon, MousePointerClick, Fingerprint, Bell, HelpCircle, ChevronLeft, ChevronRight, ToggleLeft, Lock, Sun, Moon, Stethoscope, Unlock, Binary, Grid3x3, CheckCircle, AlertTriangle, Plus, Trash2, Target, Box, FolderOpen, Brain, Pencil } from 'lucide-react';
-import { StoryNode, SuspectNode, EvidenceNode, LogicNode, TerminalNode, MessageNode, MusicNode, MediaNode, ActionNode, IdentifyNode, NotificationNode, QuestionNode, SetterNode, LockpickNode, DecryptionNode, KeypadNode, GroupNode, InputField, InterrogationNode, ThreeDSceneNode } from '../components/nodes/CustomNodes';
+import { Save, ArrowLeft, X, FileText, User, Search, GitMerge, Terminal, MessageSquare, CircleHelp, Play, Settings, Music, Image as ImageIcon, MousePointerClick, Fingerprint, Bell, HelpCircle, ChevronLeft, ChevronRight, ToggleLeft, Lock, Sun, Moon, Stethoscope, Unlock, Binary, Grid3x3, CheckCircle, AlertTriangle, Plus, Trash2, Target, Box, FolderOpen, Brain, Pencil, Film } from 'lucide-react';
+import { StoryNode, SuspectNode, EvidenceNode, LogicNode, TerminalNode, MessageNode, MusicNode, MediaNode, ActionNode, IdentifyNode, NotificationNode, QuestionNode, SetterNode, LockpickNode, DecryptionNode, KeypadNode, GroupNode, InputField, InterrogationNode, ThreeDSceneNode, CutsceneNode } from '../components/nodes/CustomNodes';
 import AICaseGeneratorModal from '../components/AICaseGeneratorModal';
 import CaseMetadataModal from '../components/CaseMetadataModal';
 function FolderNode(props) {
@@ -36,6 +36,11 @@ const NODE_HELP = {
         title: "Story Node",
         desc: "The primary narrative building block. Use this to display story text, dialogue, or descriptions to the player.",
         examples: ["Opening Scene", "Conversation with Witness", "Room Description"]
+    },
+    cutscene: {
+        title: "Cinematic Cutscene",
+        desc: "Full-screen animated cutscene with cinematic effects. Perfect for dramatic reveals, character introductions, or key story moments.",
+        examples: ["Opening Credits", "Character Introduction", "Plot Twist Reveal", "Dramatic Confrontation"]
     },
     suspect: {
         title: "Suspect Profile",
@@ -125,6 +130,7 @@ const NODE_HELP = {
 
 const PALETTE_ITEMS = [
     { type: 'story', label: 'Story Narrative', icon: FileText, className: "hover:border-indigo-500/50", iconClass: "text-blue-400" },
+    { type: 'cutscene', label: 'Cinematic Cutscene', icon: Film, className: "hover:border-purple-500/50", iconClass: "text-purple-400" },
     { type: 'suspect', label: 'Suspect', icon: User, className: "hover:border-red-500/50", iconClass: "text-red-400" },
     { type: 'evidence', label: 'Evidence Item', icon: Search, className: "hover:border-yellow-500/50", iconClass: "text-yellow-400" },
     { type: 'logic', label: 'Logic Branch', icon: GitMerge, className: "hover:border-emerald-500/50", iconClass: "text-emerald-400" },
@@ -216,6 +222,7 @@ const Editor = () => {
 
     const nodeTypes = useMemo(() => ({
         story: StoryNode,
+        cutscene: CutsceneNode,
         suspect: SuspectNode,
         evidence: EvidenceNode,
         logic: LogicNode,
