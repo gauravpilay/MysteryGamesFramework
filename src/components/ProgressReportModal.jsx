@@ -296,47 +296,311 @@ const ProgressReportModal = ({ onClose }) => {
             }
             const doc = new jsPDF();
             const pageWidth = doc.internal.pageSize.getWidth();
+            const pageHeight = doc.internal.pageSize.getHeight();
 
-            // Title
-            doc.setFontSize(22);
-            doc.setTextColor(63, 81, 181); // Indigo color
-            doc.text("Detective Performance Record", 14, 22);
+            // ========== COVER PAGE ==========
+            // Gradient Background Effect (simulated with rectangles)
+            doc.setFillColor(15, 23, 42); // Dark blue-gray
+            doc.rect(0, 0, pageWidth, pageHeight, 'F');
 
-            // Header Info
+            // Top accent bar
+            doc.setFillColor(99, 102, 241); // Indigo
+            doc.rect(0, 0, pageWidth, 8, 'F');
+
+            // Title with shadow effect
+            doc.setFontSize(28);
+            doc.setTextColor(255, 255, 255);
+            doc.setFont(undefined, 'bold');
+            doc.text("DETECTIVE", pageWidth / 2, 60, { align: 'center' });
+            doc.setFontSize(32);
+            doc.setTextColor(99, 102, 241);
+            doc.text("PERFORMANCE RECORD", pageWidth / 2, 72, { align: 'center' });
+
+            // Decorative line
+            doc.setDrawColor(99, 102, 241);
+            doc.setLineWidth(0.5);
+            doc.line(40, 80, pageWidth - 40, 80);
+
+            // User Info Box
+            doc.setFillColor(30, 41, 59);
+            doc.roundedRect(30, 95, pageWidth - 60, 35, 3, 3, 'F');
+
             doc.setFontSize(10);
-            doc.setTextColor(100);
-            doc.text(`User Index: ${user?.email}`, 14, 32);
-            doc.text(`Generated On: ${new Date().toLocaleString()}`, 14, 37);
-            doc.text(`Report Range: ${timeRange === 'all' ? 'All Time' : timeRange === 'week' ? 'Past 7 Days' : 'Past 30 Days'}`, 14, 42);
+            doc.setTextColor(148, 163, 184);
+            doc.setFont(undefined, 'normal');
+            doc.text("AGENT ID:", 40, 105);
+            doc.text("GENERATED:", 40, 113);
+            doc.text("PERIOD:", 40, 121);
 
-            // Stats Box
-            doc.setDrawColor(200);
-            doc.setFillColor(245, 247, 255);
-            doc.rect(14, 50, pageWidth - 28, 25, 'F');
+            doc.setTextColor(255, 255, 255);
+            doc.setFont(undefined, 'bold');
+            doc.text(user?.email, 70, 105);
+            doc.text(new Date().toLocaleString(), 70, 113);
+            doc.text(timeRange === 'all' ? 'All Time' : timeRange === 'week' ? 'Past 7 Days' : 'Past 30 Days', 70, 121);
 
-            doc.setFontSize(10);
-            doc.setTextColor(50);
-            doc.text("SUMMARY STATISTICS", 18, 56);
+            // Stats Preview Cards
+            const cardY = 145;
+            const cardWidth = 38;
+            const cardHeight = 30;
+            const cardGap = 5;
+            const startX = (pageWidth - (cardWidth * 4 + cardGap * 3)) / 2;
 
-            doc.setFontSize(11);
-            doc.setTextColor(50);
-            doc.text(`Archetype: ${stats.assessment?.archetype || 'Special Agent'}`, 20, 65);
-            doc.text(`Exp Level: ${stats.totalGames > 10 ? 'Senior' : 'Junior'}`, 75, 65);
-            doc.text(`Consistency: ${stats.winRate}%`, 130, 65);
+            const statCards = [
+                { label: 'MISSIONS', value: stats.totalGames, color: [59, 130, 246] },
+                { label: 'SUCCESS', value: `${stats.winRate}%`, color: [16, 185, 129] },
+                { label: 'TIME', value: `${Math.floor(stats.totalTime / 60)}m`, color: [245, 158, 11] },
+                { label: 'SKILLS', value: Object.keys(stats.objectiveStats).length, color: [168, 85, 247] }
+            ];
 
-            // Summary Block
-            const summaryText = `Assessment: "${stats.assessment?.summary}"`;
-            const splitSummary = doc.splitTextToSize(summaryText, pageWidth - 40);
-            const summaryLineHeight = 4;
-            const summaryHeight = (splitSummary.length * summaryLineHeight) + 6;
+            statCards.forEach((card, i) => {
+                const x = startX + (cardWidth + cardGap) * i;
 
-            doc.setFillColor(235, 240, 255);
-            doc.rect(14, 76, pageWidth - 28, summaryHeight, 'F');
+                // Card background
+                doc.setFillColor(30, 41, 59);
+                doc.roundedRect(x, cardY, cardWidth, cardHeight, 2, 2, 'F');
+
+                // Accent border
+                doc.setDrawColor(...card.color);
+                doc.setLineWidth(1);
+                doc.roundedRect(x, cardY, cardWidth, cardHeight, 2, 2, 'S');
+
+                // Value
+                doc.setFontSize(16);
+                doc.setTextColor(...card.color);
+                doc.setFont(undefined, 'bold');
+                doc.text(String(card.value), x + cardWidth / 2, cardY + 15, { align: 'center' });
+
+                // Label
+                doc.setFontSize(7);
+                doc.setTextColor(148, 163, 184);
+                doc.setFont(undefined, 'normal');
+                doc.text(card.label, x + cardWidth / 2, cardY + 23, { align: 'center' });
+            });
+
+            // Archetype Badge
+            doc.setFillColor(99, 102, 241);
+            doc.roundedRect(30, 190, pageWidth - 60, 20, 3, 3, 'F');
+            doc.setFontSize(14);
+            doc.setTextColor(255, 255, 255);
+            doc.setFont(undefined, 'bold');
+            doc.text(`ARCHETYPE: ${stats.assessment?.archetype || 'SPECIAL AGENT'}`, pageWidth / 2, 202, { align: 'center' });
+
+            // Footer
             doc.setFontSize(8);
-            doc.setTextColor(60);
-            doc.text(splitSummary, 20, 81);
+            doc.setTextColor(100, 116, 139);
+            doc.text(`${settings.systemName || 'Mystery Architect'} Intelligence Division - Confidential`, pageWidth / 2, pageHeight - 15, { align: 'center' });
+            doc.text('Page 1', pageWidth / 2, pageHeight - 10, { align: 'center' });
 
-            let currentY = 76 + summaryHeight + 12;
+            // ========== PAGE 2: ACHIEVEMENTS ==========
+            if (stats.achievements && stats.achievements.length > 0) {
+                doc.addPage();
+
+                // Header
+                doc.setFillColor(15, 23, 42);
+                doc.rect(0, 0, pageWidth, pageHeight, 'F');
+                doc.setFillColor(99, 102, 241);
+                doc.rect(0, 0, pageWidth, 8, 'F');
+
+                doc.setFontSize(20);
+                doc.setTextColor(99, 102, 241);
+                doc.setFont(undefined, 'bold');
+                doc.text("HALL OF FAME", 14, 25);
+
+                doc.setFontSize(10);
+                doc.setTextColor(148, 163, 184);
+                doc.setFont(undefined, 'normal');
+                const unlockedCount = stats.achievements.filter(a => a.unlocked).length;
+                doc.text(`${unlockedCount} of ${stats.achievements.length} Achievements Unlocked`, 14, 33);
+
+                // Achievement Grid
+                let achY = 45;
+                const achWidth = (pageWidth - 40) / 2;
+
+                stats.achievements.forEach((achievement, index) => {
+                    if (index > 0 && index % 2 === 0) {
+                        achY += 35;
+                    }
+
+                    const x = 14 + (index % 2) * (achWidth + 10);
+
+                    // Achievement card
+                    const rarityColors = {
+                        common: [161, 161, 170],
+                        rare: [59, 130, 246],
+                        epic: [168, 85, 247],
+                        legendary: [245, 158, 11]
+                    };
+
+                    const color = rarityColors[achievement.rarity] || rarityColors.common;
+
+                    // Background
+                    doc.setFillColor(30, 41, 59);
+                    doc.roundedRect(x, achY, achWidth, 28, 2, 2, 'F');
+
+                    // Border (thicker for unlocked)
+                    doc.setDrawColor(...color);
+                    doc.setLineWidth(achievement.unlocked ? 1 : 0.3);
+                    doc.roundedRect(x, achY, achWidth, 28, 2, 2, 'S');
+
+                    // Rarity badge
+                    doc.setFillColor(...color);
+                    doc.rect(x, achY, 25, 6, 'F');
+                    doc.setFontSize(6);
+                    doc.setTextColor(255, 255, 255);
+                    doc.setFont(undefined, 'bold');
+                    doc.text(achievement.rarity.toUpperCase(), x + 12.5, achY + 4, { align: 'center' });
+
+                    // Icon placeholder (circle)
+                    if (achievement.unlocked) {
+                        doc.setFillColor(...color);
+                        doc.circle(x + 8, achY + 17, 4, 'F');
+                    } else {
+                        doc.setFillColor(71, 85, 105);
+                        doc.circle(x + 8, achY + 17, 4, 'F');
+                        // Lock symbol
+                        doc.setFillColor(148, 163, 184);
+                        doc.rect(x + 6.5, achY + 16, 3, 3, 'F');
+                    }
+
+                    // Name
+                    doc.setFontSize(9);
+                    doc.setTextColor(achievement.unlocked ? 255 : 148, achievement.unlocked ? 255 : 163, achievement.unlocked ? 255 : 184);
+                    doc.setFont(undefined, 'bold');
+                    doc.text(achievement.name, x + 16, achY + 14);
+
+                    // Description
+                    doc.setFontSize(7);
+                    doc.setTextColor(148, 163, 184);
+                    doc.setFont(undefined, 'normal');
+                    const descLines = doc.splitTextToSize(achievement.description, achWidth - 20);
+                    doc.text(descLines, x + 16, achY + 19);
+
+                    // Progress bar (for locked)
+                    if (!achievement.unlocked && achievement.progress > 0) {
+                        const barWidth = achWidth - 20;
+                        const barX = x + 16;
+                        const barY = achY + 24;
+
+                        doc.setFillColor(71, 85, 105);
+                        doc.rect(barX, barY, barWidth, 2, 'F');
+
+                        doc.setFillColor(...color);
+                        doc.rect(barX, barY, (barWidth * achievement.progress) / 100, 2, 'F');
+
+                        doc.setFontSize(6);
+                        doc.setTextColor(...color);
+                        doc.text(`${Math.round(achievement.progress)}%`, barX + barWidth, barY + 1.5, { align: 'right' });
+                    } else if (achievement.unlocked && achievement.unlockedAt) {
+                        doc.setFontSize(6);
+                        doc.setTextColor(16, 185, 129);
+                        doc.text(`Unlocked: ${new Date(achievement.unlockedAt).toLocaleDateString()}`, x + 16, achY + 26);
+                    }
+                });
+
+                // Overall Progress
+                const progressY = achY + 40;
+                doc.setFontSize(10);
+                doc.setTextColor(148, 163, 184);
+                doc.text("Overall Achievement Progress", 14, progressY);
+
+                const progressBarWidth = pageWidth - 60;
+                const progressBarX = 30;
+                const progressBarY = progressY + 5;
+                const progressPercent = (unlockedCount / stats.achievements.length) * 100;
+
+                doc.setFillColor(30, 41, 59);
+                doc.roundedRect(progressBarX, progressBarY, progressBarWidth, 6, 3, 3, 'F');
+
+                doc.setFillColor(245, 158, 11);
+                doc.roundedRect(progressBarX, progressBarY, (progressBarWidth * progressPercent) / 100, 6, 3, 3, 'F');
+
+                doc.setFontSize(12);
+                doc.setTextColor(245, 158, 11);
+                doc.setFont(undefined, 'bold');
+                doc.text(`${Math.round(progressPercent)}%`, pageWidth / 2, progressBarY + 4.5, { align: 'center' });
+
+                // Footer
+                doc.setFontSize(8);
+                doc.setTextColor(100, 116, 139);
+                doc.text(`${settings.systemName || 'Mystery Architect'} Intelligence Division - Confidential`, pageWidth / 2, pageHeight - 15, { align: 'center' });
+                doc.text('Page 2', pageWidth / 2, pageHeight - 10, { align: 'center' });
+            }
+
+            // ========== PAGE 3: ASSESSMENT & SUMMARY ==========
+            doc.addPage();
+
+            doc.setFillColor(15, 23, 42);
+            doc.rect(0, 0, pageWidth, pageHeight, 'F');
+            doc.setFillColor(99, 102, 241);
+            doc.rect(0, 0, pageWidth, 8, 'F');
+
+            doc.setFontSize(20);
+            doc.setTextColor(99, 102, 241);
+            doc.setFont(undefined, 'bold');
+            doc.text("PERFORMANCE ASSESSMENT", 14, 25);
+
+            let currentY = 40;
+
+            // Assessment Summary
+            doc.setFillColor(30, 41, 59);
+            doc.roundedRect(14, currentY, pageWidth - 28, 40, 3, 3, 'F');
+
+            doc.setFontSize(10);
+            doc.setTextColor(148, 163, 184);
+            doc.text("AGENT PROFILE", 20, currentY + 8);
+
+            doc.setFontSize(12);
+            doc.setTextColor(255, 255, 255);
+            doc.setFont(undefined, 'bold');
+            const summaryLines = doc.splitTextToSize(`"${stats.assessment?.summary}"`, pageWidth - 48);
+            doc.text(summaryLines, 20, currentY + 16);
+
+            currentY += 50;
+
+            // Recommendations
+            if (stats.assessment?.recommendations && stats.assessment.recommendations.length > 0) {
+                doc.setFontSize(14);
+                doc.setTextColor(99, 102, 241);
+                doc.setFont(undefined, 'bold');
+                doc.text("STRATEGIC RECOMMENDATIONS", 14, currentY);
+
+                currentY += 10;
+
+                stats.assessment.recommendations.forEach((rec, index) => {
+                    doc.setFillColor(30, 41, 59);
+                    doc.roundedRect(14, currentY, pageWidth - 28, 12, 2, 2, 'F');
+
+                    // Number badge
+                    doc.setFillColor(99, 102, 241);
+                    doc.circle(20, currentY + 6, 3, 'F');
+                    doc.setFontSize(8);
+                    doc.setTextColor(255, 255, 255);
+                    doc.setFont(undefined, 'bold');
+                    doc.text(String(index + 1), 20, currentY + 7.5, { align: 'center' });
+
+                    // Recommendation text
+                    doc.setFontSize(9);
+                    doc.setTextColor(255, 255, 255);
+                    doc.setFont(undefined, 'normal');
+                    const recLines = doc.splitTextToSize(rec, pageWidth - 50);
+                    doc.text(recLines, 28, currentY + 7);
+
+                    currentY += 15;
+                });
+            }
+
+            // Footer
+            doc.setFontSize(8);
+            doc.setTextColor(100, 116, 139);
+            doc.text(`${settings.systemName || 'Mystery Architect'} Intelligence Division - Confidential`, pageWidth / 2, pageHeight - 15, { align: 'center' });
+            doc.text('Page 3', pageWidth / 2, pageHeight - 10, { align: 'center' });
+
+            // ========== CONTINUE WITH EXISTING CONTENT (Learning Objectives, etc.) ==========
+            doc.addPage();
+            doc.setFillColor(255, 255, 255);
+            doc.rect(0, 0, pageWidth, pageHeight, 'F');
+
+            currentY = 20;
 
             // Learning Objectives Table
             if (Object.keys(stats.objectiveStats).length > 0) {
