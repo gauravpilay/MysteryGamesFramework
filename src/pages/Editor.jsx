@@ -14,9 +14,10 @@ import 'reactflow/dist/style.css';
 import { useParams, useNavigate } from 'react-router-dom';
 import { Button } from '../components/ui/shared';
 import { Logo } from '../components/ui/Logo';
-import { Save, ArrowLeft, X, FileText, User, Search, GitMerge, Terminal, MessageSquare, CircleHelp, Play, Settings, Music, Image as ImageIcon, MousePointerClick, Fingerprint, Bell, HelpCircle, ChevronLeft, ChevronRight, ToggleLeft, Lock, Sun, Moon, Stethoscope, Unlock, Binary, Grid3x3, CheckCircle, AlertTriangle, Plus, Trash2, Target, Box, FolderOpen, Brain } from 'lucide-react';
+import { Save, ArrowLeft, X, FileText, User, Search, GitMerge, Terminal, MessageSquare, CircleHelp, Play, Settings, Music, Image as ImageIcon, MousePointerClick, Fingerprint, Bell, HelpCircle, ChevronLeft, ChevronRight, ToggleLeft, Lock, Sun, Moon, Stethoscope, Unlock, Binary, Grid3x3, CheckCircle, AlertTriangle, Plus, Trash2, Target, Box, FolderOpen, Brain, Pencil } from 'lucide-react';
 import { StoryNode, SuspectNode, EvidenceNode, LogicNode, TerminalNode, MessageNode, MusicNode, MediaNode, ActionNode, IdentifyNode, NotificationNode, QuestionNode, SetterNode, LockpickNode, DecryptionNode, KeypadNode, GroupNode, InputField, InterrogationNode, ThreeDSceneNode } from '../components/nodes/CustomNodes';
 import AICaseGeneratorModal from '../components/AICaseGeneratorModal';
+import CaseMetadataModal from '../components/CaseMetadataModal';
 function FolderNode(props) {
     return <GroupNode {...props} />;
 }
@@ -164,6 +165,8 @@ const Editor = () => {
     const [isDarkMode, setIsDarkMode] = useState(true);
     const [enableThreeD, setEnableThreeD] = useState(true);
     const [caseTitle, setCaseTitle] = useState("");
+    const [caseDescription, setCaseDescription] = useState("");
+    const [showMetadataModal, setShowMetadataModal] = useState(false);
     const [validationReport, setValidationReport] = useState(null);
     const [learningObjectives, setLearningObjectives] = useState([]);
     const [newCategory, setNewCategory] = useState({
@@ -516,6 +519,7 @@ const Editor = () => {
                     }
                     if (data.isLocked !== undefined) setIsLocked(data.isLocked);
                     if (data.title) setCaseTitle(data.title);
+                    if (data.description) setCaseDescription(data.description);
                 } else {
                     console.error("No such document!");
                 }
@@ -729,6 +733,8 @@ const Editor = () => {
             // Log for debugging if it fails again
             await setDoc(docRef, {
                 ...flow,
+                title: caseTitle,
+                description: caseDescription,
                 updatedAt: new Date().toISOString(),
                 nodeCount: nodes.length
             }, { merge: true });
@@ -1005,6 +1011,14 @@ const Editor = () => {
         setConfirmDeleteCat(null);
     };
 
+    const handleSaveMetadata = ({ title, description }) => {
+        setCaseTitle(title);
+        setCaseDescription(description);
+        // Auto-save after updating metadata
+        setTimeout(() => saveProject(), 100);
+    };
+
+
     const handlePreviewGameEnd = async (resultData) => {
         if (user && user.email) {
             const newResult = {
@@ -1099,23 +1113,33 @@ const Editor = () => {
                         <ArrowLeft className="w-4 h-4 mr-2" />
                         Back
                     </Button>
-                    <div className="flex items-center gap-2">
+                    <button
+                        onClick={() => !isLocked && setShowMetadataModal(true)}
+                        disabled={isLocked}
+                        className={`flex items-center gap-2 group ${!isLocked ? 'cursor-pointer hover:opacity-80' : 'cursor-not-allowed'} transition-opacity`}
+                        title={isLocked ? "Case is locked" : "Click to edit case title and description"}
+                    >
                         <div className={`p-1.5 rounded-lg ${isDarkMode ? 'bg-indigo-500/20 text-indigo-400' : 'bg-indigo-100 text-indigo-600'}`}>
                             <GitMerge className="w-5 h-5" />
                         </div>
                         <div className="flex flex-col">
-                            <span className={`font-bold tracking-tight leading-none ${isDarkMode ? 'text-zinc-200' : 'text-zinc-700'}`}>
-                                {caseTitle || "Untitled Case"}
-                            </span>
+                            <div className="flex items-center gap-2">
+                                <span className={`font-bold tracking-tight leading-none ${isDarkMode ? 'text-zinc-200' : 'text-zinc-700'} ${!isLocked ? 'group-hover:text-indigo-400' : ''} transition-colors`}>
+                                    {caseTitle || "Untitled Case"}
+                                </span>
+                                {!isLocked && (
+                                    <Pencil className="w-3 h-3 text-zinc-600 opacity-0 group-hover:opacity-100 transition-opacity" />
+                                )}
+                            </div>
                             <span className="text-[10px] text-zinc-500 font-bold uppercase tracking-widest mt-0.5">Mission Architect</span>
                         </div>
-                        {isLocked && (
-                            <div className="flex items-center gap-1.5 px-2.5 py-1 bg-red-500/10 border border-red-500/50 rounded-full text-red-400 text-[10px] font-bold uppercase tracking-wider ml-4 shadow-[0_0_10px_rgba(239,68,68,0.2)]">
-                                <Lock className="w-3 h-3" />
-                                Review Mode
-                            </div>
-                        )}
-                    </div>
+                    </button>
+                    {isLocked && (
+                        <div className="flex items-center gap-1.5 px-2.5 py-1 bg-red-500/10 border border-red-500/50 rounded-full text-red-400 text-[10px] font-bold uppercase tracking-wider ml-4 shadow-[0_0_10px_rgba(239,68,68,0.2)]">
+                            <Lock className="w-3 h-3" />
+                            Review Mode
+                        </div>
+                    )}
                 </div>
                 <div id="editor-actions" className="flex items-center gap-3">
                     {/* Node Search Mechanism */}
@@ -1358,6 +1382,14 @@ const Editor = () => {
                         if (reactFlowInstance) reactFlowInstance.fitView({ duration: 800 });
                     }, 100);
                 }}
+            />
+
+            <CaseMetadataModal
+                isOpen={showMetadataModal}
+                onClose={() => setShowMetadataModal(false)}
+                initialTitle={caseTitle}
+                initialDescription={caseDescription}
+                onSave={handleSaveMetadata}
             />
 
             <AnimatePresence>
@@ -1892,7 +1924,7 @@ const Editor = () => {
                     )
                 }
             </AnimatePresence >
-        </div>
+        </div >
     );
 };
 
