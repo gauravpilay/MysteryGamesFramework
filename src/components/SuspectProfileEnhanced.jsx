@@ -105,66 +105,41 @@ const FingerprintScanner = ({ active }) => (
 );
 
 // Threat Level Indicator
-const ThreatLevel = ({ suspect }) => {
-    // Calculate threat level based on suspect characteristics
-    let threatValue = 30; // Base threat
-    let threatLevel = 'low';
-
-    // Increase threat based on role
-    const role = suspect.data.role?.toLowerCase() || '';
-    if (role.includes('criminal') || role.includes('murderer') || role.includes('killer')) {
-        threatValue += 40;
-    } else if (role.includes('suspect') || role.includes('person of interest')) {
-        threatValue += 20;
-    } else if (role.includes('witness')) {
-        threatValue += 10;
-    }
-
-    // Determine threat level
-    if (threatValue >= 75) {
-        threatLevel = 'critical';
-    } else if (threatValue >= 55) {
-        threatLevel = 'high';
-    } else if (threatValue >= 35) {
-        threatLevel = 'medium';
-    } else {
-        threatLevel = 'low';
-    }
-
+const ThreatLevel = ({ level = 'medium' }) => {
     const levels = {
-        low: { color: 'emerald', label: 'LOW RISK', description: 'Cooperative witness' },
-        medium: { color: 'amber', label: 'MODERATE', description: 'Person of interest' },
-        high: { color: 'orange', label: 'HIGH RISK', description: 'Primary suspect' },
-        critical: { color: 'red', label: 'CRITICAL', description: 'Dangerous individual' }
+        low: { color: 'emerald', label: 'LOW RISK', value: 25 },
+        medium: { color: 'amber', label: 'MODERATE', value: 50 },
+        high: { color: 'orange', label: 'HIGH RISK', value: 75 },
+        critical: { color: 'red', label: 'CRITICAL', value: 100 }
     };
 
-    const threat = levels[threatLevel];
+    const threat = levels[level] || levels.medium;
 
     return (
         <div className="relative">
-            <div className="flex items-center gap-2 mb-2">
-                <AlertTriangle className={`w-3 h-3 text-${threat.color}-500`} />
-                <span className="text-[10px] font-black text-zinc-400 uppercase tracking-wider">Threat Assessment</span>
+            <div className="flex items-center gap-3 mb-2">
+                <AlertTriangle className={`w-4 h-4 text-${threat.color}-500`} />
+                <span className="text-xs font-black text-zinc-400 uppercase tracking-wider">Threat Assessment</span>
             </div>
-            <div className="relative h-1.5 bg-zinc-800 rounded-full overflow-hidden">
+            <div className="relative h-2 bg-zinc-800 rounded-full overflow-hidden">
                 <motion.div
                     className={`absolute inset-y-0 left-0 bg-gradient-to-r from-${threat.color}-500 to-${threat.color}-600`}
                     initial={{ width: 0 }}
-                    animate={{ width: `${threatValue}%` }}
+                    animate={{ width: `${threat.value}%` }}
                     transition={{ duration: 1.5, delay: 0.5, ease: 'easeOut' }}
                 />
                 <motion.div
                     className={`absolute inset-y-0 left-0 bg-${threat.color}-400`}
                     animate={{
                         opacity: [0.5, 1, 0.5],
-                        width: ['0%', `${threatValue}%`, `${threatValue}%`]
+                        width: ['0%', `${threat.value}%`, `${threat.value}%`]
                     }}
                     transition={{ duration: 2, repeat: Infinity }}
                 />
             </div>
             <div className="flex justify-between mt-1">
-                <span className={`text-[9px] font-bold text-${threat.color}-500 uppercase`}>{threat.label}</span>
-                <span className={`text-[9px] font-mono text-zinc-500`}>{threat.description}</span>
+                <span className={`text-[10px] font-bold text-${threat.color}-500 uppercase`}>{threat.label}</span>
+                <span className={`text-[10px] font-mono text-${threat.color}-500`}>{threat.value}%</span>
             </div>
         </div>
     );
@@ -320,7 +295,7 @@ export default function SuspectProfile({
                                     initial={{ opacity: 0, x: -30 }}
                                     animate={{ opacity: 1, x: 0 }}
                                     transition={{ delay: 0.2 }}
-                                    className="text-2xl md:text-4xl font-black text-white uppercase tracking-tighter mb-3 drop-shadow-2xl relative"
+                                    className="text-4xl md:text-6xl font-black text-white uppercase tracking-tighter mb-3 drop-shadow-2xl relative"
                                 >
                                     {suspect.data.name}
                                     {/* Text Glow Effect */}
@@ -337,21 +312,21 @@ export default function SuspectProfile({
                                     {/* Role Badge - Enhanced */}
                                     <motion.div
                                         whileHover={{ scale: 1.05, rotate: 1 }}
-                                        className="px-4 py-1.5 bg-gradient-to-r from-red-500/20 to-pink-500/20 border-2 border-red-500/40 rounded-full backdrop-blur-md shadow-lg relative overflow-hidden"
+                                        className="px-5 py-2 bg-gradient-to-r from-red-500/20 to-pink-500/20 border-2 border-red-500/40 rounded-full backdrop-blur-md shadow-lg relative overflow-hidden"
                                     >
                                         <motion.div
                                             className="absolute inset-0 bg-gradient-to-r from-transparent via-white/10 to-transparent"
                                             animate={{ x: ['-100%', '200%'] }}
                                             transition={{ duration: 2, repeat: Infinity, repeatDelay: 1 }}
                                         />
-                                        <span className="text-xs font-black text-red-400 uppercase tracking-wider relative z-10">{suspect.data.role}</span>
+                                        <span className="text-sm font-black text-red-400 uppercase tracking-wider relative z-10">{suspect.data.role}</span>
                                     </motion.div>
 
                                     {/* ID Badge */}
-                                    <div className="px-3 py-1.5 bg-zinc-800/70 border border-white/20 rounded-full backdrop-blur-md shadow-lg">
+                                    <div className="px-4 py-2 bg-zinc-800/70 border border-white/20 rounded-full backdrop-blur-md shadow-lg">
                                         <div className="flex items-center gap-2">
                                             <Fingerprint className="w-3 h-3 text-indigo-400" />
-                                            <span className="text-[10px] font-mono text-zinc-300">ID: {suspect.id.substring(0, 8).toUpperCase()}</span>
+                                            <span className="text-[11px] font-mono text-zinc-300">ID: {suspect.id.substring(0, 8).toUpperCase()}</span>
                                         </div>
                                     </div>
                                 </div>
@@ -362,32 +337,32 @@ export default function SuspectProfile({
                         <div className="flex items-center gap-3 mt-6 flex-wrap">
                             <motion.div
                                 whileHover={{ scale: 1.05, y: -2 }}
-                                className="flex items-center gap-2 px-3 py-1.5 bg-gradient-to-r from-indigo-500/10 to-purple-500/10 border border-indigo-500/30 rounded-xl backdrop-blur-md shadow-lg"
+                                className="flex items-center gap-2 px-4 py-2 bg-gradient-to-r from-indigo-500/10 to-purple-500/10 border border-indigo-500/30 rounded-xl backdrop-blur-md shadow-lg"
                             >
-                                <Shield className="w-3.5 h-3.5 text-indigo-400" />
-                                <span className="text-[10px] font-bold text-indigo-300">VERIFIED</span>
+                                <Shield className="w-4 h-4 text-indigo-400" />
+                                <span className="text-xs font-bold text-indigo-300">VERIFIED</span>
                             </motion.div>
 
                             <motion.div
                                 whileHover={{ scale: 1.05, y: -2 }}
-                                className="flex items-center gap-2 px-3 py-1.5 bg-gradient-to-r from-amber-500/10 to-orange-500/10 border border-amber-500/30 rounded-xl backdrop-blur-md shadow-lg"
+                                className="flex items-center gap-2 px-4 py-2 bg-gradient-to-r from-amber-500/10 to-orange-500/10 border border-amber-500/30 rounded-xl backdrop-blur-md shadow-lg"
                             >
-                                <Activity className="w-3.5 h-3.5 text-amber-400 animate-pulse" />
-                                <span className="text-[10px] font-bold text-amber-300">MONITORED</span>
+                                <Activity className="w-4 h-4 text-amber-400 animate-pulse" />
+                                <span className="text-xs font-bold text-amber-300">MONITORED</span>
                             </motion.div>
 
                             <motion.div
                                 whileHover={{ scale: 1.05, y: -2 }}
-                                className="flex items-center gap-2 px-3 py-1.5 bg-gradient-to-r from-emerald-500/10 to-teal-500/10 border border-emerald-500/30 rounded-xl backdrop-blur-md shadow-lg"
+                                className="flex items-center gap-2 px-4 py-2 bg-gradient-to-r from-emerald-500/10 to-teal-500/10 border border-emerald-500/30 rounded-xl backdrop-blur-md shadow-lg"
                             >
-                                <Eye className="w-3.5 h-3.5 text-emerald-400" />
-                                <span className="text-[10px] font-bold text-emerald-300">TRACKED</span>
+                                <Eye className="w-4 h-4 text-emerald-400" />
+                                <span className="text-xs font-bold text-emerald-300">TRACKED</span>
                             </motion.div>
                         </div>
 
                         {/* Threat Level Indicator */}
-                        <div className="mt-4 max-w-md">
-                            <ThreatLevel suspect={suspect} />
+                        <div className="mt-6 max-w-md">
+                            <ThreatLevel level="medium" />
                         </div>
                     </div>
                 </div>
@@ -410,11 +385,11 @@ export default function SuspectProfile({
                                 transition={{ duration: 0.6 }}
                                 className="w-12 h-12 rounded-2xl bg-gradient-to-br from-indigo-500/20 to-purple-500/20 border-2 border-indigo-500/30 flex items-center justify-center shadow-lg"
                             >
-                                <MessageSquare className="w-5 h-5 text-indigo-400" />
+                                <MessageSquare className="w-6 h-6 text-indigo-400" />
                             </motion.div>
                             <div>
-                                <h3 className="text-sm font-black text-white uppercase tracking-[0.2em]">Intercepted Testimony</h3>
-                                <p className="text-[10px] text-zinc-500 uppercase tracking-wider">Audio Intelligence • Classified</p>
+                                <h3 className="text-lg font-black text-white uppercase tracking-[0.2em]">Intercepted Testimony</h3>
+                                <p className="text-xs text-zinc-500 uppercase tracking-wider">Audio Intelligence • Classified</p>
                             </div>
                         </div>
 
@@ -446,7 +421,7 @@ export default function SuspectProfile({
                                     </motion.div>
                                 </div>
 
-                                <p className="text-base md:text-lg font-medium text-white/95 leading-relaxed italic tracking-tight mb-6 relative z-10">
+                                <p className="text-xl md:text-2xl font-medium text-white/95 leading-relaxed italic tracking-tight mb-8 relative z-10">
                                     "{suspect.data.alibi || "I have nothing to say to you. I was nowhere near the scene when it happened."}"
                                 </p>
 
@@ -456,7 +431,7 @@ export default function SuspectProfile({
                                         <div className="flex flex-col">
                                             <span className="text-[9px] font-black text-zinc-600 uppercase tracking-widest mb-1.5">Authenticity</span>
                                             <div className="flex items-center gap-2">
-                                                <div className="w-12 h-1 bg-zinc-800 rounded-full overflow-hidden">
+                                                <div className="w-16 h-1.5 bg-zinc-800 rounded-full overflow-hidden">
                                                     <motion.div
                                                         className="h-full bg-amber-500"
                                                         initial={{ width: 0 }}
@@ -464,13 +439,13 @@ export default function SuspectProfile({
                                                         transition={{ duration: 1, delay: 0.5 }}
                                                     />
                                                 </div>
-                                                <span className="text-[10px] font-bold text-amber-500 uppercase">60%</span>
+                                                <span className="text-[11px] font-bold text-amber-500 uppercase">60%</span>
                                             </div>
                                         </div>
                                         <div className="flex flex-col">
                                             <span className="text-[9px] font-black text-zinc-600 uppercase tracking-widest mb-1.5">Stress Level</span>
                                             <div className="flex items-center gap-2">
-                                                <div className="w-12 h-1 bg-zinc-800 rounded-full overflow-hidden">
+                                                <div className="w-16 h-1.5 bg-zinc-800 rounded-full overflow-hidden">
                                                     <motion.div
                                                         className="h-full bg-red-500"
                                                         initial={{ width: 0 }}
@@ -478,7 +453,7 @@ export default function SuspectProfile({
                                                         transition={{ duration: 1, delay: 0.7 }}
                                                     />
                                                 </div>
-                                                <span className="text-[10px] font-bold text-red-500 uppercase">HIGH</span>
+                                                <span className="text-[11px] font-bold text-red-500 uppercase">HIGH</span>
                                             </div>
                                         </div>
                                     </div>
@@ -505,11 +480,11 @@ export default function SuspectProfile({
                                     transition={{ duration: 0.6 }}
                                     className="w-12 h-12 rounded-2xl bg-gradient-to-br from-amber-500/20 to-orange-500/20 border-2 border-amber-500/30 flex items-center justify-center shadow-lg"
                                 >
-                                    <Search className="w-5 h-5 text-amber-400" />
+                                    <Search className="w-6 h-6 text-amber-400" />
                                 </motion.div>
                                 <div>
-                                    <h3 className="text-sm font-black text-white uppercase tracking-[0.2em]">Evidence Confrontation</h3>
-                                    <p className="text-[10px] text-zinc-500 uppercase tracking-wider">Physical Evidence • Chain of Custody</p>
+                                    <h3 className="text-lg font-black text-white uppercase tracking-[0.2em]">Evidence Confrontation</h3>
+                                    <p className="text-xs text-zinc-500 uppercase tracking-wider">Physical Evidence • Chain of Custody</p>
                                 </div>
                             </div>
 
@@ -539,8 +514,8 @@ export default function SuspectProfile({
                                                 >
                                                     <Briefcase className="w-16 h-16 text-zinc-600" />
                                                 </motion.div>
-                                                <p className="text-xs font-black text-zinc-500 uppercase tracking-[0.4em]">No Evidence Collected</p>
-                                                <p className="text-[10px] text-zinc-600 mt-2">Gather evidence to confront suspect</p>
+                                                <p className="text-sm font-black text-zinc-500 uppercase tracking-[0.4em]">No Evidence Collected</p>
+                                                <p className="text-xs text-zinc-600 mt-2">Gather evidence to confront suspect</p>
                                             </div>
                                         );
                                     }
@@ -611,8 +586,8 @@ export default function SuspectProfile({
                                                     </div>
 
                                                     {/* Label */}
-                                                    <div className="mt-4 flex flex-col items-center">
-                                                        <div className="text-xs font-black text-white uppercase tracking-[0.15em] mb-2 group-hover:text-amber-400 transition-colors">
+                                                    <div className="mt-6 flex flex-col items-center">
+                                                        <div className="text-sm font-black text-white uppercase tracking-[0.15em] mb-2 group-hover:text-amber-400 transition-colors">
                                                             {eNode.data.label}
                                                         </div>
                                                         <div className="flex items-center gap-2">
@@ -641,11 +616,11 @@ export default function SuspectProfile({
                                     transition={{ duration: 0.6 }}
                                     className="w-12 h-12 rounded-2xl bg-gradient-to-br from-indigo-500/20 to-purple-500/20 border-2 border-indigo-500/30 flex items-center justify-center shadow-lg"
                                 >
-                                    <Terminal className="w-5 h-5 text-indigo-400" />
+                                    <Terminal className="w-6 h-6 text-indigo-400" />
                                 </motion.div>
                                 <div>
-                                    <h3 className="text-sm font-black text-white uppercase tracking-[0.2em]">Interrogation Threads</h3>
-                                    <p className="text-[10px] text-zinc-500 uppercase tracking-wider">Neural Pathways • Cognitive Analysis</p>
+                                    <h3 className="text-lg font-black text-white uppercase tracking-[0.2em]">Interrogation Threads</h3>
+                                    <p className="text-xs text-zinc-500 uppercase tracking-wider">Neural Pathways • Cognitive Analysis</p>
                                 </div>
                             </div>
 
@@ -700,8 +675,8 @@ export default function SuspectProfile({
                                                 >
                                                     <ShieldAlert className="w-10 h-10 text-zinc-700" />
                                                 </motion.div>
-                                                <p className="text-zinc-600 font-black text-[10px] uppercase tracking-[0.3em]">Neural Paths Exhausted</p>
-                                                <p className="text-zinc-700 text-[10px] mt-2">No further interrogation options available</p>
+                                                <p className="text-zinc-600 font-black text-xs uppercase tracking-[0.3em]">Neural Paths Exhausted</p>
+                                                <p className="text-zinc-700 text-xs mt-2">No further interrogation options available</p>
                                             </div>
                                         );
                                     }
@@ -738,8 +713,8 @@ export default function SuspectProfile({
                                                 </motion.div>
 
                                                 <div className="flex flex-col items-start text-left">
-                                                    <span className="text-[9px] font-black text-indigo-500 uppercase tracking-[.3em] mb-1.5 leading-none opacity-70">Cognitive Probe</span>
-                                                    <span className="text-sm font-black text-zinc-400 group-hover:text-white transition-colors tracking-tight uppercase leading-tight">
+                                                    <span className="text-[10px] font-black text-indigo-500 uppercase tracking-[.3em] mb-2 leading-none opacity-70">Cognitive Probe</span>
+                                                    <span className="text-xl font-black text-zinc-400 group-hover:text-white transition-colors tracking-tight uppercase leading-tight">
                                                         {thread.label}
                                                     </span>
                                                 </div>
