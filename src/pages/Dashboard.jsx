@@ -10,7 +10,7 @@ import { motion, AnimatePresence } from 'framer-motion';
 import ProgressReportModal from '../components/ProgressReportModal';
 import AdminProgressModal from '../components/AdminProgressModal';
 import SystemSettingsModal from '../components/SystemSettingsModal';
-import MarketplaceModal from '../components/marketplace/MarketplaceModal';
+// import MarketplaceModal from '../components/marketplace/MarketplaceModal';
 import { Settings } from 'lucide-react';
 import { useConfig } from '../lib/config';
 
@@ -24,7 +24,7 @@ const Dashboard = () => {
     const [showProgressModal, setShowProgressModal] = useState(false);
     const [showAdminProgressModal, setShowAdminProgressModal] = useState(false);
     const [showSettingsModal, setShowSettingsModal] = useState(false);
-    const [showMarketplaceModal, setShowMarketplaceModal] = useState(false);
+    // const [showMarketplaceModal, setShowMarketplaceModal] = useState(false);
     const [deleteId, setDeleteId] = useState(null);
     const [duplicateId, setDuplicateId] = useState(null);
     const [duplicateName, setDuplicateName] = useState('');
@@ -307,14 +307,15 @@ const Dashboard = () => {
                             <Trophy className="w-4 h-4 text-yellow-500" />
                             <span className="hidden md:inline">Leaderboard</span>
                         </Button>
-                        <Button
+                        {/* Marketplace feature temporarily hidden */}
+                        {/* <Button
                             variant="ghost"
                             className="text-zinc-400 hover:text-white flex items-center gap-2"
                             onClick={() => setShowMarketplaceModal(true)}
                         >
                             <Package className="w-4 h-4 text-indigo-400" />
                             <span className="hidden md:inline">Marketplace</span>
-                        </Button>
+                        </Button> */}
                         {isAdmin && (
                             <>
                                 <Button
@@ -648,13 +649,14 @@ const Dashboard = () => {
                     <SystemSettingsModal onClose={() => setShowSettingsModal(false)} />
                 )}
 
-                {showMarketplaceModal && (
+                {/* Marketplace modal temporarily hidden */}
+                {/* {showMarketplaceModal && (
                     <MarketplaceModal
                         isOpen={showMarketplaceModal}
                         onClose={() => setShowMarketplaceModal(false)}
                         currentUser={user}
                     />
-                )}
+                )} */}
 
                 {/* Incoming Access Request Modal */}
                 {incomingRequest && (

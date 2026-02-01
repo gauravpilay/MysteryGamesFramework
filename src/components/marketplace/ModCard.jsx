@@ -36,23 +36,28 @@ export default function ModCard({ mod, onInstall, onViewDetails, onToggleFavorit
             initial={{ opacity: 0, y: 20 }}
             animate={{ opacity: 1, y: 0 }}
             whileHover={{ y: -8, scale: 1.02 }}
+            transition={{ type: "spring", stiffness: 300, damping: 20 }}
             onHoverStart={() => setIsHovered(true)}
             onHoverEnd={() => setIsHovered(false)}
             className="relative group cursor-pointer"
             onClick={() => onViewDetails(mod)}
         >
             {/* Glow Effect */}
-            <div className={`absolute -inset-1 bg-gradient-to-r ${getTypeColor(mod.type)} opacity-0 group-hover:opacity-20 blur-xl transition-opacity rounded-2xl`}></div>
+            <div className={`absolute -inset-1 bg-gradient-to-r ${getTypeColor(mod.type)} opacity-0 group-hover:opacity-30 blur-2xl transition-all duration-500 rounded-2xl`}></div>
 
-            <div className="relative bg-gradient-to-br from-zinc-900/90 to-black/90 border-2 border-white/10 group-hover:border-white/30 rounded-2xl overflow-hidden backdrop-blur-xl shadow-2xl transition-all">
+            <div className="relative bg-gradient-to-br from-zinc-900/90 to-black/90 border-2 border-white/10 group-hover:border-white/30 rounded-2xl overflow-hidden backdrop-blur-xl shadow-2xl transition-all duration-300">
                 {/* Thumbnail */}
                 <div className="relative aspect-video overflow-hidden bg-zinc-800">
                     {mod.thumbnailUrl ? (
-                        <img
-                            src={mod.thumbnailUrl}
-                            alt={mod.title}
-                            className="w-full h-full object-cover group-hover:scale-110 transition-transform duration-700"
-                        />
+                        <>
+                            <img
+                                src={mod.thumbnailUrl}
+                                alt={mod.title}
+                                className="w-full h-full object-cover group-hover:scale-110 transition-transform duration-700"
+                            />
+                            {/* Gradient overlay for better text readability */}
+                            <div className="absolute inset-0 bg-gradient-to-t from-black/60 via-transparent to-transparent opacity-0 group-hover:opacity-100 transition-opacity duration-300"></div>
+                        </>
                     ) : (
                         <div className={`w-full h-full bg-gradient-to-br ${getTypeColor(mod.type)} opacity-20 flex items-center justify-center`}>
                             <span className="text-6xl">{getTypeIcon(mod.type)}</span>
@@ -91,7 +96,7 @@ export default function ModCard({ mod, onInstall, onViewDetails, onToggleFavorit
                 {/* Content */}
                 <div className="p-5">
                     {/* Title */}
-                    <h3 className="text-lg font-black text-white uppercase tracking-tight mb-2 line-clamp-1 group-hover:text-transparent group-hover:bg-clip-text group-hover:bg-gradient-to-r group-hover:from-indigo-400 group-hover:to-purple-400 transition-all">
+                    <h3 className="text-lg font-black text-white uppercase tracking-tight mb-2 line-clamp-1 group-hover:text-transparent group-hover:bg-clip-text group-hover:bg-gradient-to-r group-hover:from-indigo-400 group-hover:to-purple-400 transition-all duration-300">
                         {mod.title}
                     </h3>
 
@@ -166,8 +171,8 @@ export default function ModCard({ mod, onInstall, onViewDetails, onToggleFavorit
                             }}
                             disabled={isInstalled}
                             className={`flex-1 px-4 py-2.5 rounded-xl font-black text-xs uppercase tracking-wider transition-all ${isInstalled
-                                    ? 'bg-zinc-800 text-zinc-600 cursor-not-allowed'
-                                    : 'bg-gradient-to-r from-indigo-600 to-purple-600 hover:from-indigo-500 hover:to-purple-500 text-white shadow-lg hover:shadow-indigo-500/50'
+                                ? 'bg-zinc-800 text-zinc-600 cursor-not-allowed'
+                                : 'bg-gradient-to-r from-indigo-600 to-purple-600 hover:from-indigo-500 hover:to-purple-500 text-white shadow-lg hover:shadow-indigo-500/50'
                                 }`}
                         >
                             {isInstalled ? '✓ Installed' : '⬇ Install'}
@@ -180,9 +185,9 @@ export default function ModCard({ mod, onInstall, onViewDetails, onToggleFavorit
                                 e.stopPropagation();
                                 onToggleFavorite(mod);
                             }}
-                            className={`px-3 py-2.5 rounded-xl border-2 transition-all ${isFavorited
-                                    ? 'bg-rose-500/20 border-rose-500/50 text-rose-400'
-                                    : 'bg-white/5 border-white/10 text-zinc-500 hover:border-rose-500/30 hover:text-rose-400'
+                            className={`px-3 py-2.5 rounded-xl border-2 transition-all duration-300 ${isFavorited
+                                ? 'bg-rose-500/20 border-rose-500/50 text-rose-400 shadow-lg shadow-rose-500/20'
+                                : 'bg-white/5 border-white/10 text-zinc-500 hover:border-rose-500/30 hover:text-rose-400'
                                 }`}
                         >
                             <Heart className={`w-4 h-4 ${isFavorited ? 'fill-rose-400' : ''}`} />

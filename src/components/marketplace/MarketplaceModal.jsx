@@ -141,35 +141,82 @@ export default function MarketplaceModal({ isOpen, onClose, currentUser }) {
     };
 
     const loadSampleData = async () => {
-        if (!db) {
-            alert('Database not connected');
-            return;
-        }
-
-        const confirmed = window.confirm('Load 8 sample mods into the marketplace? This will add new mods to your database.');
+        const confirmed = window.confirm('Load 8 sample mods into the marketplace? This will add them locally for this session.');
         if (!confirmed) return;
 
         setLoading(true);
         try {
-            for (const mod of sampleMods) {
-                const modData = {
-                    ...mod,
-                    authorId: currentUser?.uid || 'sample-user',
-                    createdAt: Timestamp.fromDate(mod.createdAt),
-                    updatedAt: Timestamp.now()
-                };
+            // Try to add to Firebase first, but fall back to local state if it fails
+            let successCount = 0;
+            let failedToFirebase = false;
 
-                await addDoc(collection(db, 'marketplace_mods'), modData);
+            for (const mod of sampleMods) {
+                try {
+                    if (db) {
+                        const modData = {
+                            ...mod,
+                            authorId: currentUser?.uid || 'sample-user',
+                            createdAt: Timestamp.fromDate(mod.createdAt),
+                            updatedAt: Timestamp.now()
+                        };
+                        const docRef = await addDoc(collection(db, 'marketplace_mods'), modData);
+                        successCount++;
+                    } else {
+                        failedToFirebase = true;
+                    }
+                } catch (error) {
+                    console.warn('Firebase write failed, using local state:', error);
+                    failedToFirebase = true;
+                }
             }
 
-            alert('✓ Sample mods loaded successfully!');
-            fetchMods(); // Refresh the list
+            // If Firebase failed, load samples into local state
+            if (failedToFirebase || successCount === 0) {
+                const localMods = sampleMods.map((mod, index) => ({
+                    id: `local-${Date.now()}-${index}`,
+                    ...mod,
+                    authorId: currentUser?.uid || 'sample-user',
+                    createdAt: { seconds: Math.floor(mod.createdAt.getTime() / 1000) }
+                }));
+                setMods(localMods);
+
+                // Calculate stats
+                const totalDownloads = localMods.reduce((sum, mod) => sum + (mod.downloads || 0), 0);
+                const uniqueCreators = new Set(localMods.map(mod => mod.authorId)).size;
+                setStats({
+                    totalMods: localMods.length,
+                    totalDownloads,
+                    totalCreators: uniqueCreators
+                });
+
+                showNotification('✓ Sample mods loaded locally!', 'success');
+            } else {
+                showNotification(`✓ ${successCount} sample mods loaded to database!`, 'success');
+                fetchMods(); // Refresh from Firebase
+            }
         } catch (error) {
             console.error('Error loading sample mods:', error);
-            alert('Error loading sample mods. Please try again.');
+            showNotification('❌ Error loading sample mods. Please try again.', 'error');
         } finally {
             setLoading(false);
         }
+    };
+
+    const showNotification = (message, type = 'info') => {
+        // Create a toast notification element
+        const toast = document.createElement('div');
+        toast.className = `fixed top-6 right-6 z-[100] px-6 py-4 rounded-xl shadow-2xl backdrop-blur-xl border-2 animate-slide-in ${type === 'success' ? 'bg-emerald-500/20 border-emerald-500/50 text-emerald-300' :
+            type === 'error' ? 'bg-rose-500/20 border-rose-500/50 text-rose-300' :
+                'bg-indigo-500/20 border-indigo-500/50 text-indigo-300'
+            }`;
+        toast.style.animation = 'slideInRight 0.3s ease-out';
+        toast.textContent = message;
+        document.body.appendChild(toast);
+
+        setTimeout(() => {
+            toast.style.animation = 'slideOutRight 0.3s ease-in';
+            setTimeout(() => toast.remove(), 300);
+        }, 3000);
     };
 
     const featuredMods = mods.filter(mod => mod.featured).slice(0, 4);
@@ -198,7 +245,8 @@ export default function MarketplaceModal({ isOpen, onClose, currentUser }) {
                     initial={{ opacity: 0, scale: 0.95, y: 20 }}
                     animate={{ opacity: 1, scale: 1, y: 0 }}
                     exit={{ opacity: 0, scale: 0.95, y: 20 }}
-                    className="relative w-full max-w-7xl max-h-[90vh] bg-gradient-to-br from-zinc-950 via-zinc-900 to-black border-2 border-white/10 rounded-3xl shadow-2xl overflow-hidden"
+                    className="relative w-full max-w-7xl max-h-[90vh] bg-gradient-to-br from-zinc-950 via-zinc-900 to-black border-2 border-indigo-500/20 rounded-3xl shadow-2xl overflow-hidden"
+                    style={{ boxShadow: '0 0 60px rgba(99, 102, 241, 0.15)' }}
                 >
                     {/* Header */}
                     <div className="relative border-b border-white/10 bg-gradient-to-r from-zinc-900/90 to-black/90 backdrop-blur-xl p-6">
@@ -249,14 +297,15 @@ export default function MarketplaceModal({ isOpen, onClose, currentUser }) {
                         {/* Search & Filters */}
                         <div className="flex gap-3 mt-6">
                             {/* Search */}
-                            <div className="flex-1 relative">
-                                <Search className="absolute left-4 top-1/2 -translate-y-1/2 w-4 h-4 text-zinc-500" />
+                            <div className="flex-1 relative group">
+                                <Search className="absolute left-4 top-1/2 -translate-y-1/2 w-5 h-5 text-zinc-500 group-focus-within:text-indigo-400 transition-colors" />
                                 <input
                                     type="text"
                                     placeholder="Search mods, authors, tags..."
                                     value={searchQuery}
                                     onChange={(e) => setSearchQuery(e.target.value)}
-                                    className="w-full pl-12 pr-4 py-3 bg-white/5 border border-white/10 rounded-xl text-white placeholder-zinc-500 focus:outline-none focus:border-indigo-500/50 transition-colors"
+                                    className="w-full pl-12 pr-4 py-3.5 bg-white/5 border-2 border-white/10 rounded-xl text-white placeholder-zinc-500 focus:outline-none focus:border-indigo-500/50 focus:bg-white/10 transition-all"
+                                    style={{ boxShadow: searchQuery ? '0 0 20px rgba(99, 102, 241, 0.2)' : 'none' }}
                                 />
                             </div>
 
@@ -264,7 +313,7 @@ export default function MarketplaceModal({ isOpen, onClose, currentUser }) {
                             <select
                                 value={selectedType}
                                 onChange={(e) => setSelectedType(e.target.value)}
-                                className="px-4 py-3 bg-white/5 border border-white/10 rounded-xl text-white focus:outline-none focus:border-indigo-500/50 transition-colors cursor-pointer"
+                                className="px-5 py-3.5 bg-white/5 border-2 border-white/10 rounded-xl text-white font-semibold focus:outline-none focus:border-indigo-500/50 hover:bg-white/10 transition-all cursor-pointer"
                             >
                                 <option value="all">All Types</option>
                                 <option value="case">🔍 Cases</option>
@@ -277,12 +326,12 @@ export default function MarketplaceModal({ isOpen, onClose, currentUser }) {
                             <select
                                 value={sortBy}
                                 onChange={(e) => setSortBy(e.target.value)}
-                                className="px-4 py-3 bg-white/5 border border-white/10 rounded-xl text-white focus:outline-none focus:border-indigo-500/50 transition-colors cursor-pointer"
+                                className="px-5 py-3.5 bg-white/5 border-2 border-white/10 rounded-xl text-white font-semibold focus:outline-none focus:border-indigo-500/50 hover:bg-white/10 transition-all cursor-pointer"
                             >
-                                <option value="popular">Popular</option>
-                                <option value="recent">Recent</option>
-                                <option value="rating">Top Rated</option>
-                                <option value="trending">Trending</option>
+                                <option value="popular">⭐ Popular</option>
+                                <option value="recent">🕐 Recent</option>
+                                <option value="rating">🏆 Top Rated</option>
+                                <option value="trending">🔥 Trending</option>
                             </select>
 
                             {/* View Mode */}
@@ -303,23 +352,28 @@ export default function MarketplaceModal({ isOpen, onClose, currentUser }) {
 
                             {/* Load Sample Data Button */}
                             {mods.length === 0 && (
-                                <button
+                                <motion.button
+                                    whileHover={{ scale: 1.05 }}
+                                    whileTap={{ scale: 0.95 }}
                                     onClick={loadSampleData}
-                                    className="px-6 py-3 bg-gradient-to-r from-emerald-600 to-teal-600 hover:from-emerald-500 hover:to-teal-500 text-white font-black text-sm uppercase tracking-wider rounded-xl shadow-lg hover:shadow-emerald-500/50 transition-all flex items-center gap-2"
+                                    disabled={loading}
+                                    className="px-6 py-3.5 bg-gradient-to-r from-emerald-600 to-teal-600 hover:from-emerald-500 hover:to-teal-500 text-white font-black text-sm uppercase tracking-wider rounded-xl shadow-lg hover:shadow-emerald-500/50 transition-all flex items-center gap-2 disabled:opacity-50 disabled:cursor-not-allowed"
                                 >
-                                    <Database className="w-4 h-4" />
-                                    Load Samples
-                                </button>
+                                    <Database className="w-5 h-5" />
+                                    {loading ? 'Loading...' : 'Load Samples'}
+                                </motion.button>
                             )}
 
                             {/* Upload Button */}
-                            <button
+                            <motion.button
+                                whileHover={{ scale: 1.05 }}
+                                whileTap={{ scale: 0.95 }}
                                 onClick={() => setShowUploadModal(true)}
-                                className="px-6 py-3 bg-gradient-to-r from-indigo-600 to-purple-600 hover:from-indigo-500 hover:to-purple-500 text-white font-black text-sm uppercase tracking-wider rounded-xl shadow-lg hover:shadow-indigo-500/50 transition-all flex items-center gap-2"
+                                className="px-6 py-3.5 bg-gradient-to-r from-indigo-600 to-purple-600 hover:from-indigo-500 hover:to-purple-500 text-white font-black text-sm uppercase tracking-wider rounded-xl shadow-lg hover:shadow-indigo-500/50 transition-all flex items-center gap-2"
                             >
-                                <Upload className="w-4 h-4" />
-                                Upload
-                            </button>
+                                <Upload className="w-5 h-5" />
+                                Upload Mod
+                            </motion.button>
                         </div>
                     </div>
 
@@ -403,11 +457,29 @@ export default function MarketplaceModal({ isOpen, onClose, currentUser }) {
                                             ))}
                                         </div>
                                     ) : (
-                                        <div className="text-center py-20">
-                                            <Package className="w-16 h-16 text-zinc-700 mx-auto mb-4" />
-                                            <p className="text-zinc-500">No mods found</p>
-                                            <p className="text-zinc-600 text-sm mt-2">Try adjusting your filters</p>
-                                        </div>
+                                        <motion.div
+                                            initial={{ opacity: 0, y: 20 }}
+                                            animate={{ opacity: 1, y: 0 }}
+                                            className="text-center py-20"
+                                        >
+                                            <div className="relative inline-block mb-6">
+                                                <div className="absolute inset-0 bg-indigo-500/20 blur-3xl rounded-full"></div>
+                                                <Package className="w-20 h-20 text-zinc-600 relative" />
+                                            </div>
+                                            <h3 className="text-2xl font-black text-white mb-2">No Mods Found</h3>
+                                            <p className="text-zinc-500 mb-6">Try adjusting your filters or load sample mods to get started</p>
+                                            {mods.length === 0 && (
+                                                <motion.button
+                                                    whileHover={{ scale: 1.05 }}
+                                                    whileTap={{ scale: 0.95 }}
+                                                    onClick={loadSampleData}
+                                                    className="px-8 py-4 bg-gradient-to-r from-emerald-600 to-teal-600 hover:from-emerald-500 hover:to-teal-500 text-white font-black uppercase tracking-wider rounded-xl shadow-lg hover:shadow-emerald-500/50 transition-all inline-flex items-center gap-3"
+                                                >
+                                                    <Database className="w-5 h-5" />
+                                                    Load Sample Mods
+                                                </motion.button>
+                                            )}
+                                        </motion.div>
                                     )}
                                 </section>
                             </>
