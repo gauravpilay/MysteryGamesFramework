@@ -10,7 +10,7 @@ export const callAI = async (provider, systemPrompt, userMessage, apiKey, imageD
     }
 
     if (provider === 'gemini') {
-        const url = `https://generativelanguage.googleapis.com/v1beta/models/gemini-2.0-flash:generateContent?key=${apiKey}`;
+        const url = `/api/google/v1beta/models/gemini-2.0-flash:generateContent?key=${apiKey}`;
 
         const parts = [
             { text: `SYSTEM CONTEXT: ${systemPrompt}\n\nUSER QUESTION: ${userMessage}` }
@@ -257,7 +257,7 @@ export const generateImage = async (prompt, apiKey) => {
 
     try {
         // Use Gemini's image generation capability (Imagen 3)
-        const url = `https://generativelanguage.googleapis.com/v1beta/models/imagen-3.0-generate-001:generateImages?key=${apiKey}`;
+        const url = `/api/google/v1beta/models/imagen-3.0-generate-001:generateImages?key=${apiKey}`;
 
         const body = {
             prompt: prompt,
