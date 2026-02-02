@@ -1,6 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
-import { X, Settings, Shield, Key, Sliders, Save, AlertTriangle, Cpu, Globe, Box } from 'lucide-react';
+import { X, Settings, Shield, Key, Sliders, Save, AlertTriangle, Cpu, Globe, Box, Brain } from 'lucide-react';
 import { useConfig } from '../lib/config';
 import { Button, Input, Label } from './ui/shared';
 
@@ -11,6 +11,7 @@ const SystemSettingsModal = ({ onClose }) => {
         maxAIRequests: settings.maxAIRequests || 10,
         systemName: settings.systemName || 'Mystery Architect Central',
         enableThreeD: settings.enableThreeD !== undefined ? settings.enableThreeD : true,
+        enableAIBuild: settings.enableAIBuild !== undefined ? settings.enableAIBuild : true,
     });
     const [isSaving, setIsSaving] = useState(false);
     const [status, setStatus] = useState(null); // { type, message }
@@ -22,6 +23,7 @@ const SystemSettingsModal = ({ onClose }) => {
             maxAIRequests: settings.maxAIRequests || 10,
             systemName: settings.systemName || 'Mystery Architect Central',
             enableThreeD: settings.enableThreeD !== undefined ? settings.enableThreeD : true,
+            enableAIBuild: settings.enableAIBuild !== undefined ? settings.enableAIBuild : true,
         });
     }, [settings]);
 
@@ -176,6 +178,27 @@ const SystemSettingsModal = ({ onClose }) => {
                                     className={`w-12 h-6 rounded-full transition-all flex items-center px-1 ${formData.enableThreeD ? 'bg-cyan-600' : 'bg-zinc-800'}`}
                                 >
                                     <div className={`w-4 h-4 rounded-full bg-white transition-all transform ${formData.enableThreeD ? 'translate-x-6' : 'translate-x-0'}`} />
+                                </button>
+                            </div>
+                        </div>
+
+                        {/* AI Build Feature Toggle */}
+                        <div className="p-4 bg-indigo-500/5 border border-indigo-500/10 rounded-xl">
+                            <div className="flex items-center justify-between">
+                                <div className="space-y-1 flex-1">
+                                    <div className="flex items-center gap-2">
+                                        <Brain className="w-4 h-4 text-indigo-400" />
+                                        <p className="text-sm font-bold text-white uppercase tracking-tight">AI Build Feature</p>
+                                    </div>
+                                    <p className="text-[10px] text-zinc-500 font-medium leading-relaxed italic">
+                                        Enable/Disable the AI-powered case generation feature. When disabled, the AI Build button will be hidden from the Editor.
+                                    </p>
+                                </div>
+                                <button
+                                    onClick={() => setFormData(prev => ({ ...prev, enableAIBuild: !prev.enableAIBuild }))}
+                                    className={`ml-4 w-12 h-6 rounded-full transition-all flex items-center px-1 shrink-0 ${formData.enableAIBuild ? 'bg-indigo-600' : 'bg-zinc-800'}`}
+                                >
+                                    <div className={`w-4 h-4 rounded-full bg-white transition-all transform ${formData.enableAIBuild ? 'translate-x-6' : 'translate-x-0'}`} />
                                 </button>
                             </div>
                         </div>

@@ -241,3 +241,68 @@ const simulateResponse = (prompt, message) => {
 
     return "[SIMULATION MODE] My character doesn't have a specific response for that, but I'm listening. (Developer: Add a real API Key for dynamic AI dialogue)";
 };
+
+/**
+ * Generate an image using AI (Google Imagen via Gemini API)
+ * @param {string} prompt - Description of the image to generate
+ * @param {string} apiKey - Google AI API key
+ * @returns {Promise<Blob>} - Image blob
+ */
+export const generateImage = async (prompt, apiKey) => {
+    // If no API key, return a placeholder
+    if (!apiKey || apiKey === 'SIMULATION_MODE') {
+        console.log('Simulation mode: Would generate image for:', prompt);
+        return null;
+    }
+
+    try {
+        // Use Gemini's image generation capability (Imagen 3)
+        const url = `https://generativelanguage.googleapis.com/v1beta/models/imagen-3.0-generate-001:generateImages?key=${apiKey}`;
+
+        const body = {
+            prompt: prompt,
+            number_of_images: 1,
+            aspect_ratio: "4:3",
+            safety_filter_level: "block_some",
+            person_generation: "allow_adult"
+        };
+
+        const response = await fetch(url, {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify(body)
+        });
+
+        if (!response.ok) {
+            const err = await response.json();
+            console.error('Image generation error:', err);
+            throw new Error(err.error?.message || "Image generation failed");
+        }
+
+        const data = await response.json();
+
+        if (!data.generatedImages || data.generatedImages.length === 0) {
+            throw new Error("No images generated");
+        }
+
+        // The API returns base64 encoded image
+        const base64Image = data.generatedImages[0].image.imageBytes;
+
+        // Convert base64 to blob
+        const byteCharacters = atob(base64Image);
+        const byteNumbers = new Array(byteCharacters.length);
+        for (let i = 0; i < byteCharacters.length; i++) {
+            byteNumbers[i] = byteCharacters.charCodeAt(i);
+        }
+        const byteArray = new Uint8Array(byteNumbers);
+        const blob = new Blob([byteArray], { type: 'image/png' });
+
+        return blob;
+
+    } catch (error) {
+        console.error('Error generating image:', error);
+        // Return null on error - the evidence will still work without an image
+        return null;
+    }
+};
+

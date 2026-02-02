@@ -10,6 +10,7 @@ import {
 import { Button, Input, Label } from './ui/shared';
 import { callAI } from '../lib/ai';
 import { useConfig } from '../lib/config';
+import { generateEvidenceImagesForNodes } from '../lib/evidenceImageGenerator';
 
 const GENRES = [
     { id: 'noir', label: 'Film Noir', icon: '🎬', desc: '1940s detective, dark atmosphere' },
@@ -50,7 +51,7 @@ const LEARNING_CATEGORIES = [
     { id: 'custom', label: 'Custom', examples: ['Your own objectives'] }
 ];
 
-const AICaseGeneratorModal = ({ isOpen, onClose, onGenerate }) => {
+const AICaseGeneratorModal = ({ isOpen, onClose, onGenerate, projectId }) => {
     const { settings } = useConfig();
 
     // Mode selection: 'quick' or 'advanced'
@@ -344,6 +345,29 @@ Transform this into a complete, playable mystery game with engaging characters, 
                 throw new Error("AI returned an incomplete graph. Please try again.");
             }
 
+            // Generate images for evidence nodes
+            setGenerationProgress(95);
+            setGenerationStage('Generating evidence images...');
+
+            const evidenceNodes = data.nodes.filter(n => n.type === 'evidence');
+            if (evidenceNodes.length > 0 && projectId) {
+                const imageUrls = await generateEvidenceImagesForNodes(evidenceNodes, projectId, apiKey);
+
+                // Attach image URLs to evidence nodes
+                data.nodes = data.nodes.map(node => {
+                    if (node.type === 'evidence' && imageUrls.has(node.id)) {
+                        return {
+                            ...node,
+                            data: {
+                                ...node.data,
+                                imageUrl: imageUrls.get(node.id)
+                            }
+                        };
+                    }
+                    return node;
+                });
+            }
+
             setGenerationProgress(100);
             setGenerationStage('Complete!');
 
@@ -442,6 +466,29 @@ Generate a complete mystery game that masterfully integrates these learning obje
             const suspectNodes = data.nodes.filter(n => n.type === 'suspect');
             if (suspectNodes.length < suspectCount - 1) {
                 console.warn(`Expected ${suspectCount} suspects, got ${suspectNodes.length}`);
+            }
+
+            // Generate images for evidence nodes
+            setGenerationProgress(95);
+            setGenerationStage('Generating evidence images...');
+
+            const evidenceNodes = data.nodes.filter(n => n.type === 'evidence');
+            if (evidenceNodes.length > 0 && projectId) {
+                const imageUrls = await generateEvidenceImagesForNodes(evidenceNodes, projectId, apiKey);
+
+                // Attach image URLs to evidence nodes
+                data.nodes = data.nodes.map(node => {
+                    if (node.type === 'evidence' && imageUrls.has(node.id)) {
+                        return {
+                            ...node,
+                            data: {
+                                ...node.data,
+                                imageUrl: imageUrls.get(node.id)
+                            }
+                        };
+                    }
+                    return node;
+                });
             }
 
             setGenerationProgress(100);
