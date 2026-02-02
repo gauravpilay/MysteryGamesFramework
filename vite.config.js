@@ -12,8 +12,8 @@ export default defineConfig({
         rewrite: (path) => path.replace(/^\/api\/google/, ''),
         secure: true,
         headers: {
-          Referer: '',
-          Origin: ''
+          Referer: 'https://simplee5.com/',
+          Origin: 'https://simplee5.com'
         }
       }
     }
