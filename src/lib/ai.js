@@ -48,12 +48,19 @@ export const callAI = async (provider, systemPrompt, userMessage, apiKey, imageD
             body: JSON.stringify(body)
         });
 
-        if (!response.ok) {
-            const err = await response.json();
-            throw new Error(err.error?.message || "Gemini API Error");
+        const responseText = await response.text();
+        let data;
+        try {
+            data = responseText ? JSON.parse(responseText) : {};
+        } catch (e) {
+            console.error('Failed to parse AI response:', responseText);
+            throw new Error(`Invalid AI response format: ${response.status}`);
         }
 
-        const data = await response.json();
+        if (!response.ok) {
+            console.error('Gemini API Error:', data);
+            throw new Error(data.error?.message || `Gemini API Error: ${response.status}`);
+        }
 
         if (!data.candidates || data.candidates.length === 0) {
             if (data.promptFeedback?.blockReason) {
@@ -90,12 +97,20 @@ export const callAI = async (provider, systemPrompt, userMessage, apiKey, imageD
             body: JSON.stringify(body)
         });
 
-        if (!response.ok) {
-            const err = await response.json();
-            throw new Error(err.error?.message || "OpenAI API Error");
+        const responseText = await response.text();
+        let data;
+        try {
+            data = responseText ? JSON.parse(responseText) : {};
+        } catch (e) {
+            console.error('Failed to parse OpenAI response:', responseText);
+            throw new Error(`Invalid OpenAI response: ${response.status}`);
         }
 
-        const data = await response.json();
+        if (!response.ok) {
+            console.error('OpenAI API Error:', data);
+            throw new Error(data.error?.message || `OpenAI API Error: ${response.status}`);
+        }
+
         return data.choices[0].message.content;
     }
 
@@ -273,13 +288,19 @@ export const generateImage = async (prompt, apiKey) => {
             body: JSON.stringify(body)
         });
 
-        if (!response.ok) {
-            const err = await response.json();
-            console.error('Image generation error:', err);
-            throw new Error(err.error?.message || "Image generation failed");
+        const responseText = await response.text();
+        let data;
+        try {
+            data = responseText ? JSON.parse(responseText) : {};
+        } catch (e) {
+            console.error('Failed to parse image generation response:', responseText);
+            throw new Error(`Invalid image API response: ${response.status}`);
         }
 
-        const data = await response.json();
+        if (!response.ok) {
+            console.error('Image generation error:', data);
+            throw new Error(data.error?.message || `Image generation failed: ${response.status}`);
+        }
 
         if (!data.generatedImages || data.generatedImages.length === 0) {
             throw new Error("No images generated");
