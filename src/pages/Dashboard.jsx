@@ -1,10 +1,11 @@
 import React, { useState, useEffect } from 'react';
 import { useAuth } from '../lib/auth';
-import { db } from '../lib/firebase';
+import { db, storage } from '../lib/firebase';
 import { collection, addDoc, deleteDoc, updateDoc, setDoc, doc, onSnapshot, query, orderBy } from 'firebase/firestore';
+import { ref, uploadBytes, getDownloadURL } from 'firebase/storage';
 import { Button, Card, Input, Label } from '../components/ui/shared';
 import { Logo } from '../components/ui/Logo';
-import { Plus, FolderOpen, LogOut, Search, Trash2, Rocket, Copy, Users, BookOpen, Lock, Unlock, Activity, FileText, CheckCircle, Clock, TrendingUp, Pencil, Fingerprint, Trophy, AlertTriangle, Package } from 'lucide-react';
+import { Plus, FolderOpen, LogOut, Search, Trash2, Rocket, Copy, Users, BookOpen, Lock, Unlock, Activity, FileText, CheckCircle, Clock, TrendingUp, Pencil, Fingerprint, Trophy, AlertTriangle, Package, Image as ImageIcon, Upload } from 'lucide-react';
 import { useNavigate } from 'react-router-dom';
 import { motion, AnimatePresence } from 'framer-motion';
 import ProgressReportModal from '../components/ProgressReportModal';
@@ -34,6 +35,8 @@ const Dashboard = () => {
     const [isRequesting, setIsRequesting] = useState(false);
     const [requestFeedback, setRequestFeedback] = useState(null); // 'accepted' | 'declined' | null
     const [incomingRequest, setIncomingRequest] = useState(null); // { project, request }
+    const [imageUploadProject, setImageUploadProject] = useState(null);
+    const [uploadingImage, setUploadingImage] = useState(false);
     const isAdmin = user?.role === 'Admin';
 
     // Fetch Projects
@@ -210,6 +213,35 @@ const Dashboard = () => {
             setIncomingRequest(null);
         } catch (err) {
             console.error("Failed to decline request", err);
+        }
+    };
+
+    const handleImageUpload = async (projectId, file) => {
+        if (!file || !storage || !db) return;
+
+        setUploadingImage(true);
+        try {
+            // Create a reference to the storage location
+            const storageRef = ref(storage, `case-images/${projectId}/${file.name}`);
+
+            // Upload the file
+            await uploadBytes(storageRef, file);
+
+            // Get the download URL
+            const downloadURL = await getDownloadURL(storageRef);
+
+            // Update the Firestore document
+            await setDoc(doc(db, "cases", projectId), {
+                thumbnail: downloadURL,
+                updatedAt: new Date().toISOString()
+            }, { merge: true });
+
+            setImageUploadProject(null);
+        } catch (error) {
+            console.error("Error uploading image:", error);
+            alert("Failed to upload image. Please try again.");
+        } finally {
+            setUploadingImage(false);
         }
     };
 
@@ -438,6 +470,7 @@ const Dashboard = () => {
                                 onDelete={() => setDeleteId(project.id)}
                                 onDuplicate={() => { setDuplicateId(project.id); setDuplicateName(`${project.title} (Copy)`); }}
                                 onToggleStatus={() => handleToggleStatus(project)}
+                                onUploadImage={() => setImageUploadProject(project)}
                             />
                         )) : (
                             <p className="col-span-full text-zinc-500 italic">No active missions available.</p>
@@ -463,6 +496,7 @@ const Dashboard = () => {
                                     onDelete={() => setDeleteId(project.id)}
                                     onDuplicate={() => { setDuplicateId(project.id); setDuplicateName(`${project.title} (Copy)`); }}
                                     onToggleStatus={() => handleToggleStatus(project)}
+                                    onUploadImage={() => setImageUploadProject(project)}
                                 />
                             )) : (
                                 <p className="col-span-full text-zinc-500 italic">No drafts in progress.</p>
@@ -697,12 +731,79 @@ const Dashboard = () => {
                         </motion.div>
                     </div>
                 )}
+
+                {/* Image Upload Modal */}
+                {imageUploadProject && (
+                    <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/80 backdrop-blur-sm p-4">
+                        <motion.div
+                            initial={{ scale: 0.95, opacity: 0 }}
+                            animate={{ scale: 1, opacity: 1 }}
+                            className="w-full max-w-md bg-zinc-900 border border-zinc-700 rounded-xl p-6 shadow-2xl"
+                        >
+                            <h2 className="text-xl font-bold mb-4 text-white flex items-center gap-2">
+                                <ImageIcon className="w-5 h-5 text-indigo-400" />
+                                Upload Case Image
+                            </h2>
+                            <p className="text-sm text-zinc-400 mb-4">
+                                Upload a custom image for <span className="text-white font-bold">{imageUploadProject.title}</span>
+                            </p>
+                            <div className="space-y-4">
+                                <div className="border-2 border-dashed border-zinc-700 rounded-xl p-6 hover:border-indigo-500/50 transition-colors">
+                                    <input
+                                        type="file"
+                                        accept="image/*"
+                                        id="case-image-upload"
+                                        className="hidden"
+                                        onChange={(e) => {
+                                            const file = e.target.files?.[0];
+                                            if (file) {
+                                                handleImageUpload(imageUploadProject.id, file);
+                                            }
+                                        }}
+                                        disabled={uploadingImage}
+                                    />
+                                    <label
+                                        htmlFor="case-image-upload"
+                                        className="flex flex-col items-center justify-center cursor-pointer"
+                                    >
+                                        <Upload className="w-12 h-12 text-zinc-500 mb-3" />
+                                        <span className="text-sm font-bold text-white mb-1">
+                                            {uploadingImage ? 'Uploading...' : 'Click to upload'}
+                                        </span>
+                                        <span className="text-xs text-zinc-500">
+                                            PNG, JPG, GIF up to 10MB
+                                        </span>
+                                    </label>
+                                </div>
+                                {imageUploadProject.thumbnail && (
+                                    <div className="relative">
+                                        <p className="text-xs text-zinc-500 mb-2">Current Image:</p>
+                                        <img
+                                            src={imageUploadProject.thumbnail}
+                                            alt="Current thumbnail"
+                                            className="w-full h-32 object-cover rounded-lg border border-zinc-700"
+                                        />
+                                    </div>
+                                )}
+                                <div className="flex justify-end gap-2 mt-6">
+                                    <Button
+                                        variant="ghost"
+                                        onClick={() => setImageUploadProject(null)}
+                                        disabled={uploadingImage}
+                                    >
+                                        Close
+                                    </Button>
+                                </div>
+                            </div>
+                        </motion.div>
+                    </div>
+                )}
             </AnimatePresence>
         </div>
     );
 };
 
-const CaseCard = ({ project, isAdmin, onPlay, onEdit, onDelete, onDuplicate, onToggleStatus }) => {
+const CaseCard = ({ project, isAdmin, onPlay, onEdit, onDelete, onDuplicate, onToggleStatus, onUploadImage }) => {
     // Deterministic gradient based on project ID
     const getGradient = (id) => {
         const variants = [
@@ -723,9 +824,9 @@ const CaseCard = ({ project, isAdmin, onPlay, onEdit, onDelete, onDuplicate, onT
             animate={{ opacity: 1, y: 0 }}
             className="group relative bg-zinc-900/50 border border-zinc-800 rounded-xl overflow-hidden hover:border-indigo-500/50 transition-all duration-300 hover:shadow-[0_0_20px_rgba(79,70,229,0.15)] flex flex-col"
         >
-            <div className={`h-40 bg-zinc-800 relative overflow-hidden`}>
+            <div className={`h-56 bg-zinc-800 relative overflow-hidden`}>
                 {project.thumbnail ? (
-                    <img src={project.thumbnail} alt={project.title} className="w-full h-full object-cover transition-transform duration-500 group-hover:scale-110 opacity-60 group-hover:opacity-100" />
+                    <img src={project.thumbnail} alt={project.title} className="w-full h-full object-cover transition-transform duration-500 group-hover:scale-105" />
                 ) : (
                     <div className={`w-full h-full flex items-center justify-center bg-gradient-to-br ${getGradient(project.id)} relative overflow-hidden`}>
                         <div className="absolute inset-0 opacity-20 bg-[radial-gradient(circle_at_center,_var(--tw-gradient-stops))] from-white via-transparent to-transparent"></div>
@@ -734,8 +835,6 @@ const CaseCard = ({ project, isAdmin, onPlay, onEdit, onDelete, onDuplicate, onT
                         </span>
                     </div>
                 )}
-
-                <div className="absolute inset-0 bg-gradient-to-t from-zinc-900 via-transparent to-transparent"></div>
 
                 {project.editingBy && (Date.now() - new Date(project.editingBy.timestamp).getTime() < 60000) && (
                     <div className="absolute bottom-2 left-2 flex items-center gap-2 px-2 py-1 bg-indigo-500/20 backdrop-blur-md rounded-lg border border-indigo-500/30 shadow-lg animate-in fade-in slide-in-from-left-2 duration-500">
@@ -751,6 +850,13 @@ const CaseCard = ({ project, isAdmin, onPlay, onEdit, onDelete, onDuplicate, onT
 
                 {isAdmin && (
                     <div className="absolute top-2 right-2 flex gap-2 items-center">
+                        <button
+                            onClick={(e) => { e.stopPropagation(); onUploadImage(); }}
+                            className="p-1.5 rounded-lg backdrop-blur-md border shadow-sm bg-zinc-900/60 border-zinc-700 text-zinc-400 hover:bg-zinc-800 hover:text-indigo-400 transition-all group/upload"
+                            title="Upload Case Image"
+                        >
+                            <ImageIcon className="w-3.5 h-3.5" />
+                        </button>
                         <span className={`text-[10px] font-bold uppercase px-2 py-1 rounded backdrop-blur-md border shadow-sm ${project.status === 'published' ? 'bg-emerald-500/20 border-emerald-500/50 text-emerald-400' : 'bg-black/40 border-zinc-700 text-zinc-400'}`}>
                             {project.status === 'published' ? 'Live' : 'Draft'}
                         </span>
