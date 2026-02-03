@@ -13,33 +13,9 @@ import { generateImage } from './ai';
  */
 export async function generateAndUploadEvidenceImage(evidenceDescription, evidenceLabel, caseId, nodeId, apiKey) {
     try {
-        // Create a detailed prompt for evidence image generation
-        const imagePrompt = `High-quality, photorealistic evidence photograph for a detective mystery game.
-
-EVIDENCE: ${evidenceLabel}
-DESCRIPTION: ${evidenceDescription}
-
-Style requirements:
-- Professional crime scene photography aesthetic
-- Clear, well-lit, forensic quality
-- Detailed and realistic
-- Suitable for a detective investigation
-- No text or labels in the image
-- Focus on the evidence item itself
-- Neutral background (evidence table, forensic surface, or crime scene context)
-
-The image should look like actual photographic evidence that would be collected and documented by investigators.`;
-
-        console.log('Generating AI image for evidence:', evidenceLabel);
-
-        // Generate image using AI
-        let imageBlob = await generateImage(imagePrompt, apiKey);
-
-        // Fallback to placeholder if AI generation fails
-        if (!imageBlob) {
-            console.log('AI generation failed, using placeholder for:', evidenceLabel);
-            imageBlob = await createPlaceholderEvidenceImage(evidenceLabel);
-        }
+        // AI Image Generation is currently disabled to reduce costs
+        // We use a descriptive placeholder instead
+        const imageBlob = await createPlaceholderEvidenceImage(evidenceLabel);
 
         if (!imageBlob) {
             throw new Error('Failed to generate image blob');
@@ -52,12 +28,10 @@ The image should look like actual photographic evidence that would be collected 
         await uploadBytes(storageRef, imageBlob);
         const downloadURL = await getDownloadURL(storageRef);
 
-        console.log('Evidence image uploaded:', downloadURL);
         return downloadURL;
 
     } catch (error) {
-        console.error('Error generating/uploading evidence image:', error);
-        // Return null if image generation fails - the evidence will still work without an image
+        // Return null if generation fails - node remains functional
         return null;
     }
 }
@@ -137,7 +111,7 @@ async function createPlaceholderEvidenceImage(label) {
 export async function generateEvidenceImagesForNodes(evidenceNodes, caseId, apiKey) {
     const imageUrls = new Map();
 
-    // Generate images in parallel (limit to 3 at a time to avoid overwhelming the API)
+    // Generate images in parallel (limit to 3 at a time)
     const batchSize = 3;
     for (let i = 0; i < evidenceNodes.length; i += batchSize) {
         const batch = evidenceNodes.slice(i, i + batchSize);
