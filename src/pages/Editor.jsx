@@ -1102,7 +1102,7 @@ const Editor = () => {
     }, [nodes, setNodes, onNodeUpdate, isLocked]);
 
     return (
-        <div className={`flex h-screen w-screen flex-col overflow-hidden transition-colors duration-300 relative selection:bg-indigo-500/30 font-sans ${isDarkMode ? 'bg-black text-white' : 'bg-zinc-50 text-zinc-900'}`}>
+        <div className={`fixed inset-0 flex h-[100dvh] w-screen flex-col overflow-hidden transition-colors duration-300 selection:bg-indigo-500/30 font-sans ${isDarkMode ? 'bg-black text-white' : 'bg-zinc-50 text-zinc-900'}`}>
 
             {/* Ambient Background - Visible mainly in Dark Mode */}
             {isDarkMode && (
@@ -1126,7 +1126,12 @@ const Editor = () => {
             )}
 
             {/* Toolbar */}
-            <div id="editor-toolbar" className={`h-16 border-b flex items-center justify-between px-4 z-50 backdrop-blur-md relative transition-all duration-300 shadow-sm ${isDarkMode ? 'border-white/10 bg-black/40' : 'border-zinc-200 bg-white/80'}`}>
+            <header
+                id="editor-toolbar"
+                className={`h-16 border-b flex items-center justify-between px-4 z-50 backdrop-blur-md relative transition-all duration-300 shadow-sm shrink-0 whitespace-nowrap
+                    ${isDarkMode ? 'border-white/10 bg-zinc-900/80' : 'border-zinc-200 bg-white/95'}
+                `}
+            >
                 <div className="flex items-center gap-2 md:gap-4 overflow-hidden">
                     <Button variant="ghost" size="sm" onClick={() => navigate('/')} className={`px-2 md:px-3 ${isDarkMode ? 'hover:bg-white/10 text-zinc-300 hover:text-white' : ''}`}>
                         <ArrowLeft className="w-4 h-4 md:mr-2" />
@@ -1270,7 +1275,7 @@ const Editor = () => {
                     </Button>
 
                 </div>
-            </div>
+            </header>
 
             <div className="flex flex-1 overflow-hidden relative z-10">
                 {/* Sidebar */}
@@ -1947,8 +1952,8 @@ const Editor = () => {
                         </div>
                     )
                 }
-            </AnimatePresence >
-        </div >
+            </AnimatePresence>
+        </div>
     );
 };
 
