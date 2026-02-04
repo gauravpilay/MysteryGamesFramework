@@ -315,12 +315,12 @@ const Dashboard = () => {
 
             {/* Header */}
             <header className="sticky top-0 z-10 border-b border-zinc-800 bg-black/80 backdrop-blur-md">
-                <div className="container mx-auto px-6 h-16 flex items-center justify-between">
+                <div className="container mx-auto px-4 md:px-6 h-16 flex items-center justify-between">
                     <div className="flex items-center gap-3">
                         <div className="flex items-center justify-center">
-                            <Logo className="w-9 h-9 drop-shadow-[0_0_10px_rgba(99,102,241,0.5)]" />
+                            <Logo className="w-8 h-8 md:w-9 md:h-9 drop-shadow-[0_0_10px_rgba(99,102,241,0.5)]" />
                         </div>
-                        <span className="font-bold text-lg tracking-tight">{settings.systemName || 'Mystery Architect'}</span>
+                        <span className="font-bold text-base md:text-lg tracking-tight truncate max-w-[120px] md:max-w-none">{settings.systemName || 'Mystery Architect'}</span>
                     </div>
                     <div className="flex items-center gap-4">
                         <Button
@@ -383,9 +383,9 @@ const Dashboard = () => {
                 </div>
             </header>
 
-            <main className="container mx-auto px-6 py-10 space-y-12 relative z-10">
+            <main className="container mx-auto px-4 md:px-6 py-6 md:py-10 space-y-8 md:space-y-12 relative z-10">
                 <div className="relative">
-                    <h1 className="text-4xl md:text-5xl font-extrabold tracking-tight mb-2">
+                    <h1 className="text-3xl md:text-5xl font-extrabold tracking-tight mb-2">
                         <span className="bg-clip-text text-transparent bg-gradient-to-r from-indigo-400 via-purple-400 to-white">
                             Welcome Back, Detective
                         </span>
@@ -426,21 +426,21 @@ const Dashboard = () => {
                                 </div>
                             </div>
 
-                            <div className="flex items-center gap-3 w-full lg:w-auto overflow-x-auto pb-2 lg:pb-0 no-scrollbar">
+                            <div className="flex flex-col sm:flex-row items-center gap-4 w-full lg:w-auto overflow-x-auto pb-2 lg:pb-0 no-scrollbar">
                                 {isAdmin && (
                                     <>
-                                        <div className="flex gap-2 p-1 bg-black/40 rounded-xl border border-white/5">
-                                            <Button variant="ghost" size="sm" onClick={() => navigate('/admin/users')} className="h-9 px-4 text-xs font-bold hover:bg-white/5">
-                                                <Users className="w-3.5 h-3.5 mr-2 text-indigo-400" /> Personnel
+                                        <div className="flex gap-2 p-1 bg-black/40 rounded-xl border border-white/5 w-full sm:w-auto justify-center">
+                                            <Button variant="ghost" size="sm" onClick={() => navigate('/admin/users')} className="h-9 px-3 md:px-4 text-[10px] md:text-xs font-bold hover:bg-white/5 whitespace-nowrap">
+                                                <Users className="w-3.5 h-3.5 mr-1 md:mr-2 text-indigo-400" /> Personnel
                                             </Button>
-                                            <Button variant="ghost" size="sm" onClick={() => window.open('/USER_MANUAL.pdf', '_blank')} className="h-9 px-4 text-xs font-bold hover:bg-white/5">
-                                                <BookOpen className="w-3.5 h-3.5 mr-2 text-indigo-400" /> Manual
+                                            <Button variant="ghost" size="sm" onClick={() => window.open('/USER_MANUAL.pdf', '_blank')} className="h-9 px-3 md:px-4 text-[10px] md:text-xs font-bold hover:bg-white/5 whitespace-nowrap">
+                                                <BookOpen className="w-3.5 h-3.5 mr-1 md:mr-2 text-indigo-400" /> Manual
                                             </Button>
                                         </div>
                                         <div className="h-6 w-px bg-zinc-800 mx-1 hidden lg:block"></div>
                                         <Button
                                             onClick={() => setShowNewModal(true)}
-                                            className="bg-indigo-600 hover:bg-indigo-500 text-white shadow-lg shadow-indigo-600/20 border-none h-10 px-6 text-sm font-bold tracking-wide shrink-0 transition-all hover:scale-[1.02] active:scale-[0.98]"
+                                            className="bg-indigo-600 hover:bg-indigo-500 text-white shadow-lg shadow-indigo-600/20 border-none h-10 px-4 md:px-6 text-xs md:text-sm font-bold tracking-wide transition-all hover:scale-[1.02] active:scale-[0.98] w-full sm:w-auto"
                                         >
                                             <Plus className="w-4 h-4 mr-2" /> Open New Case
                                         </Button>

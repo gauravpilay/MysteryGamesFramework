@@ -192,7 +192,7 @@ const AdvancedTerminal = ({ node, edges, onComplete, onFail, addLog }) => {
     };
 
     return (
-        <div className="flex flex-col h-full bg-black text-green-500 font-mono text-sm overflow-hidden border border-green-900/20 shadow-[inset_0_0_50px_rgba(0,100,0,0.1)]">
+        <div className="flex flex-col h-full bg-black text-green-500 font-mono text-[11px] md:text-sm overflow-hidden border border-green-900/20 shadow-[inset_0_0_50px_rgba(0,100,0,0.1)]">
             {/* Header */}
             <div className="bg-zinc-900/80 backdrop-blur-md px-4 py-2 border-b border-green-900/30 flex items-center justify-between shrink-0">
                 <div className="flex items-center gap-2">
@@ -214,7 +214,7 @@ const AdvancedTerminal = ({ node, edges, onComplete, onFail, addLog }) => {
             {/* Terminal View */}
             <div
                 ref={scrollRef}
-                className="flex-1 p-6 overflow-y-auto scrollbar-thin scrollbar-thumb-green-900/50 scrollbar-track-black"
+                className="flex-1 p-3 md:p-6 overflow-y-auto scrollbar-thin scrollbar-thumb-green-900/50 scrollbar-track-black"
             >
                 <div className="space-y-1.5">
                     {history.map((line, i) => (
@@ -229,8 +229,8 @@ const AdvancedTerminal = ({ node, edges, onComplete, onFail, addLog }) => {
                     ))}
 
                     {/* Animated prompt when waiting for input */}
-                    <div className="flex items-center gap-2 mt-4 text-white">
-                        <span className="text-emerald-500 font-bold drop-shadow-[0_0_5px_rgba(16,185,129,0.3)]">{currentPath} $</span>
+                    <div className="flex flex-col md:flex-row md:items-center gap-1 md:gap-2 mt-4 text-white">
+                        <span className="text-emerald-500 font-bold drop-shadow-[0_0_5px_rgba(16,185,129,0.3)] shrink-0">{currentPath} $</span>
                         <input
                             type="text"
                             value={input}

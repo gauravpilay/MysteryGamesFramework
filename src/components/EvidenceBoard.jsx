@@ -103,8 +103,11 @@ const EvidenceBoard = ({
             {/* Sidebar / Toolkit */}
             <motion.div
                 initial={false}
-                animate={{ width: sidebarOpen ? 320 : 64 }}
-                className="h-full bg-zinc-950 border-r border-zinc-800 flex flex-col relative z-20 shadow-2xl"
+                animate={{
+                    width: sidebarOpen ? (window.innerWidth < 768 ? '100%' : 320) : (window.innerWidth < 768 ? 0 : 64),
+                    x: sidebarOpen ? 0 : (window.innerWidth < 768 ? -320 : 0)
+                }}
+                className={`h-full bg-zinc-950 border-r border-zinc-800 flex flex-col z-[210] shadow-2xl absolute md:relative transition-all duration-300 ${!sidebarOpen && window.innerWidth < 768 ? 'pointer-events-none' : 'pointer-events-auto'}`}
             >
                 <div className="p-4 border-b border-zinc-900 flex items-center justify-between overflow-hidden">
                     <AnimatePresence mode="wait">
@@ -197,20 +200,32 @@ const EvidenceBoard = ({
                 {/* Collapse Toggle */}
                 <button
                     onClick={() => setSidebarOpen(!sidebarOpen)}
-                    className="absolute -right-3 top-1/2 -translate-y-1/2 w-6 h-12 bg-zinc-800 border border-zinc-700 rounded-full flex items-center justify-center text-zinc-400 hover:text-white z-30"
+                    className="absolute -right-3 top-1/2 -translate-y-1/2 w-6 h-12 bg-zinc-800 border border-zinc-700 rounded-full flex items-center justify-center text-zinc-400 hover:text-white z-30 md:flex"
                 >
                     {sidebarOpen ? <ChevronLeft className="w-4 h-4" /> : <ChevronRight className="w-4 h-4" />}
                 </button>
             </motion.div >
 
+            {/* Mobile Sidebar Toggle Button */}
+            {!sidebarOpen && (
+                <button
+                    onClick={() => setSidebarOpen(true)}
+                    className="md:hidden fixed bottom-20 right-6 w-14 h-14 bg-amber-500 rounded-full shadow-2xl flex items-center justify-center text-black z-[205] active:scale-95 transition-transform"
+                >
+                    <Plus className="w-8 h-8" />
+                </button>
+            )}
+
             {/* Main Board Container */}
             < div className="flex-1 flex flex-col bg-zinc-950 relative" >
                 {/* Board Header */}
-                < div className="p-4 border-b border-zinc-900 flex items-center justify-between relative z-10 bg-zinc-950/50 backdrop-blur-md" >
-                    <h2 className="text-xl font-black text-zinc-600 uppercase tracking-tighter italic">
-                        <span className="text-amber-500">Neural</span> Investigative Canvas v2.0
+                < div className="p-3 md:p-4 border-b border-zinc-900 flex items-center justify-between relative z-10 bg-zinc-950/50 backdrop-blur-md" >
+                    <h2 className="text-sm md:text-xl font-black text-zinc-600 uppercase tracking-tighter italic truncate mr-4">
+                        <span className="text-amber-500">Neural</span> Investigative Canvas
                     </h2>
-                    <Button variant="ghost" onClick={onClose} className="hover:bg-red-500/10 hover:text-red-500"><X className="w-6 h-6" /></Button>
+                    <Button variant="ghost" size="sm" onClick={onClose} className="hover:bg-red-500/10 hover:text-red-500 px-2 h-9">
+                        <X className="w-5 h-5 md:w-6 md:h-6" />
+                    </Button>
                 </div >
 
                 {/* Board Area */}
@@ -305,7 +320,7 @@ const EvidenceBoard = ({
                                 onDrag={(e, info) => handleDrag(item.id, info)}
                                 initial={{ x: item.x, y: item.y }}
                                 animate={{ x: item.x, y: item.y }}
-                                className={`absolute w-44 p-2 bg-zinc-800 border-2 ${linkingFrom === item.id ? 'border-amber-500 scale-105' : 'border-zinc-700'} shadow-2xl cursor-grab active:cursor-grabbing group`}
+                                className={`absolute w-32 md:w-44 p-1.5 md:p-2 bg-zinc-800 border-2 ${linkingFrom === item.id ? 'border-amber-500 scale-105' : 'border-zinc-700'} shadow-2xl cursor-grab active:cursor-grabbing group z-10`}
                             >
                                 <div className="flex items-center justify-between mb-1">
                                     <div className="flex items-center gap-1 opacity-50">
@@ -374,7 +389,7 @@ const EvidenceBoard = ({
                                 onDrag={(e, info) => handleDrag(note.id, info, true)}
                                 initial={{ x: note.x, y: note.y }}
                                 animate={{ x: note.x, y: note.y }}
-                                className={`absolute w-52 p-3 bg-amber-200 text-amber-900 shadow-2xl cursor-grab active:cursor-grabbing border-l-8 border-amber-300 ring-1 ring-amber-400/30 ${linkingFrom === note.id ? 'ring-4 ring-amber-500' : ''}`}
+                                className={`absolute w-40 md:w-52 p-2 md:p-3 bg-amber-200 text-amber-900 shadow-2xl cursor-grab active:cursor-grabbing border-l-4 md:border-l-8 border-amber-300 ring-1 ring-amber-400/30 ${linkingFrom === note.id ? 'ring-4 ring-amber-500' : ''} z-10`}
                                 style={{ rotate: -1 }}
                             >
                                 <div className="flex items-center justify-between mb-2 border-b border-amber-300/50 pb-1">
@@ -453,11 +468,11 @@ const EvidenceBoard = ({
             </AnimatePresence >
 
             {/* Global Instruction Bar */}
-            < div className="fixed bottom-4 left-1/2 -translate-x-1/2 px-6 py-2 bg-zinc-950/80 border border-zinc-800 rounded-full backdrop-blur-xl flex items-center gap-8 text-[9px] text-zinc-500 uppercase tracking-widest z-50 shadow-2xl" >
-                <div className="flex items-center gap-2"><GripHorizontal className="w-4 h-4 text-zinc-700" /> Drag to arrange</div>
-                <div className="flex items-center gap-2"><Link className="w-4 h-4 text-zinc-700" /> Link two nodes</div>
-                <div className="flex items-center gap-2"><Type className="w-4 h-4 text-amber-500" /> Type on lines to label connections</div>
-                <div className="flex items-center gap-2"><Trash2 className="w-4 h-4 text-red-900" /> Bin items to return to locker</div>
+            < div className="fixed bottom-4 left-1/2 -translate-x-1/2 px-4 md:px-6 py-2 bg-zinc-950/80 border border-zinc-800 rounded-full backdrop-blur-xl flex items-center gap-4 md:gap-8 text-[7px] md:text-[9px] text-zinc-500 uppercase tracking-widest z-50 shadow-2xl w-[90%] md:w-auto overflow-x-auto no-scrollbar" >
+                <div className="flex items-center gap-2 shrink-0"><GripHorizontal className="w-3 h-3 md:w-4 md:h-4 text-zinc-700" /> Drag</div>
+                <div className="flex items-center gap-2 shrink-0"><Link className="w-3 h-3 md:w-4 md:h-4 text-zinc-700" /> Link</div>
+                <div className="flex items-center gap-2 shrink-0"><Type className="w-3 h-3 md:w-4 md:h-4 text-amber-500" /> Label</div>
+                <div className="flex items-center gap-2 shrink-0"><Trash2 className="w-3 h-3 md:w-4 md:h-4 text-red-900" /> Remove</div>
             </div >
         </div >
     );

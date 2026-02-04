@@ -563,11 +563,11 @@ export const ThreeDWorld = ({ layout, onClose }) => {
     return (
         <div className="relative w-full h-full bg-black select-none">
             {/* Minority Report Style HUD Overlay */}
-            <div className="absolute top-8 left-8 z-10 pointer-events-none">
+            <div className="absolute top-4 md:top-8 left-4 md:left-8 z-10 pointer-events-none max-w-[calc(100%-2rem)]">
                 <motion.div
                     initial={{ opacity: 0, x: -50 }}
                     animate={{ opacity: 1, x: 0 }}
-                    className="p-6 bg-black/40 backdrop-blur-xl rounded-3xl border border-white/10 relative overflow-hidden group shadow-[0_0_50px_rgba(0,0,0,0.5)]"
+                    className="p-4 md:p-6 bg-black/40 backdrop-blur-xl rounded-2xl md:rounded-3xl border border-white/10 relative overflow-hidden group shadow-[0_0_50px_rgba(0,0,0,0.5)]"
                 >
                     {/* Animated Scanning Line */}
                     <motion.div
@@ -579,28 +579,28 @@ export const ThreeDWorld = ({ layout, onClose }) => {
                     <div className="relative flex items-center gap-6">
                         <div className="relative">
                             <div className="absolute inset-0 bg-cyan-500/20 blur-xl animate-pulse rounded-full"></div>
-                            <div className="p-3 bg-cyan-500/10 rounded-2xl border border-cyan-500/30">
-                                <Activity className="w-8 h-8 text-cyan-400" />
+                            <div className="p-2 md:p-3 bg-cyan-500/10 rounded-xl md:rounded-2xl border border-cyan-500/30">
+                                <Activity className="w-5 h-5 md:w-8 md:h-8 text-cyan-400" />
                             </div>
                         </div>
 
                         <div className="space-y-1">
-                            <h2 className="text-[10px] font-black text-white uppercase tracking-[0.4em] mb-1 opacity-50 flex items-center gap-2">
-                                <Target className="w-3 h-3 text-cyan-500" /> Current Sector
+                            <h2 className="text-[8px] md:text-[10px] font-black text-white uppercase tracking-[0.4em] mb-1 opacity-50 flex items-center gap-2">
+                                <Target className="w-3 h-3 text-cyan-500" /> Sector
                             </h2>
-                            <div className="flex items-center gap-3">
-                                <div className="w-2.5 h-2.5 rounded-full bg-cyan-500 animate-ping"></div>
-                                <p className="text-2xl font-black text-white uppercase tracking-tighter drop-shadow-[0_0_10px_rgba(6,182,212,0.5)]">{activeZone}</p>
+                            <div className="flex items-center gap-2 md:gap-3">
+                                <div className="w-2 h-2 md:w-2.5 md:h-2.5 rounded-full bg-cyan-500 animate-ping"></div>
+                                <p className="text-lg md:text-2xl font-black text-white uppercase tracking-tighter drop-shadow-[0_0_10px_rgba(6,182,212,0.5)] truncate max-w-[150px] md:max-w-none">{activeZone}</p>
                             </div>
                         </div>
                     </div>
 
-                    <div className="mt-6 pt-4 border-t border-white/5 flex gap-6">
+                    <div className="mt-4 md:mt-6 pt-3 md:pt-4 border-t border-white/5 flex gap-4 md:gap-6">
                         <div className="space-y-1">
-                            <p className="text-[8px] font-black text-zinc-500 uppercase tracking-widest">Neural Link</p>
-                            <p className="text-[10px] font-bold text-emerald-400 uppercase tracking-tight">STABLE_OAK_82</p>
+                            <p className="text-[7px] md:text-[8px] font-black text-zinc-500 uppercase tracking-widest">Neural Link</p>
+                            <p className="text-[9px] md:text-[10px] font-bold text-emerald-400 uppercase tracking-tight">STABLE_OAK_82</p>
                         </div>
-                        <div className="space-y-1 text-right ml-auto">
+                        <div className="space-y-1 text-right ml-auto hidden md:block">
                             <p className="text-[8px] font-black text-zinc-500 uppercase tracking-widest">Refresh Rate</p>
                             <p className="text-[10px] font-bold text-cyan-400 uppercase tracking-tight">144.02 MHz</p>
                         </div>

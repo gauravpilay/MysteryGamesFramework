@@ -231,7 +231,7 @@ export default function SuspectProfile({
                 <div className="absolute top-0 left-0 right-0 h-1 bg-gradient-to-r from-transparent via-indigo-500 to-transparent"></div>
                 <div className="absolute top-1 left-0 right-0 h-px bg-gradient-to-r from-transparent via-purple-500 to-transparent"></div>
 
-                <div className="flex items-center gap-8 p-8 md:p-12 relative">
+                <div className="flex flex-col md:flex-row items-center md:items-start gap-6 md:gap-8 p-6 md:p-12 relative">
                     {/* Enhanced Holographic Profile Image */}
                     <motion.div
                         className="relative shrink-0"
@@ -262,10 +262,10 @@ export default function SuspectProfile({
                         </motion.div>
 
                         {/* Main Profile Container */}
-                        <div className="relative w-36 h-36 md:w-44 md:h-44 rounded-full bg-gradient-to-br from-zinc-800 to-zinc-900 p-1 shadow-2xl">
+                        <div className="relative w-28 h-28 md:w-44 md:h-44 rounded-full bg-gradient-to-br from-zinc-800 to-zinc-900 p-1 shadow-2xl">
                             <div className={`w-full h-full rounded-full bg-gradient-to-br ${getAvatarColor(suspect.data.name)} opacity-20 absolute inset-0`}></div>
                             <div className="w-full h-full rounded-full bg-black/70 backdrop-blur-sm flex items-center justify-center relative overflow-hidden border-2 border-white/10">
-                                <User className="w-20 h-20 md:w-24 md:h-24 text-white/40 relative z-10" />
+                                <User className="w-12 h-12 md:w-24 md:h-24 text-white/40 relative z-10" />
 
                                 {/* Holographic Shimmer */}
                                 <motion.div
@@ -313,14 +313,14 @@ export default function SuspectProfile({
                     </motion.div>
 
                     {/* Identity & Role - Enhanced */}
-                    <div className="flex-1 min-w-0">
+                    <div className="flex-1 min-w-0 text-center md:text-left">
                         <div className="flex items-start justify-between gap-4 mb-4">
                             <div>
                                 <motion.h1
                                     initial={{ opacity: 0, x: -30 }}
                                     animate={{ opacity: 1, x: 0 }}
                                     transition={{ delay: 0.2 }}
-                                    className="text-2xl md:text-4xl font-black text-white uppercase tracking-tighter mb-3 drop-shadow-2xl relative"
+                                    className="text-xl md:text-4xl font-black text-white uppercase tracking-tighter mb-3 drop-shadow-2xl relative"
                                 >
                                     {suspect.data.name}
                                     {/* Text Glow Effect */}
@@ -333,7 +333,7 @@ export default function SuspectProfile({
                                     </motion.span>
                                 </motion.h1>
 
-                                <div className="flex items-center gap-3 flex-wrap">
+                                <div className="flex flex-col md:flex-row items-center gap-3">
                                     {/* Role Badge - Enhanced */}
                                     <motion.div
                                         whileHover={{ scale: 1.05, rotate: 1 }}
@@ -359,7 +359,7 @@ export default function SuspectProfile({
                         </div>
 
                         {/* Enhanced Quick Stats Bar */}
-                        <div className="flex items-center gap-3 mt-6 flex-wrap">
+                        <div className="flex items-center justify-center md:justify-start gap-2 md:gap-3 mt-6 flex-wrap">
                             <motion.div
                                 whileHover={{ scale: 1.05, y: -2 }}
                                 className="flex items-center gap-2 px-3 py-1.5 bg-gradient-to-r from-indigo-500/10 to-purple-500/10 border border-indigo-500/30 rounded-xl backdrop-blur-md shadow-lg"
@@ -395,7 +395,7 @@ export default function SuspectProfile({
 
             {/* MAIN CONTENT AREA */}
             <div className="flex-1 overflow-y-auto custom-scrollbar relative">
-                <div className="p-6 md:p-12 max-w-7xl mx-auto space-y-12">
+                <div className="p-4 md:p-12 max-w-7xl mx-auto space-y-8 md:space-y-12">
 
                     {/* TESTIMONY SECTION - ENHANCED */}
                     <motion.section
@@ -404,16 +404,16 @@ export default function SuspectProfile({
                         transition={{ delay: 0.3 }}
                         className="relative"
                     >
-                        <div className="flex items-center gap-4 mb-8">
+                        <div className="flex items-center gap-3 md:gap-4 mb-6 md:mb-8">
                             <motion.div
                                 whileHover={{ rotate: 360 }}
                                 transition={{ duration: 0.6 }}
-                                className="w-12 h-12 rounded-2xl bg-gradient-to-br from-indigo-500/20 to-purple-500/20 border-2 border-indigo-500/30 flex items-center justify-center shadow-lg"
+                                className="w-10 h-10 md:w-12 md:h-12 rounded-xl md:rounded-2xl bg-gradient-to-br from-indigo-500/20 to-purple-500/20 border-2 border-indigo-500/30 flex items-center justify-center shadow-lg"
                             >
-                                <MessageSquare className="w-5 h-5 text-indigo-400" />
+                                <MessageSquare className="w-4 h-4 md:w-5 md:h-5 text-indigo-400" />
                             </motion.div>
                             <div>
-                                <h3 className="text-sm font-black text-white uppercase tracking-[0.2em]">Intercepted Testimony</h3>
+                                <h3 className="text-xs font-black text-white uppercase tracking-[0.2em]">Intercepted Testimony</h3>
                                 <p className="text-[10px] text-zinc-500 uppercase tracking-wider">Audio Intelligence • Classified</p>
                             </div>
                         </div>
@@ -425,7 +425,7 @@ export default function SuspectProfile({
                             {/* Glow Effect */}
                             <div className="absolute -inset-6 bg-gradient-to-r from-indigo-500/10 via-purple-500/10 to-pink-500/10 opacity-0 group-hover:opacity-100 transition-opacity rounded-3xl blur-3xl"></div>
 
-                            <div className="relative p-12 bg-gradient-to-br from-zinc-900/60 to-black/60 border-2 border-white/10 border-l-indigo-500 border-l-[6px] rounded-3xl backdrop-blur-3xl shadow-2xl overflow-hidden">
+                            <div className="relative p-6 md:p-12 bg-gradient-to-br from-zinc-900/60 to-black/60 border-2 border-white/10 border-l-indigo-500 border-l-[6px] rounded-2xl md:rounded-3xl backdrop-blur-3xl shadow-2xl overflow-hidden">
                                 {/* Animated Background Pattern */}
                                 <div className="absolute inset-0 opacity-5">
                                     <div className="absolute inset-0" style={{
@@ -435,14 +435,14 @@ export default function SuspectProfile({
                                 </div>
 
                                 {/* Recording Indicator */}
-                                <div className="absolute top-6 right-8 flex items-center gap-4">
+                                <div className="absolute top-4 md:top-6 right-4 md:right-8 flex items-center gap-4">
                                     <motion.div
                                         animate={{ opacity: [0.5, 1, 0.5] }}
                                         transition={{ duration: 2, repeat: Infinity }}
                                         className="flex items-center gap-2"
                                     >
-                                        <div className="w-3 h-3 rounded-full bg-red-500 shadow-lg shadow-red-500/50"></div>
-                                        <span className="text-[10px] font-black text-zinc-500 uppercase tracking-[.3em]">RECORDING</span>
+                                        <div className="w-2 h-2 md:w-3 md:h-3 rounded-full bg-red-500 shadow-lg shadow-red-500/50"></div>
+                                        <span className="text-[8px] md:text-[10px] font-black text-zinc-500 uppercase tracking-[.3em]">REC</span>
                                     </motion.div>
                                 </div>
 
@@ -513,7 +513,7 @@ export default function SuspectProfile({
                                 </div>
                             </div>
 
-                            <div className="bg-gradient-to-br from-black/70 to-zinc-900/70 border-2 border-white/10 rounded-[2.5rem] p-12 shadow-2xl backdrop-blur-xl min-h-[500px] relative overflow-hidden">
+                            <div className="bg-gradient-to-br from-black/70 to-zinc-900/70 border-2 border-white/10 rounded-2xl md:rounded-[2.5rem] p-6 md:p-12 shadow-2xl backdrop-blur-xl min-h-[400px] md:min-h-[500px] relative overflow-hidden">
                                 {/* Animated Grid Background */}
                                 <div className="absolute inset-0 opacity-[0.03]" style={{
                                     backgroundImage: 'linear-gradient(rgba(245, 158, 11, 0.5) 1px, transparent 1px), linear-gradient(90deg, rgba(245, 158, 11, 0.5) 1px, transparent 1px)',
@@ -521,8 +521,8 @@ export default function SuspectProfile({
                                 }}></div>
 
                                 {/* Corner Accents */}
-                                <div className="absolute top-0 left-0 w-20 h-20 border-t-4 border-l-4 border-amber-500/30 rounded-tl-3xl"></div>
-                                <div className="absolute bottom-0 right-0 w-20 h-20 border-b-4 border-r-4 border-amber-500/30 rounded-br-3xl"></div>
+                                <div className="absolute top-0 left-0 w-10 h-10 md:w-20 md:h-20 border-t-4 border-l-4 border-amber-500/30 rounded-tl-xl md:rounded-tl-3xl"></div>
+                                <div className="absolute bottom-0 right-0 w-10 h-10 md:w-20 md:h-20 border-b-4 border-r-4 border-amber-500/30 rounded-br-xl md:rounded-br-3xl"></div>
 
                                 {(() => {
                                     const collectedEvidence = Array.from(inventory)
@@ -715,7 +715,7 @@ export default function SuspectProfile({
                                             whileHover={{ scale: 1.02, x: 5 }}
                                             whileTap={{ scale: 0.98 }}
                                             onClick={() => { onClose(); onNavigate(thread.target); }}
-                                            className="w-full flex items-center justify-between p-8 bg-gradient-to-r from-white/5 to-transparent border-2 border-white/10 hover:border-indigo-500/50 hover:from-indigo-500/10 hover:to-purple-500/10 rounded-[1.5rem] transition-all group overflow-hidden relative shadow-xl"
+                                            className="w-full flex items-center justify-between p-4 md:p-8 bg-gradient-to-r from-white/5 to-transparent border-2 border-white/10 hover:border-indigo-500/50 hover:from-indigo-500/10 hover:to-purple-500/10 rounded-xl md:rounded-[1.5rem] transition-all group overflow-hidden relative shadow-xl"
                                         >
                                             {/* Animated Background */}
                                             <motion.div
@@ -727,14 +727,14 @@ export default function SuspectProfile({
                                             {/* Bottom Accent Line */}
                                             <div className="absolute inset-x-0 bottom-0 h-1 bg-gradient-to-r from-transparent via-indigo-500 to-transparent scale-x-0 group-hover:scale-x-100 transition-transform duration-700"></div>
 
-                                            <div className="flex items-center gap-6 relative z-10">
+                                            <div className="flex items-center gap-3 md:gap-6 relative z-10">
                                                 {/* Icon Container */}
                                                 <motion.div
                                                     whileHover={{ rotate: 90 }}
                                                     transition={{ duration: 0.3 }}
-                                                    className="w-16 h-16 rounded-2xl bg-gradient-to-br from-zinc-900 to-black border-2 border-white/10 flex items-center justify-center group-hover:from-indigo-600 group-hover:to-purple-600 group-hover:border-indigo-500 transition-all duration-500 shadow-lg group-hover:shadow-indigo-500/50"
+                                                    className="w-10 h-10 md:w-16 md:h-16 rounded-lg md:rounded-2xl bg-gradient-to-br from-zinc-900 to-black border-2 border-white/10 flex items-center justify-center group-hover:from-indigo-600 group-hover:to-purple-600 group-hover:border-indigo-500 transition-all duration-500 shadow-lg group-hover:shadow-indigo-500/50 shrink-0"
                                                 >
-                                                    <ChevronRight className="w-7 h-7 text-zinc-600 group-hover:text-white group-hover:translate-x-1 transition-all" />
+                                                    <ChevronRight className="w-5 h-5 md:w-7 md:h-7 text-zinc-600 group-hover:text-white group-hover:translate-x-1 transition-all" />
                                                 </motion.div>
 
                                                 <div className="flex flex-col items-start text-left">

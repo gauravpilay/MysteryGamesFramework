@@ -79,12 +79,12 @@ const AIInterrogation = ({ node, onComplete, onFail, requestCount, onAIRequest }
             </div>
 
             {/* LEFT PROFILE STRIP (Vertical Sidebar) */}
-            <div className="w-full md:w-80 bg-black/40 border-r border-white/5 flex flex-col shrink-0 relative z-10 backdrop-blur-3xl">
-                <div className="p-8 flex flex-col items-center">
+            <div className="w-full md:w-80 bg-black/40 border-b md:border-b-0 md:border-r border-white/5 flex flex-col shrink-0 relative z-10 backdrop-blur-3xl">
+                <div className="p-4 md:p-8 flex flex-col items-center">
                     {/* AVATAR HEXAGON/DIAMOND */}
-                    <div className="relative mb-6">
+                    <div className="relative mb-4 md:mb-6">
                         <div className="absolute -inset-4 bg-indigo-500/10 rounded-full blur-2xl animate-pulse"></div>
-                        <div className="w-32 h-32 relative">
+                        <div className="w-24 h-24 md:w-32 md:h-32 relative">
                             {/* Animated tech ring */}
                             <svg className="absolute -inset-2 w-[144px] h-[144px] animate-[spin_10s_linear_infinite]">
                                 <circle cx="72" cy="72" r="70" stroke="currentColor" strokeWidth="1" fill="none" className="text-indigo-500/20" strokeDasharray="10 20" />
@@ -98,7 +98,7 @@ const AIInterrogation = ({ node, onComplete, onFail, requestCount, onAIRequest }
                     </div>
 
                     <div className="text-center">
-                        <h3 className="text-xl font-black text-white uppercase tracking-tighter mb-1">{node.data.name || 'Unknown Subject'}</h3>
+                        <h3 className="text-lg md:text-xl font-black text-white uppercase tracking-tighter mb-1">{node.data.name || 'Unknown Subject'}</h3>
                         <div className="flex items-center justify-center gap-2">
                             <span className="w-2 h-2 rounded-full bg-emerald-500 animate-pulse"></span>
                             <span className="text-[10px] font-black text-zinc-500 uppercase tracking-widest leading-none">Status: Connected</span>
@@ -106,7 +106,7 @@ const AIInterrogation = ({ node, onComplete, onFail, requestCount, onAIRequest }
                     </div>
 
                     {/* BIOMETRICS GRID */}
-                    <div className="grid grid-cols-2 gap-3 w-full mt-10">
+                    <div className="grid grid-cols-2 gap-3 w-full mt-6 md:mt-10">
                         <div className="p-3 bg-zinc-900/50 border border-white/5 rounded-xl flex flex-col gap-1">
                             <Activity className="w-3 h-3 text-red-500/50" />
                             <span className="text-[8px] font-black text-zinc-600 uppercase">Heart Rate</span>
@@ -120,7 +120,7 @@ const AIInterrogation = ({ node, onComplete, onFail, requestCount, onAIRequest }
                     </div>
 
                     {/* REMAINING QUERIES */}
-                    <div className="w-full mt-8 p-4 bg-indigo-500/5 border border-indigo-500/20 rounded-2xl relative overflow-hidden group">
+                    <div className="w-full mt-6 md:mt-8 p-4 bg-indigo-500/5 border border-indigo-500/20 rounded-2xl relative overflow-hidden group">
                         <div className="absolute top-0 right-0 p-2 opacity-5">
                             <Brain className="w-12 h-12 text-white" />
                         </div>
@@ -138,7 +138,7 @@ const AIInterrogation = ({ node, onComplete, onFail, requestCount, onAIRequest }
                     </div>
                 </div>
 
-                <div className="mt-auto p-8 border-t border-white/5 space-y-4">
+                <div className="mt-auto p-4 md:p-8 border-t border-white/5 space-y-3 md:space-y-4">
                     {score > 0 && (
                         <div className="flex items-center justify-between px-4 py-3 bg-amber-500/5 border border-amber-500/10 rounded-xl">
                             <Star className="w-4 h-4 text-amber-500 fill-amber-500" />
@@ -147,7 +147,7 @@ const AIInterrogation = ({ node, onComplete, onFail, requestCount, onAIRequest }
                     )}
                     <button
                         onClick={() => onComplete()}
-                        className="w-full py-4 bg-white text-black text-[11px] font-black rounded-xl hover:bg-zinc-200 transition-all uppercase tracking-[0.2em] shadow-2xl shadow-white/5 active:scale-95"
+                        className="w-full py-3 md:py-4 bg-white text-black text-[10px] md:text-[11px] font-black rounded-xl hover:bg-zinc-200 transition-all uppercase tracking-[0.2em] shadow-2xl shadow-white/5 active:scale-95"
                     >
                         Conclude Link
                     </button>
@@ -163,7 +163,7 @@ const AIInterrogation = ({ node, onComplete, onFail, requestCount, onAIRequest }
             {/* MAIN INTERFACE: MESSAGES & INPUT */}
             <div className="flex-1 flex flex-col h-full relative z-10">
                 {/* HUD HEADER */}
-                <div className="h-16 px-8 border-b border-white/5 bg-black/20 backdrop-blur-md flex items-center justify-between">
+                <div className="h-12 md:h-16 px-4 md:px-8 border-b border-white/5 bg-black/20 backdrop-blur-md flex items-center justify-between">
                     <div className="flex items-center gap-6">
                         <div className="flex flex-col">
                             <span className="text-[9px] font-black text-zinc-600 uppercase tracking-widest">Operation Node</span>
@@ -181,7 +181,7 @@ const AIInterrogation = ({ node, onComplete, onFail, requestCount, onAIRequest }
 
                 <div
                     ref={scrollRef}
-                    className="flex-1 p-8 overflow-y-auto custom-scrollbar"
+                    className="flex-1 p-4 md:p-8 overflow-y-auto custom-scrollbar"
                 >
                     <div className="max-w-3xl mx-auto space-y-8 pb-12">
                         {messages.map((msg, i) => (
@@ -204,11 +204,11 @@ const AIInterrogation = ({ node, onComplete, onFail, requestCount, onAIRequest }
                                     </div>
 
                                     {/* Bubble */}
-                                    <div className={`relative p-5 rounded-2xl border transition-all duration-300 ${msg.role === 'user'
+                                    <div className={`relative p-3.5 md:p-5 rounded-2xl border transition-all duration-300 ${msg.role === 'user'
                                         ? 'bg-indigo-600/90 border-indigo-400/50 text-white shadow-[0_10px_30px_rgba(79,70,229,0.3)] rounded-tr-none'
                                         : 'bg-zinc-900 border-white/5 text-zinc-200 backdrop-blur-xl shadow-xl rounded-tl-none hover:border-white/10'
                                         }`}>
-                                        <p className="text-[15px] leading-relaxed font-medium whitespace-pre-wrap">{msg.text}</p>
+                                        <p className="text-sm md:text-[15px] leading-relaxed font-medium whitespace-pre-wrap">{msg.text}</p>
                                     </div>
                                 </div>
                             </motion.div>
@@ -240,8 +240,8 @@ const AIInterrogation = ({ node, onComplete, onFail, requestCount, onAIRequest }
                 </div>
 
                 {/* INPUT CONSOLE */}
-                <div className="p-8 border-t border-white/5 bg-black/40 backdrop-blur-3xl shrink-0">
-                    <div className="max-w-3xl mx-auto flex items-center gap-4 relative">
+                <div className="p-4 md:p-8 border-t border-white/5 bg-black/40 backdrop-blur-3xl shrink-0">
+                    <div className="max-w-3xl mx-auto flex items-center gap-2 md:gap-4 relative">
                         <div className="flex-1 relative group">
                             <div className="absolute inset-0 bg-indigo-500/5 blur-xl group-focus-within:bg-indigo-500/10 transition-colors pointer-events-none"></div>
                             <input
@@ -249,17 +249,17 @@ const AIInterrogation = ({ node, onComplete, onFail, requestCount, onAIRequest }
                                 value={input}
                                 onChange={(e) => setInput(e.target.value)}
                                 onKeyDown={(e) => e.key === 'Enter' && handleSendMessage()}
-                                placeholder="TYPE SIGNAL INQUIRY HERE..."
-                                className="w-full bg-zinc-900/80 border border-white/10 rounded-2xl px-8 py-5 text-sm text-white placeholder:text-zinc-800 focus:outline-none focus:border-indigo-500/50 transition-all font-mono tracking-wider relative z-10 shadow-inner"
+                                placeholder="TYPE SIGNAL..."
+                                className="w-full bg-zinc-900/80 border border-white/10 rounded-xl md:rounded-2xl px-4 md:px-8 py-3.5 md:py-5 text-sm text-white placeholder:text-zinc-800 focus:outline-none focus:border-indigo-500/50 transition-all font-mono tracking-wider relative z-10 shadow-inner"
                             />
                         </div>
                         <button
                             onClick={handleSendMessage}
                             disabled={!input.trim() || isTyping}
-                            className="p-5 bg-indigo-600 hover:bg-indigo-500 disabled:opacity-20 disabled:grayscale text-white rounded-2xl transition-all shadow-[0_0_30px_rgba(79,70,229,0.2)] active:scale-95 group relative overflow-hidden"
+                            className="p-3.5 md:p-5 bg-indigo-600 hover:bg-indigo-500 disabled:opacity-20 disabled:grayscale text-white rounded-xl md:rounded-2xl transition-all shadow-[0_0_30px_rgba(79,70,229,0.2)] active:scale-95 group relative overflow-hidden"
                         >
                             <div className="absolute inset-x-0 top-0 h-px bg-white/20" />
-                            <Send className="w-6 h-6 group-hover:translate-x-1 group-hover:-translate-y-1 transition-transform" />
+                            <Send className="w-5 h-5 md:w-6 md:h-6 group-hover:translate-x-1 group-hover:-translate-y-1 transition-transform" />
                         </button>
                     </div>
                     <div className="mt-4 flex justify-between items-center text-[8px] font-black text-zinc-700 uppercase tracking-[0.3em]">

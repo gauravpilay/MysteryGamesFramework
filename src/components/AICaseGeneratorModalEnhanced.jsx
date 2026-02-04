@@ -622,10 +622,10 @@ Generate a complete mystery game that masterfully integrates these learning obje
                                     />
                                 </motion.div>
                                 <div>
-                                    <h2 className="text-3xl font-black text-white uppercase tracking-tight bg-clip-text text-transparent bg-gradient-to-r from-white via-indigo-200 to-purple-200">
+                                    <h2 className="text-xl md:text-3xl font-black text-white uppercase tracking-tight bg-clip-text text-transparent bg-gradient-to-r from-white via-indigo-200 to-purple-200">
                                         AI Mystery Director
                                     </h2>
-                                    <p className="text-xs font-mono text-indigo-400 uppercase tracking-widest mt-0.5 flex items-center gap-2">
+                                    <p className="text-[10px] md:text-xs font-mono text-indigo-400 uppercase tracking-widest mt-0.5 flex items-center gap-2">
                                         <Sparkles className="w-3 h-3" />
                                         Next-Gen Procedural Story Generation
                                     </p>
@@ -682,8 +682,8 @@ Generate a complete mystery game that masterfully integrates these learning obje
                                         exit={{ opacity: 0, scale: 0.95 }}
                                         className="space-y-8"
                                     >
-                                        <div className="text-center space-y-3 mb-12">
-                                            <h3 className="text-3xl font-black text-white">Choose Your Creation Mode</h3>
+                                        <div className="text-center space-y-3 mb-8 md:mb-12">
+                                            <h3 className="text-xl md:text-3xl font-black text-white">Choose Your Creation Mode</h3>
                                             <p className="text-zinc-400 max-w-2xl mx-auto leading-relaxed">
                                                 Select how you want to build your mystery. Quick Mode for instant creation, or Advanced Mode for complete control.
                                             </p>
@@ -711,7 +711,7 @@ Generate a complete mystery game that masterfully integrates these learning obje
                                                     </div>
 
                                                     <div>
-                                                        <h4 className="text-2xl font-black text-white mb-2">Quick Start Mode</h4>
+                                                        <h4 className="text-xl md:text-2xl font-black text-white mb-2">Quick Start Mode</h4>
                                                         <p className="text-sm text-zinc-400 leading-relaxed mb-4">
                                                             Simply describe your story and learning objectives in plain text. AI handles everything else.
                                                         </p>
@@ -762,7 +762,7 @@ Generate a complete mystery game that masterfully integrates these learning obje
                                                     </div>
 
                                                     <div>
-                                                        <h4 className="text-2xl font-black text-white mb-2">Advanced Wizard</h4>
+                                                        <h4 className="text-xl md:text-2xl font-black text-white mb-2">Advanced Wizard</h4>
                                                         <p className="text-sm text-zinc-400 leading-relaxed mb-4">
                                                             Step-by-step wizard with full control over genre, difficulty, suspects, and puzzle types.
                                                         </p>
@@ -827,7 +827,7 @@ Generate a complete mystery game that masterfully integrates these learning obje
                                                 Tell Us Your Story
                                             </Label>
                                             <textarea
-                                                className="w-full h-64 bg-black/50 border-2 border-zinc-800 rounded-2xl p-6 text-sm text-zinc-200 placeholder:text-zinc-700 focus:outline-none focus:border-indigo-500/50 focus:ring-4 focus:ring-indigo-500/20 transition-all resize-none leading-relaxed"
+                                                className="w-full h-48 md:h-64 bg-black/50 border-2 border-zinc-800 rounded-2xl p-4 md:p-6 text-sm text-zinc-200 placeholder:text-zinc-700 focus:outline-none focus:border-indigo-500/50 focus:ring-4 focus:ring-indigo-500/20 transition-all resize-none leading-relaxed"
                                                 placeholder="Example: 'A famous scientist has been found dead in their lab at a cutting-edge research facility. The lab was locked from the inside, and there are three suspects: the ambitious assistant, the jealous colleague, and the mysterious investor. The detective must uncover who had access to the security system and what secret project the scientist was working on...'"
                                                 value={quickStory}
                                                 onChange={(e) => setQuickStory(e.target.value)}
@@ -850,7 +850,7 @@ Generate a complete mystery game that masterfully integrates these learning obje
                                                 Learning Objectives
                                             </Label>
                                             <textarea
-                                                className="w-full h-40 bg-black/50 border-2 border-zinc-800 rounded-2xl p-6 text-sm text-zinc-200 placeholder:text-zinc-700 focus:outline-none focus:border-purple-500/50 focus:ring-4 focus:ring-purple-500/20 transition-all resize-none leading-relaxed"
+                                                className="w-full h-32 md:h-40 bg-black/50 border-2 border-zinc-800 rounded-2xl p-4 md:p-6 text-sm text-zinc-200 placeholder:text-zinc-700 focus:outline-none focus:border-purple-500/50 focus:ring-4 focus:ring-purple-500/20 transition-all resize-none leading-relaxed"
                                                 placeholder="Example: 'Teach students about digital forensics: 1) How to analyze access logs, 2) Understanding encryption basics, 3) Recognizing insider threats, 4) Chain of custody in evidence handling'"
                                                 value={quickObjectives}
                                                 onChange={(e) => setQuickObjectives(e.target.value)}

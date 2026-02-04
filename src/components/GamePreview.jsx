@@ -1074,10 +1074,10 @@ const GamePreview = ({ nodes, edges, onClose, gameMetadata, onGameEnd }) => {
             <audio ref={audioRef} />
 
             {/* Header */}
-            <div className="h-16 border-b border-zinc-800 bg-zinc-950 flex items-center justify-between px-6 shrink-0 relative z-[100]">
-                <div className="flex items-center gap-3">
-                    <div className="bg-red-600 px-2 py-1 rounded text-xs font-bold text-white uppercase tracking-widest animate-pulse">
-                        Case Active
+            <div className="h-16 border-b border-zinc-800 bg-zinc-950 flex items-center justify-between px-3 md:px-6 shrink-0 relative z-[100]">
+                <div className="flex items-center gap-2 md:gap-3">
+                    <div className="bg-red-600 px-1.5 md:px-2 py-1 rounded text-[8px] md:text-xs font-bold text-white uppercase tracking-widest animate-pulse shrink-0">
+                        Active
                     </div>
                     {/* Score Display - Enhanced UI */}
                     <div className="relative">
@@ -1096,12 +1096,12 @@ const GamePreview = ({ nodes, edges, onClose, gameMetadata, onGameEnd }) => {
                         </AnimatePresence>
                         <motion.div
                             layout
-                            className="flex items-center gap-4 px-5 py-2.5 bg-zinc-900/40 border border-amber-500/20 rounded-2xl shadow-[0_0_20px_rgba(0,0,0,0.3)] backdrop-blur-xl group hover:border-amber-500/40 transition-all duration-500 overflow-hidden relative"
+                            className="flex items-center gap-2 md:gap-4 px-2 md:px-5 py-1.5 md:py-2.5 bg-zinc-900/40 border border-amber-500/20 rounded-xl md:rounded-2xl shadow-[0_0_20px_rgba(0,0,0,0.3)] backdrop-blur-xl group hover:border-amber-500/40 transition-all duration-500 overflow-hidden relative"
                         >
                             {/* Animated background shine effect */}
                             <div className="absolute inset-0 bg-gradient-to-r from-transparent via-amber-500/5 to-transparent -translate-x-full group-hover:translate-x-full transition-transform duration-1000 ease-in-out" />
 
-                            <div className="relative">
+                            <div className="relative hidden sm:block">
                                 <motion.div
                                     animate={{
                                         scale: [1, 1.15, 1],
@@ -1114,14 +1114,14 @@ const GamePreview = ({ nodes, edges, onClose, gameMetadata, onGameEnd }) => {
                                     }}
                                     className="absolute inset-0 bg-amber-500 blur-xl opacity-20"
                                 />
-                                <div className="relative p-2 bg-amber-500/10 rounded-xl border border-amber-500/20 shadow-inner group-hover:rotate-6 transition-transform duration-300">
-                                    <Star className="w-5 h-5 text-amber-400 fill-amber-400 drop-shadow-[0_0_8px_rgba(245,158,11,0.6)]" />
+                                <div className="relative p-1.5 bg-amber-500/10 rounded-lg border border-amber-500/20 shadow-inner group-hover:rotate-6 transition-transform duration-300">
+                                    <Star className="w-4 h-4 text-amber-400 fill-amber-400 drop-shadow-[0_0_8px_rgba(245,158,11,0.6)]" />
                                 </div>
                             </div>
 
                             <div className="flex flex-col">
-                                <span className="text-[9px] text-amber-500/50 font-black uppercase tracking-[0.3em] leading-none mb-1">Total Score</span>
-                                <div className="flex items-center gap-1.5">
+                                <span className="text-[7px] md:text-[9px] text-amber-500/50 font-black uppercase tracking-[0.2em] md:tracking-[0.3em] leading-none mb-0.5 md:mb-1">Score</span>
+                                <div className="flex items-center gap-1">
                                     <AnimatePresence mode="popLayout">
                                         <motion.span
                                             key={score}
@@ -1129,35 +1129,35 @@ const GamePreview = ({ nodes, edges, onClose, gameMetadata, onGameEnd }) => {
                                             animate={{ y: 0, opacity: 1, filter: 'blur(0px)' }}
                                             exit={{ y: -15, opacity: 0, filter: 'blur(5px)' }}
                                             transition={{ type: "spring", stiffness: 400, damping: 25 }}
-                                            className="text-2xl font-black text-white font-mono tracking-wider drop-shadow-[0_0_10px_rgba(245,158,11,0.3)]"
+                                            className="text-lg md:text-2xl font-black text-white font-mono tracking-wider drop-shadow-[0_0_10px_rgba(245,158,11,0.3)]"
                                         >
                                             {score}
                                         </motion.span>
                                     </AnimatePresence>
-                                    <span className="text-[10px] font-bold text-amber-500/40 self-end mb-1">PTS</span>
+                                    <span className="text-[8px] md:text-[10px] font-bold text-amber-500/40 self-end mb-0.5">PTS</span>
                                 </div>
                             </div>
                         </motion.div>
                     </div>
 
                     {/* Timer Logic - Always Visible & Prominent */}
-                    <div className={`fixed top-2 md:top-4 left-1/2 -translate-x-1/2 px-6 py-2 md:px-8 md:py-3 rounded-xl border-2 shadow-[0_0_20px_rgba(0,0,0,0.5)] z-[120] flex items-center gap-3 backdrop-blur-xl transition-all duration-300 ${timeLeft < 60 || !missionStarted ? 'bg-red-950/90 border-red-500 text-red-500' : 'bg-black/90 border-indigo-500 text-indigo-400'}`}>
-                        <Clock className={`w-5 h-5 md:w-6 md:h-6 ${timeLeft < 60 ? 'animate-pulse' : ''}`} />
+                    <div className={`fixed top-2 left-1/2 -translate-x-1/2 px-4 py-1.5 md:px-8 md:py-3 rounded-xl border-2 shadow-[0_0_20px_rgba(0,0,0,0.5)] z-[120] flex items-center gap-2 md:gap-3 backdrop-blur-xl transition-all duration-300 ${timeLeft < 60 || !missionStarted ? 'bg-red-950/90 border-red-500 text-red-500' : 'bg-black/90 border-indigo-500 text-indigo-400'}`}>
+                        <Clock className={`w-4 h-4 md:w-6 md:h-6 ${timeLeft < 60 ? 'animate-pulse' : ''}`} />
                         <div className="flex flex-col items-center leading-none">
-                            <span className="text-[10px] md:text-xs font-black uppercase tracking-[0.2em] opacity-80 mb-1">
-                                {missionStarted ? "Time Remaining" : "Mission Timer"}
+                            <span className="text-[7px] md:text-xs font-black uppercase tracking-[0.1em] md:tracking-[0.2em] opacity-80 mb-0.5 md:mb-1">
+                                {missionStarted ? "Time" : "Timer"}
                             </span>
-                            <span className="font-mono text-2xl md:text-3xl font-black tracking-widest drop-shadow-lg">
+                            <span className="font-mono text-xl md:text-3xl font-black tracking-widest drop-shadow-lg">
                                 {formatTime(timeLeft)}
                             </span>
                         </div>
                     </div>
                 </div>
-                <div className="flex items-center gap-3">
+                <div className="flex items-center gap-1.5 md:gap-3">
                     {/* Audio Toggle */}
                     {audioSource && (
-                        <Button variant="ghost" size="icon" onClick={() => setIsMuted(!isMuted)} className={isMuted ? "text-red-500" : "text-green-500"}>
-                            {isMuted ? <VolumeX className="w-5 h-5" /> : <Volume2 className="w-5 h-5" />}
+                        <Button variant="ghost" size="icon" onClick={() => setIsMuted(!isMuted)} className={`w-8 h-8 md:w-10 md:h-10 ${isMuted ? "text-red-500" : "text-green-500"}`}>
+                            {isMuted ? <VolumeX className="w-4 h-4 md:w-5 md:h-5" /> : <Volume2 className="w-4 h-4 md:w-5 md:h-5" />}
                         </Button>
                     )}
 
@@ -1168,31 +1168,31 @@ const GamePreview = ({ nodes, edges, onClose, gameMetadata, onGameEnd }) => {
                             variant="secondary"
                             size="sm"
                             onClick={() => setShowEvidenceBoard(true)}
-                            className="bg-zinc-800 border border-zinc-700 text-amber-500 hover:text-amber-400"
+                            className="bg-zinc-800 border border-zinc-700 text-amber-500 hover:text-amber-400 px-2 md:px-3 h-8 md:h-9"
                         >
-                            <LayoutGrid className="w-4 h-4 mr-2" />
-                            Crazy Wall
+                            <LayoutGrid className="w-4 h-4 md:mr-2" />
+                            <span className="hidden md:inline">Crazy Wall</span>
                         </Button>
                     )}
 
                     {missionStarted && (
                         <Button
                             variant="outline"
-                            className="border-red-500/50 text-red-500 hover:bg-red-500/10 hover:text-red-400 uppercase tracking-wider text-xs font-bold"
+                            className="border-red-500/50 text-red-500 hover:bg-red-500/10 hover:text-red-400 uppercase tracking-wider text-[10px] md:text-xs font-bold px-2 md:px-3 h-8 md:h-9"
                             onClick={() => { setShowAccuseModal(true); setAccusationResult(null); }}
                         >
-                            <ShieldAlert className="w-4 h-4 mr-2" />
-                            Identify Culprit
+                            <ShieldAlert className="w-4 h-4 md:mr-2" />
+                            <span className="hidden md:inline">Identify Culprit</span>
                         </Button>
                     )}
-                    <Button variant="ghost" onClick={() => {
+                    <Button variant="ghost" size="icon" className="w-8 h-8 md:w-10 md:h-10" onClick={() => {
                         if (activeModalNode) handleCloseModal();
                         else if (showEvidenceBoard) setShowEvidenceBoard(false);
                         else if (showAccuseModal) setShowAccuseModal(false);
                         else if (zoomedImage) setZoomedImage(null);
                         else onClose();
                     }}>
-                        <X className="w-5 h-5" />
+                        <X className="w-4 h-4 md:w-5 md:h-5" />
                     </Button>
                 </div>
             </div>
@@ -1473,11 +1473,11 @@ const GamePreview = ({ nodes, edges, onClose, gameMetadata, onGameEnd }) => {
                                                             whileTap={item.target ? { scale: 0.99 } : {}}
                                                             onClick={() => item.target && handleOptionClick(item.target)}
                                                             disabled={!item.target}
-                                                            className={`w-full text-left rounded-2xl transition-all duration-500 group relative overflow-hidden flex items-center gap-4 
+                                                            className={`w-full text-left rounded-2xl transition-all duration-500 group relative overflow-hidden flex items-center gap-3 md:gap-4 
                                                             ${!item.target ? 'cursor-not-allowed border border-white/5 opacity-40 p-3' : 'cursor-pointer'}
                                                             ${item.isAction && item.target
-                                                                    ? `${bg} p-3.5 md:p-4 border-t border-white/10 shadow-xl`
-                                                                    : "bg-zinc-950/40 border border-white/5 hover:border-indigo-500/30 hover:bg-zinc-900/60 p-3.5"
+                                                                    ? `${bg} p-3 md:p-4 border-t border-white/10 shadow-xl`
+                                                                    : "bg-zinc-950/40 border border-white/5 hover:border-indigo-500/30 hover:bg-zinc-900/60 p-3"
                                                                 }`}
                                                         >
                                                             {/* Delicate light flare effect on hover */}
@@ -1495,7 +1495,7 @@ const GamePreview = ({ nodes, edges, onClose, gameMetadata, onGameEnd }) => {
                                                                         {actionLabel}
                                                                     </div>
                                                                 )}
-                                                                <div className={`truncate transition-all duration-500 ${item.isAction ? `${color} drop-shadow-md text-lg font-bold uppercase tracking-[0.2em]` : 'text-zinc-400 group-hover:text-white text-base font-bold tracking-tight'}`}>
+                                                                <div className={`truncate transition-all duration-500 ${item.isAction ? `${color} drop-shadow-md text-base md:text-lg font-bold uppercase tracking-[0.15em] md:tracking-[0.2em]` : 'text-zinc-400 group-hover:text-white text-sm md:text-base font-bold tracking-tight'}`}>
                                                                     {title}
                                                                 </div>
                                                             </div>
@@ -1527,7 +1527,7 @@ const GamePreview = ({ nodes, edges, onClose, gameMetadata, onGameEnd }) => {
                             initial={{ scale: 0.9, opacity: 0 }}
                             animate={{ scale: 1, opacity: 1 }}
                             exit={{ scale: 0.9, opacity: 0 }}
-                            className={`bg-zinc-950 border border-zinc-800 p-0 rounded-2xl relative overflow-hidden shadow-2xl shadow-black max-h-[95vh] flex flex-col transition-all duration-500 ${(activeModalNode.type === 'threed' || activeModalNode.type === 'suspect' || activeModalNode.type === 'interrogation') ? 'max-w-6xl w-full h-[85vh]' : 'max-w-3xl w-full'}`}
+                            className={`bg-zinc-950 border border-zinc-800 p-0 rounded-2xl relative overflow-hidden shadow-2xl shadow-black max-h-[95vh] flex flex-col transition-all duration-500 ${(activeModalNode.type === 'threed' || activeModalNode.type === 'suspect' || activeModalNode.type === 'interrogation') ? 'max-w-6xl w-full h-[95vh] md:h-[85vh]' : 'max-w-3xl w-full'}`}
                         >
                             {/* Modal Close Button - Elevated to top priority */}
                             <button
@@ -1548,16 +1548,16 @@ const GamePreview = ({ nodes, edges, onClose, gameMetadata, onGameEnd }) => {
                                 />
                             )}
                             {activeModalNode.type === 'evidence' && (
-                                <div className="p-8 border-t-4 border-yellow-500 bg-zinc-900/50">
-                                    <div className="flex items-center justify-between mb-6">
+                                <div className="p-4 md:p-8 border-t-4 border-yellow-500 bg-zinc-900/50 overflow-y-auto">
+                                    <div className="flex items-center justify-between mb-4 md:mb-6">
                                         <div className="flex items-center gap-3 text-yellow-500">
-                                            <Search className="w-8 h-8" />
-                                            <h2 className="text-2xl font-bold text-white uppercase">Evidence Logged</h2>
+                                            <Search className="w-6 h-6 md:w-8 md:h-8" />
+                                            <h2 className="text-xl md:text-2xl font-bold text-white uppercase">Evidence Logged</h2>
                                         </div>
 
                                     </div>
 
-                                    <Card className="p-8 bg-black border-yellow-900/30 mb-6">
+                                    <Card className="p-4 md:p-8 bg-black border-yellow-900/30 mb-6">
                                         {activeModalNode.data.image && (
                                             <div className="w-full mb-6 rounded-lg overflow-hidden border border-yellow-900/50 shadow-2xl relative group">
                                                 <img src={activeModalNode.data.image} alt="Evidence" className="w-full h-auto object-contain max-h-[400px]" />
@@ -1569,8 +1569,8 @@ const GamePreview = ({ nodes, edges, onClose, gameMetadata, onGameEnd }) => {
                                                 </div>
                                             </div>
                                         )}
-                                        <h3 className="text-2xl font-bold text-yellow-200 mb-4">{activeModalNode.data.label}</h3>
-                                        <p className="text-zinc-300 text-lg leading-relaxed">{activeModalNode.data.description}</p>
+                                        <h3 className="text-xl md:text-2xl font-bold text-yellow-200 mb-4">{activeModalNode.data.label}</h3>
+                                        <p className="text-zinc-300 text-base md:text-lg leading-relaxed">{activeModalNode.data.description}</p>
                                     </Card>
 
                                     <div className="flex justify-end">
