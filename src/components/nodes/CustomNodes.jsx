@@ -1,7 +1,7 @@
 import React, { memo, useState, useRef, useEffect } from 'react';
 import ReactDOM from 'react-dom';
 import { Handle, Position, NodeResizer } from 'reactflow';
-import { FileText, User, Search, GitMerge, Terminal, MessageSquare, Music, Image as ImageIcon, Star, MousePointerClick, Trash2, Plus, Copy, Fingerprint, Bell, HelpCircle, ToggleLeft, Unlock, Binary, Grid3x3, Folder, ChevronDown, ChevronUp, Maximize, X, Save, File, FolderOpen, AlertCircle, Brain, Cpu, Send, Loader2, Check, Filter, ShieldAlert, Box, CheckCircle, Activity, Shield, Hash, Film } from 'lucide-react';
+import { FileText, User, Search, GitMerge, Terminal, MessageSquare, Music, Image as ImageIcon, Star, MousePointerClick, Trash2, Plus, Copy, Fingerprint, Bell, HelpCircle, ToggleLeft, Unlock, Binary, Grid3x3, Folder, ChevronDown, ChevronUp, Maximize, X, Save, File, FolderOpen, AlertCircle, Brain, Cpu, Send, Loader2, Check, Filter, ShieldAlert, Box, CheckCircle, Activity, Shield, Hash, Film, Globe } from 'lucide-react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { storage } from '../../lib/firebase';
 import { ref, uploadBytes, getDownloadURL } from 'firebase/storage';
@@ -2460,6 +2460,84 @@ export const GroupNode = memo(({ id, data, selected }) => {
                     </div>
                 </div>
             </div>
+        </>
+    );
+});
+
+export const DeepWebOSNode = memo(({ id, data, selected }) => {
+    const handleChange = (key, val) => {
+        data.onChange && data.onChange(id, { ...data, [key]: val });
+    };
+
+    return (
+        <>
+            <Handle type="target" position={Position.Top} className="!bg-zinc-500 !w-3 !h-3 !border-2 !border-black" />
+            <NodeWrapper id={id} title="Deep Web Terminal" icon={Globe} selected={selected} headerClass="bg-zinc-950/80 text-emerald-400" colorClass="border-emerald-500/20" data={data} onLabelChange={(v) => handleChange('label', v)}>
+                <div className="space-y-3">
+                    <div className="p-2 bg-emerald-500/5 border border-emerald-500/20 rounded text-center">
+                        <p className="text-[10px] text-emerald-400 font-bold uppercase tracking-wider mb-1">OS Simulation</p>
+                        <p className="text-[10px] text-zinc-500 italic">Collaborative investigation interface</p>
+                    </div>
+
+                    <div>
+                        <p className="text-[10px] text-zinc-500 mb-1">System Header / Website Name</p>
+                        <InputField
+                            placeholder="e.g. SilkRoad 4.0 Archive"
+                            value={data.systemName}
+                            onChange={(e) => handleChange('systemName', e.target.value)}
+                            className="font-bold text-emerald-400/80"
+                        />
+                    </div>
+
+                    <div>
+                        <p className="text-[10px] text-zinc-500 mb-1">Encrypted Content (Clues)</p>
+                        <TextArea
+                            placeholder="Data fragments to be found..."
+                            rows={3}
+                            value={data.content}
+                            onChange={(e) => handleChange('content', e.target.value)}
+                        />
+                    </div>
+
+                    <div className="flex gap-2">
+                        <div className="flex-1">
+                            <p className="text-[10px] text-zinc-500 mb-1">Security Level</p>
+                            <select
+                                className="w-full bg-black border border-zinc-800 rounded px-2 py-1.5 text-[10px] text-zinc-300 focus:border-emerald-500 outline-none"
+                                value={data.securityLevel || 'low'}
+                                onChange={(e) => handleChange('securityLevel', e.target.value)}
+                            >
+                                <option value="low">Unprotected</option>
+                                <option value="medium">Firewall Protected</option>
+                                <option value="high">Neural Encryption</option>
+                            </select>
+                        </div>
+                    </div>
+
+                    <div className="mt-2 p-2 bg-black/40 border border-emerald-900/20 rounded-lg space-y-2">
+                        <div className="flex items-center justify-between">
+                            <p className="text-[9px] font-bold text-emerald-400 uppercase tracking-wider flex items-center gap-1">
+                                <Star className="w-3 h-3" /> Breach Points
+                            </p>
+                            <InputField
+                                type="number"
+                                placeholder="Pts"
+                                value={data.score}
+                                onChange={(e) => handleChange('score', parseInt(e.target.value) || 0)}
+                                className="w-20 text-right bg-emerald-950/30 border-emerald-900/30 text-emerald-200"
+                            />
+                        </div>
+                        <ObjectiveSelector
+                            values={data.learningObjectiveIds}
+                            onChange={(v) => handleChange('learningObjectiveIds', v)}
+                            objectives={data.learningObjectives}
+                        />
+                    </div>
+                </div>
+            </NodeWrapper>
+            {(!data.actions || data.actions.length === 0) && (
+                <Handle type="source" position={Position.Bottom} className="!bg-emerald-500 !w-3 !h-3 !border-2 !border-black" />
+            )}
         </>
     );
 });

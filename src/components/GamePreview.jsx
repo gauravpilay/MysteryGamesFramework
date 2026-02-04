@@ -9,6 +9,7 @@ import ThreeDWorld from './ThreeDWorld';
 import SuspectProfile from './SuspectProfile';
 import CinematicCutscene from './CinematicCutscene';
 import CaseClosedNewsReport from './CaseClosedNewsReport';
+import DeepWebOS from './DeepWebOS';
 import {
     checkLogicCondition as checkLogic,
     evaluateLogic as evalLogic,
@@ -332,6 +333,7 @@ const GamePreview = ({ nodes, edges, onClose, gameMetadata, onGameEnd }) => {
     const [isConfronting, setIsConfronting] = useState(false);
     const [showCutscene, setShowCutscene] = useState(false);
     const [showNewsReport, setShowNewsReport] = useState(false);
+    const [showDeepWeb, setShowDeepWeb] = useState(false);
     const [accusedName, setAccusedName] = useState('');
 
     // Logic/Outputs State
@@ -685,6 +687,9 @@ const GamePreview = ({ nodes, edges, onClose, gameMetadata, onGameEnd }) => {
         } else if (node && node.type === 'cutscene') {
             // Show full-screen cutscene
             setShowCutscene(true);
+            setInventory(prev => new Set([...prev, nodeId, ...intermediateIds]));
+        } else if (node && node.type === 'deepweb') {
+            setShowDeepWeb(true);
             setInventory(prev => new Set([...prev, nodeId, ...intermediateIds]));
         } else if (node && node.type === 'identify') {
             setActiveAccusationNode(node);
@@ -2146,6 +2151,22 @@ const GamePreview = ({ nodes, edges, onClose, gameMetadata, onGameEnd }) => {
                     </div>
                 )}
             </AnimatePresence >
+
+            {/* Deep Web Investigation OS */}
+            <AnimatePresence>
+                {showDeepWeb && currentNode && currentNode.type === 'deepweb' && (
+                    <DeepWebOS
+                        data={currentNode.data}
+                        onComplete={() => {
+                            setShowDeepWeb(false);
+                            // Advance to next node if simple path
+                            if (options.length > 0) {
+                                handleOptionClick(options[0].target);
+                            }
+                        }}
+                    />
+                )}
+            </AnimatePresence>
 
             {/* Cinematic Cutscene */}
             <AnimatePresence>

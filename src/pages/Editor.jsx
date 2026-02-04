@@ -14,8 +14,8 @@ import 'reactflow/dist/style.css';
 import { useParams, useNavigate } from 'react-router-dom';
 import { Button } from '../components/ui/shared';
 import { Logo } from '../components/ui/Logo';
-import { Save, ArrowLeft, X, FileText, User, Search, GitMerge, Terminal, MessageSquare, CircleHelp, Play, Settings, Music, Image as ImageIcon, MousePointerClick, Fingerprint, Bell, HelpCircle, ChevronLeft, ChevronRight, ToggleLeft, Lock, Sun, Moon, Stethoscope, Unlock, Binary, Grid3x3, CheckCircle, AlertTriangle, Plus, Trash2, Target, Box, FolderOpen, Brain, Pencil, Film, Menu } from 'lucide-react';
-import { StoryNode, SuspectNode, EvidenceNode, LogicNode, TerminalNode, MessageNode, MusicNode, MediaNode, ActionNode, IdentifyNode, NotificationNode, QuestionNode, SetterNode, LockpickNode, DecryptionNode, KeypadNode, GroupNode, InputField, InterrogationNode, ThreeDSceneNode, CutsceneNode } from '../components/nodes/CustomNodes';
+import { Save, ArrowLeft, X, FileText, User, Search, GitMerge, Terminal, MessageSquare, CircleHelp, Play, Settings, Music, Image as ImageIcon, MousePointerClick, Fingerprint, Bell, HelpCircle, ChevronLeft, ChevronRight, ToggleLeft, Lock, Sun, Moon, Stethoscope, Unlock, Binary, Grid3x3, CheckCircle, AlertTriangle, Plus, Trash2, Target, Box, FolderOpen, Brain, Pencil, Film, Menu, Globe } from 'lucide-react';
+import { StoryNode, SuspectNode, EvidenceNode, LogicNode, TerminalNode, MessageNode, MusicNode, MediaNode, ActionNode, IdentifyNode, NotificationNode, QuestionNode, SetterNode, LockpickNode, DecryptionNode, KeypadNode, GroupNode, InputField, InterrogationNode, ThreeDSceneNode, CutsceneNode, DeepWebOSNode } from '../components/nodes/CustomNodes';
 import AICaseGeneratorModal from '../components/AICaseGeneratorModalEnhanced';
 import CaseMetadataModal from '../components/CaseMetadataModal';
 function FolderNode(props) {
@@ -126,6 +126,11 @@ const NODE_HELP = {
         title: "Sub-Graph Group",
         desc: "A container for organizing nodes. Collapse it to hide internal logic or dialogue trees.",
         examples: ["Act 1 Scene", "Side Investigation", "Complex Dialogue Tree"]
+    },
+    deepweb: {
+        title: "Deep Web OS",
+        desc: "A full-screen simulated operating system. Use this for collaborative hacking, searching for encrypted data fragments, and interacting with 'Ghost Protocol' via encrypted chat.",
+        examples: ["SilkRoad 4.0 Breach", "Neural Link Investigation", "Dark Web Data Extraction"]
     }
 };
 
@@ -149,6 +154,7 @@ const PALETTE_ITEMS = [
     { type: 'decryption', label: 'Decryption', icon: Binary, className: "hover:border-lime-500/50", iconClass: "text-lime-400" },
     { type: 'keypad', label: 'Keypad Lock', icon: Grid3x3, className: "hover:border-slate-500/50", iconClass: "text-slate-400" },
     { type: 'threed', label: '3D Holodeck', icon: Box, className: "hover:border-cyan-500/50", iconClass: "text-cyan-400" },
+    { type: 'deepweb', label: 'Deep Web OS', icon: Globe, className: "hover:border-emerald-500/50", iconClass: "text-emerald-400" },
 ];
 
 const Editor = () => {
@@ -253,7 +259,8 @@ const Editor = () => {
         decryption: DecryptionNode,
         keypad: KeypadNode,
         group: FolderNode,
-        threed: ThreeDSceneNode
+        threed: ThreeDSceneNode,
+        deepweb: DeepWebOSNode
     }), []);
 
     const [editingEdge, setEditingEdge] = useState(null); // { id: string, label: string }
