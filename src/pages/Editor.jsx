@@ -14,7 +14,7 @@ import 'reactflow/dist/style.css';
 import { useParams, useNavigate } from 'react-router-dom';
 import { Button } from '../components/ui/shared';
 import { Logo } from '../components/ui/Logo';
-import { Save, ArrowLeft, X, FileText, User, Search, GitMerge, Terminal, MessageSquare, CircleHelp, Play, Settings, Music, Image as ImageIcon, MousePointerClick, Fingerprint, Bell, HelpCircle, ChevronLeft, ChevronRight, ToggleLeft, Lock, Sun, Moon, Stethoscope, Unlock, Binary, Grid3x3, CheckCircle, AlertTriangle, Plus, Trash2, Target, Box, FolderOpen, Brain, Pencil, Film } from 'lucide-react';
+import { Save, ArrowLeft, X, FileText, User, Search, GitMerge, Terminal, MessageSquare, CircleHelp, Play, Settings, Music, Image as ImageIcon, MousePointerClick, Fingerprint, Bell, HelpCircle, ChevronLeft, ChevronRight, ToggleLeft, Lock, Sun, Moon, Stethoscope, Unlock, Binary, Grid3x3, CheckCircle, AlertTriangle, Plus, Trash2, Target, Box, FolderOpen, Brain, Pencil, Film, Menu } from 'lucide-react';
 import { StoryNode, SuspectNode, EvidenceNode, LogicNode, TerminalNode, MessageNode, MusicNode, MediaNode, ActionNode, IdentifyNode, NotificationNode, QuestionNode, SetterNode, LockpickNode, DecryptionNode, KeypadNode, GroupNode, InputField, InterrogationNode, ThreeDSceneNode, CutsceneNode } from '../components/nodes/CustomNodes';
 import AICaseGeneratorModal from '../components/AICaseGeneratorModalEnhanced';
 import CaseMetadataModal from '../components/CaseMetadataModal';
@@ -203,6 +203,7 @@ const Editor = () => {
     const [requestFeedback, setRequestFeedback] = useState(null); // 'accepted' | 'declined' | null
     const [isRequesting, setIsRequesting] = useState(false);
     const [showAIGenerator, setShowAIGenerator] = useState(false);
+    const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false);
 
     const tutorialSteps = [
         {
@@ -1166,115 +1167,240 @@ const Editor = () => {
                     )}
                 </div>
                 <div id="editor-actions" className="flex items-center gap-1 md:gap-3">
-                    {/* Node Search Mechanism */}
-                    <div className="relative md:mr-4 min-w-[40px] md:min-w-[240px] node-search-container">
-                        <div className={`flex items-center gap-2 px-2 md:px-3 py-1.5 rounded-xl border transition-all ${isDarkMode ? 'bg-black/60 border-white/10 focus-within:border-indigo-500/50 shadow-inner' : 'bg-zinc-100 border-zinc-200 focus-within:border-indigo-500'}`}>
-                            <Search className="w-3.5 h-3.5 md:w-4 md:h-4 text-zinc-500" />
-                            <input
-                                placeholder="Jump..."
-                                className={`bg-transparent border-none outline-none text-[10px] md:text-xs w-full ${isDarkMode ? 'text-zinc-200' : 'text-zinc-800'}`}
-                                value={searchQuery}
-                                onChange={(e) => {
-                                    setSearchQuery(e.target.value);
-                                    setIsSearchOpen(true);
-                                }}
-                                onFocus={() => setIsSearchOpen(true)}
-                            />
-                            {searchQuery && (
-                                <button onClick={() => setSearchQuery("")} className="p-0.5 hover:bg-white/10 rounded-full">
-                                    <X className="w-3 h-3 text-zinc-500" />
-                                </button>
-                            )}
+                    {/* Desktop Actions */}
+                    <div className="hidden lg:flex items-center gap-3">
+                        {/* Node Search Mechanism */}
+                        <div className="relative md:mr-4 min-w-[240px] node-search-container">
+                            <div className={`flex items-center gap-2 px-3 py-1.5 rounded-xl border transition-all ${isDarkMode ? 'bg-black/60 border-white/10 focus-within:border-indigo-500/50 shadow-inner' : 'bg-zinc-100 border-zinc-200 focus-within:border-indigo-500'}`}>
+                                <Search className="w-4 h-4 text-zinc-500" />
+                                <input
+                                    placeholder="Jump..."
+                                    className={`bg-transparent border-none outline-none text-xs w-full ${isDarkMode ? 'text-zinc-200' : 'text-zinc-800'}`}
+                                    value={searchQuery}
+                                    onChange={(e) => {
+                                        setSearchQuery(e.target.value);
+                                        setIsSearchOpen(true);
+                                    }}
+                                    onFocus={() => setIsSearchOpen(true)}
+                                />
+                                {searchQuery && (
+                                    <button onClick={() => setSearchQuery("")} className="p-0.5 hover:bg-white/10 rounded-full">
+                                        <X className="w-3 h-3 text-zinc-500" />
+                                    </button>
+                                )}
+                            </div>
+
+                            <AnimatePresence>
+                                {isSearchOpen && searchQuery && (
+                                    <motion.div
+                                        initial={{ opacity: 0, scale: 0.95, y: 10 }}
+                                        animate={{ opacity: 1, scale: 1, y: 0 }}
+                                        exit={{ opacity: 0, scale: 0.95, y: 10 }}
+                                        className={`absolute top-full right-0 mt-2 w-72 rounded-2xl border shadow-[0_20px_50px_rgba(0,0,0,0.5)] z-[100] overflow-hidden backdrop-blur-xl ${isDarkMode ? 'bg-zinc-950/90 border-white/10' : 'bg-white border-zinc-200'}`}
+                                    >
+                                        <div className="max-h-80 overflow-y-auto scrollbar-hide">
+                                            {filteredNodes.length > 0 ? (
+                                                filteredNodes.map(node => (
+                                                    <button
+                                                        key={node.id}
+                                                        onClick={() => navigateToNode(node)}
+                                                        className={`w-full flex items-center gap-3 px-4 py-3 text-left transition-all ${isDarkMode ? 'hover:bg-indigo-500/10 border-b border-white/5 last:border-none' : 'hover:bg-indigo-50 border-b border-zinc-100 last:border-none'}`}
+                                                    >
+                                                        <div className={`p-2 rounded-lg ${isDarkMode ? 'bg-zinc-900 border border-white/10 text-indigo-400' : 'bg-indigo-50 text-indigo-600'}`}>
+                                                            <Target className="w-4 h-4" />
+                                                        </div>
+                                                        <div className="flex flex-col min-w-0">
+                                                            <span className={`text-[11px] font-black uppercase tracking-tight truncate ${isDarkMode ? 'text-zinc-200' : 'text-zinc-800'}`}>
+                                                                {node.data?.label || 'Untitled Node'}
+                                                            </span>
+                                                            <span className="text-[9px] text-zinc-500 font-bold uppercase tracking-widest mt-0.5">{node.type}</span>
+                                                        </div>
+                                                    </button>
+                                                ))
+                                            ) : (
+                                                <div className="px-4 py-8 text-center">
+                                                    <div className="inline-flex p-3 rounded-full bg-zinc-900 mb-3">
+                                                        <Search className="w-5 h-5 text-zinc-700" />
+                                                    </div>
+                                                    <p className="text-zinc-500 text-[10px] font-bold uppercase tracking-widest">No matching nodes</p>
+                                                </div>
+                                            )}
+                                        </div>
+                                    </motion.div>
+                                )}
+                            </AnimatePresence>
                         </div>
 
-                        <AnimatePresence>
-                            {isSearchOpen && searchQuery && (
-                                <motion.div
-                                    initial={{ opacity: 0, scale: 0.95, y: 10 }}
-                                    animate={{ opacity: 1, scale: 1, y: 0 }}
-                                    exit={{ opacity: 0, scale: 0.95, y: 10 }}
-                                    className={`absolute top-full right-0 mt-2 w-72 rounded-2xl border shadow-[0_20px_50px_rgba(0,0,0,0.5)] z-[100] overflow-hidden backdrop-blur-xl ${isDarkMode ? 'bg-zinc-950/90 border-white/10' : 'bg-white border-zinc-200'}`}
-                                >
-                                    <div className="max-h-80 overflow-y-auto scrollbar-hide">
-                                        {filteredNodes.length > 0 ? (
-                                            filteredNodes.map(node => (
-                                                <button
-                                                    key={node.id}
-                                                    onClick={() => navigateToNode(node)}
-                                                    className={`w-full flex items-center gap-3 px-4 py-3 text-left transition-all ${isDarkMode ? 'hover:bg-indigo-500/10 border-b border-white/5 last:border-none' : 'hover:bg-indigo-50 border-b border-zinc-100 last:border-none'}`}
-                                                >
-                                                    <div className={`p-2 rounded-lg ${isDarkMode ? 'bg-zinc-900 border border-white/10 text-indigo-400' : 'bg-indigo-50 text-indigo-600'}`}>
-                                                        <Target className="w-4 h-4" />
-                                                    </div>
-                                                    <div className="flex flex-col min-w-0">
-                                                        <span className={`text-[11px] font-black uppercase tracking-tight truncate ${isDarkMode ? 'text-zinc-200' : 'text-zinc-800'}`}>
-                                                            {node.data?.label || 'Untitled Node'}
-                                                        </span>
-                                                        <span className="text-[9px] text-zinc-500 font-bold uppercase tracking-widest mt-0.5">{node.type}</span>
-                                                    </div>
-                                                </button>
-                                            ))
-                                        ) : (
-                                            <div className="px-4 py-8 text-center">
-                                                <div className="inline-flex p-3 rounded-full bg-zinc-900 mb-3">
-                                                    <Search className="w-5 h-5 text-zinc-700" />
-                                                </div>
-                                                <p className="text-zinc-500 text-[10px] font-bold uppercase tracking-widest">No matching nodes</p>
-                                            </div>
-                                        )}
-                                    </div>
-                                </motion.div>
+                        <div className={`flex items-center gap-1 p-1 rounded-lg border ${isDarkMode ? 'bg-black/40 border-white/5' : 'bg-zinc-100 border-zinc-200'}`}>
+                            <Button variant="ghost" size="icon" onClick={() => setIsDarkMode(!isDarkMode)} title={isDarkMode ? "Switch to Light Mode" : "Switch to Dark Mode"} className="h-8 w-8">
+                                {isDarkMode ? <Sun className="w-4 h-4 text-amber-300" /> : <Moon className="w-4 h-4 text-indigo-600" />}
+                            </Button>
+                            <div className="w-px h-4 bg-white/10"></div>
+                            <Button variant="ghost" size="icon" onClick={() => setShowTutorial(true)} title="How to use" className="h-8 w-8">
+                                <CircleHelp className={`w-4 h-4 ${isDarkMode ? 'text-indigo-400' : 'text-indigo-600'}`} />
+                            </Button>
+                            <Button variant="ghost" size="icon" onClick={validateGraph} title="Validate Graph Health" className="h-8 w-8">
+                                <Stethoscope className={`w-4 h-4 ${isDarkMode ? 'text-emerald-400' : 'text-emerald-600'}`} />
+                            </Button>
+                            {settings.enableAIBuild !== false && (
+                                <div className="flex items-center">
+                                    <div className="w-px h-4 bg-white/10"></div>
+                                    <Button
+                                        variant="ghost"
+                                        size="sm"
+                                        onClick={() => setShowAIGenerator(true)}
+                                        title="AI Auto-Generate Case"
+                                        disabled={isLocked}
+                                        className={`h-8 px-3 gap-2 border border-dashed ${isDarkMode ? 'border-indigo-500/30 text-indigo-400 hover:bg-indigo-500/10' : 'border-indigo-300 text-indigo-600 hover:bg-indigo-50'}`}
+                                    >
+                                        <Brain className="w-4 h-4" />
+                                        <span className="text-[10px] font-black uppercase tracking-widest">AI Build</span>
+                                    </Button>
+                                </div>
                             )}
-                        </AnimatePresence>
+                            <div className="w-px h-4 bg-white/10"></div>
+                            <Button variant="ghost" size="icon" onClick={() => setShowSettings(true)} title="Game Settings" disabled={isLocked} className="h-8 w-8">
+                                <Settings className={`w-4 h-4 ${isDarkMode ? 'text-zinc-400' : 'text-zinc-600'}`} />
+                            </Button>
+                        </div>
+
+                        <Button id="save-btn" variant="secondary" size="sm" onClick={saveProject} disabled={isLocked} className="font-medium h-9">
+                            <Save className="w-4 h-4 mr-2" />
+                            <span>Save</span>
+                        </Button>
+                        <Button
+                            size="sm"
+                            onClick={() => { saveProject(); setShowPreview(true); }}
+                            className="bg-indigo-600 hover:bg-indigo-500 text-white shadow-[0_0_15px_rgba(79,70,229,0.4)] border-none font-bold tracking-wide h-9"
+                        >
+                            <Play className="w-4 h-4 mr-2" />
+                            <span>Preview</span>
+                        </Button>
                     </div>
 
-                    <div className={`flex items-center gap-0.5 md:gap-1 p-1 rounded-lg border ${isDarkMode ? 'bg-black/40 border-white/5' : 'bg-zinc-100 border-zinc-200'}`}>
-                        <Button variant="ghost" size="icon" onClick={() => setIsDarkMode(!isDarkMode)} title={isDarkMode ? "Switch to Light Mode" : "Switch to Dark Mode"} className="h-7 w-7 md:h-8 md:w-8">
-                            {isDarkMode ? <Sun className="w-3.5 h-3.5 md:w-4 md:h-4 text-amber-300" /> : <Moon className="w-3.5 h-3.5 md:w-4 md:h-4 text-indigo-600" />}
+                    {/* Mobile Hamburger Button */}
+                    <div className="lg:hidden flex items-center gap-2">
+                        <Button
+                            size="sm"
+                            onClick={() => { saveProject(); setShowPreview(true); }}
+                            className="bg-indigo-600 hover:bg-indigo-500 text-white shadow-[0_0_10px_rgba(79,70,229,0.3)] border-none font-bold h-9 px-3"
+                        >
+                            <Play className="w-4 h-4" />
                         </Button>
-                        <div className={`hidden xs:block w-px h-4 ${isDarkMode ? 'bg-white/10' : 'bg-zinc-300'}`}></div>
-                        <Button variant="ghost" size="icon" onClick={() => setShowTutorial(true)} title="How to use" className="h-7 w-7 md:h-8 md:w-8 hidden xs:flex">
-                            <CircleHelp className={`w-3.5 h-3.5 md:w-4 md:h-4 ${isDarkMode ? 'text-indigo-400' : 'text-indigo-600'}`} />
+                        <Button
+                            variant="ghost"
+                            size="icon"
+                            onClick={() => setIsMobileMenuOpen(!isMobileMenuOpen)}
+                            className={`h-9 w-9 rounded-xl border ${isDarkMode ? 'bg-white/5 border-white/10 text-white' : 'bg-black/5 border-black/10 text-black'}`}
+                        >
+                            {isMobileMenuOpen ? <X className="w-5 h-5" /> : <Menu className="w-5 h-5" />}
                         </Button>
-                        <Button variant="ghost" size="icon" onClick={validateGraph} title="Validate Graph Health" className="h-7 w-7 md:h-8 md:w-8">
-                            <Stethoscope className={`w-3.5 h-3.5 md:w-4 md:h-4 ${isDarkMode ? 'text-emerald-400' : 'text-emerald-600'}`} />
-                        </Button>
-                        {settings.enableAIBuild !== false && (
-                            <div className="hidden sm:flex items-center">
-                                <div className={`w-px h-4 ${isDarkMode ? 'bg-white/10' : 'bg-zinc-300'}`}></div>
-                                <Button
-                                    variant="ghost"
-                                    size="sm"
-                                    onClick={() => setShowAIGenerator(true)}
-                                    title="AI Auto-Generate Case"
-                                    disabled={isLocked}
-                                    className={`h-8 px-2 md:px-3 gap-2 border border-dashed ${isDarkMode ? 'border-indigo-500/30 text-indigo-400 hover:bg-indigo-500/10' : 'border-indigo-300 text-indigo-600 hover:bg-indigo-50'}`}
-                                >
-                                    <Brain className="w-4 h-4" />
-                                    <span className="text-[10px] font-black uppercase tracking-widest hidden lg:inline">AI Build</span>
-                                </Button>
-                            </div>
+                    </div>
+
+                    {/* Mobile Menu Dropdown */}
+                    <AnimatePresence mode="wait">
+                        {isMobileMenuOpen && (
+                            <motion.div
+                                initial={{ opacity: 0, y: -20, scale: 0.95 }}
+                                animate={{ opacity: 1, y: 0, scale: 1 }}
+                                exit={{ opacity: 0, y: -20, scale: 0.95 }}
+                                className={`absolute top-full right-4 left-4 mt-2 p-4 rounded-3xl border shadow-[0_20px_60px_rgba(0,0,0,0.5)] z-[100] backdrop-blur-xl ${isDarkMode ? 'bg-zinc-900/98 border-white/10' : 'bg-white/98 border-zinc-200'}`}
+                            >
+                                <div className="grid grid-cols-2 gap-3">
+                                    <Button
+                                        variant="ghost"
+                                        className={`justify-start gap-3 h-12 rounded-2xl ${isDarkMode ? 'bg-white/5 text-zinc-300' : 'bg-zinc-100 text-zinc-700'}`}
+                                        onClick={() => { setIsDarkMode(!isDarkMode); setIsMobileMenuOpen(false); }}
+                                    >
+                                        {isDarkMode ? <Sun className="w-5 h-5 text-amber-300" /> : <Moon className="w-5 h-5 text-indigo-600" />}
+                                        <span className="text-[10px] font-black uppercase tracking-wider">Appearance</span>
+                                    </Button>
+                                    <Button
+                                        variant="ghost"
+                                        className={`justify-start gap-3 h-12 rounded-2xl ${isDarkMode ? 'bg-white/5 text-zinc-300' : 'bg-zinc-100 text-zinc-700'}`}
+                                        onClick={() => { saveProject(); setIsMobileMenuOpen(false); }}
+                                        disabled={isLocked}
+                                    >
+                                        <Save className="w-5 h-5 text-emerald-400" />
+                                        <span className="text-[10px] font-black uppercase tracking-wider">Save Case</span>
+                                    </Button>
+                                    <Button
+                                        variant="ghost"
+                                        className={`justify-start gap-3 h-12 rounded-2xl ${isDarkMode ? 'bg-white/5 text-zinc-300' : 'bg-zinc-100 text-zinc-700'}`}
+                                        onClick={() => { setShowAIGenerator(true); setIsMobileMenuOpen(false); }}
+                                        disabled={isLocked}
+                                    >
+                                        <Brain className="w-5 h-5 text-indigo-400" />
+                                        <span className="text-[10px] font-black uppercase tracking-wider">AI Build</span>
+                                    </Button>
+                                    <Button
+                                        variant="ghost"
+                                        className={`justify-start gap-3 h-12 rounded-2xl ${isDarkMode ? 'bg-white/5 text-zinc-300' : 'bg-zinc-100 text-zinc-700'}`}
+                                        onClick={() => { validateGraph(); setIsMobileMenuOpen(false); }}
+                                    >
+                                        <Stethoscope className="w-5 h-5 text-emerald-500" />
+                                        <span className="text-[10px] font-black uppercase tracking-wider">Validate</span>
+                                    </Button>
+                                    <Button
+                                        variant="ghost"
+                                        className={`justify-start gap-3 h-12 rounded-2xl ${isDarkMode ? 'bg-white/5 text-zinc-300' : 'bg-zinc-100 text-zinc-700'}`}
+                                        onClick={() => { setShowSettings(true); setIsMobileMenuOpen(false); }}
+                                        disabled={isLocked}
+                                    >
+                                        <Settings className="w-5 h-5 text-zinc-400" />
+                                        <span className="text-[10px] font-black uppercase tracking-wider">Settings</span>
+                                    </Button>
+                                    <Button
+                                        variant="ghost"
+                                        className={`justify-start gap-3 h-12 rounded-2xl ${isDarkMode ? 'bg-white/5 text-zinc-300' : 'bg-zinc-100 text-zinc-700'}`}
+                                        onClick={() => { setShowTutorial(true); setIsMobileMenuOpen(false); }}
+                                    >
+                                        <HelpCircle className="w-5 h-5 text-indigo-500" />
+                                        <span className="text-[10px] font-black uppercase tracking-wider">Tutorial</span>
+                                    </Button>
+                                </div>
+
+                                <div className="mt-4 pt-4 border-t border-white/5">
+                                    <div className={`flex items-center gap-3 px-3 py-2.5 rounded-2xl border ${isDarkMode ? 'bg-black/60 border-white/10 shadow-inner' : 'bg-zinc-100 border-zinc-200'}`}>
+                                        <Search className="w-4 h-4 text-zinc-500" />
+                                        <input
+                                            placeholder="Search nodes..."
+                                            className={`bg-transparent border-none outline-none text-xs w-full ${isDarkMode ? 'text-zinc-200' : 'text-zinc-800'}`}
+                                            value={searchQuery}
+                                            onChange={(e) => {
+                                                setSearchQuery(e.target.value);
+                                                setIsSearchOpen(true);
+                                            }}
+                                            onFocus={() => setIsSearchOpen(true)}
+                                        />
+                                    </div>
+                                    <AnimatePresence>
+                                        {isSearchOpen && searchQuery && (
+                                            <motion.div
+                                                initial={{ opacity: 0, height: 0 }}
+                                                animate={{ opacity: 1, height: 'auto' }}
+                                                exit={{ opacity: 0, height: 0 }}
+                                                className="overflow-hidden mt-2 max-h-48 overflow-y-auto custom-scrollbar"
+                                            >
+                                                {filteredNodes.map(node => (
+                                                    <button
+                                                        key={node.id}
+                                                        onClick={() => { navigateToNode(node); setIsMobileMenuOpen(false); }}
+                                                        className={`w-full flex items-center gap-3 px-3 py-2.5 text-left hover:bg-white/5 rounded-xl transition-all`}
+                                                    >
+                                                        <Target className="w-4 h-4 text-indigo-400" />
+                                                        <span className="text-xs font-bold text-zinc-300 truncate">{node.data?.label || 'Untitled Node'}</span>
+                                                    </button>
+                                                ))}
+                                            </motion.div>
+                                        )}
+                                    </AnimatePresence>
+                                </div>
+                            </motion.div>
                         )}
-                        <div className={`w-px h-4 ${isDarkMode ? 'bg-white/10' : 'bg-zinc-300'}`}></div>
-                        <Button variant="ghost" size="icon" onClick={() => setShowSettings(true)} title="Game Settings" disabled={isLocked} className="h-7 w-7 md:h-8 md:w-8">
-                            <Settings className={`w-3.5 h-3.5 md:w-4 md:h-4 ${isDarkMode ? 'text-zinc-400' : 'text-zinc-600'}`} />
-                        </Button>
-                    </div>
-
-                    <Button id="save-btn" variant="secondary" size="sm" onClick={saveProject} disabled={isLocked} className="font-medium h-8 md:h-9">
-                        <Save className="w-3.5 h-3.5 md:w-4 md:h-4 md:mr-2" />
-                        <span className="hidden sm:inline">Save</span>
-                    </Button>
-                    <Button
-                        size="sm"
-                        onClick={() => { saveProject(); setShowPreview(true); }}
-                        className="bg-indigo-600 hover:bg-indigo-500 text-white shadow-[0_0_15px_rgba(79,70,229,0.4)] border-none font-bold tracking-wide h-8 md:h-9"
-                    >
-                        <Play className="w-3.5 h-3.5 md:w-4 md:h-4 md:mr-2" />
-                        <span className="hidden sm:inline">Preview</span>
-                    </Button>
-
+                    </AnimatePresence>
                 </div>
+
             </header>
 
             <div className="flex flex-1 overflow-hidden relative z-10">
