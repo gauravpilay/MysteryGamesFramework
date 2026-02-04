@@ -1,6 +1,6 @@
 import React, { useState, useEffect, useMemo, useRef } from 'react';
 import { Button, Card } from './ui/shared';
-import { X, User, Search, Terminal, MessageSquare, FileText, ArrowRight, ShieldAlert, CheckCircle, AlertTriangle, Volume2, VolumeX, Image as ImageIcon, Briefcase, Star, MousePointerClick, Bell, HelpCircle, Clock, ZoomIn, LayoutGrid, ChevronRight, Fingerprint, Cpu, Activity, Shield, Hash, Box as BoxIcon } from 'lucide-react';
+import { X, User, Search, Terminal, MessageSquare, FileText, ArrowRight, ShieldAlert, CheckCircle, AlertTriangle, Volume2, VolumeX, Image as ImageIcon, Briefcase, Star, MousePointerClick, Bell, HelpCircle, Clock, ZoomIn, LayoutGrid, ChevronRight, Fingerprint, Cpu, Activity, Shield, Hash, Box as BoxIcon, Radio } from 'lucide-react';
 import { motion, AnimatePresence } from 'framer-motion';
 import EvidenceBoard from './EvidenceBoard';
 import AdvancedTerminal from './AdvancedTerminal';
@@ -8,6 +8,7 @@ import AIInterrogation from './AIInterrogation';
 import ThreeDWorld from './ThreeDWorld';
 import SuspectProfile from './SuspectProfile';
 import CinematicCutscene from './CinematicCutscene';
+import CaseClosedNewsReport from './CaseClosedNewsReport';
 import {
     checkLogicCondition as checkLogic,
     evaluateLogic as evalLogic,
@@ -330,6 +331,8 @@ const GamePreview = ({ nodes, edges, onClose, gameMetadata, onGameEnd }) => {
     const [boardNotes, setBoardNotes] = useState([]);
     const [isConfronting, setIsConfronting] = useState(false);
     const [showCutscene, setShowCutscene] = useState(false);
+    const [showNewsReport, setShowNewsReport] = useState(false);
+    const [accusedName, setAccusedName] = useState('');
 
     // Logic/Outputs State
     const [nodeOutputs, setNodeOutputs] = useState({});
@@ -746,6 +749,7 @@ const GamePreview = ({ nodes, edges, onClose, gameMetadata, onGameEnd }) => {
     };
 
     const handleAccuse = (suspect) => {
+        setAccusedName(suspect.data.name || 'Unknown');
         // Logic to check if correct.
         let isCorrect = false;
 
@@ -2044,12 +2048,21 @@ const GamePreview = ({ nodes, edges, onClose, gameMetadata, onGameEnd }) => {
                                                 <p className="text-zinc-200 text-sm leading-relaxed whitespace-pre-wrap">{activeAccusationNode.data.reasoning}</p>
                                             </div>
                                         )}
-                                        <Button
-                                            className="mt-8 bg-white text-black hover:bg-zinc-200"
-                                            onClick={handleFinish}
-                                        >
-                                            Return to Headquarters
-                                        </Button>
+                                        <div className="flex flex-col sm:flex-row gap-4 mt-8">
+                                            <Button
+                                                className="bg-indigo-600 hover:bg-indigo-500 text-white font-black uppercase tracking-wider h-14 px-8 shadow-xl"
+                                                onClick={() => setShowNewsReport(true)}
+                                            >
+                                                <Radio className="w-5 h-5 mr-3 animate-pulse" />
+                                                View Live News Report
+                                            </Button>
+                                            <Button
+                                                className="bg-white text-black hover:bg-zinc-200 h-14 px-8 font-bold"
+                                                onClick={handleFinish}
+                                            >
+                                                Return to Headquarters
+                                            </Button>
+                                        </div>
                                     </div>
                                 )}
 
@@ -2069,16 +2082,24 @@ const GamePreview = ({ nodes, edges, onClose, gameMetadata, onGameEnd }) => {
                                             objectives={gameMetadata?.learningObjectives || []}
                                         />
 
-                                        <div className="flex gap-4 mt-8">
+                                        <div className="flex flex-col sm:flex-row gap-4 mt-8">
+                                            <Button
+                                                className="bg-indigo-600 hover:bg-indigo-500 text-white font-black uppercase tracking-wider h-14 px-8"
+                                                onClick={() => setShowNewsReport(true)}
+                                            >
+                                                <Radio className="w-5 h-5 mr-3" />
+                                                View Final Report
+                                            </Button>
                                             <Button
                                                 variant="outline"
-                                                className="border-zinc-700 hover:bg-zinc-800"
+                                                className="border-zinc-700 hover:bg-zinc-800 h-14"
                                                 onClick={() => setAccusationResult(null)}
                                             >
-                                                Review Evidence Again
+                                                Review Evidence
                                             </Button>
                                             <Button
                                                 variant="destructive"
+                                                className="h-14"
                                                 onClick={handleFinish}
                                             >
                                                 Accept Failure
@@ -2103,12 +2124,21 @@ const GamePreview = ({ nodes, edges, onClose, gameMetadata, onGameEnd }) => {
                                             objectives={gameMetadata?.learningObjectives || []}
                                         />
 
-                                        <Button
-                                            className="mt-8 bg-white text-black hover:bg-zinc-200"
-                                            onClick={handleFinish}
-                                        >
-                                            Abort Mission
-                                        </Button>
+                                        <div className="flex flex-col sm:flex-row gap-4 mt-8">
+                                            <Button
+                                                className="bg-indigo-600 hover:bg-indigo-500 text-white font-black uppercase tracking-wider h-14 px-8"
+                                                onClick={() => setShowNewsReport(true)}
+                                            >
+                                                <Radio className="w-5 h-5 mr-3" />
+                                                View News Archive
+                                            </Button>
+                                            <Button
+                                                className="bg-white text-black hover:bg-zinc-200 h-14 px-8"
+                                                onClick={handleFinish}
+                                            >
+                                                Abort Mission
+                                            </Button>
+                                        </div>
                                     </div>
                                 )}
                             </div>
@@ -2138,6 +2168,24 @@ const GamePreview = ({ nodes, edges, onClose, gameMetadata, onGameEnd }) => {
                         }}
                         autoPlay={true}
                         showControls={true}
+                    />
+                )}
+            </AnimatePresence>
+
+            {/* News Report Overlay */}
+            <AnimatePresence>
+                {showNewsReport && (
+                    <CaseClosedNewsReport
+                        gameMetadata={gameMetadata}
+                        logs={logs}
+                        score={score}
+                        accusationResult={accusationResult}
+                        culpritName={accusedName}
+                        objectiveScores={playerObjectiveScores}
+                        onClose={() => {
+                            setShowNewsReport(false);
+                            handleFinish();
+                        }}
                     />
                 )}
             </AnimatePresence>
