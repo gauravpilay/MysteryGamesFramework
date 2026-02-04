@@ -960,15 +960,15 @@ const VFSEditorModal = ({ vfs, onChange, onClose }) => {
                 </div>
 
                 {/* Content */}
-                <div className="flex-1 overflow-y-auto p-8 space-y-4 font-sans">
+                <div className="flex-1 overflow-y-auto p-4 md:p-8 space-y-4 font-sans">
                     {entries.map((entry) => (
-                        <div key={entry.id} className="group relative bg-white/5 border border-white/5 rounded-2xl p-4 flex gap-4 items-start hover:bg-white/[0.07] hover:border-green-500/30 transition-all">
+                        <div key={entry.id} className="group relative bg-white/5 border border-white/5 rounded-2xl p-3 md:p-4 flex flex-col md:flex-row gap-3 md:gap-4 items-start hover:bg-white/[0.07] hover:border-green-500/30 transition-all">
                             <div className="pt-1">
                                 {entry.type === 'dir' ? <Folder className="w-5 h-5 text-indigo-400" /> : <FileText className="w-5 h-5 text-green-400" />}
                             </div>
 
-                            <div className="flex-1 grid grid-cols-12 gap-4">
-                                <div className="col-span-4">
+                            <div className="flex-1 w-full grid grid-cols-1 md:grid-cols-12 gap-3 md:gap-4">
+                                <div className="md:col-span-4">
                                     <p className="text-[9px] text-zinc-500 uppercase font-bold mb-1 ml-1 tracking-widest">Virtual Path</p>
                                     <InputField
                                         value={entry.path}
@@ -977,7 +977,7 @@ const VFSEditorModal = ({ vfs, onChange, onClose }) => {
                                         placeholder="/home/user/secret.txt"
                                     />
                                 </div>
-                                <div className="col-span-2">
+                                <div className="md:col-span-2">
                                     <p className="text-[9px] text-zinc-500 uppercase font-bold mb-1 ml-1 tracking-widest">Type</p>
                                     <select
                                         className="w-full bg-black border border-zinc-800 rounded-lg px-2 py-1.5 text-xs text-zinc-300 outline-none focus:border-green-500 cursor-pointer"
@@ -988,7 +988,7 @@ const VFSEditorModal = ({ vfs, onChange, onClose }) => {
                                         <option value="dir">FOLDER</option>
                                     </select>
                                 </div>
-                                <div className="col-span-6">
+                                <div className="md:col-span-6">
                                     {entry.type === 'file' ? (
                                         <>
                                             <p className="text-[9px] text-zinc-500 uppercase font-bold mb-1 ml-1 tracking-widest">Contents</p>
@@ -1001,7 +1001,7 @@ const VFSEditorModal = ({ vfs, onChange, onClose }) => {
                                             />
                                         </>
                                     ) : (
-                                        <div className="h-full flex items-center pt-5">
+                                        <div className="h-full flex items-center pt-1 md:pt-5">
                                             <p className="text-[9px] text-zinc-700 font-bold uppercase tracking-widest italic">Virtual Directory Node</p>
                                         </div>
                                     )}
@@ -1010,7 +1010,7 @@ const VFSEditorModal = ({ vfs, onChange, onClose }) => {
 
                             <button
                                 onClick={() => removeEntry(entry.id)}
-                                className="mt-5 p-2 text-zinc-600 hover:text-red-500 hover:bg-red-500/10 rounded-lg transition-all opacity-0 group-hover:opacity-100"
+                                className="self-end md:mt-5 p-2 text-zinc-600 hover:text-red-500 hover:bg-red-500/10 rounded-lg transition-all md:opacity-0 md:group-hover:opacity-100"
                                 title="Delete Entry"
                             >
                                 <Trash2 className="w-4 h-4" />
@@ -2183,65 +2183,65 @@ const ObjectiveModal = ({ isOpen, onClose, values, onChange, objectives }) => {
     })).filter(cat => cat.objectives.length > 0);
 
     return ReactDOM.createPortal(
-        <div className="fixed inset-0 z-[2000] flex items-center justify-center p-4 md:p-6 bg-black/90 backdrop-blur-xl">
+        <div className="fixed inset-0 z-[2000] flex items-center justify-center p-2 md:p-6 bg-black/95 md:bg-black/90 backdrop-blur-xl">
             <motion.div
                 initial={{ opacity: 0, scale: 0.9, y: 30 }}
                 animate={{ opacity: 1, scale: 1, y: 0 }}
                 exit={{ opacity: 0, scale: 0.9, y: 30 }}
-                className="bg-zinc-950 border border-white/10 rounded-[2.5rem] w-full max-w-5xl h-[85vh] overflow-hidden flex flex-col shadow-[0_0_100px_rgba(79,70,229,0.15)] relative"
+                className="bg-zinc-950 border border-white/10 rounded-2xl md:rounded-[2.5rem] w-full max-w-5xl h-[95vh] md:h-[85vh] overflow-hidden flex flex-col shadow-[0_0_100px_rgba(79,70,229,0.15)] relative"
             >
-                {/* Decorative gradients */}
-                <div className="absolute top-0 right-0 w-[500px] h-[500px] bg-indigo-500/10 blur-[120px] rounded-full -mr-64 -mt-64 pointer-events-none" />
-                <div className="absolute bottom-0 left-0 w-[500px] h-[500px] bg-purple-500/10 blur-[120px] rounded-full -ml-64 -mb-64 pointer-events-none" />
+                {/* Decorative gradients - hidden on small screens */}
+                <div className="hidden md:block absolute top-0 right-0 w-[500px] h-[500px] bg-indigo-500/10 blur-[120px] rounded-full -mr-64 -mt-64 pointer-events-none" />
+                <div className="hidden md:block absolute bottom-0 left-0 w-[500px] h-[500px] bg-purple-500/10 blur-[120px] rounded-full -ml-64 -mb-64 pointer-events-none" />
 
                 {/* Header */}
-                <div className="px-10 py-8 border-b border-white/5 flex items-center justify-between bg-zinc-900/40 relative z-10">
-                    <div className="flex items-center gap-5">
-                        <div className="p-4 rounded-2xl bg-gradient-to-br from-indigo-500 to-purple-600 shadow-lg shadow-indigo-500/20">
-                            <Star className="w-7 h-7 text-white" />
+                <div className="px-4 md:px-10 py-5 md:py-8 border-b border-white/5 flex items-center justify-between bg-zinc-900/40 relative z-10">
+                    <div className="flex items-center gap-3 md:gap-5 min-w-0">
+                        <div className="p-2 md:p-4 rounded-xl md:rounded-2xl bg-gradient-to-br from-indigo-500 to-purple-600 shadow-lg shadow-indigo-500/20 flex-shrink-0">
+                            <Star className="w-5 h-5 md:w-7 md:h-7 text-white" />
                         </div>
-                        <div>
-                            <h3 className="text-2xl font-black text-white uppercase tracking-tighter flex items-center gap-3">
-                                Link Learning Objectives
-                                <span className="bg-indigo-500/20 text-indigo-400 text-xs px-2.5 py-1 rounded-full border border-indigo-500/30 font-bold">
-                                    {selectedIds.length} Linked
+                        <div className="min-w-0">
+                            <h3 className="text-lg md:text-2xl font-black text-white uppercase tracking-tighter flex items-center gap-2 md:gap-3 truncate">
+                                Objective Lock
+                                <span className="bg-indigo-500/20 text-indigo-400 text-[10px] md:text-xs px-2 py-0.5 md:px-2.5 md:py-1 rounded-full border border-indigo-500/30 font-bold">
+                                    {selectedIds.length}
                                 </span>
                             </h3>
-                            <p className="text-sm text-zinc-500 font-medium">Connect this node to specific learning outcomes for automated assessment</p>
+                            <p className="text-[10px] md:text-sm text-zinc-500 font-medium truncate">Connect node to learning outcomes</p>
                         </div>
                     </div>
 
                     <button
                         onClick={onClose}
-                        className="group p-3 bg-white/5 hover:bg-red-500/20 rounded-2xl text-zinc-400 hover:text-red-400 transition-all border border-white/5 hover:border-red-500/30"
+                        className="group p-2 md:p-3 bg-white/5 hover:bg-red-500/20 rounded-xl md:rounded-2xl text-zinc-400 hover:text-red-400 transition-all border border-white/5 hover:border-red-500/30 flex-shrink-0"
                     >
-                        <X className="w-6 h-6 group-hover:rotate-90 transition-transform duration-300" />
+                        <X className="w-5 h-5 md:w-6 md:h-6 group-hover:rotate-90 transition-transform duration-300" />
                     </button>
                 </div>
 
-                <div className="flex-1 flex overflow-hidden relative z-10">
-                    {/* Sidebar */}
-                    <div className="w-64 border-r border-white/5 bg-black/20 p-6 flex flex-col gap-6">
+                <div className="flex-1 flex flex-col md:flex-row overflow-hidden relative z-10">
+                    {/* Sidebar/Category Filter */}
+                    <div className="w-full md:w-64 border-b md:border-b-0 md:border-r border-white/5 bg-black/20 p-4 md:p-6 flex flex-col gap-4 md:gap-6">
                         <div>
-                            <p className="text-[10px] font-black text-zinc-500 uppercase tracking-[0.2em] mb-4 ml-1">Categories</p>
-                            <div className="space-y-1.5 overflow-y-auto max-h-[50vh] custom-scrollbar pr-2">
+                            <p className="text-[10px] font-black text-zinc-500 uppercase tracking-[0.2em] mb-2 md:mb-4 ml-1">Categories</p>
+                            <div className="flex md:flex-col gap-1.5 overflow-x-auto md:overflow-y-auto md:max-h-[50vh] custom-scrollbar pb-2 md:pb-0 md:pr-2">
                                 {categoriesList.map(cat => (
                                     <button
                                         key={cat}
                                         onClick={() => setSelectedCategory(cat)}
-                                        className={`w-full text-left px-4 py-3 rounded-xl text-xs font-bold transition-all flex items-center justify-between group
+                                        className={`whitespace-nowrap md:whitespace-normal md:w-full text-left px-3 py-2 md:px-4 md:py-3 rounded-lg md:rounded-xl text-[10px] md:text-xs font-bold transition-all flex items-center justify-between gap-3 group
                                             ${selectedCategory === cat
                                                 ? 'bg-indigo-500/10 text-indigo-400 border border-indigo-500/30'
                                                 : 'text-zinc-500 hover:bg-white/5 hover:text-zinc-300 border border-transparent'}`}
                                     >
                                         <span className="truncate">{cat}</span>
-                                        {selectedCategory === cat && <div className="w-1.5 h-1.5 shrink-0 rounded-full bg-indigo-500 shadow-[0_0_8px_#6366f1]" />}
+                                        {selectedCategory === cat && <div className="hidden md:block w-1.5 h-1.5 shrink-0 rounded-full bg-indigo-500 shadow-[0_0_8px_#6366f1]" />}
                                     </button>
                                 ))}
                             </div>
                         </div>
 
-                        <div className="mt-auto p-4 bg-indigo-500/5 border border-indigo-500/10 rounded-2xl">
+                        <div className="hidden md:block mt-auto p-4 bg-indigo-500/5 border border-indigo-500/10 rounded-2xl">
                             <div className="flex items-center gap-2 mb-2">
                                 <Brain className="w-4 h-4 text-indigo-400" />
                                 <p className="text-[10px] text-indigo-400 font-bold uppercase tracking-wider">Education Engine</p>

@@ -245,9 +245,9 @@ const CinematicCutscene = ({
             <div className="absolute bottom-0 left-0 right-0 h-16 bg-black z-10" />
 
             {/* Main Content Area */}
-            <div className="relative w-full h-full flex items-center justify-center px-8 py-20">
+            <div className="relative w-full h-full flex items-center justify-center px-4 md:px-8 py-16 md:py-20 overflow-y-auto">
                 <motion.div
-                    className="relative w-full max-w-6xl h-full flex items-center justify-between gap-8"
+                    className="relative w-full max-w-6xl h-full flex flex-col md:flex-row items-center justify-center md:justify-between gap-6 md:gap-8"
                     initial={{ scale: 0.9, opacity: 0 }}
                     animate={{ scale: currentCamera.scale, opacity: 1 }}
                     transition={{ duration: 1, ease: 'easeOut' }}
@@ -257,20 +257,20 @@ const CinematicCutscene = ({
                         <AnimatePresence>
                             {showCharacter && (
                                 <motion.div
-                                    className="relative w-1/3 h-full flex items-center justify-center"
+                                    className="relative w-full md:w-1/3 flex items-center justify-center"
                                     initial={{ x: -100, opacity: 0 }}
                                     animate={{ x: 0, opacity: 1 }}
                                     exit={{ x: -100, opacity: 0 }}
                                     transition={{ duration: 0.8, ease: 'easeOut' }}
                                 >
-                                    <div className="relative">
+                                    <div className="relative w-full max-w-[250px] md:max-w-none">
                                         {/* Holographic Effect */}
                                         <div className="absolute inset-0 bg-gradient-to-r from-cyan-500/20 to-purple-500/20 blur-xl animate-pulse" />
 
                                         <img
                                             src={characterImage}
                                             alt={characterName || 'Character'}
-                                            className={`relative w-full h-auto max-h-[600px] object-contain drop-shadow-2xl ${currentCamera.blur}`}
+                                            className={`relative w-full h-auto max-h-[300px] md:max-h-[600px] object-contain drop-shadow-2xl ${currentCamera.blur}`}
                                             style={{
                                                 filter: 'drop-shadow(0 0 30px rgba(59, 130, 246, 0.3))'
                                             }}
@@ -279,12 +279,12 @@ const CinematicCutscene = ({
                                         {/* Character Name Tag */}
                                         {characterName && (
                                             <motion.div
-                                                className={`absolute bottom-0 left-1/2 transform -translate-x-1/2 px-6 py-2 bg-black/80 border border-${currentMood.accentColor.split('-')[1]}-500/50 rounded-lg backdrop-blur-sm`}
+                                                className={`absolute bottom-0 left-1/2 transform -translate-x-1/2 px-4 md:px-6 py-1.5 md:py-2 bg-black/80 border border-${currentMood.accentColor.split('-')[1]}-500/50 rounded-lg backdrop-blur-sm whitespace-nowrap`}
                                                 initial={{ y: 20, opacity: 0 }}
                                                 animate={{ y: 0, opacity: 1 }}
                                                 transition={{ delay: 0.5 }}
                                             >
-                                                <p className={`text-sm font-bold tracking-wider uppercase ${currentMood.accentColor}`}>
+                                                <p className={`text-[10px] md:text-sm font-bold tracking-wider uppercase ${currentMood.accentColor}`}>
                                                     {characterName}
                                                 </p>
                                             </motion.div>
@@ -297,27 +297,27 @@ const CinematicCutscene = ({
 
                     {/* Text Display */}
                     <motion.div
-                        className={`flex-1 ${characterImage ? 'w-2/3' : 'w-full text-center'}`}
+                        className={`flex-1 w-full ${characterImage ? 'md:w-2/3' : 'text-center'}`}
                         initial={{ y: 50, opacity: 0 }}
                         animate={{ y: 0, opacity: 1 }}
                         transition={{ duration: 0.8, delay: 0.3 }}
                     >
                         <div className="relative">
                             {/* Text Container */}
-                            <div className="relative bg-black/40 backdrop-blur-md border border-white/10 rounded-2xl p-8 shadow-2xl">
+                            <div className="relative bg-black/40 backdrop-blur-md border border-white/10 rounded-2xl p-5 md:p-8 shadow-2xl">
                                 {/* Decorative Corner Accents */}
-                                <div className={`absolute top-0 left-0 w-16 h-16 border-t-2 border-l-2 border-${currentMood.accentColor.split('-')[1]}-500/50 rounded-tl-2xl`} />
-                                <div className={`absolute top-0 right-0 w-16 h-16 border-t-2 border-r-2 border-${currentMood.accentColor.split('-')[1]}-500/50 rounded-tr-2xl`} />
-                                <div className={`absolute bottom-0 left-0 w-16 h-16 border-b-2 border-l-2 border-${currentMood.accentColor.split('-')[1]}-500/50 rounded-bl-2xl`} />
-                                <div className={`absolute bottom-0 right-0 w-16 h-16 border-b-2 border-r-2 border-${currentMood.accentColor.split('-')[1]}-500/50 rounded-br-2xl`} />
+                                <div className={`absolute top-0 left-0 w-8 md:w-16 h-8 md:h-16 border-t-2 border-l-2 border-${currentMood.accentColor.split('-')[1]}-500/50 rounded-tl-2xl`} />
+                                <div className={`absolute top-0 right-0 w-8 md:w-16 h-8 md:h-16 border-t-2 border-r-2 border-${currentMood.accentColor.split('-')[1]}-500/50 rounded-tr-2xl`} />
+                                <div className={`absolute bottom-0 left-0 w-8 md:w-16 h-8 md:h-16 border-b-2 border-l-2 border-${currentMood.accentColor.split('-')[1]}-500/50 rounded-bl-2xl`} />
+                                <div className={`absolute bottom-0 right-0 w-8 md:w-16 h-8 md:h-16 border-b-2 border-r-2 border-${currentMood.accentColor.split('-')[1]}-500/50 rounded-br-2xl`} />
 
                                 {/* Film Icon */}
-                                <div className="absolute -top-6 left-1/2 transform -translate-x-1/2 bg-black border border-white/20 rounded-full p-3">
-                                    <Film className={`w-6 h-6 ${currentMood.accentColor}`} />
+                                <div className="absolute -top-5 md:-top-6 left-1/2 transform -translate-x-1/2 bg-black border border-white/20 rounded-full p-2 md:p-3">
+                                    <Film className={`w-4 h-4 md:w-6 md:h-6 ${currentMood.accentColor}`} />
                                 </div>
 
                                 {/* Text Content */}
-                                <div className={`text-2xl leading-relaxed font-light ${currentMood.textColor} min-h-[200px] flex items-center justify-center`}>
+                                <div className={`text-base md:text-2xl leading-relaxed font-light ${currentMood.textColor} min-h-[120px] md:min-h-[200px] flex items-center justify-center`}>
                                     {displayedText ? (
                                         <>
                                             <p
@@ -327,24 +327,24 @@ const CinematicCutscene = ({
 
                                             {/* Typing Cursor */}
                                             {isPlaying && textIndexRef.current < (textSegments[currentTextIndex]?.length || 0) && (
-                                                <span className={`inline-block ml-1 w-2 h-6 ${currentMood.accentColor.replace('text-', 'bg-')} animate-pulse`} />
+                                                <span className={`inline-block ml-1 w-1.5 md:w-2 h-4 md:h-6 ${currentMood.accentColor.replace('text-', 'bg-')} animate-pulse`} />
                                             )}
                                         </>
                                     ) : (
-                                        <p className="text-zinc-500 italic">Loading dialogue...</p>
+                                        <p className="text-zinc-500 italic text-sm">Loading dialogue...</p>
                                     )}
                                 </div>
 
                                 {/* Progress Indicator */}
-                                <div className="mt-6 flex gap-2 justify-center">
+                                <div className="mt-4 md:mt-6 flex gap-1.5 md:gap-2 justify-center">
                                     {textSegments.map((_, idx) => (
                                         <div
                                             key={idx}
-                                            className={`h-1 rounded-full transition-all duration-300 ${idx === currentTextIndex
-                                                ? `w-8 ${currentMood.accentColor.replace('text-', 'bg-')}`
+                                            className={`h-0.5 md:h-1 rounded-full transition-all duration-300 ${idx === currentTextIndex
+                                                ? `w-6 md:w-8 ${currentMood.accentColor.replace('text-', 'bg-')}`
                                                 : idx < currentTextIndex
-                                                    ? 'w-4 bg-white/30'
-                                                    : 'w-4 bg-white/10'
+                                                    ? 'w-2 md:w-4 bg-white/30'
+                                                    : 'w-2 md:w-4 bg-white/10'
                                                 }`}
                                         />
                                     ))}

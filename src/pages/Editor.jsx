@@ -168,7 +168,17 @@ const Editor = () => {
     const [timeLimit, setTimeLimit] = useState(15); // Default 15 minutes
     const [searchQuery, setSearchQuery] = useState("");
     const [isSearchOpen, setIsSearchOpen] = useState(false);
-    const [isPaletteCollapsed, setIsPaletteCollapsed] = useState(false);
+    const [isPaletteCollapsed, setIsPaletteCollapsed] = useState(window.innerWidth < 768);
+
+    useEffect(() => {
+        const handleResize = () => {
+            if (window.innerWidth < 1024) {
+                setIsPaletteCollapsed(true);
+            }
+        };
+        window.addEventListener('resize', handleResize);
+        return () => window.removeEventListener('resize', handleResize);
+    }, []);
     const [isLocked, setIsLocked] = useState(false);
     const [isDarkMode, setIsDarkMode] = useState(true);
     const [enableThreeD, setEnableThreeD] = useState(true);
@@ -1117,47 +1127,47 @@ const Editor = () => {
 
             {/* Toolbar */}
             <div id="editor-toolbar" className={`h-16 border-b flex items-center justify-between px-4 z-50 backdrop-blur-md relative transition-all duration-300 shadow-sm ${isDarkMode ? 'border-white/10 bg-black/40' : 'border-zinc-200 bg-white/80'}`}>
-                <div className="flex items-center gap-4">
-                    <Button variant="ghost" size="sm" onClick={() => navigate('/')} className={`${isDarkMode ? 'hover:bg-white/10 text-zinc-300 hover:text-white' : ''}`}>
-                        <ArrowLeft className="w-4 h-4 mr-2" />
-                        Back
+                <div className="flex items-center gap-2 md:gap-4 overflow-hidden">
+                    <Button variant="ghost" size="sm" onClick={() => navigate('/')} className={`px-2 md:px-3 ${isDarkMode ? 'hover:bg-white/10 text-zinc-300 hover:text-white' : ''}`}>
+                        <ArrowLeft className="w-4 h-4 md:mr-2" />
+                        <span className="hidden md:inline">Back</span>
                     </Button>
                     <button
                         onClick={() => !isLocked && setShowMetadataModal(true)}
                         disabled={isLocked}
-                        className={`flex items-center gap-2 group ${!isLocked ? 'cursor-pointer hover:opacity-80' : 'cursor-not-allowed'} transition-opacity`}
+                        className={`flex items-center gap-2 group min-w-0 ${!isLocked ? 'cursor-pointer hover:opacity-80' : 'cursor-not-allowed'} transition-opacity`}
                         title={isLocked ? "Case is locked" : "Click to edit case title and description"}
                     >
-                        <div className={`p-1.5 rounded-lg ${isDarkMode ? 'bg-indigo-500/20 text-indigo-400' : 'bg-indigo-100 text-indigo-600'}`}>
-                            <GitMerge className="w-5 h-5" />
+                        <div className={`p-1.5 rounded-lg flex-shrink-0 ${isDarkMode ? 'bg-indigo-500/20 text-indigo-400' : 'bg-indigo-100 text-indigo-600'}`}>
+                            <GitMerge className="w-4 h-4 md:w-5 md:h-5" />
                         </div>
-                        <div className="flex flex-col">
+                        <div className="flex flex-col min-w-0 text-left">
                             <div className="flex items-center gap-2">
-                                <span className={`font-bold tracking-tight leading-none ${isDarkMode ? 'text-zinc-200' : 'text-zinc-700'} ${!isLocked ? 'group-hover:text-indigo-400' : ''} transition-colors`}>
+                                <span className={`font-bold tracking-tight leading-none truncate ${isDarkMode ? 'text-zinc-200' : 'text-zinc-700'} ${!isLocked ? 'group-hover:text-indigo-400' : ''} transition-colors text-xs md:text-sm`}>
                                     {caseTitle || "Untitled Case"}
                                 </span>
                                 {!isLocked && (
-                                    <Pencil className="w-3 h-3 text-zinc-600 opacity-0 group-hover:opacity-100 transition-opacity" />
+                                    <Pencil className="w-3 h-3 text-zinc-600 opacity-0 group-hover:opacity-100 transition-opacity hidden md:block" />
                                 )}
                             </div>
-                            <span className="text-[10px] text-zinc-500 font-bold uppercase tracking-widest mt-0.5">Mission Architect</span>
+                            <span className="text-[8px] md:text-[10px] text-zinc-500 font-bold uppercase tracking-widest mt-0.5 truncate">Mission Architect</span>
                         </div>
                     </button>
                     {isLocked && (
-                        <div className="flex items-center gap-1.5 px-2.5 py-1 bg-red-500/10 border border-red-500/50 rounded-full text-red-400 text-[10px] font-bold uppercase tracking-wider ml-4 shadow-[0_0_10px_rgba(239,68,68,0.2)]">
-                            <Lock className="w-3 h-3" />
-                            Review Mode
+                        <div className="flex items-center gap-1.5 px-2 py-1 bg-red-500/10 border border-red-500/50 rounded-full text-red-400 text-[8px] md:text-[10px] font-bold uppercase tracking-wider md:ml-4 flex-shrink-0">
+                            <Lock className="w-2.5 h-2.5 md:w-3 md:h-3" />
+                            <span className="hidden xs:inline">Review Mode</span>
                         </div>
                     )}
                 </div>
-                <div id="editor-actions" className="flex items-center gap-3">
+                <div id="editor-actions" className="flex items-center gap-1 md:gap-3">
                     {/* Node Search Mechanism */}
-                    <div className="relative mr-4 min-w-[240px] node-search-container">
-                        <div className={`flex items-center gap-2 px-3 py-1.5 rounded-xl border transition-all ${isDarkMode ? 'bg-black/60 border-white/10 focus-within:border-indigo-500/50 shadow-inner' : 'bg-zinc-100 border-zinc-200 focus-within:border-indigo-500'}`}>
-                            <Search className="w-4 h-4 text-zinc-500" />
+                    <div className="relative md:mr-4 min-w-[40px] md:min-w-[240px] node-search-container">
+                        <div className={`flex items-center gap-2 px-2 md:px-3 py-1.5 rounded-xl border transition-all ${isDarkMode ? 'bg-black/60 border-white/10 focus-within:border-indigo-500/50 shadow-inner' : 'bg-zinc-100 border-zinc-200 focus-within:border-indigo-500'}`}>
+                            <Search className="w-3.5 h-3.5 md:w-4 md:h-4 text-zinc-500" />
                             <input
-                                placeholder="Jump to node..."
-                                className={`bg-transparent border-none outline-none text-xs w-full ${isDarkMode ? 'text-zinc-200' : 'text-zinc-800'}`}
+                                placeholder="Jump..."
+                                className={`bg-transparent border-none outline-none text-[10px] md:text-xs w-full ${isDarkMode ? 'text-zinc-200' : 'text-zinc-800'}`}
                                 value={searchQuery}
                                 onChange={(e) => {
                                     setSearchQuery(e.target.value);
@@ -1213,19 +1223,19 @@ const Editor = () => {
                         </AnimatePresence>
                     </div>
 
-                    <div className={`flex items-center gap-1 p-1 rounded-lg border ${isDarkMode ? 'bg-black/40 border-white/5' : 'bg-zinc-100 border-zinc-200'}`}>
-                        <Button variant="ghost" size="icon" onClick={() => setIsDarkMode(!isDarkMode)} title={isDarkMode ? "Switch to Light Mode" : "Switch to Dark Mode"} className="h-8 w-8">
-                            {isDarkMode ? <Sun className="w-4 h-4 text-amber-300" /> : <Moon className="w-4 h-4 text-indigo-600" />}
+                    <div className={`flex items-center gap-0.5 md:gap-1 p-1 rounded-lg border ${isDarkMode ? 'bg-black/40 border-white/5' : 'bg-zinc-100 border-zinc-200'}`}>
+                        <Button variant="ghost" size="icon" onClick={() => setIsDarkMode(!isDarkMode)} title={isDarkMode ? "Switch to Light Mode" : "Switch to Dark Mode"} className="h-7 w-7 md:h-8 md:w-8">
+                            {isDarkMode ? <Sun className="w-3.5 h-3.5 md:w-4 md:h-4 text-amber-300" /> : <Moon className="w-3.5 h-3.5 md:w-4 md:h-4 text-indigo-600" />}
                         </Button>
-                        <div className={`w-px h-4 ${isDarkMode ? 'bg-white/10' : 'bg-zinc-300'}`}></div>
-                        <Button variant="ghost" size="icon" onClick={() => setShowTutorial(true)} title="How to use" className="h-8 w-8">
-                            <CircleHelp className={`w-4 h-4 ${isDarkMode ? 'text-indigo-400' : 'text-indigo-600'}`} />
+                        <div className={`hidden xs:block w-px h-4 ${isDarkMode ? 'bg-white/10' : 'bg-zinc-300'}`}></div>
+                        <Button variant="ghost" size="icon" onClick={() => setShowTutorial(true)} title="How to use" className="h-7 w-7 md:h-8 md:w-8 hidden xs:flex">
+                            <CircleHelp className={`w-3.5 h-3.5 md:w-4 md:h-4 ${isDarkMode ? 'text-indigo-400' : 'text-indigo-600'}`} />
                         </Button>
-                        <Button variant="ghost" size="icon" onClick={validateGraph} title="Validate Graph Health" className="h-8 w-8">
-                            <Stethoscope className={`w-4 h-4 ${isDarkMode ? 'text-emerald-400' : 'text-emerald-600'}`} />
+                        <Button variant="ghost" size="icon" onClick={validateGraph} title="Validate Graph Health" className="h-7 w-7 md:h-8 md:w-8">
+                            <Stethoscope className={`w-3.5 h-3.5 md:w-4 md:h-4 ${isDarkMode ? 'text-emerald-400' : 'text-emerald-600'}`} />
                         </Button>
                         {settings.enableAIBuild !== false && (
-                            <>
+                            <div className="hidden sm:flex items-center">
                                 <div className={`w-px h-4 ${isDarkMode ? 'bg-white/10' : 'bg-zinc-300'}`}></div>
                                 <Button
                                     variant="ghost"
@@ -1233,30 +1243,30 @@ const Editor = () => {
                                     onClick={() => setShowAIGenerator(true)}
                                     title="AI Auto-Generate Case"
                                     disabled={isLocked}
-                                    className={`h-8 px-3 gap-2 border border-dashed ${isDarkMode ? 'border-indigo-500/30 text-indigo-400 hover:bg-indigo-500/10' : 'border-indigo-300 text-indigo-600 hover:bg-indigo-50'}`}
+                                    className={`h-8 px-2 md:px-3 gap-2 border border-dashed ${isDarkMode ? 'border-indigo-500/30 text-indigo-400 hover:bg-indigo-500/10' : 'border-indigo-300 text-indigo-600 hover:bg-indigo-50'}`}
                                 >
                                     <Brain className="w-4 h-4" />
-                                    <span className="text-[10px] font-black uppercase tracking-widest">AI Build</span>
+                                    <span className="text-[10px] font-black uppercase tracking-widest hidden lg:inline">AI Build</span>
                                 </Button>
-                            </>
+                            </div>
                         )}
                         <div className={`w-px h-4 ${isDarkMode ? 'bg-white/10' : 'bg-zinc-300'}`}></div>
-                        <Button variant="ghost" size="icon" onClick={() => setShowSettings(true)} title="Game Settings" disabled={isLocked} className="h-8 w-8">
-                            <Settings className={`w-4 h-4 ${isDarkMode ? 'text-zinc-400' : 'text-zinc-600'}`} />
+                        <Button variant="ghost" size="icon" onClick={() => setShowSettings(true)} title="Game Settings" disabled={isLocked} className="h-7 w-7 md:h-8 md:w-8">
+                            <Settings className={`w-3.5 h-3.5 md:w-4 md:h-4 ${isDarkMode ? 'text-zinc-400' : 'text-zinc-600'}`} />
                         </Button>
                     </div>
 
-                    <Button id="save-btn" variant="secondary" size="sm" onClick={saveProject} disabled={isLocked} className="ml-2 font-medium">
-                        <Save className="w-4 h-4 mr-2" />
-                        Save
+                    <Button id="save-btn" variant="secondary" size="sm" onClick={saveProject} disabled={isLocked} className="font-medium h-8 md:h-9">
+                        <Save className="w-3.5 h-3.5 md:w-4 md:h-4 md:mr-2" />
+                        <span className="hidden sm:inline">Save</span>
                     </Button>
                     <Button
                         size="sm"
                         onClick={() => { saveProject(); setShowPreview(true); }}
-                        className="bg-indigo-600 hover:bg-indigo-500 text-white shadow-[0_0_15px_rgba(79,70,229,0.4)] border-none font-bold tracking-wide"
+                        className="bg-indigo-600 hover:bg-indigo-500 text-white shadow-[0_0_15px_rgba(79,70,229,0.4)] border-none font-bold tracking-wide h-8 md:h-9"
                     >
-                        <Play className="w-4 h-4 mr-2" />
-                        Preview
+                        <Play className="w-3.5 h-3.5 md:w-4 md:h-4 md:mr-2" />
+                        <span className="hidden sm:inline">Preview</span>
                     </Button>
 
                 </div>
@@ -1264,7 +1274,7 @@ const Editor = () => {
 
             <div className="flex flex-1 overflow-hidden relative z-10">
                 {/* Sidebar */}
-                <aside id="node-sidebar" className={`${isPaletteCollapsed ? 'w-16' : 'w-72'} border-r flex flex-col gap-4 z-20 transition-all duration-300 ease-[cubic-bezier(0.25,0.1,0.25,1)] backdrop-blur-xl ${isLocked ? 'opacity-80 pointer-events-none grayscale-[0.5]' : ''} ${isDarkMode ? 'border-white/10 bg-black/60' : 'border-zinc-200 bg-white/90'}`}>
+                <aside id="node-sidebar" className={`${isPaletteCollapsed ? 'w-16' : 'w-72'} border-r flex flex-col gap-4 z-20 transition-all duration-300 ease-[cubic-bezier(0.25,0.1,0.25,1)] backdrop-blur-xl ${isLocked ? 'opacity-80 pointer-events-none grayscale-[0.5]' : ''} ${isDarkMode ? 'border-white/10 bg-black/60' : 'border-zinc-200 bg-white/90'} absolute md:relative h-full`}>
                     <div className={`flex items-center ${isPaletteCollapsed ? 'justify-center p-3' : 'justify-between p-5'} border-b ${isDarkMode ? 'border-white/5' : 'border-zinc-200'}`}>
                         {!isPaletteCollapsed && (
                             <div className="flex flex-col">
@@ -1415,24 +1425,24 @@ const Editor = () => {
                 )}
                 {/* Settings Modal */}
                 {showSettings && (
-                    <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/80 backdrop-blur-sm">
-                        <div className="bg-zinc-950 border border-zinc-800 p-8 rounded-3xl max-w-2xl w-full shadow-2xl max-h-[90vh] overflow-y-auto relative">
+                    <div className="fixed inset-0 z-50 flex items-center justify-center p-2 md:p-4 bg-black/80 backdrop-blur-sm">
+                        <div className="bg-zinc-950 border border-zinc-800 p-4 md:p-8 rounded-2xl md:rounded-3xl max-w-2xl w-full shadow-2xl max-h-[95vh] overflow-y-auto relative custom-scrollbar">
                             {/* Close Button */}
                             <button
                                 onClick={() => setShowSettings(false)}
-                                className="absolute top-6 right-6 p-2 rounded-full bg-white/5 hover:bg-white/10 text-zinc-500 hover:text-white transition-all"
+                                className="absolute top-4 right-4 md:top-6 md:right-6 p-2 rounded-full bg-white/5 hover:bg-white/10 text-zinc-500 hover:text-white transition-all z-20"
                             >
                                 <X className="w-5 h-5" />
                             </button>
 
                             {/* High-Visibility Header */}
-                            <div className="mb-10 flex items-start justify-between">
+                            <div className="mb-6 md:mb-10 flex items-start justify-between">
                                 <div className="space-y-1">
-                                    <h2 className="text-3xl font-black text-white uppercase tracking-tighter flex items-center gap-3">
-                                        <Settings className="w-8 h-8 text-indigo-500" />
+                                    <h2 className="text-xl md:text-3xl font-black text-white uppercase tracking-tighter flex items-center gap-2 md:gap-3">
+                                        <Settings className="w-6 h-6 md:w-8 md:h-8 text-indigo-500" />
                                         Session Architect
                                     </h2>
-                                    <p className="text-zinc-500 text-[10px] font-bold uppercase tracking-[0.3em] pl-1">Configuration & Neural Parameters</p>
+                                    <p className="text-zinc-500 text-[8px] md:text-[10px] font-bold uppercase tracking-[0.2em] md:tracking-[0.3em] pl-1">Configuration & Neural Parameters</p>
                                 </div>
                             </div>
 
@@ -1445,28 +1455,28 @@ const Editor = () => {
                                         <div className="h-px flex-1 bg-gradient-to-r from-transparent via-cyan-500/50 to-transparent"></div>
                                     </div>
 
-                                    <div className={`p-6 border rounded-2xl transition-all duration-700 relative overflow-hidden group ${enableThreeD ? 'bg-cyan-500/5 border-cyan-500/40 shadow-[0_0_40px_rgba(6,182,212,0.15)]' : 'bg-black border-zinc-800 opacity-60'}`}>
+                                    <div className={`p-4 md:p-6 border rounded-2xl transition-all duration-700 relative overflow-hidden group ${enableThreeD ? 'bg-cyan-500/5 border-cyan-500/40 shadow-[0_0_40px_rgba(6,182,212,0.15)]' : 'bg-black border-zinc-800 opacity-60'}`}>
                                         {enableThreeD && <div className="absolute inset-0 bg-gradient-to-br from-cyan-500/10 via-transparent to-indigo-500/5 pointer-events-none" />}
 
-                                        <div className="flex items-center justify-between relative z-10">
-                                            <div className="flex items-center gap-5">
-                                                <div className={`p-4 rounded-xl transition-colors ${enableThreeD ? 'bg-cyan-500/20 text-cyan-400' : 'bg-zinc-900 text-zinc-500'}`}>
-                                                    <Box className="w-8 h-8" />
+                                        <div className="flex flex-col sm:flex-row sm:items-center justify-between relative z-10 gap-4">
+                                            <div className="flex items-center gap-4 md:gap-5">
+                                                <div className={`p-3 md:p-4 rounded-xl transition-colors ${enableThreeD ? 'bg-cyan-500/20 text-cyan-400' : 'bg-zinc-900 text-zinc-500'}`}>
+                                                    <Box className="w-6 h-6 md:w-8 md:h-8" />
                                                 </div>
                                                 <div>
-                                                    <h4 className="text-lg font-black text-white uppercase tracking-tight">3D Neural Reconstruction</h4>
-                                                    <p className="text-xs text-zinc-500 font-medium">Allow AI Holodeck world generation & spatial exploration</p>
+                                                    <h4 className="text-base md:text-lg font-black text-white uppercase tracking-tight">3D Neural Reconstruction</h4>
+                                                    <p className="text-[10px] md:text-xs text-zinc-500 font-medium">Allow AI Holodeck world generation & spatial exploration</p>
                                                 </div>
                                             </div>
 
-                                            <div className="flex flex-col items-end gap-2">
+                                            <div className="flex flex-row sm:flex-col items-center sm:items-end justify-between gap-2">
                                                 <button
                                                     onClick={() => setEnableThreeD(!enableThreeD)}
-                                                    className={`w-16 h-8 rounded-full transition-all flex items-center px-1.5 ${enableThreeD ? 'bg-cyan-600 shadow-[0_0_20px_rgba(6,182,212,0.5)]' : 'bg-zinc-800'}`}
+                                                    className={`w-14 h-7 md:w-16 md:h-8 rounded-full transition-all flex items-center px-1.5 ${enableThreeD ? 'bg-cyan-600 shadow-[0_0_20px_rgba(6,182,212,0.5)]' : 'bg-zinc-800'}`}
                                                 >
-                                                    <div className={`w-5 h-5 rounded-full bg-white transition-all transform duration-500 ease-out ${enableThreeD ? 'translate-x-8' : 'translate-x-0'}`} />
+                                                    <div className={`w-4 h-4 md:w-5 md:h-5 rounded-full bg-white transition-all transform duration-500 ease-out ${enableThreeD ? 'translate-x-7 md:translate-x-8' : 'translate-x-0'}`} />
                                                 </button>
-                                                <span className={`text-[9px] font-black uppercase tracking-widest ${enableThreeD ? 'text-cyan-400' : 'text-zinc-600'}`}>
+                                                <span className={`text-[8px] md:text-[9px] font-black uppercase tracking-widest ${enableThreeD ? 'text-cyan-400' : 'text-zinc-600'}`}>
                                                     {enableThreeD ? 'Authorized' : 'Deactivated'}
                                                 </span>
                                             </div>
@@ -1482,19 +1492,19 @@ const Editor = () => {
                                         <div className="h-px flex-1 bg-gradient-to-r from-transparent via-indigo-500/30 to-transparent"></div>
                                     </div>
 
-                                    <div className="p-6 bg-zinc-900/30 border border-zinc-800 rounded-2xl flex items-center justify-between">
+                                    <div className="p-4 md:p-6 bg-zinc-900/30 border border-zinc-800 rounded-2xl flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4">
                                         <div className="space-y-1">
                                             <p className="text-sm font-bold text-white uppercase tracking-tight">Mission Duration</p>
                                             <p className="text-[10px] text-zinc-500 font-medium uppercase tracking-widest">Time limit to solve the case</p>
                                         </div>
-                                        <div className="flex items-center gap-4">
+                                        <div className="flex items-center gap-4 w-full sm:w-auto justify-between sm:justify-end">
                                             <input
                                                 type="number"
                                                 min="1"
                                                 max="120"
                                                 value={timeLimit}
                                                 onChange={(e) => setTimeLimit(parseInt(e.target.value) || 15)}
-                                                className="bg-black border border-zinc-700 rounded-xl px-4 py-3 text-white w-24 text-center text-xl font-black focus:border-indigo-500 outline-none transition-all"
+                                                className="bg-black border border-zinc-700 rounded-xl px-4 py-2 md:py-3 text-white w-20 md:w-24 text-center text-lg md:text-xl font-black focus:border-indigo-500 outline-none transition-all"
                                             />
                                             <span className="text-zinc-500 text-[10px] font-black uppercase">Minutes</span>
                                         </div>
@@ -1505,8 +1515,8 @@ const Editor = () => {
                                 <section className="space-y-6 border-t border-zinc-800 pt-10">
                                     <h3 className="text-xs font-black text-indigo-400 uppercase tracking-[0.2em] mb-6">Analytical Framework (Learning Objectives)</h3>
 
-                                    <div className="bg-zinc-900/30 border border-zinc-800 rounded-xl p-5 mb-8">
-                                        <div className="flex gap-4">
+                                    <div className="bg-zinc-900/30 border border-zinc-800 rounded-xl p-4 md:p-5 mb-8">
+                                        <div className="flex flex-col md:flex-row gap-4">
                                             <div className="flex-1 space-y-1.5">
                                                 <label className="text-[10px] font-bold text-zinc-500 uppercase tracking-wider ml-1">New Category Title</label>
                                                 <input
@@ -1519,7 +1529,7 @@ const Editor = () => {
                                                 />
                                             </div>
                                             <div className="flex items-end">
-                                                <Button size="sm" onClick={addCategory} disabled={!newCategory.name.trim()} className="h-10 px-6 font-bold shadow-lg shadow-indigo-600/20">
+                                                <Button size="sm" onClick={addCategory} disabled={!newCategory.name.trim()} className="w-full md:w-auto h-10 px-6 font-bold shadow-lg shadow-indigo-600/20">
                                                     <Plus className="w-4 h-4 mr-2" /> Add Category
                                                 </Button>
                                             </div>

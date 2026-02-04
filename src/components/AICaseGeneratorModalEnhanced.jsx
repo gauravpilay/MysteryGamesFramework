@@ -571,7 +571,7 @@ Generate a complete mystery game that masterfully integrates these learning obje
                     initial={{ scale: 0.9, opacity: 0, y: 20 }}
                     animate={{ scale: 1, opacity: 1, y: 0 }}
                     exit={{ scale: 0.9, opacity: 0, y: 20 }}
-                    className="w-full max-w-5xl max-h-[95vh] bg-gradient-to-br from-zinc-950 via-zinc-900 to-black border-2 border-indigo-500/30 rounded-3xl overflow-hidden shadow-[0_0_100px_rgba(99,102,241,0.3)] flex flex-col relative"
+                    className="w-full max-w-5xl max-h-[98vh] md:max-h-[95vh] bg-gradient-to-br from-zinc-950 via-zinc-900 to-black border md:border-2 border-indigo-500/30 rounded-2xl md:rounded-3xl overflow-hidden shadow-[0_0_100px_rgba(99,102,241,0.3)] flex flex-col relative"
                 >
                     {/* Animated Top Glow */}
                     <div className="absolute top-0 left-0 right-0 h-1 bg-gradient-to-r from-transparent via-indigo-500 to-transparent shadow-[0_0_30px_rgba(99,102,241,0.8)] animate-pulse" />
@@ -601,42 +601,36 @@ Generate a complete mystery game that masterfully integrates these learning obje
                             ))}
                         </div>
 
-                        <div className="flex items-center justify-between mb-4 relative z-10">
-                            <div className="flex items-center gap-4">
+                        <div className="flex items-center justify-between mb-3 md:mb-4 relative z-10">
+                            <div className="flex items-center gap-2 md:gap-4 overflow-hidden">
                                 <motion.div
-                                    className="p-3 bg-gradient-to-br from-indigo-600 via-purple-600 to-pink-600 rounded-2xl shadow-lg relative"
+                                    className="p-2 md:p-3 bg-gradient-to-br from-indigo-600 via-purple-600 to-pink-600 rounded-xl md:rounded-2xl shadow-lg relative flex-shrink-0"
                                     animate={{
                                         boxShadow: [
-                                            '0 0 20px rgba(99,102,241,0.5)',
-                                            '0 0 40px rgba(168,85,247,0.8)',
-                                            '0 0 20px rgba(99,102,241,0.5)',
+                                            '0 0 10px rgba(99,102,241,0.3)',
+                                            '0 0 25px rgba(168,85,247,0.6)',
+                                            '0 0 10px rgba(99,102,241,0.3)',
                                         ],
                                     }}
                                     transition={{ duration: 2, repeat: Infinity }}
                                 >
-                                    <Brain className="w-8 h-8 text-white" />
-                                    <motion.div
-                                        className="absolute inset-0 bg-white rounded-2xl"
-                                        animate={{ opacity: [0, 0.3, 0] }}
-                                        transition={{ duration: 2, repeat: Infinity }}
-                                    />
+                                    <Brain className="w-5 h-5 md:w-8 md:h-8 text-white" />
                                 </motion.div>
-                                <div>
-                                    <h2 className="text-xl md:text-3xl font-black text-white uppercase tracking-tight bg-clip-text text-transparent bg-gradient-to-r from-white via-indigo-200 to-purple-200">
-                                        AI Mystery Director
+                                <div className="min-w-0">
+                                    <h2 className="text-lg md:text-3xl font-black text-white uppercase tracking-tight truncate bg-clip-text text-transparent bg-gradient-to-r from-white via-indigo-200 to-purple-200">
+                                        Mystery Director
                                     </h2>
-                                    <p className="text-[10px] md:text-xs font-mono text-indigo-400 uppercase tracking-widest mt-0.5 flex items-center gap-2">
-                                        <Sparkles className="w-3 h-3" />
-                                        Next-Gen Procedural Story Generation
+                                    <p className="text-[8px] md:text-xs font-mono text-indigo-400 uppercase tracking-widest mt-0.5 flex items-center gap-1.5 md:gap-2 truncate">
+                                        <Sparkles className="w-2.5 h-2.5 md:w-3 md:h-3" />
+                                        Next-Gen Story Generation
                                     </p>
                                 </div>
                             </div>
                             <button
                                 onClick={() => { onClose(); resetForm(); }}
-                                className="p-2 hover:bg-white/10 rounded-xl transition-all group relative"
+                                className="p-1.5 md:p-2 hover:bg-white/10 rounded-xl transition-all group relative flex-shrink-0"
                             >
-                                <X className="w-6 h-6 text-zinc-400 group-hover:text-white transition-colors" />
-                                <div className="absolute inset-0 bg-red-500/20 rounded-xl opacity-0 group-hover:opacity-100 transition-opacity" />
+                                <X className="w-5 h-5 md:w-6 md:h-6 text-zinc-400 group-hover:text-white transition-colors" />
                             </button>
                         </div>
 
@@ -670,7 +664,7 @@ Generate a complete mystery game that masterfully integrates these learning obje
                     </div>
 
                     {/* Content */}
-                    <div className="flex-1 overflow-y-auto custom-scrollbar p-8">
+                    <div className="flex-1 overflow-y-auto custom-scrollbar p-4 md:p-8">
                         {!isGenerating ? (
                             <AnimatePresence mode="wait">
                                 {/* Mode Selection */}
@@ -682,9 +676,9 @@ Generate a complete mystery game that masterfully integrates these learning obje
                                         exit={{ opacity: 0, scale: 0.95 }}
                                         className="space-y-8"
                                     >
-                                        <div className="text-center space-y-3 mb-8 md:mb-12">
-                                            <h3 className="text-xl md:text-3xl font-black text-white">Choose Your Creation Mode</h3>
-                                            <p className="text-zinc-400 max-w-2xl mx-auto leading-relaxed">
+                                        <div className="text-center space-y-2 md:space-y-3 mb-6 md:mb-12">
+                                            <h3 className="text-lg md:text-3xl font-black text-white px-4 md:px-0 uppercase tracking-tight">Choose Your Creation Mode</h3>
+                                            <p className="text-xs md:text-sm text-zinc-400 max-w-2xl mx-auto leading-relaxed px-4 md:px-0">
                                                 Select how you want to build your mystery. Quick Mode for instant creation, or Advanced Mode for complete control.
                                             </p>
                                         </div>
@@ -693,49 +687,38 @@ Generate a complete mystery game that masterfully integrates these learning obje
                                             {/* Quick Mode */}
                                             <motion.button
                                                 onClick={() => setMode('quick')}
-                                                className="group relative p-8 rounded-2xl border-2 border-white/10 bg-gradient-to-br from-indigo-500/10 via-purple-500/5 to-transparent hover:border-indigo-500/50 transition-all overflow-hidden"
-                                                whileHover={{ scale: 1.02, y: -5 }}
+                                                className="group relative p-4 md:p-8 rounded-2xl border-2 border-white/10 bg-gradient-to-br from-indigo-500/10 via-purple-500/5 to-transparent hover:border-indigo-500/50 transition-all overflow-hidden text-left"
+                                                whileHover={{ scale: 1.01, y: -2 }}
                                                 whileTap={{ scale: 0.98 }}
                                             >
                                                 <div className="absolute inset-0 bg-gradient-to-br from-indigo-600/20 to-purple-600/20 opacity-0 group-hover:opacity-100 transition-opacity" />
                                                 <div className="absolute top-0 right-0 w-32 h-32 bg-indigo-500/20 rounded-full blur-3xl group-hover:scale-150 transition-transform" />
 
-                                                <div className="relative z-10 space-y-4">
+                                                <div className="relative z-10 space-y-3 md:space-y-4">
                                                     <div className="flex items-center justify-between">
-                                                        <div className="p-4 bg-gradient-to-br from-indigo-600 to-purple-600 rounded-2xl shadow-lg">
-                                                            <Rocket className="w-8 h-8 text-white" />
+                                                        <div className="p-3 md:p-4 bg-gradient-to-br from-indigo-600 to-purple-600 rounded-xl md:rounded-2xl shadow-lg">
+                                                            <Rocket className="w-5 h-5 md:w-8 md:h-8 text-white" />
                                                         </div>
-                                                        <div className="px-3 py-1 bg-emerald-500/20 border border-emerald-500/50 rounded-full">
-                                                            <span className="text-xs font-bold text-emerald-400 uppercase tracking-wider">Recommended</span>
+                                                        <div className="px-2 md:px-3 py-1 bg-emerald-500/20 border border-emerald-500/50 rounded-full">
+                                                            <span className="text-[10px] font-bold text-emerald-400 uppercase tracking-wider">Fast</span>
                                                         </div>
                                                     </div>
 
                                                     <div>
-                                                        <h4 className="text-xl md:text-2xl font-black text-white mb-2">Quick Start Mode</h4>
-                                                        <p className="text-sm text-zinc-400 leading-relaxed mb-4">
-                                                            Simply describe your story and learning objectives in plain text. AI handles everything else.
+                                                        <h4 className="text-lg md:text-2xl font-black text-white mb-1 md:mb-2">Quick Mode</h4>
+                                                        <p className="text-xs md:text-sm text-zinc-400 leading-relaxed mb-3 md:mb-4">
+                                                            Describe your story and objectives in plain text. AI handles the rest.
                                                         </p>
 
-                                                        <div className="space-y-2">
-                                                            <div className="flex items-center gap-2 text-xs text-zinc-500">
-                                                                <CheckCircle className="w-4 h-4 text-emerald-400" />
-                                                                <span>Write your story in natural language</span>
+                                                        <div className="space-y-1.5 md:space-y-2 hidden xs:block">
+                                                            <div className="flex items-center gap-2 text-[10px] md:text-xs text-zinc-500">
+                                                                <CheckCircle className="w-3.5 h-3.5 md:w-4 md:h-4 text-emerald-400" />
+                                                                <span>Natural language input</span>
                                                             </div>
-                                                            <div className="flex items-center gap-2 text-xs text-zinc-500">
-                                                                <CheckCircle className="w-4 h-4 text-emerald-400" />
-                                                                <span>AI auto-generates everything</span>
+                                                            <div className="flex items-center gap-2 text-[10px] md:text-xs text-zinc-500">
+                                                                <CheckCircle className="w-3.5 h-3.5 md:w-4 md:h-4 text-emerald-400" />
+                                                                <span>Instant generation</span>
                                                             </div>
-                                                            <div className="flex items-center gap-2 text-xs text-zinc-500">
-                                                                <CheckCircle className="w-4 h-4 text-emerald-400" />
-                                                                <span>Perfect for beginners</span>
-                                                            </div>
-                                                        </div>
-                                                    </div>
-
-                                                    <div className="pt-4 border-t border-white/10">
-                                                        <div className="flex items-center justify-between text-xs">
-                                                            <span className="text-zinc-600">Time to create:</span>
-                                                            <span className="font-bold text-indigo-400">~2 minutes</span>
                                                         </div>
                                                     </div>
                                                 </div>
@@ -744,49 +727,38 @@ Generate a complete mystery game that masterfully integrates these learning obje
                                             {/* Advanced Mode */}
                                             <motion.button
                                                 onClick={() => setMode('advanced')}
-                                                className="group relative p-8 rounded-2xl border-2 border-white/10 bg-gradient-to-br from-purple-500/10 via-pink-500/5 to-transparent hover:border-purple-500/50 transition-all overflow-hidden"
-                                                whileHover={{ scale: 1.02, y: -5 }}
+                                                className="group relative p-4 md:p-8 rounded-2xl border-2 border-white/10 bg-gradient-to-br from-purple-500/10 via-pink-500/5 to-transparent hover:border-purple-500/50 transition-all overflow-hidden text-left"
+                                                whileHover={{ scale: 1.01, y: -2 }}
                                                 whileTap={{ scale: 0.98 }}
                                             >
                                                 <div className="absolute inset-0 bg-gradient-to-br from-purple-600/20 to-pink-600/20 opacity-0 group-hover:opacity-100 transition-opacity" />
                                                 <div className="absolute top-0 right-0 w-32 h-32 bg-purple-500/20 rounded-full blur-3xl group-hover:scale-150 transition-transform" />
 
-                                                <div className="relative z-10 space-y-4">
+                                                <div className="relative z-10 space-y-3 md:space-y-4">
                                                     <div className="flex items-center justify-between">
-                                                        <div className="p-4 bg-gradient-to-br from-purple-600 to-pink-600 rounded-2xl shadow-lg">
-                                                            <Settings2 className="w-8 h-8 text-white" />
+                                                        <div className="p-3 md:p-4 bg-gradient-to-br from-purple-600 to-pink-600 rounded-xl md:rounded-2xl shadow-lg">
+                                                            <Settings2 className="w-5 h-5 md:w-8 md:h-8 text-white" />
                                                         </div>
-                                                        <div className="px-3 py-1 bg-purple-500/20 border border-purple-500/50 rounded-full">
-                                                            <span className="text-xs font-bold text-purple-400 uppercase tracking-wider">Pro</span>
+                                                        <div className="px-2 md:px-3 py-1 bg-purple-500/20 border border-purple-500/50 rounded-full">
+                                                            <span className="text-[10px] font-bold text-purple-400 uppercase tracking-wider">Pro</span>
                                                         </div>
                                                     </div>
 
                                                     <div>
-                                                        <h4 className="text-xl md:text-2xl font-black text-white mb-2">Advanced Wizard</h4>
-                                                        <p className="text-sm text-zinc-400 leading-relaxed mb-4">
-                                                            Step-by-step wizard with full control over genre, difficulty, suspects, and puzzle types.
+                                                        <h4 className="text-lg md:text-2xl font-black text-white mb-1 md:mb-2">Advanced Wizard</h4>
+                                                        <p className="text-xs md:text-sm text-zinc-400 leading-relaxed mb-3 md:mb-4">
+                                                            Step-by-step control over genre, difficulty, suspects, and puzzles.
                                                         </p>
 
-                                                        <div className="space-y-2">
-                                                            <div className="flex items-center gap-2 text-xs text-zinc-500">
-                                                                <CheckCircle className="w-4 h-4 text-purple-400" />
-                                                                <span>Fine-tune every aspect</span>
+                                                        <div className="space-y-1.5 md:space-y-2 hidden xs:block">
+                                                            <div className="flex items-center gap-2 text-[10px] md:text-xs text-zinc-500">
+                                                                <CheckCircle className="w-3.5 h-3.5 md:w-4 md:h-4 text-purple-400" />
+                                                                <span>Full customization</span>
                                                             </div>
-                                                            <div className="flex items-center gap-2 text-xs text-zinc-500">
-                                                                <CheckCircle className="w-4 h-4 text-purple-400" />
-                                                                <span>Choose genre, difficulty & puzzles</span>
+                                                            <div className="flex items-center gap-2 text-[10px] md:text-xs text-zinc-500">
+                                                                <CheckCircle className="w-3.5 h-3.5 md:w-4 md:h-4 text-purple-400" />
+                                                                <span>Granular control</span>
                                                             </div>
-                                                            <div className="flex items-center gap-2 text-xs text-zinc-500">
-                                                                <CheckCircle className="w-4 h-4 text-purple-400" />
-                                                                <span>Maximum customization</span>
-                                                            </div>
-                                                        </div>
-                                                    </div>
-
-                                                    <div className="pt-4 border-t border-white/10">
-                                                        <div className="flex items-center justify-between text-xs">
-                                                            <span className="text-zinc-600">Time to create:</span>
-                                                            <span className="font-bold text-purple-400">~5 minutes</span>
                                                         </div>
                                                     </div>
                                                 </div>
@@ -1002,8 +974,285 @@ Generate a complete mystery game that masterfully integrates these learning obje
                                     </motion.div>
                                 )}
 
-                                {/* Continue with existing advanced mode steps 2-6... */}
-                                {/* (I'll keep the existing steps from the original file for brevity) */}
+                                {/* Step 2: Genre & Setting */}
+                                {mode === 'advanced' && step === 2 && (
+                                    <motion.div
+                                        key="step2"
+                                        initial={{ opacity: 0, x: 20 }}
+                                        animate={{ opacity: 1, x: 0 }}
+                                        exit={{ opacity: 0, x: -20 }}
+                                        className="space-y-4 md:space-y-6"
+                                    >
+                                        <div className="flex items-center gap-3 mb-4">
+                                            <div className="p-2 bg-purple-500/10 rounded-xl">
+                                                <Globe className="w-5 h-5 md:w-6 md:h-6 text-purple-400" />
+                                            </div>
+                                            <div>
+                                                <h3 className="text-lg md:text-xl font-black text-white uppercase tracking-tight">Genre & Setting</h3>
+                                                <p className="text-[10px] md:text-xs text-zinc-500 mt-0.5">Choose the atmosphere and world</p>
+                                            </div>
+                                        </div>
+
+                                        {/* Genre Selection */}
+                                        <div className="space-y-3">
+                                            <Label className="text-[10px] md:text-xs font-bold uppercase tracking-widest text-zinc-400">Select Genre</Label>
+                                            <div className="grid grid-cols-2 lg:grid-cols-4 gap-2 md:gap-3">
+                                                {GENRES.map(g => (
+                                                    <button
+                                                        key={g.id}
+                                                        onClick={() => setGenre(g.id)}
+                                                        className={`p-3 md:p-4 rounded-xl border-2 transition-all text-left ${genre === g.id
+                                                            ? 'border-purple-500 bg-purple-500/10 shadow-[0_0_20px_rgba(168,85,247,0.3)]'
+                                                            : 'border-white/10 bg-white/5 hover:border-white/20'
+                                                            }`}
+                                                    >
+                                                        <div className="text-xl md:text-2xl mb-1 md:mb-2">{g.icon}</div>
+                                                        <div className="text-xs md:text-sm font-bold text-white mb-0.5 md:mb-1">{g.label}</div>
+                                                        <div className="text-[9px] md:text-[10px] text-zinc-500 leading-tight line-clamp-2">{g.desc}</div>
+                                                    </button>
+                                                ))}
+                                            </div>
+                                        </div>
+
+                                        {/* Custom Setting */}
+                                        <div className="space-y-3">
+                                            <Label className="text-[10px] md:text-xs font-bold uppercase tracking-widest text-zinc-400 flex items-center gap-2">
+                                                <Sparkles className="w-3.5 h-3.5 md:w-4 md:h-4" />
+                                                Custom Setting (Optional)
+                                            </Label>
+                                            <textarea
+                                                className="w-full h-24 md:h-32 bg-black/50 border-2 border-zinc-800 rounded-2xl p-4 text-xs md:text-sm text-zinc-200 placeholder:text-zinc-700 focus:outline-none focus:border-purple-500/50 focus:ring-2 focus:ring-purple-500/20 transition-all resize-none"
+                                                placeholder="Example: 'A luxury space cruise liner orbiting Saturn...'"
+                                                value={customSetting}
+                                                onChange={(e) => setCustomSetting(e.target.value)}
+                                            />
+                                        </div>
+                                    </motion.div>
+                                )}
+
+                                {/* Step 3: Difficulty & Complexity */}
+                                {mode === 'advanced' && step === 3 && (
+                                    <motion.div
+                                        key="step3"
+                                        initial={{ opacity: 0, x: 20 }}
+                                        animate={{ opacity: 1, x: 0 }}
+                                        exit={{ opacity: 0, x: -20 }}
+                                        className="space-y-4 md:space-y-6"
+                                    >
+                                        <div className="flex items-center gap-3 mb-4">
+                                            <div className="p-2 bg-amber-500/10 rounded-xl">
+                                                <Trophy className="w-5 h-5 md:w-6 md:h-6 text-amber-400" />
+                                            </div>
+                                            <div>
+                                                <h3 className="text-lg md:text-xl font-black text-white uppercase tracking-tight">Difficulty</h3>
+                                                <p className="text-[10px] md:text-xs text-zinc-500 mt-0.5">Set the challenge level</p>
+                                            </div>
+                                        </div>
+
+                                        <div className="space-y-2 md:space-y-3">
+                                            {DIFFICULTY_LEVELS.map(d => (
+                                                <button
+                                                    key={d.id}
+                                                    onClick={() => setDifficulty(d.id)}
+                                                    className={`w-full p-3 md:p-5 rounded-xl border-2 transition-all text-left ${difficulty === d.id
+                                                        ? 'border-amber-500 bg-amber-500/10 shadow-[0_0_20px_rgba(245,158,11,0.3)]'
+                                                        : 'border-white/10 bg-white/5 hover:border-white/20'
+                                                        }`}
+                                                >
+                                                    <div className="flex items-center justify-between mb-1 md:mb-2">
+                                                        <div className="flex items-center gap-2 md:gap-3">
+                                                            <span className="text-xl md:text-2xl">{d.icon}</span>
+                                                            <span className="text-sm md:text-lg font-black text-white">{d.label}</span>
+                                                        </div>
+                                                        <div className="flex items-center gap-1 md:gap-2 text-[10px] md:text-xs text-zinc-500">
+                                                            <Clock className="w-3 h-3 md:w-4 md:h-4" />
+                                                            {d.duration}
+                                                        </div>
+                                                    </div>
+                                                    <p className="text-[10px] md:text-sm text-zinc-400 leading-tight">{d.desc}</p>
+                                                </button>
+                                            ))}
+                                        </div>
+                                    </motion.div>
+                                )}
+
+                                {/* Step 4: Suspects Configuration */}
+                                {mode === 'advanced' && step === 4 && (
+                                    <motion.div
+                                        key="step4"
+                                        initial={{ opacity: 0, x: 20 }}
+                                        animate={{ opacity: 1, x: 0 }}
+                                        exit={{ opacity: 0, x: -20 }}
+                                        className="space-y-6"
+                                    >
+                                        <div className="flex items-center gap-3 mb-4">
+                                            <div className="p-2 bg-rose-500/10 rounded-xl">
+                                                <Users className="w-5 h-5 md:w-6 md:h-6 text-rose-400" />
+                                            </div>
+                                            <div>
+                                                <h3 className="text-lg md:text-xl font-black text-white uppercase tracking-tight">Suspects</h3>
+                                                <p className="text-[10px] md:text-xs text-zinc-500 mt-0.5">Design your cast of characters</p>
+                                            </div>
+                                        </div>
+
+                                        <div className="space-y-8">
+                                            <div className="space-y-4">
+                                                <Label className="text-[10px] md:text-xs font-bold uppercase tracking-widest text-zinc-400 block text-center">Number of Suspects</Label>
+                                                <div className="flex items-center justify-center gap-6">
+                                                    <button
+                                                        onClick={() => setSuspectCount(Math.max(2, suspectCount - 1))}
+                                                        className="p-3 bg-white/5 border border-white/10 rounded-xl hover:bg-white/10 transition-all"
+                                                    >
+                                                        <ChevronLeft className="w-5 h-5 text-white" />
+                                                    </button>
+                                                    <div className="text-center min-w-[60px]">
+                                                        <div className="text-5xl font-black text-white">{suspectCount}</div>
+                                                        {/* <div className="text-[10px] text-zinc-500 uppercase tracking-widest mt-1">Suspects</div> */}
+                                                    </div>
+                                                    <button
+                                                        onClick={() => setSuspectCount(Math.min(10, suspectCount + 1))}
+                                                        className="p-3 bg-white/5 border border-white/10 rounded-xl hover:bg-white/10 transition-all"
+                                                    >
+                                                        <ChevronRight className="w-5 h-5 text-white" />
+                                                    </button>
+                                                </div>
+                                            </div>
+
+                                            <div className="space-y-3">
+                                                <Label className="text-[10px] md:text-xs font-bold uppercase tracking-widest text-zinc-400">Suspect Complexity</Label>
+                                                <div className="grid grid-cols-1 md:grid-cols-3 gap-2 md:gap-3">
+                                                    {[
+                                                        { id: 'simple', label: 'Simple', desc: 'Clear motives' },
+                                                        { id: 'balanced', label: 'Balanced', desc: 'Mixed clues' },
+                                                        { id: 'complex', label: 'Complex', desc: 'Layered stories' }
+                                                    ].map(c => (
+                                                        <button
+                                                            key={c.id}
+                                                            onClick={() => setSuspectComplexity(c.id)}
+                                                            className={`p-3 md:p-4 rounded-xl border-2 transition-all text-left ${suspectComplexity === c.id
+                                                                ? 'border-rose-500 bg-rose-500/10'
+                                                                : 'border-white/10 bg-white/5 hover:border-white/20'
+                                                                }`}
+                                                        >
+                                                            <div className="text-xs md:text-sm font-bold text-white mb-0.5 md:mb-1">{c.label}</div>
+                                                            <div className="text-[9px] md:text-[10px] text-zinc-500 leading-tight">{c.desc}</div>
+                                                        </button>
+                                                    ))}
+                                                </div>
+                                            </div>
+                                        </div>
+                                    </motion.div>
+                                )}
+
+                                {/* Step 5: Puzzle Types */}
+                                {mode === 'advanced' && step === 5 && (
+                                    <motion.div
+                                        key="step5"
+                                        initial={{ opacity: 0, x: 20 }}
+                                        animate={{ opacity: 1, x: 0 }}
+                                        exit={{ opacity: 0, x: -20 }}
+                                        className="space-y-4 md:space-y-6"
+                                    >
+                                        <div className="flex items-center gap-3 mb-4">
+                                            <div className="p-2 bg-emerald-500/10 rounded-xl">
+                                                <Puzzle className="w-5 h-5 md:w-6 md:h-6 text-emerald-400" />
+                                            </div>
+                                            <div>
+                                                <h3 className="text-lg md:text-xl font-black text-white uppercase tracking-tight">Challenges</h3>
+                                                <p className="text-[10px] md:text-xs text-zinc-500 mt-0.5">Select interactive elements</p>
+                                            </div>
+                                        </div>
+
+                                        <div className="grid grid-cols-1 md:grid-cols-2 gap-2 md:gap-3">
+                                            {PUZZLE_TYPES.map(puzzle => {
+                                                const Icon = puzzle.icon;
+                                                const isSelected = selectedPuzzles.includes(puzzle.id);
+                                                return (
+                                                    <button
+                                                        key={puzzle.id}
+                                                        onClick={() => togglePuzzle(puzzle.id)}
+                                                        className={`p-2.5 md:p-4 rounded-xl border-2 transition-all text-left ${isSelected
+                                                            ? 'border-emerald-500 bg-emerald-500/10'
+                                                            : 'border-white/10 bg-white/5 hover:border-white/20'
+                                                            }`}
+                                                    >
+                                                        <div className="flex items-start gap-2 md:gap-3">
+                                                            <div className={`p-1.5 md:p-2 rounded-lg flex-shrink-0 ${isSelected ? 'bg-emerald-500/20' : 'bg-white/5'}`}>
+                                                                <Icon className={`w-4 h-4 md:w-5 md:h-5 ${isSelected ? 'text-emerald-400' : 'text-zinc-500'}`} />
+                                                            </div>
+                                                            <div className="min-w-0">
+                                                                <div className="flex items-center justify-between mb-0.5 md:mb-1">
+                                                                    <span className="text-xs md:text-sm font-bold text-white truncate">{puzzle.label}</span>
+                                                                    {isSelected && <CheckCircle className="w-3 h-3 md:w-4 md:h-4 text-emerald-400 ml-2" />}
+                                                                </div>
+                                                                <p className="text-[9px] md:text-xs text-zinc-500 leading-tight line-clamp-1">{puzzle.desc}</p>
+                                                            </div>
+                                                        </div>
+                                                    </button>
+                                                );
+                                            })}
+                                        </div>
+                                    </motion.div>
+                                )}
+
+                                {/* Step 6: Review & Generate */}
+                                {mode === 'advanced' && step === 6 && (
+                                    <motion.div
+                                        key="step6"
+                                        initial={{ opacity: 0, x: 20 }}
+                                        animate={{ opacity: 1, x: 0 }}
+                                        exit={{ opacity: 0, x: -20 }}
+                                        className="space-y-4 md:space-y-6"
+                                    >
+                                        <div className="flex items-center gap-3 mb-4">
+                                            <div className="p-2 bg-indigo-500/10 rounded-xl">
+                                                <Eye className="w-5 h-5 md:w-6 md:h-6 text-indigo-400" />
+                                            </div>
+                                            <div>
+                                                <h3 className="text-lg md:text-xl font-black text-white uppercase tracking-tight">Review</h3>
+                                                <p className="text-[10px] md:text-xs text-zinc-500 mt-0.5">Finalize your mystery</p>
+                                            </div>
+                                        </div>
+
+                                        <div className="space-y-3 max-h-[40vh] md:max-h-none overflow-y-auto pr-2 custom-scrollbar">
+                                            {/* Learning Objectives Summary */}
+                                            <div className="p-3 md:p-4 bg-white/5 border border-white/10 rounded-xl">
+                                                <div className="flex items-center gap-2 mb-2">
+                                                    <BookOpen className="w-3.5 h-3.5 text-indigo-400" />
+                                                    <span className="text-[10px] font-bold text-zinc-400 uppercase tracking-wider">Objectives</span>
+                                                </div>
+                                                <p className="text-xs text-zinc-300 leading-relaxed line-clamp-3">{objectives}</p>
+                                            </div>
+
+                                            {/* Configuration Grid */}
+                                            <div className="grid grid-cols-2 gap-2 md:gap-4">
+                                                <div className="p-3 md:p-4 bg-white/5 border border-white/10 rounded-xl">
+                                                    <div className="text-[9px] font-bold text-zinc-500 uppercase mb-1">Genre</div>
+                                                    <div className="text-xs md:text-sm text-white font-bold">{GENRES.find(g => g.id === genre)?.label}</div>
+                                                </div>
+                                                <div className="p-3 md:p-4 bg-white/5 border border-white/10 rounded-xl">
+                                                    <div className="text-[9px] font-bold text-zinc-500 uppercase mb-1">Difficulty</div>
+                                                    <div className="text-xs md:text-sm text-white font-bold">{DIFFICULTY_LEVELS.find(d => d.id === difficulty)?.label}</div>
+                                                </div>
+                                                <div className="p-3 md:p-4 bg-white/5 border border-white/10 rounded-xl">
+                                                    <div className="text-[9px] font-bold text-zinc-500 uppercase mb-1">Suspects</div>
+                                                    <div className="text-xs md:text-sm text-white font-bold">{suspectCount} Cast Members</div>
+                                                </div>
+                                                <div className="p-3 md:p-4 bg-white/5 border border-white/10 rounded-xl">
+                                                    <div className="text-[9px] font-bold text-zinc-500 uppercase mb-1">Challenges</div>
+                                                    <div className="text-xs md:text-sm text-white font-bold">{selectedPuzzles.length} Types</div>
+                                                </div>
+                                            </div>
+
+                                            <div className="p-4 bg-indigo-500/5 border border-indigo-500/20 rounded-xl flex gap-3">
+                                                <Lightbulb className="w-5 h-5 text-indigo-400 shrink-0 mt-0.5" />
+                                                <div className="text-[10px] md:text-xs text-zinc-400 leading-relaxed">
+                                                    AI is ready to construct your narrative architecture.
+                                                </div>
+                                            </div>
+                                        </div>
+                                    </motion.div>
+                                )}
 
                             </AnimatePresence>
                         ) : (
