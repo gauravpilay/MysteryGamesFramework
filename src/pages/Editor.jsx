@@ -1403,7 +1403,7 @@ const Editor = () => {
 
             </header>
 
-            <div className="flex flex-1 overflow-hidden relative z-10">
+            <div className={`flex flex-1 overflow-hidden relative z-10 transition-all duration-500 ${isMobileMenuOpen ? 'blur-md pointer-events-none brightness-[0.4] scale-[0.98]' : ''}`}>
                 {/* Sidebar */}
                 <aside id="node-sidebar" className={`${isPaletteCollapsed ? 'w-16' : 'w-72'} border-r flex flex-col gap-4 z-20 transition-all duration-300 ease-[cubic-bezier(0.25,0.1,0.25,1)] backdrop-blur-xl ${isLocked ? 'opacity-80 pointer-events-none grayscale-[0.5]' : ''} ${isDarkMode ? 'border-white/10 bg-black/60' : 'border-zinc-200 bg-white/90'} absolute md:relative h-full`}>
                     <div className={`flex items-center ${isPaletteCollapsed ? 'justify-center p-3' : 'justify-between p-5'} border-b ${isDarkMode ? 'border-white/5' : 'border-zinc-200'}`}>
