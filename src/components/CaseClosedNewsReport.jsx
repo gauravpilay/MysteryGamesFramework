@@ -1,8 +1,10 @@
 import React, { useState, useEffect, useRef } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
-import { Radio, Newspaper, TrendingUp, Award, Share2, ArrowRight, Clock, Shield, AlertTriangle, CheckCircle, User, FileText, ExternalLink, Download } from 'lucide-react';
+import { Radio, Newspaper, TrendingUp, Award, Share2, ArrowRight, Clock, Shield, AlertTriangle, CheckCircle, User, FileText, ExternalLink, Download, Check } from 'lucide-react';
 import { callAI } from '../lib/ai';
 import { useConfig } from '../lib/config';
+import { jsPDF } from 'jspdf';
+import 'jspdf-autotable';
 
 const CaseClosedNewsReport = ({
     gameMetadata,
@@ -17,6 +19,7 @@ const CaseClosedNewsReport = ({
     const [report, setReport] = useState(null);
     const [loading, setLoading] = useState(true);
     const [error, setError] = useState(null);
+    const [notification, setNotification] = useState(null);
     const scrollRef = useRef(null);
 
     const getApiKey = () => {
@@ -94,6 +97,97 @@ const CaseClosedNewsReport = ({
         generateReport();
     }, [gameMetadata, logs, score, accusationResult, culpritName, objectiveScores]);
 
+    const showNotification = (msg) => {
+        setNotification(msg);
+        setTimeout(() => setNotification(null), 3000);
+    };
+
+    const handleDownload = () => {
+        if (!report) return;
+
+        const doc = new jsPDF();
+        const timestamp = new Date().toLocaleString();
+
+        // Styles
+        doc.setFillColor(15, 15, 20); // Dark background
+        doc.rect(0, 0, 210, 297, 'F');
+
+        // Header
+        doc.setTextColor(220, 38, 38); // Red
+        doc.setFontSize(10);
+        doc.setFont('helvetica', 'bold');
+        doc.text('BREAKING NEWS // THE MIDNIGHT CHRONOS', 20, 20);
+
+        doc.setTextColor(255, 255, 255);
+        doc.setFontSize(24);
+        doc.text(report.headline.toUpperCase(), 20, 35, { maxWidth: 170 });
+
+        // Case Info
+        doc.setTextColor(150, 150, 150);
+        doc.setFontSize(10);
+        doc.text(`CASE: ${gameMetadata?.title || 'UNKNOWN'}`, 20, 60);
+        doc.text(`ARCHIVE DATE: ${timestamp}`, 20, 65);
+        doc.text(`DETECTIVE YIELD: ${score} PTS`, 20, 70);
+
+        // Lead
+        doc.setTextColor(255, 255, 255);
+        doc.setFontSize(14);
+        doc.setFont('helvetica', 'italic');
+        doc.text(`"${report.lead}"`, 20, 85, { maxWidth: 170 });
+
+        // Details
+        doc.setTextColor(200, 200, 200);
+        doc.setFontSize(11);
+        doc.setFont('helvetica', 'normal');
+        doc.text(report.details, 20, 110, { maxWidth: 170 });
+
+        // Verdict
+        doc.setTextColor(255, 255, 255);
+        doc.setFontSize(12);
+        doc.setFont('helvetica', 'bold');
+        doc.text('OFFICIAL VERDICT', 20, 160);
+
+        doc.setFillColor(report.mood === 'triumphant' ? 16 : 153, report.mood === 'triumphant' ? 185 : 27, report.mood === 'triumphant' ? 129 : 27);
+        doc.rect(20, 165, 170, 20, 'F');
+        doc.setTextColor(255, 255, 255);
+        doc.text(report.verdict, 25, 177, { maxWidth: 160 });
+
+        // Footer
+        doc.setTextColor(100, 100, 100);
+        doc.setFontSize(8);
+        doc.text('END OF NEURAL RECONSTRUCTION // ENCRYPTED DATA TRANSFER', 105, 285, { align: 'center' });
+
+        doc.save(`MidnightChronos_Case_${gameMetadata?.id?.slice(-4) || 'REPORT'}.pdf`);
+        showNotification("Report Downloaded Successfully");
+    };
+
+    const handleTransmit = async () => {
+        if (!report) return;
+
+        const shareText = `[BREAKING NEWS] ${report.headline}\n\nCase: ${gameMetadata?.title}\nDetective Score: ${score}\n\n${report.lead}\n\n- Transmitted via Midnight Chronos`;
+
+        if (navigator.share) {
+            try {
+                await navigator.share({
+                    title: `Midnight Chronos: ${report.headline}`,
+                    text: shareText,
+                    url: window.location.href,
+                });
+                showNotification("Transmission Complete");
+            } catch (err) {
+                console.error("Share failed", err);
+            }
+        } else {
+            // Fallback to clipboard
+            try {
+                await navigator.clipboard.writeText(shareText);
+                showNotification("Case Summary Copied to Clipboard");
+            } catch (err) {
+                console.error("Clipboard failed", err);
+            }
+        }
+    };
+
     // Format ticker items into a single long string
     const tickerText = report?.ticker?.join(' • ') || "SCANNING FOR NEW DATA • NEURAL LINK STABLE • RECONSTRUCTION IN PROGRESS • ";
 
@@ -139,6 +233,21 @@ const CaseClosedNewsReport = ({
                     </button>
                 </div>
             </div>
+
+            {/* NOTIFICATION OVERLAY */}
+            <AnimatePresence>
+                {notification && (
+                    <motion.div
+                        initial={{ opacity: 0, y: -20, x: '-50%' }}
+                        animate={{ opacity: 1, y: 0, x: '-50%' }}
+                        exit={{ opacity: 0, y: -20, x: '-50%' }}
+                        className="fixed top-24 left-1/2 z-[300] bg-indigo-600 px-6 py-3 rounded-2xl border border-white/20 shadow-2xl flex items-center gap-3"
+                    >
+                        <Check className="w-4 h-4 text-white" />
+                        <span className="text-sm font-bold uppercase tracking-widest text-white">{notification}</span>
+                    </motion.div>
+                )}
+            </AnimatePresence>
 
             {/* MAIN CONTENT AREA */}
             <main className="relative z-10 flex-1 overflow-y-auto custom-scrollbar">
@@ -281,11 +390,17 @@ const CaseClosedNewsReport = ({
 
                         {/* ACTION BUTTONS */}
                         <div className="grid grid-cols-2 gap-4">
-                            <button className="py-4 bg-white/5 hover:bg-white/10 border border-white/10 rounded-2xl flex flex-col items-center gap-2 transition-all">
+                            <button
+                                onClick={handleTransmit}
+                                className="py-4 bg-white/5 hover:bg-white/10 border border-white/10 rounded-2xl flex flex-col items-center gap-2 transition-all active:scale-95 hover:border-indigo-500/30"
+                            >
                                 <Share2 className="w-4 h-4 text-indigo-400" />
                                 <span className="text-[8px] font-black uppercase tracking-widest">Transmit</span>
                             </button>
-                            <button className="py-4 bg-white/5 hover:bg-white/10 border border-white/10 rounded-2xl flex flex-col items-center gap-2 transition-all">
+                            <button
+                                onClick={handleDownload}
+                                className="py-4 bg-white/5 hover:bg-white/10 border border-white/10 rounded-2xl flex flex-col items-center gap-2 transition-all active:scale-95 hover:border-emerald-500/30"
+                            >
                                 <Download className="w-4 h-4 text-emerald-400" />
                                 <span className="text-[8px] font-black uppercase tracking-widest">Download</span>
                             </button>
