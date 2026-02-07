@@ -3,7 +3,7 @@ set -e
 
 # Configuration
 SERVICE_NAME="mystery-games-framework"
-DEFAULT_REGION="us-central1"
+DEFAULT_REGION="us-east1"
 REPO_NAME="mystery-games"
 
 echo "=================================================="
