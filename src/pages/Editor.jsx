@@ -1583,45 +1583,7 @@ const Editor = () => {
                                     <p className="text-zinc-500 text-[8px] md:text-[10px] font-bold uppercase tracking-[0.2em] md:tracking-[0.3em] pl-1">Configuration & Neural Parameters</p>
                                 </div>
                             </div>
-
                             <div className="space-y-10">
-                                {/* PRIMARY SYSTEM CAPABILITIES SECTION */}
-                                <section className="space-y-4">
-                                    <div className="flex items-center gap-2 mb-4">
-                                        <div className="h-px flex-1 bg-gradient-to-r from-transparent via-cyan-500/50 to-transparent"></div>
-                                        <span className="text-[12px] font-black text-cyan-400 uppercase tracking-[0.3em] whitespace-nowrap px-6">Mission Capabilities</span>
-                                        <div className="h-px flex-1 bg-gradient-to-r from-transparent via-cyan-500/50 to-transparent"></div>
-                                    </div>
-
-                                    <div className={`p-4 md:p-6 border rounded-2xl transition-all duration-700 relative overflow-hidden group ${enableThreeD ? 'bg-cyan-500/5 border-cyan-500/40 shadow-[0_0_40px_rgba(6,182,212,0.15)]' : 'bg-black border-zinc-800 opacity-60'}`}>
-                                        {enableThreeD && <div className="absolute inset-0 bg-gradient-to-br from-cyan-500/10 via-transparent to-indigo-500/5 pointer-events-none" />}
-
-                                        <div className="flex flex-col sm:flex-row sm:items-center justify-between relative z-10 gap-4">
-                                            <div className="flex items-center gap-4 md:gap-5">
-                                                <div className={`p-3 md:p-4 rounded-xl transition-colors ${enableThreeD ? 'bg-cyan-500/20 text-cyan-400' : 'bg-zinc-900 text-zinc-500'}`}>
-                                                    <Box className="w-6 h-6 md:w-8 md:h-8" />
-                                                </div>
-                                                <div>
-                                                    <h4 className="text-base md:text-lg font-black text-white uppercase tracking-tight">3D Neural Reconstruction</h4>
-                                                    <p className="text-[10px] md:text-xs text-zinc-500 font-medium">Allow AI Holodeck world generation & spatial exploration</p>
-                                                </div>
-                                            </div>
-
-                                            <div className="flex flex-row sm:flex-col items-center sm:items-end justify-between gap-2">
-                                                <button
-                                                    onClick={() => setEnableThreeD(!enableThreeD)}
-                                                    className={`w-14 h-7 md:w-16 md:h-8 rounded-full transition-all flex items-center px-1.5 ${enableThreeD ? 'bg-cyan-600 shadow-[0_0_20px_rgba(6,182,212,0.5)]' : 'bg-zinc-800'}`}
-                                                >
-                                                    <div className={`w-4 h-4 md:w-5 md:h-5 rounded-full bg-white transition-all transform duration-500 ease-out ${enableThreeD ? 'translate-x-7 md:translate-x-8' : 'translate-x-0'}`} />
-                                                </button>
-                                                <span className={`text-[8px] md:text-[9px] font-black uppercase tracking-widest ${enableThreeD ? 'text-cyan-400' : 'text-zinc-600'}`}>
-                                                    {enableThreeD ? 'Authorized' : 'Deactivated'}
-                                                </span>
-                                            </div>
-                                        </div>
-                                    </div>
-                                </section>
-
                                 {/* CORE PARAMETERS SECTION */}
                                 <section className="space-y-6">
                                     <div className="flex items-center gap-2 mb-4">
@@ -1760,8 +1722,8 @@ const Editor = () => {
                                     Save & Close
                                 </Button>
                             </div>
-                        </div>
-                    </div>
+                        </div >
+                    </div >
                 )
                 }
 
@@ -1835,7 +1797,7 @@ const Editor = () => {
             </AnimatePresence >
 
             {/* Validation Report Modal */}
-            <AnimatePresence>
+            < AnimatePresence >
                 {validationReport && (
                     <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/50 backdrop-blur-sm" onClick={() => setValidationReport(null)}>
                         <motion.div
@@ -2085,8 +2047,8 @@ const Editor = () => {
                         </div>
                     )
                 }
-            </AnimatePresence>
-        </div>
+            </AnimatePresence >
+        </div >
     );
 };
 
