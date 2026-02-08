@@ -30,6 +30,8 @@ import { doc, getDoc, updateDoc, setDoc, increment, addDoc, collection, onSnapsh
 import { useAuth } from '../lib/auth';
 import { useConfig } from '../lib/config';
 import { callAI } from '../lib/ai';
+import { Document as DocxDocument, Packer, Paragraph, TextRun, HeadingLevel, AlignmentType } from 'docx';
+import { jsPDF } from 'jspdf';
 
 // ... (other imports)
 
@@ -210,6 +212,7 @@ const Editor = () => {
     const [requestFeedback, setRequestFeedback] = useState(null); // 'accepted' | 'declined' | null
     const [isRequesting, setIsRequesting] = useState(false);
     const [showAIGenerator, setShowAIGenerator] = useState(false);
+    const [showStoryFormatModal, setShowStoryFormatModal] = useState(false);
     const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false);
 
     const tutorialSteps = [
@@ -983,16 +986,21 @@ const Editor = () => {
         document.body.removeChild(a);
     };
 
-    const downloadNovelStory = async () => {
+    const downloadNovelStory = async (format = 'markdown') => {
+        // Close the modal immediately to prevent multiple clicks
+        setShowStoryFormatModal(false);
+
         if (!settings?.aiApiKey) {
             alert("Please set an AI API Key in settings to use this feature.");
             return;
         }
 
         const btn = document.getElementById('download-story-btn');
-        const originalContent = btn.innerHTML;
-        btn.innerHTML = '<span class="flex items-center gap-2 animate-pulse"><div class="w-3 h-3 border-2 border-white/20 border-t-white rounded-full animate-spin"></div>Writing Novel...</span>';
-        btn.disabled = true;
+        const originalContent = btn ? btn.innerHTML : '';
+        if (btn) {
+            btn.innerHTML = '<span class="flex items-center gap-2 animate-pulse"><div class="w-3 h-3 border-2 border-white/20 border-t-white rounded-full animate-spin"></div>Writing Novel...</span>';
+            btn.disabled = true;
+        }
 
         try {
             const storyData = {
@@ -1047,22 +1055,81 @@ Please write the full novel-style story based on these elements.`;
 
             const story = await callAI('gemini', systemPrompt, userMessage, settings.aiApiKey);
 
-            const blob = new Blob([story], { type: 'text/markdown' });
-            const url = window.URL.createObjectURL(blob);
-            const a = document.createElement('a');
-            a.href = url;
-            a.download = `${storyData.title.replace(/\\s+/g, '_')}_Mystery_Novel.md`;
-            document.body.appendChild(a);
-            a.click();
-            document.body.removeChild(a);
-            window.URL.revokeObjectURL(url);
+            if (format === 'markdown') {
+                const blob = new Blob([story], { type: 'text/markdown' });
+                const url = window.URL.createObjectURL(blob);
+                const a = document.createElement('a');
+                a.href = url;
+                a.download = `${storyData.title.replace(/\s+/g, '_')}_Mystery_Novel.md`;
+                document.body.appendChild(a);
+                a.click();
+                document.body.removeChild(a);
+                window.URL.revokeObjectURL(url);
+            } else if (format === 'pdf') {
+                const doc = new jsPDF();
+                const margin = 20;
+                const lineHeight = 10;
+                const pageHeight = doc.internal.pageSize.getHeight();
+                const width = doc.internal.pageSize.getWidth() - 2 * margin;
+
+                // Add Title
+                doc.setFontSize(22);
+                doc.text(storyData.title, margin, margin);
+                doc.setFontSize(12);
+
+                const lines = doc.splitTextToSize(story, width);
+                let cursorY = margin + 15;
+
+                lines.forEach(line => {
+                    if (cursorY > pageHeight - margin) {
+                        doc.addPage();
+                        cursorY = margin;
+                    }
+                    doc.text(line, margin, cursorY);
+                    cursorY += lineHeight;
+                });
+
+                doc.save(`${storyData.title.replace(/\s+/g, '_')}_Mystery_Novel.pdf`);
+            } else if (format === 'google-docs') {
+                const sections = story.split('\n\n').map(p => new Paragraph({
+                    children: [new TextRun(p.trim())],
+                    spacing: { after: 200 }
+                }));
+
+                const doc = new DocxDocument({
+                    sections: [{
+                        properties: {},
+                        children: [
+                            new Paragraph({
+                                text: storyData.title,
+                                heading: HeadingLevel.HEADING_1,
+                                alignment: AlignmentType.CENTER,
+                                spacing: { after: 400 }
+                            }),
+                            ...sections
+                        ],
+                    }],
+                });
+
+                const blob = await Packer.toBlob(doc);
+                const url = window.URL.createObjectURL(blob);
+                const a = document.createElement('a');
+                a.href = url;
+                a.download = `${storyData.title.replace(/\s+/g, '_')}_Mystery_Novel.docx`;
+                document.body.appendChild(a);
+                a.click();
+                document.body.removeChild(a);
+                window.URL.revokeObjectURL(url);
+            }
 
         } catch (error) {
             console.error("Story generation failed:", error);
             alert("Failed to write the story. Check your AI key and try again.");
         } finally {
-            btn.innerHTML = originalContent;
-            btn.disabled = false;
+            if (btn) {
+                btn.innerHTML = originalContent;
+                btn.disabled = false;
+            }
         }
     };
 
@@ -1355,7 +1422,7 @@ Please write the full novel-style story based on these elements.`;
                                 id="download-story-btn"
                                 variant="ghost"
                                 size="sm"
-                                onClick={downloadNovelStory}
+                                onClick={() => setShowStoryFormatModal(true)}
                                 title="Download Full Story as Novel"
                                 disabled={isLocked}
                                 className={`h-8 px-3 gap-2 ${isDarkMode ? 'text-amber-400 hover:bg-amber-500/10' : 'text-amber-600 hover:bg-amber-50'}`}
@@ -1441,7 +1508,7 @@ Please write the full novel-style story based on these elements.`;
                                     <Button
                                         variant="ghost"
                                         className={`justify-start gap-3 h-12 rounded-2xl ${isDarkMode ? 'bg-white/5 text-zinc-300' : 'bg-zinc-100 text-zinc-700'}`}
-                                        onClick={() => { downloadNovelStory(); setIsMobileMenuOpen(false); }}
+                                        onClick={() => { setShowStoryFormatModal(true); setIsMobileMenuOpen(false); }}
                                         disabled={isLocked}
                                     >
                                         <FileText className="w-5 h-5 text-amber-500" />
@@ -2155,6 +2222,133 @@ Please write the full novel-style story based on these elements.`;
                     )
                 }
             </AnimatePresence >
+
+            {/* Story Format Selection Modal */}
+            <AnimatePresence>
+                {showStoryFormatModal && (
+                    <div className="fixed inset-0 z-[200] flex items-center justify-center p-4">
+                        <motion.div
+                            initial={{ opacity: 0 }}
+                            animate={{ opacity: 1 }}
+                            exit={{ opacity: 0 }}
+                            className="absolute inset-0 bg-black/80 backdrop-blur-sm"
+                            onClick={() => setShowStoryFormatModal(false)}
+                        />
+                        <motion.div
+                            initial={{ opacity: 0, scale: 0.9, y: 20 }}
+                            animate={{ opacity: 1, scale: 1, y: 0 }}
+                            exit={{ opacity: 0, scale: 0.9, y: 20 }}
+                            className={`relative w-full max-w-md rounded-3xl border shadow-[0_20px_80px_rgba(0,0,0,0.5)] overflow-hidden ${isDarkMode ? 'bg-zinc-900 border-white/10' : 'bg-white border-zinc-200'}`}
+                        >
+                            {/* Header */}
+                            <div className={`p-6 border-b ${isDarkMode ? 'border-white/10' : 'border-zinc-200'}`}>
+                                <div className="flex items-center justify-between">
+                                    <div className="flex items-center gap-3">
+                                        <div className={`p-3 rounded-2xl ${isDarkMode ? 'bg-amber-500/10' : 'bg-amber-50'}`}>
+                                            <FileText className={`w-6 h-6 ${isDarkMode ? 'text-amber-400' : 'text-amber-600'}`} />
+                                        </div>
+                                        <div>
+                                            <h3 className={`text-lg font-black uppercase tracking-tight ${isDarkMode ? 'text-white' : 'text-zinc-900'}`}>
+                                                Download Story
+                                            </h3>
+                                            <p className="text-xs text-zinc-500 font-medium mt-0.5">
+                                                Choose your preferred format
+                                            </p>
+                                        </div>
+                                    </div>
+                                    <Button
+                                        variant="ghost"
+                                        size="icon"
+                                        onClick={() => setShowStoryFormatModal(false)}
+                                        className="h-8 w-8"
+                                    >
+                                        <X className="w-4 h-4" />
+                                    </Button>
+                                </div>
+                            </div>
+
+                            {/* Format Options */}
+                            <div className="p-6 space-y-3">
+                                <button
+                                    onClick={() => downloadNovelStory('markdown')}
+                                    className={`w-full p-4 rounded-2xl border-2 transition-all text-left group ${isDarkMode
+                                        ? 'bg-white/5 border-white/10 hover:border-amber-500/50 hover:bg-amber-500/5'
+                                        : 'bg-zinc-50 border-zinc-200 hover:border-amber-500 hover:bg-amber-50'
+                                        }`}
+                                >
+                                    <div className="flex items-center gap-3">
+                                        <div className={`p-2 rounded-xl ${isDarkMode ? 'bg-zinc-800' : 'bg-white'}`}>
+                                            <FileText className={`w-5 h-5 ${isDarkMode ? 'text-amber-400' : 'text-amber-600'}`} />
+                                        </div>
+                                        <div className="flex-1">
+                                            <div className={`text-sm font-black uppercase tracking-tight ${isDarkMode ? 'text-white' : 'text-zinc-900'}`}>
+                                                Markdown (.md)
+                                            </div>
+                                            <div className="text-xs text-zinc-500 font-medium mt-0.5">
+                                                Plain text with formatting
+                                            </div>
+                                        </div>
+                                        <ChevronRight className={`w-5 h-5 transition-transform group-hover:translate-x-1 ${isDarkMode ? 'text-zinc-600' : 'text-zinc-400'}`} />
+                                    </div>
+                                </button>
+
+                                <button
+                                    onClick={() => downloadNovelStory('pdf')}
+                                    className={`w-full p-4 rounded-2xl border-2 transition-all text-left group ${isDarkMode
+                                        ? 'bg-white/5 border-white/10 hover:border-red-500/50 hover:bg-red-500/5'
+                                        : 'bg-zinc-50 border-zinc-200 hover:border-red-500 hover:bg-red-50'
+                                        }`}
+                                >
+                                    <div className="flex items-center gap-3">
+                                        <div className={`p-2 rounded-xl ${isDarkMode ? 'bg-zinc-800' : 'bg-white'}`}>
+                                            <FileText className={`w-5 h-5 ${isDarkMode ? 'text-red-400' : 'text-red-600'}`} />
+                                        </div>
+                                        <div className="flex-1">
+                                            <div className={`text-sm font-black uppercase tracking-tight ${isDarkMode ? 'text-white' : 'text-zinc-900'}`}>
+                                                PDF Document
+                                            </div>
+                                            <div className="text-xs text-zinc-500 font-medium mt-0.5">
+                                                Universal document format
+                                            </div>
+                                        </div>
+                                        <ChevronRight className={`w-5 h-5 transition-transform group-hover:translate-x-1 ${isDarkMode ? 'text-zinc-600' : 'text-zinc-400'}`} />
+                                    </div>
+                                </button>
+
+                                <button
+                                    onClick={() => downloadNovelStory('google-docs')}
+                                    className={`w-full p-4 rounded-2xl border-2 transition-all text-left group ${isDarkMode
+                                        ? 'bg-white/5 border-white/10 hover:border-blue-500/50 hover:bg-blue-500/5'
+                                        : 'bg-zinc-50 border-zinc-200 hover:border-blue-500 hover:bg-blue-50'
+                                        }`}
+                                >
+                                    <div className="flex items-center gap-3">
+                                        <div className={`p-2 rounded-xl ${isDarkMode ? 'bg-zinc-800' : 'bg-white'}`}>
+                                            <FileText className={`w-5 h-5 ${isDarkMode ? 'text-blue-400' : 'text-blue-600'}`} />
+                                        </div>
+                                        <div className="flex-1">
+                                            <div className={`text-sm font-black uppercase tracking-tight ${isDarkMode ? 'text-white' : 'text-zinc-900'}`}>
+                                                Google Docs (.docx)
+                                            </div>
+                                            <div className="text-xs text-zinc-500 font-medium mt-0.5">
+                                                Editable Word document
+                                            </div>
+                                        </div>
+                                        <ChevronRight className={`w-5 h-5 transition-transform group-hover:translate-x-1 ${isDarkMode ? 'text-zinc-600' : 'text-zinc-400'}`} />
+                                    </div>
+                                </button>
+                            </div>
+
+                            {/* Footer */}
+                            <div className={`p-4 border-t ${isDarkMode ? 'bg-black/20 border-white/5' : 'bg-zinc-50 border-zinc-200'}`}>
+                                <p className="text-xs text-zinc-500 text-center font-medium">
+                                    AI will generate a seamless novel from your canvas
+                                </p>
+                            </div>
+                        </motion.div>
+                    </div>
+                )}
+            </AnimatePresence>
         </div >
     );
 };
