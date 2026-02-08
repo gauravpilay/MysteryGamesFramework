@@ -29,6 +29,7 @@ import { db } from '../lib/firebase';
 import { doc, getDoc, updateDoc, setDoc, increment, addDoc, collection, onSnapshot } from 'firebase/firestore';
 import { useAuth } from '../lib/auth';
 import { useConfig } from '../lib/config';
+import { callAI } from '../lib/ai';
 
 // ... (other imports)
 
@@ -982,6 +983,90 @@ const Editor = () => {
         document.body.removeChild(a);
     };
 
+    const downloadNovelStory = async () => {
+        if (!settings?.aiApiKey) {
+            alert("Please set an AI API Key in settings to use this feature.");
+            return;
+        }
+
+        const btn = document.getElementById('download-story-btn');
+        const originalContent = btn.innerHTML;
+        btn.innerHTML = '<span class="flex items-center gap-2 animate-pulse"><div class="w-3 h-3 border-2 border-white/20 border-t-white rounded-full animate-spin"></div>Writing Novel...</span>';
+        btn.disabled = true;
+
+        try {
+            const storyData = {
+                title: caseTitle || "Untitled Mystery",
+                description: caseDescription || "A thrilling detective story.",
+                nodes: nodes.map(n => ({
+                    id: n.id,
+                    type: n.type,
+                    label: n.data?.label || n.type,
+                    text: n.data?.text || n.data?.description || n.data?.dialogue || "",
+                    metadata: {
+                        name: n.data?.name || "",
+                        role: n.data?.role || "",
+                        alibi: n.data?.alibi || "",
+                        description: n.data?.description || "",
+                        culprit: n.data?.culpritName || ""
+                    }
+                })),
+                edges: edges.map(e => ({
+                    source: e.source,
+                    target: e.target,
+                    label: e.label || ""
+                }))
+            };
+
+            const systemPrompt = `You are an elite detective novelist. Your goal is to convert the raw node-based structure of a mystery game into a professional, atmospheric, and seamless novel-style story.
+
+STORYTELLING GUIDELINES:
+1. CAPTURE EVERY NODE: Every story beat, suspect, and piece of evidence provided must be integrated into the narrative.
+2. SEAMLESS FLOW: Do not just list nodes. Create transitions, build suspense, and weave the connections (edges) into the narrative flow. 
+3. ATMOSPHERE: Use evocative language matching the "noir" or "cyber" aesthetic of a modern mystery.
+4. CHARACTER DEPTH: Flesh out the suspects' personalities and their interactions based on their roles and alibis.
+5. NOVEL STYLE: Write in a continuous prose format, using chapters or scene breaks as appropriate.
+6. CLIMAX: If there's an 'Identify Culprit' node, build the story towards that final confrontation.
+
+IMPORTANT: Do not mention "nodes" or "game mechanics". Write it purely as a piece of literature.`;
+
+            const userMessage = `Title: ${storyData.title}
+Background: ${storyData.description}
+
+Narrative Blocks:
+${storyData.nodes.map(n => `[Node: ${n.label} (${n.type})]
+Content: ${n.text}
+${n.metadata.name ? `Character: ${n.metadata.name}, Role: ${n.metadata.role}, Alibi: ${n.metadata.alibi}` : ''}
+${n.metadata.description ? `Detail: ${n.metadata.description}` : ''}
+`).join('\n')}
+
+Connections:
+${storyData.edges.map(e => `From "${storyData.nodes.find(n => n.id === e.source)?.label || 'Unknown'}" to "${storyData.nodes.find(n => n.id === e.target)?.label || 'Unknown'}" ${e.label ? `via "${e.label}"` : ''}`).join('\n')}
+
+Please write the full novel-style story based on these elements.`;
+
+            const story = await callAI('gemini', systemPrompt, userMessage, settings.aiApiKey);
+
+            const blob = new Blob([story], { type: 'text/markdown' });
+            const url = window.URL.createObjectURL(blob);
+            const a = document.createElement('a');
+            a.href = url;
+            a.download = `${storyData.title.replace(/\\s+/g, '_')}_Mystery_Novel.md`;
+            document.body.appendChild(a);
+            a.click();
+            document.body.removeChild(a);
+            window.URL.revokeObjectURL(url);
+
+        } catch (error) {
+            console.error("Story generation failed:", error);
+            alert("Failed to write the story. Check your AI key and try again.");
+        } finally {
+            btn.innerHTML = originalContent;
+            btn.disabled = false;
+        }
+    };
+
+
     const onDragStart = (event, nodeType) => {
         if (isLocked) return;
         event.dataTransfer.setData('application/reactflow', nodeType);
@@ -1266,6 +1351,19 @@ const Editor = () => {
                                 </div>
                             )}
                             <div className="w-px h-4 bg-white/10"></div>
+                            <Button
+                                id="download-story-btn"
+                                variant="ghost"
+                                size="sm"
+                                onClick={downloadNovelStory}
+                                title="Download Full Story as Novel"
+                                disabled={isLocked}
+                                className={`h-8 px-3 gap-2 ${isDarkMode ? 'text-amber-400 hover:bg-amber-500/10' : 'text-amber-600 hover:bg-amber-50'}`}
+                            >
+                                <FileText className="w-4 h-4" />
+                                <span className="text-[10px] font-black uppercase tracking-widest">Download Story</span>
+                            </Button>
+                            <div className="w-px h-4 bg-white/10"></div>
                             <Button variant="ghost" size="icon" onClick={() => setShowSettings(true)} title="Game Settings" disabled={isLocked} className="h-8 w-8">
                                 <Settings className={`w-4 h-4 ${isDarkMode ? 'text-zinc-400' : 'text-zinc-600'}`} />
                             </Button>
@@ -1339,6 +1437,15 @@ const Editor = () => {
                                     >
                                         <Brain className="w-5 h-5 text-indigo-400" />
                                         <span className="text-[10px] font-black uppercase tracking-wider">AI Build</span>
+                                    </Button>
+                                    <Button
+                                        variant="ghost"
+                                        className={`justify-start gap-3 h-12 rounded-2xl ${isDarkMode ? 'bg-white/5 text-zinc-300' : 'bg-zinc-100 text-zinc-700'}`}
+                                        onClick={() => { downloadNovelStory(); setIsMobileMenuOpen(false); }}
+                                        disabled={isLocked}
+                                    >
+                                        <FileText className="w-5 h-5 text-amber-500" />
+                                        <span className="text-[10px] font-black uppercase tracking-wider">Download Story</span>
                                     </Button>
                                     <Button
                                         variant="ghost"
