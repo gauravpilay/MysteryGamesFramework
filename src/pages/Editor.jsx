@@ -1365,6 +1365,12 @@ Please write the full novel-style story based on these elements.`;
         return review;
     };
 
+    // Helper to clean text from problematic characters for PDF
+    const cleanTextForPDF = (text) => {
+        // Remove emojis and special unicode characters that cause encoding issues
+        return text.replace(/[\u{1F300}-\u{1F9FF}]/gu, '').trim();
+    };
+
     // Enhanced PDF Generator with beautiful formatting
     const generateEnhancedPDF = (storyData, story, designerReview) => {
         const doc = new jsPDF();
@@ -1384,19 +1390,118 @@ Please write the full novel-style story based on these elements.`;
             return false;
         };
 
-        // Helper to add text with word wrap
-        const addText = (text, fontSize, color = [0, 0, 0], isBold = false, indent = 0) => {
+        // Advanced text renderer that handles inline markdown formatting
+        const renderFormattedText = (text, fontSize, baseColor = [0, 0, 0], indent = 0) => {
             doc.setFontSize(fontSize);
-            doc.setTextColor(...color);
-            doc.setFont('helvetica', isBold ? 'bold' : 'normal');
 
-            const lines = doc.splitTextToSize(text, contentWidth - indent);
-            lines.forEach(line => {
-                checkPageBreak();
-                doc.text(line, margin + indent, yPos);
-                yPos += fontSize * 0.5;
+            // Parse the text for markdown formatting
+            const segments = [];
+            let currentPos = 0;
+
+            // Regular expressions for markdown patterns
+            const boldPattern = /\*\*(.+?)\*\*/g;
+            const italicPattern = /(?<!\*)\*(?!\*)(.+?)(?<!\*)\*(?!\*)/g;
+
+            // First, find all bold segments
+            let boldMatches = [];
+            let match;
+            while ((match = boldPattern.exec(text)) !== null) {
+                boldMatches.push({ start: match.index, end: match.index + match[0].length, text: match[1], type: 'bold' });
+            }
+
+            // Then find italic segments (that aren't part of bold)
+            let italicMatches = [];
+            const tempText = text.replace(/\*\*(.+?)\*\*/g, (m) => '█'.repeat(m.length)); // Mask bold sections
+            const italicRegex = /(?<!\*)\*(?!\*)(.+?)(?<!\*)\*(?!\*)/g;
+            while ((match = italicRegex.exec(tempText)) !== null) {
+                italicMatches.push({ start: match.index, end: match.index + match[0].length, text: text.substring(match.index + 1, match.index + match[0].length - 1), type: 'italic' });
+            }
+
+            // Combine and sort all matches
+            const allMatches = [...boldMatches, ...italicMatches].sort((a, b) => a.start - b.start);
+
+            // Build segments
+            let lastEnd = 0;
+            allMatches.forEach(match => {
+                // Add normal text before this match
+                if (match.start > lastEnd) {
+                    segments.push({ text: text.substring(lastEnd, match.start), bold: false, italic: false });
+                }
+                // Add formatted text
+                segments.push({ text: match.text, bold: match.type === 'bold', italic: match.type === 'italic' });
+                lastEnd = match.end;
             });
+
+            // Add remaining normal text
+            if (lastEnd < text.length) {
+                segments.push({ text: text.substring(lastEnd), bold: false, italic: false });
+            }
+
+            // If no formatting found, just add the whole text
+            if (segments.length === 0) {
+                segments.push({ text: text, bold: false, italic: false });
+            }
+
+            // Now render the segments
+            let currentX = margin + indent;
+            const maxWidth = contentWidth - indent;
+            let currentLine = [];
+            let currentLineWidth = 0;
+
+            segments.forEach((segment, segIndex) => {
+                const words = segment.text.split(' ');
+
+                words.forEach((word, wordIndex) => {
+                    if (wordIndex > 0 || segIndex > 0) {
+                        word = ' ' + word;
+                    }
+
+                    doc.setFont('helvetica', segment.bold ? 'bold' : (segment.italic ? 'italic' : 'normal'));
+                    const wordWidth = doc.getTextWidth(word);
+
+                    if (currentLineWidth + wordWidth > maxWidth && currentLine.length > 0) {
+                        // Render current line
+                        renderLine(currentLine, currentX, yPos, baseColor);
+                        yPos += fontSize * 0.5;
+                        checkPageBreak();
+                        currentLine = [];
+                        currentLineWidth = 0;
+                        currentX = margin + indent;
+                        word = word.trim(); // Remove leading space for new line
+                    }
+
+                    currentLine.push({ text: word, bold: segment.bold, italic: segment.italic, width: doc.getTextWidth(word) });
+                    currentLineWidth += doc.getTextWidth(word);
+                });
+            });
+
+            // Render remaining line
+            if (currentLine.length > 0) {
+                renderLine(currentLine, currentX, yPos, baseColor);
+                yPos += fontSize * 0.5;
+            }
+
             yPos += 3;
+        };
+
+        // Helper to render a line with mixed formatting
+        const renderLine = (segments, startX, y, color) => {
+            let x = startX;
+            doc.setTextColor(...color);
+
+            segments.forEach(seg => {
+                doc.setFont('helvetica', seg.bold ? 'bold' : (seg.italic ? 'italic' : 'normal'));
+                doc.text(seg.text, x, y);
+                x += seg.width;
+            });
+        };
+
+        // Simple text helper for backward compatibility
+        const addText = (text, fontSize, color = [0, 0, 0], isBold = false, indent = 0) => {
+            if (isBold) {
+                text = text.replace(/^\*\*/, '').replace(/\*\*$/, ''); // Remove ** if present
+            }
+            renderFormattedText(text, fontSize, color, indent);
         };
 
         // Cover Page
@@ -1486,7 +1591,7 @@ Please write the full novel-style story based on these elements.`;
             // Main heading (# DESIGNER'S CANVAS REVIEW)
             if (trimmed.startsWith('# ')) {
                 checkPageBreak(20);
-                const text = trimmed.substring(2);
+                const text = cleanTextForPDF(trimmed.substring(2));
                 doc.setFillColor(79, 70, 229);
                 doc.rect(margin - 5, yPos - 5, contentWidth + 10, 18, 'F');
                 doc.setFontSize(20);
@@ -1501,17 +1606,18 @@ Please write the full novel-style story based on these elements.`;
             if (trimmed.startsWith('## ')) {
                 checkPageBreak(15);
                 yPos += 5;
-                const text = trimmed.substring(3);
+                const rawText = trimmed.substring(3);
+                const text = cleanTextForPDF(rawText);
 
-                // Color code different sections
+                // Color code different sections based on original text with emojis
                 let bgColor = [79, 70, 229];
-                if (text.includes('📊')) { bgColor = [59, 130, 246]; currentSection = 'overview'; }
-                else if (text.includes('🎬')) { bgColor = [139, 92, 246]; currentSection = 'flow'; }
-                else if (text.includes('👥')) { bgColor = [236, 72, 153]; currentSection = 'characters'; }
-                else if (text.includes('🔍')) { bgColor = [234, 179, 8]; currentSection = 'evidence'; }
-                else if (text.includes('🔀')) { bgColor = [34, 197, 94]; currentSection = 'logic'; }
-                else if (text.includes('🎮')) { bgColor = [249, 115, 22]; currentSection = 'interactive'; }
-                else if (text.includes('💡')) { bgColor = [168, 85, 247]; currentSection = 'recommendations'; }
+                if (rawText.includes('📊') || rawText.includes('STORY STRUCTURE')) { bgColor = [59, 130, 246]; currentSection = 'overview'; }
+                else if (rawText.includes('🎬') || rawText.includes('STORY FLOW')) { bgColor = [139, 92, 246]; currentSection = 'flow'; }
+                else if (rawText.includes('👥') || rawText.includes('CHARACTER')) { bgColor = [236, 72, 153]; currentSection = 'characters'; }
+                else if (rawText.includes('🔍') || rawText.includes('EVIDENCE')) { bgColor = [234, 179, 8]; currentSection = 'evidence'; }
+                else if (rawText.includes('🔀') || rawText.includes('LOGIC')) { bgColor = [34, 197, 94]; currentSection = 'logic'; }
+                else if (rawText.includes('🎮') || rawText.includes('INTERACTIVE')) { bgColor = [249, 115, 22]; currentSection = 'interactive'; }
+                else if (rawText.includes('💡') || rawText.includes('RECOMMENDATIONS')) { bgColor = [168, 85, 247]; currentSection = 'recommendations'; }
 
                 doc.setFillColor(...bgColor);
                 doc.rect(margin - 3, yPos - 3, contentWidth + 6, 12, 'F');
@@ -1535,12 +1641,13 @@ Please write the full novel-style story based on these elements.`;
                 return;
             }
 
-            // Bold text (**text**)
-            if (trimmed.startsWith('**') && trimmed.endsWith('**')) {
-                const text = trimmed.substring(2, trimmed.length - 2);
-                addText(text, 10, [60, 60, 60], true, 0);
-                return;
-            }
+            // Bold text (**text**) - now handled by renderFormattedText
+            // Remove this check as it's redundant with the new parser
+            // if (trimmed.startsWith('**') && trimmed.endsWith('**')) {
+            //     const text = trimmed.substring(2, trimmed.length - 2);
+            //     addText(text, 10, [60, 60, 60], true, 0);
+            //     return;
+            // }
 
             // Warning/Alert boxes (⚠️)
             if (trimmed.includes('⚠️')) {
@@ -1548,13 +1655,22 @@ Please write the full novel-style story based on these elements.`;
                 doc.setFillColor(254, 243, 199);
                 doc.setDrawColor(251, 191, 36);
                 doc.setLineWidth(1);
-                const boxHeight = 10;
-                doc.rect(margin, yPos - 2, contentWidth, boxHeight, 'FD');
+
+                // Clean text and add label
+                const cleanText = cleanTextForPDF(trimmed).replace(/\*\*/g, '');
+                const labeledText = 'WARNING: ' + cleanText;
+
                 doc.setFontSize(10);
-                doc.setTextColor(146, 64, 14);
-                doc.setFont('helvetica', 'bold');
-                doc.text(trimmed, margin + 3, yPos + 4);
-                yPos += boxHeight + 5;
+                const lines = doc.splitTextToSize(labeledText, contentWidth - 6);
+                const boxHeight = lines.length * 5 + 4;
+
+                doc.rect(margin, yPos - 2, contentWidth, boxHeight, 'FD');
+
+                // Render formatted text inside box
+                const savedYPos = yPos;
+                yPos += 2;
+                renderFormattedText(labeledText, 10, [146, 64, 14], 3);
+                yPos = savedYPos + boxHeight + 3;
                 return;
             }
 
@@ -1564,31 +1680,54 @@ Please write the full novel-style story based on these elements.`;
                 doc.setFillColor(219, 234, 254);
                 doc.setDrawColor(59, 130, 246);
                 doc.setLineWidth(1);
-                const boxHeight = 10;
-                doc.rect(margin, yPos - 2, contentWidth, boxHeight, 'FD');
+
+                // Clean text and add label
+                const cleanText = cleanTextForPDF(trimmed).replace(/\*\*/g, '');
+                const labeledText = 'SUGGESTION: ' + cleanText;
+
                 doc.setFontSize(10);
-                doc.setTextColor(30, 64, 175);
-                doc.setFont('helvetica', 'bold');
-                doc.text(trimmed, margin + 3, yPos + 4);
-                yPos += boxHeight + 5;
+                const lines = doc.splitTextToSize(labeledText, contentWidth - 6);
+                const boxHeight = lines.length * 5 + 4;
+
+                doc.rect(margin, yPos - 2, contentWidth, boxHeight, 'FD');
+
+                // Render formatted text inside box
+                const savedYPos = yPos;
+                yPos += 2;
+                renderFormattedText(labeledText, 10, [30, 64, 175], 3);
+                yPos = savedYPos + boxHeight + 3;
                 return;
             }
 
             // List items (  - or  →  or  ←)
             if (trimmed.startsWith('- ') || trimmed.startsWith('→') || trimmed.startsWith('←')) {
-                const bullet = trimmed.startsWith('-') ? '•' : trimmed.substring(0, 1);
-                const text = trimmed.startsWith('-') ? trimmed.substring(2) : trimmed.substring(1).trim();
+                // Use proper arrow symbols that render well in PDF
+                let bullet = '•';
+                let text = '';
+
+                if (trimmed.startsWith('- ')) {
+                    bullet = '•';
+                    text = trimmed.substring(2);
+                } else if (trimmed.startsWith('→')) {
+                    bullet = '>';
+                    text = trimmed.substring(1).trim();
+                } else if (trimmed.startsWith('←')) {
+                    bullet = '<';
+                    text = trimmed.substring(1).trim();
+                }
+
                 checkPageBreak();
+
+                // Render bullet at proper vertical alignment
                 doc.setFontSize(10);
                 doc.setTextColor(80, 80, 80);
-                doc.setFont('helvetica', 'normal');
+                doc.setFont('helvetica', 'bold');
                 doc.text(bullet, margin + 5, yPos);
-                const textLines = doc.splitTextToSize(text, contentWidth - 15);
-                textLines.forEach((tLine, idx) => {
-                    if (idx > 0) checkPageBreak();
-                    doc.text(tLine, margin + 12, yPos);
-                    yPos += 5;
-                });
+
+                // Render formatted text with indent, aligned with bullet
+                doc.setFont('helvetica', 'normal');
+                const savedYPos = yPos;
+                renderFormattedText(text, 10, [80, 80, 80], 12);
                 return;
             }
 
@@ -1612,19 +1751,9 @@ Please write the full novel-style story based on these elements.`;
                 return;
             }
 
-            // Italic text (*text*)
+            // Italic text (*text*) - use formatted renderer
             if (trimmed.startsWith('*') && trimmed.endsWith('*') && !trimmed.startsWith('**')) {
-                const text = trimmed.substring(1, trimmed.length - 1);
-                doc.setFontSize(9);
-                doc.setTextColor(120, 120, 120);
-                doc.setFont('helvetica', 'italic');
-                const lines = doc.splitTextToSize(text, contentWidth);
-                lines.forEach(line => {
-                    checkPageBreak();
-                    doc.text(line, margin, yPos);
-                    yPos += 5;
-                });
-                yPos += 2;
+                renderFormattedText(trimmed, 9, [120, 120, 120], 0);
                 return;
             }
 
