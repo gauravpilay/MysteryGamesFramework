@@ -1016,7 +1016,18 @@ const Editor = () => {
                         role: n.data?.role || "",
                         alibi: n.data?.alibi || "",
                         description: n.data?.description || "",
-                        culprit: n.data?.culpritName || ""
+                        culprit: n.data?.culpritName || "",
+                        command: n.data?.command || "",
+                        answer: n.data?.answer || "",
+                        url: n.data?.url || "",
+                        mediaType: n.data?.mediaType || "",
+                        blocking: n.data?.blocking || false,
+                        correctAnswers: n.data?.correctAnswers || [],
+                        options: n.data?.options || [],
+                        variableId: n.data?.variableId || "",
+                        variableValue: n.data?.variableValue || "",
+                        condition: n.data?.condition || "",
+                        logicIds: n.data?.logicIds || []
                     }
                 })),
                 edges: edges.map(e => ({
@@ -1055,8 +1066,14 @@ Please write the full novel-style story based on these elements.`;
 
             const story = await callAI('gemini', systemPrompt, userMessage, settings.aiApiKey);
 
+            // Generate Designer's Canvas Review Section
+            const designerReview = generateDesignerReview(storyData);
+
+            // Combine the novel and designer review
+            const fullDocument = `${story}\n\n${designerReview}`;
+
             if (format === 'markdown') {
-                const blob = new Blob([story], { type: 'text/markdown' });
+                const blob = new Blob([fullDocument], { type: 'text/markdown' });
                 const url = window.URL.createObjectURL(blob);
                 const a = document.createElement('a');
                 a.href = url;
@@ -1066,60 +1083,9 @@ Please write the full novel-style story based on these elements.`;
                 document.body.removeChild(a);
                 window.URL.revokeObjectURL(url);
             } else if (format === 'pdf') {
-                const doc = new jsPDF();
-                const margin = 20;
-                const lineHeight = 10;
-                const pageHeight = doc.internal.pageSize.getHeight();
-                const width = doc.internal.pageSize.getWidth() - 2 * margin;
-
-                // Add Title
-                doc.setFontSize(22);
-                doc.text(storyData.title, margin, margin);
-                doc.setFontSize(12);
-
-                const lines = doc.splitTextToSize(story, width);
-                let cursorY = margin + 15;
-
-                lines.forEach(line => {
-                    if (cursorY > pageHeight - margin) {
-                        doc.addPage();
-                        cursorY = margin;
-                    }
-                    doc.text(line, margin, cursorY);
-                    cursorY += lineHeight;
-                });
-
-                doc.save(`${storyData.title.replace(/\s+/g, '_')}_Mystery_Novel.pdf`);
+                generateEnhancedPDF(storyData, story, designerReview);
             } else if (format === 'google-docs') {
-                const sections = story.split('\n\n').map(p => new Paragraph({
-                    children: [new TextRun(p.trim())],
-                    spacing: { after: 200 }
-                }));
-
-                const doc = new DocxDocument({
-                    sections: [{
-                        properties: {},
-                        children: [
-                            new Paragraph({
-                                text: storyData.title,
-                                heading: HeadingLevel.HEADING_1,
-                                alignment: AlignmentType.CENTER,
-                                spacing: { after: 400 }
-                            }),
-                            ...sections
-                        ],
-                    }],
-                });
-
-                const blob = await Packer.toBlob(doc);
-                const url = window.URL.createObjectURL(blob);
-                const a = document.createElement('a');
-                a.href = url;
-                a.download = `${storyData.title.replace(/\s+/g, '_')}_Mystery_Novel.docx`;
-                document.body.appendChild(a);
-                a.click();
-                document.body.removeChild(a);
-                window.URL.revokeObjectURL(url);
+                await generateEnhancedDOCX(storyData, story, designerReview);
             }
 
         } catch (error) {
@@ -1131,6 +1097,767 @@ Please write the full novel-style story based on these elements.`;
                 btn.disabled = false;
             }
         }
+    };
+
+    // Helper function to generate designer-friendly canvas review
+    const generateDesignerReview = (storyData) => {
+        const divider = '\n\n' + '='.repeat(80) + '\n\n';
+        let review = divider;
+        review += '# DESIGNER\'S CANVAS REVIEW\n\n';
+        review += '*This section provides a clear overview of your story canvas structure for easy review and flow optimization.*\n\n';
+        review += divider;
+
+        // 1. Story Overview
+        review += '## 📊 STORY STRUCTURE OVERVIEW\n\n';
+        review += `**Title:** ${storyData.title}\n`;
+        review += `**Description:** ${storyData.description}\n`;
+        review += `**Total Nodes:** ${storyData.nodes.length}\n`;
+        review += `**Total Connections:** ${storyData.edges.length}\n\n`;
+
+        // Node type breakdown
+        const nodeTypes = {};
+        storyData.nodes.forEach(n => {
+            nodeTypes[n.type] = (nodeTypes[n.type] || 0) + 1;
+        });
+        review += '**Node Breakdown:**\n';
+        Object.entries(nodeTypes).forEach(([type, count]) => {
+            review += `  - ${type}: ${count}\n`;
+        });
+        review += '\n';
+
+        // 2. Story Flow Walkthrough
+        review += divider;
+        review += '## 🎬 STORY FLOW WALKTHROUGH\n\n';
+        review += '*Follow the journey through your canvas, node by node, to understand the player experience.*\n\n';
+
+        // Find starting nodes (nodes with no incoming edges)
+        const incomingEdges = new Set(storyData.edges.map(e => e.target));
+        const startNodes = storyData.nodes.filter(n => !incomingEdges.has(n.id));
+
+        if (startNodes.length > 0) {
+            review += `**Starting Point(s):** ${startNodes.map(n => n.label).join(', ')}\n\n`;
+        }
+
+        // Walk through each node with its connections
+        storyData.nodes.forEach((node, index) => {
+            review += `### ${index + 1}. ${node.label} [${node.type.toUpperCase()}]\n\n`;
+
+            // Node content
+            if (node.text) {
+                review += `**Content:** ${node.text}\n\n`;
+            }
+
+            // Type-specific details
+            switch (node.type) {
+                case 'suspect':
+                    if (node.metadata.name) review += `**Character Name:** ${node.metadata.name}\n`;
+                    if (node.metadata.role) review += `**Role:** ${node.metadata.role}\n`;
+                    if (node.metadata.alibi) review += `**Alibi:** ${node.metadata.alibi}\n`;
+                    if (node.metadata.description) review += `**Description:** ${node.metadata.description}\n`;
+                    review += '\n';
+                    break;
+                case 'evidence':
+                    if (node.metadata.description) review += `**Evidence Details:** ${node.metadata.description}\n\n`;
+                    break;
+                case 'terminal':
+                    if (node.metadata.command) review += `**Required Command:** ${node.metadata.command}\n`;
+                    if (node.metadata.answer) review += `**Expected Answer:** ${node.metadata.answer}\n`;
+                    review += '\n';
+                    break;
+                case 'logic':
+                    if (node.metadata.condition) review += `**Condition:** ${node.metadata.condition}\n`;
+                    if (node.metadata.logicIds && node.metadata.logicIds.length > 0) {
+                        review += `**Logic IDs Required:** ${node.metadata.logicIds.join(', ')}\n`;
+                    }
+                    review += '\n';
+                    break;
+                case 'question':
+                    if (node.metadata.options && node.metadata.options.length > 0) {
+                        review += `**Options:** ${node.metadata.options.join(', ')}\n`;
+                    }
+                    if (node.metadata.correctAnswers && node.metadata.correctAnswers.length > 0) {
+                        review += `**Correct Answer(s):** ${node.metadata.correctAnswers.join(', ')}\n`;
+                    }
+                    review += '\n';
+                    break;
+                case 'setter':
+                    if (node.metadata.variableId) review += `**Variable ID:** ${node.metadata.variableId}\n`;
+                    if (node.metadata.variableValue) review += `**Value:** ${node.metadata.variableValue}\n`;
+                    review += '\n';
+                    break;
+                case 'media':
+                    if (node.metadata.mediaType) review += `**Media Type:** ${node.metadata.mediaType}\n`;
+                    if (node.metadata.url) review += `**URL:** ${node.metadata.url}\n`;
+                    review += '\n';
+                    break;
+                case 'notification':
+                    if (node.metadata.blocking) review += `**Blocking:** Yes (player must acknowledge)\n\n`;
+                    break;
+            }
+
+            // Outgoing connections
+            const outgoing = storyData.edges.filter(e => e.source === node.id);
+            if (outgoing.length > 0) {
+                review += `**Leads to:**\n`;
+                outgoing.forEach(edge => {
+                    const targetNode = storyData.nodes.find(n => n.id === edge.target);
+                    const targetLabel = targetNode ? targetNode.label : 'Unknown';
+                    const edgeLabel = edge.label ? ` (via "${edge.label}")` : '';
+                    review += `  → ${targetLabel}${edgeLabel}\n`;
+                });
+                review += '\n';
+            } else {
+                review += `**Leads to:** *End point (no outgoing connections)*\n\n`;
+            }
+
+            // Incoming connections
+            const incoming = storyData.edges.filter(e => e.target === node.id);
+            if (incoming.length > 0) {
+                review += `**Reached from:**\n`;
+                incoming.forEach(edge => {
+                    const sourceNode = storyData.nodes.find(n => n.id === edge.source);
+                    const sourceLabel = sourceNode ? sourceNode.label : 'Unknown';
+                    const edgeLabel = edge.label ? ` (via "${edge.label}")` : '';
+                    review += `  ← ${sourceLabel}${edgeLabel}\n`;
+                });
+                review += '\n';
+            }
+
+            review += '---\n\n';
+        });
+
+        // 3. Character Profiles
+        const suspects = storyData.nodes.filter(n => n.type === 'suspect');
+        if (suspects.length > 0) {
+            review += divider;
+            review += '## 👥 CHARACTER PROFILES\n\n';
+            suspects.forEach((suspect, index) => {
+                review += `### ${index + 1}. ${suspect.metadata.name || suspect.label}\n\n`;
+                if (suspect.metadata.role) review += `**Role:** ${suspect.metadata.role}\n`;
+                if (suspect.metadata.alibi) review += `**Alibi:** ${suspect.metadata.alibi}\n`;
+                if (suspect.metadata.description) review += `**Description:** ${suspect.metadata.description}\n`;
+                if (suspect.text) review += `**Additional Info:** ${suspect.text}\n`;
+                review += '\n';
+            });
+        }
+
+        // 4. Evidence Tracker
+        const evidence = storyData.nodes.filter(n => n.type === 'evidence');
+        if (evidence.length > 0) {
+            review += divider;
+            review += '## 🔍 EVIDENCE TRACKER\n\n';
+            evidence.forEach((item, index) => {
+                review += `${index + 1}. **${item.label}**\n`;
+                if (item.metadata.description) review += `   - ${item.metadata.description}\n`;
+                if (item.text) review += `   - ${item.text}\n`;
+                review += '\n';
+            });
+        }
+
+        // 5. Logic Flow Analysis
+        const logicNodes = storyData.nodes.filter(n => n.type === 'logic');
+        if (logicNodes.length > 0) {
+            review += divider;
+            review += '## 🔀 LOGIC FLOW ANALYSIS\n\n';
+            review += '*These nodes control branching and conditional progression.*\n\n';
+            logicNodes.forEach((logic, index) => {
+                review += `${index + 1}. **${logic.label}**\n`;
+                if (logic.metadata.condition) review += `   - Condition: ${logic.metadata.condition}\n`;
+                if (logic.metadata.logicIds && logic.metadata.logicIds.length > 0) {
+                    review += `   - Required Logic IDs: ${logic.metadata.logicIds.join(', ')}\n`;
+                }
+                const branches = storyData.edges.filter(e => e.source === logic.id);
+                if (branches.length > 0) {
+                    review += `   - Branches:\n`;
+                    branches.forEach(branch => {
+                        const target = storyData.nodes.find(n => n.id === branch.target);
+                        review += `     → ${target?.label || 'Unknown'}${branch.label ? ` (${branch.label})` : ''}\n`;
+                    });
+                }
+                review += '\n';
+            });
+        }
+
+        // 6. Interactive Elements
+        const interactive = storyData.nodes.filter(n =>
+            ['action', 'question', 'terminal', 'lockpick', 'decryption', 'keypad', 'interrogation'].includes(n.type)
+        );
+        if (interactive.length > 0) {
+            review += divider;
+            review += '## 🎮 INTERACTIVE ELEMENTS\n\n';
+            review += '*These nodes require player interaction and engagement.*\n\n';
+            interactive.forEach((node, index) => {
+                review += `${index + 1}. **${node.label}** [${node.type}]\n`;
+                if (node.text) review += `   - Prompt: ${node.text}\n`;
+
+                switch (node.type) {
+                    case 'terminal':
+                        if (node.metadata.command) review += `   - Required Input: ${node.metadata.command}\n`;
+                        break;
+                    case 'question':
+                        if (node.metadata.options && node.metadata.options.length > 0) {
+                            review += `   - Options: ${node.metadata.options.join(', ')}\n`;
+                        }
+                        if (node.metadata.correctAnswers && node.metadata.correctAnswers.length > 0) {
+                            review += `   - Correct: ${node.metadata.correctAnswers.join(', ')}\n`;
+                        }
+                        break;
+                }
+                review += '\n';
+            });
+        }
+
+        // 7. Flow Recommendations
+        review += divider;
+        review += '## 💡 FLOW RECOMMENDATIONS\n\n';
+
+        // Find dead ends
+        const deadEnds = storyData.nodes.filter(n => {
+            const hasOutgoing = storyData.edges.some(e => e.source === n.id);
+            return !hasOutgoing && n.type !== 'identify';
+        });
+
+        if (deadEnds.length > 0) {
+            review += '**⚠️ Potential Dead Ends:**\n';
+            review += 'These nodes have no outgoing connections. Consider if this is intentional:\n';
+            deadEnds.forEach(node => {
+                review += `  - ${node.label} [${node.type}]\n`;
+            });
+            review += '\n';
+        }
+
+        // Find orphaned nodes
+        const orphans = storyData.nodes.filter(n => {
+            const hasIncoming = storyData.edges.some(e => e.target === n.id);
+            const hasOutgoing = storyData.edges.some(e => e.source === n.id);
+            return !hasIncoming && !hasOutgoing;
+        });
+
+        if (orphans.length > 0) {
+            review += '**⚠️ Orphaned Nodes:**\n';
+            review += 'These nodes are not connected to the story flow:\n';
+            orphans.forEach(node => {
+                review += `  - ${node.label} [${node.type}]\n`;
+            });
+            review += '\n';
+        }
+
+        // Check for identify node
+        const hasIdentify = storyData.nodes.some(n => n.type === 'identify');
+        if (!hasIdentify) {
+            review += '**💭 Suggestion:** Consider adding an "Identify Culprit" node to provide a clear ending to your mystery.\n\n';
+        }
+
+        // Check for suspects
+        if (suspects.length === 0) {
+            review += '**💭 Suggestion:** Add suspect nodes to create characters for your mystery.\n\n';
+        }
+
+        // Check for evidence
+        if (evidence.length === 0) {
+            review += '**💭 Suggestion:** Add evidence nodes to give players clues to collect.\n\n';
+        }
+
+        review += divider;
+        review += '\n*End of Designer\'s Canvas Review*\n';
+        review += '\n*Use this review to identify areas for improvement in your story flow, ensure all nodes are properly connected, and verify that the player experience is smooth and engaging.*\n';
+
+        return review;
+    };
+
+    // Enhanced PDF Generator with beautiful formatting
+    const generateEnhancedPDF = (storyData, story, designerReview) => {
+        const doc = new jsPDF();
+        const pageWidth = doc.internal.pageSize.getWidth();
+        const pageHeight = doc.internal.pageSize.getHeight();
+        const margin = 20;
+        const contentWidth = pageWidth - 2 * margin;
+        let yPos = margin;
+
+        // Helper function to check if we need a new page
+        const checkPageBreak = (requiredSpace = 10) => {
+            if (yPos + requiredSpace > pageHeight - margin) {
+                doc.addPage();
+                yPos = margin;
+                return true;
+            }
+            return false;
+        };
+
+        // Helper to add text with word wrap
+        const addText = (text, fontSize, color = [0, 0, 0], isBold = false, indent = 0) => {
+            doc.setFontSize(fontSize);
+            doc.setTextColor(...color);
+            doc.setFont('helvetica', isBold ? 'bold' : 'normal');
+
+            const lines = doc.splitTextToSize(text, contentWidth - indent);
+            lines.forEach(line => {
+                checkPageBreak();
+                doc.text(line, margin + indent, yPos);
+                yPos += fontSize * 0.5;
+            });
+            yPos += 3;
+        };
+
+        // Cover Page
+        doc.setFillColor(30, 30, 50);
+        doc.rect(0, 0, pageWidth, pageHeight, 'F');
+
+        // Title
+        doc.setFontSize(32);
+        doc.setTextColor(255, 215, 0);
+        doc.setFont('helvetica', 'bold');
+        const titleLines = doc.splitTextToSize(storyData.title, contentWidth - 40);
+        let titleY = pageHeight / 3;
+        titleLines.forEach(line => {
+            const textWidth = doc.getTextWidth(line);
+            doc.text(line, (pageWidth - textWidth) / 2, titleY);
+            titleY += 12;
+        });
+
+        // Subtitle
+        doc.setFontSize(14);
+        doc.setTextColor(200, 200, 200);
+        doc.setFont('helvetica', 'italic');
+        doc.text('A Mystery Game Story', pageWidth / 2, titleY + 10, { align: 'center' });
+
+        // Description
+        if (storyData.description) {
+            doc.setFontSize(11);
+            doc.setTextColor(180, 180, 180);
+            doc.setFont('helvetica', 'normal');
+            const descLines = doc.splitTextToSize(storyData.description, contentWidth - 60);
+            let descY = titleY + 30;
+            descLines.forEach(line => {
+                doc.text(line, pageWidth / 2, descY, { align: 'center' });
+                descY += 6;
+            });
+        }
+
+        // Footer on cover
+        doc.setFontSize(9);
+        doc.setTextColor(150, 150, 150);
+        doc.text('Generated by Mystery Games Framework', pageWidth / 2, pageHeight - 20, { align: 'center' });
+        doc.text(new Date().toLocaleDateString(), pageWidth / 2, pageHeight - 15, { align: 'center' });
+
+        // Start content on new page
+        doc.addPage();
+        yPos = margin;
+
+        // Parse and render the story
+        const storyLines = story.split('\n');
+
+        doc.setFontSize(18);
+        doc.setTextColor(79, 70, 229);
+        doc.setFont('helvetica', 'bold');
+        doc.text('THE STORY', margin, yPos);
+        yPos += 12;
+
+        // Add a separator line
+        doc.setDrawColor(79, 70, 229);
+        doc.setLineWidth(0.5);
+        doc.line(margin, yPos, pageWidth - margin, yPos);
+        yPos += 8;
+
+        storyLines.forEach(line => {
+            if (!line.trim()) {
+                yPos += 4;
+                return;
+            }
+            addText(line, 11, [40, 40, 40], false, 0);
+        });
+
+        // Designer Review Section
+        doc.addPage();
+        yPos = margin;
+
+        const reviewLines = designerReview.split('\n');
+        let inList = false;
+        let currentSection = 'default';
+
+        reviewLines.forEach(line => {
+            const trimmed = line.trim();
+
+            if (!trimmed) {
+                yPos += 3;
+                return;
+            }
+
+            // Main heading (# DESIGNER'S CANVAS REVIEW)
+            if (trimmed.startsWith('# ')) {
+                checkPageBreak(20);
+                const text = trimmed.substring(2);
+                doc.setFillColor(79, 70, 229);
+                doc.rect(margin - 5, yPos - 5, contentWidth + 10, 18, 'F');
+                doc.setFontSize(20);
+                doc.setTextColor(255, 255, 255);
+                doc.setFont('helvetica', 'bold');
+                doc.text(text, margin, yPos + 8);
+                yPos += 25;
+                return;
+            }
+
+            // Section headings (## )
+            if (trimmed.startsWith('## ')) {
+                checkPageBreak(15);
+                yPos += 5;
+                const text = trimmed.substring(3);
+
+                // Color code different sections
+                let bgColor = [79, 70, 229];
+                if (text.includes('📊')) { bgColor = [59, 130, 246]; currentSection = 'overview'; }
+                else if (text.includes('🎬')) { bgColor = [139, 92, 246]; currentSection = 'flow'; }
+                else if (text.includes('👥')) { bgColor = [236, 72, 153]; currentSection = 'characters'; }
+                else if (text.includes('🔍')) { bgColor = [234, 179, 8]; currentSection = 'evidence'; }
+                else if (text.includes('🔀')) { bgColor = [34, 197, 94]; currentSection = 'logic'; }
+                else if (text.includes('🎮')) { bgColor = [249, 115, 22]; currentSection = 'interactive'; }
+                else if (text.includes('💡')) { bgColor = [168, 85, 247]; currentSection = 'recommendations'; }
+
+                doc.setFillColor(...bgColor);
+                doc.rect(margin - 3, yPos - 3, contentWidth + 6, 12, 'F');
+                doc.setFontSize(14);
+                doc.setTextColor(255, 255, 255);
+                doc.setFont('helvetica', 'bold');
+                doc.text(text, margin, yPos + 5);
+                yPos += 18;
+                return;
+            }
+
+            // Subsection headings (### )
+            if (trimmed.startsWith('### ')) {
+                checkPageBreak(12);
+                const text = trimmed.substring(4);
+                doc.setFontSize(12);
+                doc.setTextColor(79, 70, 229);
+                doc.setFont('helvetica', 'bold');
+                doc.text(text, margin, yPos);
+                yPos += 10;
+                return;
+            }
+
+            // Bold text (**text**)
+            if (trimmed.startsWith('**') && trimmed.endsWith('**')) {
+                const text = trimmed.substring(2, trimmed.length - 2);
+                addText(text, 10, [60, 60, 60], true, 0);
+                return;
+            }
+
+            // Warning/Alert boxes (⚠️)
+            if (trimmed.includes('⚠️')) {
+                checkPageBreak(15);
+                doc.setFillColor(254, 243, 199);
+                doc.setDrawColor(251, 191, 36);
+                doc.setLineWidth(1);
+                const boxHeight = 10;
+                doc.rect(margin, yPos - 2, contentWidth, boxHeight, 'FD');
+                doc.setFontSize(10);
+                doc.setTextColor(146, 64, 14);
+                doc.setFont('helvetica', 'bold');
+                doc.text(trimmed, margin + 3, yPos + 4);
+                yPos += boxHeight + 5;
+                return;
+            }
+
+            // Suggestion boxes (💭)
+            if (trimmed.includes('💭')) {
+                checkPageBreak(15);
+                doc.setFillColor(219, 234, 254);
+                doc.setDrawColor(59, 130, 246);
+                doc.setLineWidth(1);
+                const boxHeight = 10;
+                doc.rect(margin, yPos - 2, contentWidth, boxHeight, 'FD');
+                doc.setFontSize(10);
+                doc.setTextColor(30, 64, 175);
+                doc.setFont('helvetica', 'bold');
+                doc.text(trimmed, margin + 3, yPos + 4);
+                yPos += boxHeight + 5;
+                return;
+            }
+
+            // List items (  - or  →  or  ←)
+            if (trimmed.startsWith('- ') || trimmed.startsWith('→') || trimmed.startsWith('←')) {
+                const bullet = trimmed.startsWith('-') ? '•' : trimmed.substring(0, 1);
+                const text = trimmed.startsWith('-') ? trimmed.substring(2) : trimmed.substring(1).trim();
+                checkPageBreak();
+                doc.setFontSize(10);
+                doc.setTextColor(80, 80, 80);
+                doc.setFont('helvetica', 'normal');
+                doc.text(bullet, margin + 5, yPos);
+                const textLines = doc.splitTextToSize(text, contentWidth - 15);
+                textLines.forEach((tLine, idx) => {
+                    if (idx > 0) checkPageBreak();
+                    doc.text(tLine, margin + 12, yPos);
+                    yPos += 5;
+                });
+                return;
+            }
+
+            // Divider lines (===)
+            if (trimmed.startsWith('===')) {
+                checkPageBreak(5);
+                doc.setDrawColor(200, 200, 200);
+                doc.setLineWidth(0.3);
+                doc.line(margin, yPos, pageWidth - margin, yPos);
+                yPos += 8;
+                return;
+            }
+
+            // Horizontal rule (---)
+            if (trimmed.startsWith('---')) {
+                checkPageBreak(5);
+                doc.setDrawColor(220, 220, 220);
+                doc.setLineWidth(0.2);
+                doc.line(margin + 20, yPos, pageWidth - margin - 20, yPos);
+                yPos += 6;
+                return;
+            }
+
+            // Italic text (*text*)
+            if (trimmed.startsWith('*') && trimmed.endsWith('*') && !trimmed.startsWith('**')) {
+                const text = trimmed.substring(1, trimmed.length - 1);
+                doc.setFontSize(9);
+                doc.setTextColor(120, 120, 120);
+                doc.setFont('helvetica', 'italic');
+                const lines = doc.splitTextToSize(text, contentWidth);
+                lines.forEach(line => {
+                    checkPageBreak();
+                    doc.text(line, margin, yPos);
+                    yPos += 5;
+                });
+                yPos += 2;
+                return;
+            }
+
+            // Regular paragraph
+            addText(trimmed, 10, [60, 60, 60], false, 0);
+        });
+
+        // Save the PDF
+        doc.save(`${storyData.title.replace(/\s+/g, '_')}_Mystery_Novel.pdf`);
+    };
+
+    // Enhanced DOCX Generator with beautiful formatting
+    const generateEnhancedDOCX = async (storyData, story, designerReview) => {
+        const children = [];
+
+        // Title Page
+        children.push(
+            new Paragraph({
+                text: storyData.title,
+                heading: HeadingLevel.HEADING_1,
+                alignment: AlignmentType.CENTER,
+                spacing: { before: 400, after: 200 },
+            }),
+            new Paragraph({
+                text: 'A Mystery Game Story',
+                alignment: AlignmentType.CENTER,
+                italics: true,
+                spacing: { after: 100 },
+            })
+        );
+
+        if (storyData.description) {
+            children.push(
+                new Paragraph({
+                    text: storyData.description,
+                    alignment: AlignmentType.CENTER,
+                    spacing: { after: 400 },
+                })
+            );
+        }
+
+        children.push(
+            new Paragraph({
+                text: `Generated: ${new Date().toLocaleDateString()}`,
+                alignment: AlignmentType.CENTER,
+                italics: true,
+                spacing: { after: 400 },
+            })
+        );
+
+        // Story Section
+        children.push(
+            new Paragraph({
+                text: 'THE STORY',
+                heading: HeadingLevel.HEADING_1,
+                spacing: { before: 400, after: 200 },
+            })
+        );
+
+        // Add story paragraphs
+        story.split('\n\n').forEach(para => {
+            if (para.trim()) {
+                children.push(
+                    new Paragraph({
+                        children: [new TextRun({ text: para.trim(), size: 24 })],
+                        spacing: { after: 200 },
+                    })
+                );
+            }
+        });
+
+        // Designer Review Section
+        const reviewLines = designerReview.split('\n');
+        let currentList = [];
+
+        reviewLines.forEach((line, index) => {
+            const trimmed = line.trim();
+
+            if (!trimmed) {
+                if (currentList.length > 0) {
+                    currentList = [];
+                }
+                return;
+            }
+
+            // Main heading
+            if (trimmed.startsWith('# ')) {
+                children.push(
+                    new Paragraph({
+                        text: trimmed.substring(2),
+                        heading: HeadingLevel.HEADING_1,
+                        spacing: { before: 400, after: 200 },
+                        shading: { fill: '4F46E5', color: 'FFFFFF' },
+                    })
+                );
+                return;
+            }
+
+            // Section headings
+            if (trimmed.startsWith('## ')) {
+                children.push(
+                    new Paragraph({
+                        text: trimmed.substring(3),
+                        heading: HeadingLevel.HEADING_2,
+                        spacing: { before: 300, after: 150 },
+                    })
+                );
+                return;
+            }
+
+            // Subsection headings
+            if (trimmed.startsWith('### ')) {
+                children.push(
+                    new Paragraph({
+                        text: trimmed.substring(4),
+                        heading: HeadingLevel.HEADING_3,
+                        spacing: { before: 200, after: 100 },
+                    })
+                );
+                return;
+            }
+
+            // Bold text
+            if (trimmed.startsWith('**') && trimmed.includes(':**')) {
+                const parts = trimmed.split(':**');
+                const label = parts[0].substring(2);
+                const value = parts[1]?.trim() || '';
+                children.push(
+                    new Paragraph({
+                        children: [
+                            new TextRun({ text: label + ': ', bold: true }),
+                            new TextRun({ text: value }),
+                        ],
+                        spacing: { after: 100 },
+                    })
+                );
+                return;
+            }
+
+            // List items
+            if (trimmed.startsWith('- ') || trimmed.startsWith('→') || trimmed.startsWith('←')) {
+                const text = trimmed.startsWith('-') ? trimmed.substring(2) : trimmed.substring(1).trim();
+                children.push(
+                    new Paragraph({
+                        text: text,
+                        bullet: { level: 0 },
+                        spacing: { after: 50 },
+                    })
+                );
+                return;
+            }
+
+            // Warning/Alert
+            if (trimmed.includes('⚠️')) {
+                children.push(
+                    new Paragraph({
+                        children: [new TextRun({ text: trimmed, bold: true, color: '92400E' })],
+                        spacing: { after: 150 },
+                        shading: { fill: 'FEF3C7' },
+                    })
+                );
+                return;
+            }
+
+            // Suggestion
+            if (trimmed.includes('💭')) {
+                children.push(
+                    new Paragraph({
+                        children: [new TextRun({ text: trimmed, bold: true, color: '1E40AF' })],
+                        spacing: { after: 150 },
+                        shading: { fill: 'DBEAFE' },
+                    })
+                );
+                return;
+            }
+
+            // Dividers
+            if (trimmed.startsWith('===') || trimmed.startsWith('---')) {
+                children.push(
+                    new Paragraph({
+                        text: '',
+                        border: {
+                            bottom: {
+                                color: 'CCCCCC',
+                                space: 1,
+                                style: 'single',
+                                size: 6,
+                            },
+                        },
+                        spacing: { before: 100, after: 100 },
+                    })
+                );
+                return;
+            }
+
+            // Italic text
+            if (trimmed.startsWith('*') && trimmed.endsWith('*') && !trimmed.startsWith('**')) {
+                children.push(
+                    new Paragraph({
+                        children: [new TextRun({ text: trimmed.substring(1, trimmed.length - 1), italics: true, color: '666666' })],
+                        spacing: { after: 100 },
+                    })
+                );
+                return;
+            }
+
+            // Regular paragraph
+            if (!trimmed.startsWith('#') && !trimmed.startsWith('*') && !trimmed.startsWith('-')) {
+                children.push(
+                    new Paragraph({
+                        text: trimmed,
+                        spacing: { after: 100 },
+                    })
+                );
+            }
+        });
+
+        const doc = new DocxDocument({
+            sections: [{
+                properties: {},
+                children: children,
+            }],
+        });
+
+        const blob = await Packer.toBlob(doc);
+        const url = window.URL.createObjectURL(blob);
+        const a = document.createElement('a');
+        a.href = url;
+        a.download = `${storyData.title.replace(/\s+/g, '_')}_Mystery_Novel.docx`;
+        document.body.appendChild(a);
+        a.click();
+        document.body.removeChild(a);
+        window.URL.revokeObjectURL(url);
     };
 
 
