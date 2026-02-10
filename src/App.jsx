@@ -33,6 +33,7 @@ const PrivateRoute = ({ children }) => {
   }
 
   if (user && user.status === 'deactivated') {
+    console.log("[PRIVATE_ROUTE] User deactivated. Status:", user.status);
     return (
       <div className="flex h-screen w-screen items-center justify-center bg-black text-red-500 font-sans p-6">
         <div className="max-w-md w-full bg-zinc-900/50 border border-red-500/30 p-8 rounded-2xl backdrop-blur-xl text-center shadow-2xl">
@@ -58,6 +59,7 @@ const PrivateRoute = ({ children }) => {
     );
   }
 
+  console.log("[PRIVATE_ROUTE] Rendering child component. User:", !!user);
   return user ? children : <Navigate to="/login" />;
 };
 

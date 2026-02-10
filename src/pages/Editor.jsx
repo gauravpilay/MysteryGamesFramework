@@ -14,10 +14,11 @@ import 'reactflow/dist/style.css';
 import { useParams, useNavigate } from 'react-router-dom';
 import { Button } from '../components/ui/shared';
 import { Logo } from '../components/ui/Logo';
-import { Save, ArrowLeft, X, FileText, User, Search, GitMerge, Terminal, MessageSquare, CircleHelp, Play, Settings, Music, Image as ImageIcon, MousePointerClick, Fingerprint, Bell, HelpCircle, ChevronLeft, ChevronRight, ToggleLeft, Lock, Sun, Moon, Stethoscope, Unlock, Binary, Grid3x3, CheckCircle, AlertTriangle, Plus, Trash2, Target, Box, FolderOpen, Brain, Pencil, Film, Menu, Globe } from 'lucide-react';
+import { Save, ArrowLeft, X, FileText, User, Search, GitMerge, Terminal, MessageSquare, CircleHelp, Play, Settings, Music, Image as ImageIcon, MousePointerClick, Fingerprint, Bell, HelpCircle, ChevronLeft, ChevronRight, ToggleLeft, Lock, Sun, Moon, Stethoscope, Unlock, Binary, Grid3x3, CheckCircle, AlertTriangle, Plus, Trash2, Target, Box, FolderOpen, Brain, Pencil, Film, Menu, Globe, ShieldAlert } from 'lucide-react';
 import { StoryNode, SuspectNode, EvidenceNode, LogicNode, TerminalNode, MessageNode, MusicNode, MediaNode, ActionNode, IdentifyNode, NotificationNode, QuestionNode, SetterNode, LockpickNode, DecryptionNode, KeypadNode, GroupNode, InputField, InterrogationNode, ThreeDSceneNode, CutsceneNode, DeepWebOSNode } from '../components/nodes/CustomNodes';
 import AICaseGeneratorModal from '../components/AICaseGeneratorModalAdvanced';
 import CaseMetadataModal from '../components/CaseMetadataModal';
+import LicenseConfigModal from '../components/LicenseConfigModal';
 function FolderNode(props) {
     return <GroupNode {...props} />;
 }
@@ -162,9 +163,11 @@ const PALETTE_ITEMS = [
 ];
 
 const Editor = () => {
+    console.log("[EDITOR_GATE] Entry point.");
     const { user } = useAuth();
     const { settings } = useConfig();
-    const { hasFeature } = useLicense();
+    const { hasFeature, licenseData } = useLicense();
+    console.log("[EDITOR_GATE_DEBUG] License Data:", licenseData);
 
     const { projectId } = useParams();
     const navigate = useNavigate();
@@ -218,6 +221,7 @@ const Editor = () => {
     const [showAIGenerator, setShowAIGenerator] = useState(false);
     const [showStoryFormatModal, setShowStoryFormatModal] = useState(false);
     const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false);
+    const [isLicenseModalOpen, setIsLicenseModalOpen] = useState(false);
 
     const tutorialSteps = [
         {
@@ -2121,6 +2125,50 @@ Please write the full novel-style story based on these elements.`;
         ]);
     }, [nodes, setNodes, onNodeUpdate, isLocked]);
 
+    if (!licenseData || !licenseData.sub) {
+        return (
+            <div className={`fixed inset-0 flex flex-col items-center justify-center transition-colors duration-300 font-sans ${isDarkMode ? 'bg-black text-white' : 'bg-zinc-50 text-zinc-900'}`}>
+                <div className="absolute inset-0 z-0 pointer-events-none opacity-20">
+                    <div className="absolute inset-0 perspective-grid"></div>
+                    <div className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-[600px] h-[600px] bg-indigo-600/10 rounded-full blur-[120px]" />
+                </div>
+
+                <div className="relative z-10 max-w-md w-full p-12 text-center space-y-8 bg-zinc-950/50 backdrop-blur-xl border border-white/5 rounded-[40px] shadow-2xl">
+                    <div className="flex justify-center">
+                        <div className="p-5 bg-indigo-500/10 rounded-3xl border border-indigo-500/20 shadow-inner">
+                            <ShieldAlert className="w-12 h-12 text-indigo-400" />
+                        </div>
+                    </div>
+                    <div className="space-y-3">
+                        <h1 className="text-3xl font-black uppercase tracking-tight text-white">Access Restricted</h1>
+                        <p className="text-zinc-500 text-sm leading-relaxed font-medium">
+                            Your Mystery Framework v2.0 license is currently inactive or has expired. Please activate your framework to access the mission architect.
+                        </p>
+                    </div>
+                    <div className="pt-4 space-y-4">
+                        <Button
+                            onClick={() => setIsLicenseModalOpen(true)}
+                            className="w-full bg-indigo-600 hover:bg-indigo-500 text-white h-14 font-black uppercase tracking-widest text-xs rounded-2xl shadow-xl shadow-indigo-600/20 transition-all active:scale-95"
+                        >
+                            Activate Framework
+                        </Button>
+                        <Button
+                            variant="ghost"
+                            onClick={() => navigate('/')}
+                            className="w-full text-zinc-500 hover:text-white font-bold"
+                        >
+                            Return to Command Center
+                        </Button>
+                    </div>
+                </div>
+                <LicenseConfigModal
+                    isOpen={isLicenseModalOpen}
+                    onClose={() => setIsLicenseModalOpen(false)}
+                />
+            </div>
+        );
+    }
+
     return (
         <div className={`fixed inset-0 flex h-[100dvh] w-screen flex-col overflow-hidden transition-colors duration-300 selection:bg-indigo-500/30 font-sans ${isDarkMode ? 'bg-black text-white' : 'bg-zinc-50 text-zinc-900'}`}>
 
@@ -3211,6 +3259,10 @@ Please write the full novel-style story based on these elements.`;
                     </div>
                 )}
             </AnimatePresence>
+            <LicenseConfigModal
+                isOpen={isLicenseModalOpen}
+                onClose={() => setIsLicenseModalOpen(false)}
+            />
         </div >
     );
 };

@@ -78,7 +78,11 @@ const verifySignature = async (dataString, signatureBase64, pemKey, isRawData = 
 export const LicenseProvider = ({ children }) => {
     const { user } = useAuth();
     const [licenseData, setLicenseData] = useState(null);
+    const [licenseUrl, setLicenseUrl] = useState('');
+    const [licenseKey, setLicenseKey] = useState('');
     const [isConfiguring, setIsConfiguring] = useState(false);
+
+    console.log("[LICENSE_PROVIDER] Mounting/Rendering. User:", user?.uid);
 
     // Initial load & Sync
     useEffect(() => {
@@ -87,7 +91,13 @@ export const LicenseProvider = ({ children }) => {
             try {
                 const payload = JSON.parse(cached);
                 setLicenseData(payload.data || payload);
+                if (payload.url) setLicenseUrl(payload.url);
+                if (payload.key) setKeyFromPayload(payload.key);
             } catch (e) { console.error(e); }
+        }
+
+        function setKeyFromPayload(k) {
+            setLicenseKey(k);
         }
 
         if (!db) return;
@@ -98,13 +108,43 @@ export const LicenseProvider = ({ children }) => {
                 if (await verifyLicenseIntegrity(cloudPayload, M_FRAMEWORK_PUBLIC_KEY)) {
                     // Extract data from JWT if needed or use raw data
                     const freshData = cloudPayload.data || (cloudPayload.token ? JSON.parse(atob(cloudPayload.token.split('.')[1])) : null);
-                    if (freshData) {
+                    if (freshData && cloudPayload.status !== 'deactivated') {
                         setLicenseData(freshData);
+                        if (cloudPayload.url) setLicenseUrl(cloudPayload.url);
+                        if (cloudPayload.key) setLicenseKey(cloudPayload.key);
+                    } else if (cloudPayload.status === 'deactivated') {
+                        setLicenseData(null);
+                        localStorage.removeItem('mystery_framework_license_payload');
                     }
+                } else {
+                    // Verification failed or was revoked
+                    setLicenseData(null);
+                    localStorage.removeItem('mystery_framework_license_payload');
                 }
+            } else {
+                // Cloud license document was deleted/revoked
+                setLicenseData(null);
+                localStorage.removeItem('mystery_framework_license_payload');
             }
         });
     }, [db]);
+
+    // Periodically check for license expiration
+    useEffect(() => {
+        const checkExpiry = () => {
+            if (!licenseData) return;
+
+            const expiryDate = licenseData.exp ? new Date(licenseData.exp * 1000) : (licenseData.expiry ? new Date(licenseData.expiry) : null);
+            if (expiryDate && expiryDate < new Date()) {
+                console.warn("[LICENSE] System has expired. Revoking access.");
+                setLicenseData(null);
+            }
+        };
+
+        const interval = setInterval(checkExpiry, 60000); // Check every minute
+        checkExpiry(); // Run once immediately
+        return () => clearInterval(interval);
+    }, [licenseData]);
 
     const activateLicense = async (url, key) => {
         try {
@@ -196,9 +236,19 @@ export const LicenseProvider = ({ children }) => {
         return licenseData.features?.includes(featureName);
     };
 
+    console.log("[LICENSE_PROVIDER] Rendering children. LicenseData exists:", !!licenseData);
+
+    console.log("[LICENSE_PROVIDER] State check:", {
+        hasData: !!licenseData,
+        customer: licenseData?.customer,
+        sub: licenseData?.sub,
+        features: licenseData?.features
+    });
+
     return (
         <LicenseContext.Provider value={{
             licenseData, activateLicense, hasFeature,
+            licenseUrl, licenseKey,
             isConfiguring, setIsConfiguring
         }}>
             {children}

@@ -1,13 +1,20 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { X, ShieldCheck, Link2, Key, Loader2, CheckCircle2, AlertCircle, Cpu, ShieldAlert } from 'lucide-react';
 import { Button, Input, Label } from './ui/shared';
 import { useLicense } from '../lib/licensing';
 
 const LicenseConfigModal = ({ isOpen, onClose }) => {
-    const { activateLicense, licenseData } = useLicense();
-    const [url, setUrl] = useState('https://mystery-license-manager.vercel.app');
-    const [key, setKey] = useState('');
+    const { activateLicense, licenseData, licenseUrl, licenseKey } = useLicense();
+    const [url, setUrl] = useState(licenseUrl || 'https://mystery-license-manager.vercel.app');
+    const [key, setKey] = useState(licenseKey || '');
+
+    // Sync state when context values load
+    useEffect(() => {
+        if (licenseUrl) setUrl(licenseUrl);
+        if (licenseKey) setKey(licenseKey);
+    }, [licenseUrl, licenseKey, isOpen]);
+
     const [isLoading, setIsLoading] = useState(false);
     const [status, setStatus] = useState(null); // { type: 'success' | 'error', message: string }
 
@@ -113,8 +120,8 @@ const LicenseConfigModal = ({ isOpen, onClose }) => {
                                 animate={{ opacity: 1, y: 0 }}
                                 exit={{ opacity: 0, y: -10 }}
                                 className={`p-4 rounded-2xl flex items-center gap-4 border ${status.type === 'success'
-                                        ? 'bg-emerald-500/10 border-emerald-500/30 text-emerald-400'
-                                        : 'bg-rose-500/10 border-rose-500/30 text-rose-400'
+                                    ? 'bg-emerald-500/10 border-emerald-500/30 text-emerald-400'
+                                    : 'bg-rose-500/10 border-rose-500/30 text-rose-400'
                                     }`}
                             >
                                 {status.type === 'success' ? <CheckCircle2 className="w-5 h-5 shrink-0" /> : <ShieldAlert className="w-5 h-5 shrink-0" />}
@@ -129,8 +136,8 @@ const LicenseConfigModal = ({ isOpen, onClose }) => {
                             onClick={handleActivate}
                             disabled={isLoading || !key}
                             className={`h-14 rounded-2xl font-black uppercase tracking-widest text-sm transition-all shadow-xl ${isLoading
-                                    ? 'bg-zinc-800 text-zinc-500'
-                                    : 'bg-gradient-to-r from-indigo-600 via-indigo-500 to-purple-600 hover:scale-[1.02] active:scale-[0.98] text-white shadow-indigo-600/20'
+                                ? 'bg-zinc-800 text-zinc-500'
+                                : 'bg-gradient-to-r from-indigo-600 via-indigo-500 to-purple-600 hover:scale-[1.02] active:scale-[0.98] text-white shadow-indigo-600/20'
                                 }`}
                         >
                             {isLoading ? (

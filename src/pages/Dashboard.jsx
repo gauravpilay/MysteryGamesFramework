@@ -12,8 +12,10 @@ import ProgressReportModal from '../components/ProgressReportModal';
 import AdminProgressModal from '../components/AdminProgressModal';
 import SystemSettingsModal from '../components/SystemSettingsModal';
 // import MarketplaceModal from '../components/marketplace/MarketplaceModal';
-import { Settings } from 'lucide-react';
+import { Settings, ShieldAlert } from 'lucide-react';
 import { useConfig } from '../lib/config';
+import { useLicense } from '../lib/licensing';
+import LicenseConfigModal from '../components/LicenseConfigModal';
 
 const Dashboard = () => {
     const { user, logout } = useAuth();
@@ -37,7 +39,53 @@ const Dashboard = () => {
     const [incomingRequest, setIncomingRequest] = useState(null); // { project, request }
     const [imageUploadProject, setImageUploadProject] = useState(null);
     const [uploadingImage, setUploadingImage] = useState(false);
+    const { licenseData } = useLicense();
+    const [isLicenseModalOpen, setIsLicenseModalOpen] = useState(false);
     const isAdmin = user?.role === 'Admin';
+
+    if (!licenseData || !licenseData.sub) {
+        return (
+            <div className="fixed inset-0 flex flex-col items-center justify-center bg-black text-white p-6 font-sans">
+                {/* Background Decor */}
+                <div className="absolute inset-0 z-0 pointer-events-none opacity-20">
+                    <div className="absolute inset-0 perspective-grid"></div>
+                    <div className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-[600px] h-[600px] bg-indigo-600/10 rounded-full blur-[120px]" />
+                </div>
+
+                <div className="relative z-10 max-w-md w-full p-12 text-center space-y-8 bg-zinc-950/50 backdrop-blur-xl border border-white/5 rounded-[40px] shadow-2xl">
+                    <div className="flex justify-center">
+                        <div className="p-5 bg-indigo-500/10 rounded-3xl border border-indigo-500/20 shadow-inner">
+                            <ShieldAlert className="w-12 h-12 text-indigo-400" />
+                        </div>
+                    </div>
+                    <div className="space-y-3">
+                        <h1 className="text-3xl font-black uppercase tracking-tight text-white">Framework Inactive</h1>
+                        <p className="text-zinc-500 text-sm leading-relaxed font-medium">
+                            The Mystery Games Framework v2.0 requires an active license to access the command dashboard.
+                        </p>
+                    </div>
+                    <div className="pt-4 space-y-4">
+                        <Button
+                            onClick={() => setIsLicenseModalOpen(true)}
+                            className="w-full bg-indigo-600 hover:bg-indigo-600 text-white h-14 font-black uppercase tracking-widest text-xs rounded-2xl shadow-xl shadow-indigo-600/20 transition-all active:scale-95"
+                        >
+                            Activate Framework
+                        </Button>
+                        <button
+                            onClick={logout}
+                            className="w-full text-zinc-500 hover:text-white font-bold text-sm transition-colors"
+                        >
+                            Sign Out
+                        </button>
+                    </div>
+                </div>
+                <LicenseConfigModal
+                    isOpen={isLicenseModalOpen}
+                    onClose={() => setIsLicenseModalOpen(false)}
+                />
+            </div>
+        );
+    }
 
     // Fetch Projects
     useEffect(() => {

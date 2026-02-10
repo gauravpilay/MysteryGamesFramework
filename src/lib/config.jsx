@@ -10,7 +10,6 @@ export const ConfigProvider = ({ children }) => {
     const [settings, setSettings] = useState({
         aiApiKey: import.meta.env.VITE_AI_API_KEY || '',
         maxAIRequests: parseInt(import.meta.env.VITE_MAX_AI_REQUESTS) || 10,
-        enableAIBuild: true,
     });
     const [loading, setLoading] = useState(true);
 
@@ -40,7 +39,6 @@ export const ConfigProvider = ({ children }) => {
                 const initialSettings = {
                     aiApiKey: import.meta.env.VITE_AI_API_KEY || '',
                     maxAIRequests: parseInt(import.meta.env.VITE_MAX_AI_REQUESTS) || 10,
-                    enableAIBuild: true,
                 };
 
                 if (user?.role === 'Admin') {
