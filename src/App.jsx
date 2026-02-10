@@ -61,55 +61,59 @@ const PrivateRoute = ({ children }) => {
   return user ? children : <Navigate to="/login" />;
 };
 
+import { LicenseProvider } from './lib/licensing';
+
 function App() {
   return (
     <AuthProvider>
       <ConfigProvider>
-        <BrowserRouter>
-          <Routes>
-            <Route path="/login" element={<Login />} />
-            <Route
-              path="/"
-              element={
-                <PrivateRoute>
-                  <Dashboard />
-                </PrivateRoute>
-              }
-            />
-            <Route
-              path="/leaderboard"
-              element={
-                <PrivateRoute>
-                  <Leaderboard />
-                </PrivateRoute>
-              }
-            />
-            <Route
-              path="/editor/:projectId"
-              element={
-                <PrivateRoute>
-                  <Editor />
-                </PrivateRoute>
-              }
-            />
-            <Route
-              path="/play/:projectId"
-              element={
-                <PrivateRoute>
-                  <Player />
-                </PrivateRoute>
-              }
-            />
-            <Route
-              path="/admin/users"
-              element={
-                <PrivateRoute>
-                  <UserManagement />
-                </PrivateRoute>
-              }
-            />
-          </Routes>
-        </BrowserRouter>
+        <LicenseProvider>
+          <BrowserRouter>
+            <Routes>
+              <Route path="/login" element={<Login />} />
+              <Route
+                path="/"
+                element={
+                  <PrivateRoute>
+                    <Dashboard />
+                  </PrivateRoute>
+                }
+              />
+              <Route
+                path="/leaderboard"
+                element={
+                  <PrivateRoute>
+                    <Leaderboard />
+                  </PrivateRoute>
+                }
+              />
+              <Route
+                path="/editor/:projectId"
+                element={
+                  <PrivateRoute>
+                    <Editor />
+                  </PrivateRoute>
+                }
+              />
+              <Route
+                path="/play/:projectId"
+                element={
+                  <PrivateRoute>
+                    <Player />
+                  </PrivateRoute>
+                }
+              />
+              <Route
+                path="/admin/users"
+                element={
+                  <PrivateRoute>
+                    <UserManagement />
+                  </PrivateRoute>
+                }
+              />
+            </Routes>
+          </BrowserRouter>
+        </LicenseProvider>
       </ConfigProvider>
     </AuthProvider>
   );
