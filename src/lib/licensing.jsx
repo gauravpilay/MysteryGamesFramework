@@ -100,8 +100,6 @@ export const LicenseProvider = ({ children }) => {
                     const freshData = cloudPayload.data || (cloudPayload.token ? JSON.parse(atob(cloudPayload.token.split('.')[1])) : null);
                     if (freshData) {
                         setLicenseData(freshData);
-                        console.log("%c LICENSE CLOUD-SYNC SUCCESS ", "background: #1e293b; color: #10b981; font-weight: bold; padding: 2px 5px;");
-                        console.log("[LICENSE] Cloud Data Features:", freshData.features || "None");
                     }
                 }
             }
@@ -162,12 +160,8 @@ export const LicenseProvider = ({ children }) => {
 
             // INTEGRITY VERIFICATION
             if (await verifyLicenseIntegrity(responsePayload, M_FRAMEWORK_PUBLIC_KEY)) {
-                console.log("%c LICENSE VERIFIED ", "background: #10b981; color: white; font-weight: bold; padding: 2px 5px;");
-                console.log("[LICENSE] Raw Response Payload:", responsePayload);
-
                 // Extract data
                 const finalData = responsePayload.data || (responsePayload.token ? JSON.parse(atob(responsePayload.token.split('.')[1])) : responsePayload);
-                console.log("[LICENSE] Extracted Data (decoded):", finalData);
 
                 setLicenseData(finalData);
 
@@ -199,9 +193,7 @@ export const LicenseProvider = ({ children }) => {
 
     const hasFeature = (featureName) => {
         if (!licenseData) return false;
-        const enabled = licenseData.features?.includes(featureName);
-        if (enabled) console.log(`[LICENSE] Feature Access Granted: ${featureName}`);
-        return enabled;
+        return licenseData.features?.includes(featureName);
     };
 
     return (

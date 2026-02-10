@@ -165,6 +165,7 @@ const Editor = () => {
     const { user } = useAuth();
     const { settings } = useConfig();
     const { hasFeature } = useLicense();
+
     const { projectId } = useParams();
     const navigate = useNavigate();
     const reactFlowWrapper = useRef(null);
@@ -191,6 +192,7 @@ const Editor = () => {
         return () => window.removeEventListener('resize', handleResize);
     }, []);
     const [isLocked, setIsLocked] = useState(false);
+
     const [isDarkMode, setIsDarkMode] = useState(true);
     const [enableThreeD, setEnableThreeD] = useState(true);
     const [caseTitle, setCaseTitle] = useState("");
@@ -2259,7 +2261,7 @@ Please write the full novel-style story based on these elements.`;
                             <Button variant="ghost" size="icon" onClick={validateGraph} title="Validate Graph Health" className="h-8 w-8">
                                 <Stethoscope className={`w-4 h-4 ${isDarkMode ? 'text-emerald-400' : 'text-emerald-600'}`} />
                             </Button>
-                            {settings.enableAIBuild !== false && hasFeature('ai_build') && (
+                            {hasFeature('enable_ai_build_feature') && (
                                 <div className="flex items-center">
                                     <div className="w-px h-4 bg-white/10"></div>
                                     <Button
@@ -2354,15 +2356,17 @@ Please write the full novel-style story based on these elements.`;
                                         <Save className="w-5 h-5 text-emerald-400" />
                                         <span className="text-[10px] font-black uppercase tracking-wider">Save Case</span>
                                     </Button>
-                                    <Button
-                                        variant="ghost"
-                                        className={`justify-start gap-3 h-12 rounded-2xl ${isDarkMode ? 'bg-white/5 text-zinc-300' : 'bg-zinc-100 text-zinc-700'}`}
-                                        onClick={() => { setShowAIGenerator(true); setIsMobileMenuOpen(false); }}
-                                        disabled={isLocked}
-                                    >
-                                        <Brain className="w-5 h-5 text-indigo-400" />
-                                        <span className="text-[10px] font-black uppercase tracking-wider">AI Build</span>
-                                    </Button>
+                                    {hasFeature('enable_ai_build_feature') && (
+                                        <Button
+                                            variant="ghost"
+                                            className={`justify-start gap-3 h-12 rounded-2xl ${isDarkMode ? 'bg-white/5 text-zinc-300' : 'bg-zinc-100 text-zinc-700'}`}
+                                            onClick={() => { setShowAIGenerator(true); setIsMobileMenuOpen(false); }}
+                                            disabled={isLocked}
+                                        >
+                                            <Brain className="w-5 h-5 text-indigo-400" />
+                                            <span className="text-[10px] font-black uppercase tracking-wider">AI Build</span>
+                                        </Button>
+                                    )}
                                     <Button
                                         variant="ghost"
                                         className={`justify-start gap-3 h-12 rounded-2xl ${isDarkMode ? 'bg-white/5 text-zinc-300' : 'bg-zinc-100 text-zinc-700'}`}
