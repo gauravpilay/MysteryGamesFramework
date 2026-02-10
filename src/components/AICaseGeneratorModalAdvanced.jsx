@@ -238,6 +238,13 @@ CORE DIRECTIVES:
    - Suspect nodes unlock sequentially
    - Final Identify node to accuse the culprit
 
+6. CRITICAL - RESPONSE SIZE:
+   - Keep descriptions concise (1-2 sentences max)
+   - Hints and explanations: MAX 2 lines each
+   - MUST complete the entire JSON structure including nodes and edges
+   - Prioritize structure completeness over verbose content
+   - If approaching token limit, reduce description length but ALWAYS include all sections
+
 Generate a complete, engaging mystery that teaches ${validObjectives.length} learning objectives through evidence-based deduction.`;
     };
 
@@ -270,20 +277,95 @@ Transform this into a complete, playable mystery game with engaging characters, 
             clearInterval(progressInterval);
             setProgress(95);
 
-            // Parse JSON
+            // Parse JSON with robust error handling
+            console.log("Raw AI Response Length:", responseText.length);
+
             let jsonStr = responseText.trim();
-            jsonStr = jsonStr.replace(/```json\n?/g, '').replace(/```\n?/g, '');
+
+            // Remove markdown code blocks
+            jsonStr = jsonStr.replace(/```json\s*/g, '').replace(/```\s*/g, '');
+
+            // Find the JSON object boundaries
             const jsonStart = jsonStr.indexOf('{');
             const jsonEnd = jsonStr.lastIndexOf('}') + 1;
-            if (jsonStart !== -1 && jsonEnd > jsonStart) {
-                jsonStr = jsonStr.substring(jsonStart, jsonEnd);
+
+            if (jsonStart === -1 || jsonEnd <= jsonStart) {
+                console.error("No valid JSON object found in response");
+                throw new Error("AI response doesn't contain valid JSON. Please try again.");
             }
 
-            const data = JSON.parse(jsonStr);
+            jsonStr = jsonStr.substring(jsonStart, jsonEnd);
+
+            // Comprehensive JSON cleanup function
+            const repairJSON = (str) => {
+                let repaired = str;
+
+                // 1. Remove trailing commas before closing brackets/braces
+                repaired = repaired.replace(/,(\s*[}\]])/g, '$1');
+
+                // 2. Fix missing commas between array elements (common AI mistake)
+                // This handles cases like: "text" "text" -> "text", "text"
+                repaired = repaired.replace(/"\s+"/g, '", "');
+
+                // 3. Fix missing commas between object properties
+                repaired = repaired.replace(/"\s*\n\s*"/g, '",\n"');
+
+                // 4. Remove any control characters that might break JSON
+                repaired = repaired.replace(/[\x00-\x1F\x7F]/g, (char) => {
+                    // Keep newlines, tabs, and carriage returns in strings
+                    if (char === '\n') return '\\n';
+                    if (char === '\r') return '\\r';
+                    if (char === '\t') return '\\t';
+                    return ''; // Remove other control characters
+                });
+
+                // 5. Fix unescaped quotes in strings (very common issue)
+                // This is tricky - we need to escape quotes that are inside string values
+                // but not the quotes that delimit strings
+
+                return repaired;
+            };
+
+            // Apply repairs
+            jsonStr = repairJSON(jsonStr);
+
+            console.log("Cleaned JSON Length:", jsonStr.length);
+            console.log("First 500 chars:", jsonStr.substring(0, 500));
+            console.log("Last 500 chars:", jsonStr.substring(jsonStr.length - 500));
+
+            let data;
+            try {
+                data = JSON.parse(jsonStr);
+            } catch (parseErr) {
+                console.error("JSON Parse Error:", parseErr);
+                console.error("Problematic JSON section (around error):");
+
+                // Try to show the problematic section
+                const errorMatch = parseErr.message.match(/position (\d+)/);
+                if (errorMatch) {
+                    const pos = parseInt(errorMatch[1]);
+                    const start = Math.max(0, pos - 200);
+                    const end = Math.min(jsonStr.length, pos + 200);
+                    console.error(jsonStr.substring(start, end));
+                    console.error("Error at position:", pos);
+                }
+
+                throw new Error(`Invalid JSON from AI: ${parseErr.message}. Try simplifying your story description.`);
+            }
 
             if (!data.nodes || !data.edges || data.nodes.length === 0) {
+                console.error("Incomplete data structure:", {
+                    hasNodes: !!data.nodes,
+                    hasEdges: !!data.edges,
+                    nodeCount: data.nodes?.length
+                });
                 throw new Error("AI returned an incomplete graph. Please try again.");
             }
+
+            console.log("Successfully parsed:", {
+                nodes: data.nodes?.length,
+                edges: data.edges?.length
+            });
 
             setProgress(100);
 
@@ -341,20 +423,113 @@ Generate a complete mystery training case following all directives.`;
             clearInterval(progressInterval);
             setProgress(95);
 
-            // Parse JSON
+            // Parse JSON with robust error handling
+            console.log("Raw AI Response Length:", responseText.length);
+
             let jsonStr = responseText.trim();
-            jsonStr = jsonStr.replace(/```json\n?/g, '').replace(/```\n?/g, '');
+
+            // Remove markdown code blocks
+            jsonStr = jsonStr.replace(/```json\s*/g, '').replace(/```\s*/g, '');
+
+            // Find the JSON object boundaries
             const jsonStart = jsonStr.indexOf('{');
             const jsonEnd = jsonStr.lastIndexOf('}') + 1;
-            if (jsonStart !== -1 && jsonEnd > jsonStart) {
-                jsonStr = jsonStr.substring(jsonStart, jsonEnd);
+
+            if (jsonStart === -1 || jsonEnd <= jsonStart) {
+                console.error("No valid JSON object found in response");
+                throw new Error("AI response doesn't contain valid JSON. Please try again.");
             }
 
-            const data = JSON.parse(jsonStr);
+            jsonStr = jsonStr.substring(jsonStart, jsonEnd);
+
+            // Comprehensive JSON cleanup function
+            const repairJSON = (str) => {
+                let repaired = str;
+
+                // 1. Remove trailing commas before closing brackets/braces
+                repaired = repaired.replace(/,(\s*[}\]])/g, '$1');
+
+                // 2. Fix missing commas between array elements (common AI mistake)
+                // This handles cases like: "text" "text" -> "text", "text"
+                repaired = repaired.replace(/"\s+"/g, '", "');
+
+                // 3. Fix missing commas between object properties
+                repaired = repaired.replace(/"\s*\n\s*"/g, '",\n"');
+
+                // 4. Remove any control characters that might break JSON
+                repaired = repaired.replace(/[\x00-\x1F\x7F]/g, (char) => {
+                    // Keep newlines, tabs, and carriage returns in strings
+                    if (char === '\n') return '\\n';
+                    if (char === '\r') return '\\r';
+                    if (char === '\t') return '\\t';
+                    return ''; // Remove other control characters
+                });
+
+                // 5. Fix unescaped quotes in strings (very common issue)
+                // This is tricky - we need to escape quotes that are inside string values
+                // but not the quotes that delimit strings
+
+                return repaired;
+            };
+
+
+            console.log("Extracted JSON Length:", jsonStr.length);
+            console.log("First 500 chars (before repair):", jsonStr.substring(0, 500));
+            console.log("Last 500 chars (before repair):", jsonStr.substring(jsonStr.length - 500));
+
+            // Check if response appears complete (has all required sections)
+            const hasAllSections = jsonStr.includes('"suspects"') &&
+                jsonStr.includes('"nodes"') &&
+                jsonStr.includes('"edges"');
+
+            if (!hasAllSections) {
+                console.error("Incomplete AI response detected. Missing sections:", {
+                    hasSuspects: jsonStr.includes('"suspects"'),
+                    hasNodes: jsonStr.includes('"nodes"'),
+                    hasEdges: jsonStr.includes('"edges"')
+                });
+                throw new Error("AI response is incomplete (missing suspects, nodes, or edges sections). The response may be too large. Please reduce the number of suspects, simplify learning objectives, or use a lower difficulty level.");
+            }
+
+            // Apply repairs only if response seems complete
+            jsonStr = repairJSON(jsonStr);
+
+            console.log("After repair - JSON Length:", jsonStr.length);
+
+            let data;
+            try {
+                data = JSON.parse(jsonStr);
+            } catch (parseErr) {
+                console.error("JSON Parse Error:", parseErr);
+                console.error("Problematic JSON section (around error):");
+
+                // Try to show the problematic section
+                const errorMatch = parseErr.message.match(/position (\d+)/);
+                if (errorMatch) {
+                    const pos = parseInt(errorMatch[1]);
+                    const start = Math.max(0, pos - 200);
+                    const end = Math.min(jsonStr.length, pos + 200);
+                    console.error(jsonStr.substring(start, end));
+                    console.error("Error at position:", pos);
+                }
+
+                throw new Error(`Invalid JSON from AI: ${parseErr.message}. The AI response may be too complex. Try simplifying your inputs or reducing the number of suspects.`);
+            }
 
             if (!data.suspects || !data.nodes || !data.edges) {
-                throw new Error("Incomplete response from AI. Please try again.");
+                console.error("Incomplete data structure:", {
+                    hasSuspects: !!data.suspects,
+                    hasNodes: !!data.nodes,
+                    hasEdges: !!data.edges
+                });
+                throw new Error("Incomplete response from AI. Missing suspects, nodes, or edges. Please try again.");
             }
+
+            console.log("Successfully parsed:", {
+                suspects: data.suspects?.length,
+                nodes: data.nodes?.length,
+                edges: data.edges?.length
+            });
 
             setProgress(100);
 
@@ -967,7 +1142,7 @@ Generate a complete mystery training case following all directives.`;
                     {/* Footer */}
                     {!isGenerating && mode && (
                         <div className="p-6 border-t border-white/10 bg-zinc-900/50 flex items-center justify-between">
-                            {mode === 'training' ? (
+                            {mode === 'advanced' ? (
                                 <>
                                     <Button
                                         variant="ghost"

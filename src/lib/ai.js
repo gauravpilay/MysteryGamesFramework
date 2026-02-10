@@ -29,7 +29,7 @@ export const callAI = async (provider, systemPrompt, userMessage, apiKey, imageD
 
         const generationConfig = {
             temperature: 0.1,
-            maxOutputTokens: 4000
+            maxOutputTokens: 8192  // Increased from 4000 to support complex mystery generation
         };
 
         // Only add JSON response format if explicitly requested
