@@ -29,10 +29,10 @@ const DIFFICULTY_LEVELS = [
 const AICaseGeneratorModalAdvanced = ({ isOpen, onClose, onGenerate }) => {
     const { settings } = useConfig();
 
-    // Mode selection: null, 'quick', or 'training'
+    // Mode selection: null, 'quick', or 'advanced'
     const [mode, setMode] = useState(null);
 
-    // Step navigation (for training mode)
+    // Step navigation (for advanced mode)
     const [step, setStep] = useState(1);
     const totalSteps = 4;
 
@@ -40,9 +40,10 @@ const AICaseGeneratorModalAdvanced = ({ isOpen, onClose, onGenerate }) => {
     const [quickStory, setQuickStory] = useState('');
     const [quickObjectives, setQuickObjectives] = useState('');
 
-    // Training Mode State
+    // Advanced Mode State
     // Step 1: Industry Context
     const [industry, setIndustry] = useState('');
+    const [customIndustry, setCustomIndustry] = useState('');
     const [topic, setTopic] = useState('');
     const [location, setLocation] = useState('');
     const [date, setDate] = useState('');
@@ -126,9 +127,10 @@ CRITICAL GUIDELINES:
 Generate a complete mystery game that brings the user's vision to life.`;
     };
 
-    const buildTrainingModePrompt = () => {
+    const buildAdvancedModePrompt = () => {
         const validObjectives = learningObjectives.filter(obj => obj.objective.trim()).map(obj => obj.objective);
         const diffConfig = DIFFICULTY_LEVELS.find(d => d.id === difficulty);
+        const industryName = industry === 'custom' ? customIndustry : INDUSTRIES.find(i => i.id === industry)?.label;
 
         return `You are the "Lead Game Architect & Narrative Designer" for a gamified mystery training platform.
 
@@ -190,7 +192,7 @@ Generate a comprehensive mystery story with the following EXACT structure:
 }
 
 CONFIGURATION:
-- Industry: ${industry}
+- Industry: ${industryName}
 - Topic: ${topic}
 - Location: ${location}
 - Date: ${date}
@@ -300,7 +302,7 @@ Transform this into a complete, playable mystery game with engaging characters, 
         }
     };
 
-    const handleTrainingGenerate = async () => {
+    const handleAdvancedGenerate = async () => {
         setIsGenerating(true);
         setError(null);
         setProgress(0);
@@ -311,9 +313,10 @@ Transform this into a complete, playable mystery game with engaging characters, 
             }, 800);
 
             const validObjectives = learningObjectives.filter(obj => obj.objective.trim());
+            const industryName = industry === 'custom' ? customIndustry : INDUSTRIES.find(i => i.id === industry)?.label;
             const userMessage = `
 CONTEXT:
-Industry: ${INDUSTRIES.find(i => i.id === industry)?.label}
+Industry: ${industryName}
 Topic: ${topic}
 Location: ${location}
 Date: ${date}
@@ -330,7 +333,7 @@ Generate a complete mystery training case following all directives.`;
 
             const responseText = await callAI(
                 'gemini',
-                buildTrainingModePrompt(),
+                buildAdvancedModePrompt(),
                 userMessage,
                 settings.aiApiKey || 'SIMULATION_MODE'
             );
@@ -374,7 +377,7 @@ Generate a complete mystery training case following all directives.`;
         if (mode === 'quick') {
             return handleQuickGenerate();
         } else {
-            return handleTrainingGenerate();
+            return handleAdvancedGenerate();
         }
     };
 
@@ -384,6 +387,7 @@ Generate a complete mystery training case following all directives.`;
         setQuickStory('');
         setQuickObjectives('');
         setIndustry('');
+        setCustomIndustry('');
         setTopic('');
         setLocation('');
         setDate('');
@@ -400,7 +404,7 @@ Generate a complete mystery training case following all directives.`;
         }
 
         switch (step) {
-            case 1: return industry && topic.length > 10 && location && date;
+            case 1: return industry && (industry !== 'custom' || customIndustry.trim()) && topic.length > 10 && location && date;
             case 2: return difficulty && suspectCount >= 2;
             case 3: return learningObjectives.some(obj => obj.objective.trim().length > 5);
             case 4: return true;
@@ -473,14 +477,14 @@ Generate a complete mystery training case following all directives.`;
                                         {mode === 'quick' ? (
                                             <><Rocket className="w-3 h-3" /> Quick Mode</>
                                         ) : (
-                                            <><Settings2 className="w-3 h-3" /> Training Mode - Step {step} of {totalSteps}</>
+                                            <><Settings2 className="w-3 h-3" /> Advanced Mode - Step {step} of {totalSteps}</>
                                         )}
                                     </span>
-                                    {mode === 'training' && (
+                                    {mode === 'advanced' && (
                                         <span className="text-indigo-400 font-bold">{Math.round((step / totalSteps) * 100)}%</span>
                                     )}
                                 </div>
-                                {mode === 'training' && (
+                                {mode === 'advanced' && (
                                     <div className="h-2 bg-black/50 rounded-full overflow-hidden border border-white/10">
                                         <motion.div
                                             className="h-full bg-gradient-to-r from-indigo-600 via-purple-600 to-pink-600"
@@ -509,7 +513,7 @@ Generate a complete mystery training case following all directives.`;
                                         <div className="text-center space-y-3 mb-12">
                                             <h3 className="text-3xl font-black text-white uppercase tracking-tight">Choose Your Creation Mode</h3>
                                             <p className="text-sm text-zinc-400 max-w-2xl mx-auto leading-relaxed">
-                                                Select how you want to build your mystery. Quick Mode for instant creation, or Training Mode for industry-specific learning platforms.
+                                                Select how you want to build your mystery. Quick Mode for instant creation, or Advanced Mode for industry-specific learning platforms.
                                             </p>
                                         </div>
 
@@ -554,9 +558,9 @@ Generate a complete mystery training case following all directives.`;
                                                 </div>
                                             </motion.button>
 
-                                            {/* Training Mode */}
+                                            {/* Advanced Mode */}
                                             <motion.button
-                                                onClick={() => setMode('training')}
+                                                onClick={() => setMode('advanced')}
                                                 className="group relative p-8 rounded-2xl border-2 border-white/10 bg-gradient-to-br from-purple-500/10 via-pink-500/5 to-transparent hover:border-purple-500/50 transition-all overflow-hidden text-left"
                                                 whileHover={{ scale: 1.01, y: -2 }}
                                                 whileTap={{ scale: 0.98 }}
@@ -575,7 +579,7 @@ Generate a complete mystery training case following all directives.`;
                                                     </div>
 
                                                     <div>
-                                                        <h4 className="text-2xl font-black text-white mb-2">Training Mode</h4>
+                                                        <h4 className="text-2xl font-black text-white mb-2">Advanced Mode</h4>
                                                         <p className="text-sm text-zinc-400 leading-relaxed mb-4">
                                                             Industry-specific training platform with evidence-based assessment and sequential unlocking.
                                                         </p>
@@ -660,8 +664,8 @@ Generate a complete mystery training case following all directives.`;
                                     </motion.div>
                                 )}
 
-                                {/* Training Mode Steps */}
-                                {mode === 'training' && (
+                                {/* Advanced Mode Steps */}
+                                {mode === 'advanced' && (
                                     <>
                                         {/* Step 1: Industry Context */}
                                         {step === 1 && (
@@ -691,7 +695,37 @@ Generate a complete mystery training case following all directives.`;
                                                                     <div className="text-xs font-bold text-white">{ind.label}</div>
                                                                 </button>
                                                             ))}
+                                                            {/* Custom Industry Option */}
+                                                            <button
+                                                                onClick={() => setIndustry('custom')}
+                                                                className={`p-3 rounded-xl border-2 transition-all ${industry === 'custom'
+                                                                    ? 'border-indigo-500 bg-indigo-500/10 shadow-[0_0_20px_rgba(99,102,241,0.3)]'
+                                                                    : 'border-white/10 bg-white/5 hover:border-white/20'
+                                                                    }`}
+                                                            >
+                                                                <div className="text-2xl mb-1">✏️</div>
+                                                                <div className="text-xs font-bold text-white">Other</div>
+                                                            </button>
                                                         </div>
+
+                                                        {/* Custom Industry Input */}
+                                                        {industry === 'custom' && (
+                                                            <motion.div
+                                                                initial={{ opacity: 0, height: 0 }}
+                                                                animate={{ opacity: 1, height: 'auto' }}
+                                                                exit={{ opacity: 0, height: 0 }}
+                                                                className="mt-3"
+                                                            >
+                                                                <input
+                                                                    type="text"
+                                                                    className="w-full bg-black/50 border-2 border-indigo-500/50 rounded-xl p-3 text-sm text-zinc-200 placeholder:text-zinc-700 focus:outline-none focus:border-indigo-500"
+                                                                    placeholder="Enter your industry (e.g., Hospitality, Legal Services, Agriculture)"
+                                                                    value={customIndustry}
+                                                                    onChange={(e) => setCustomIndustry(e.target.value)}
+                                                                    autoFocus
+                                                                />
+                                                            </motion.div>
+                                                        )}
                                                     </div>
 
                                                     <div>
