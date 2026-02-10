@@ -30,6 +30,7 @@ import { doc, getDoc, updateDoc, setDoc, increment, addDoc, collection, onSnapsh
 import { useAuth } from '../lib/auth';
 import { useConfig } from '../lib/config';
 import { callAI } from '../lib/ai';
+import { useLicense } from '../lib/licensing';
 import { Document as DocxDocument, Packer, Paragraph, TextRun, HeadingLevel, AlignmentType } from 'docx';
 import { jsPDF } from 'jspdf';
 
@@ -163,6 +164,7 @@ const PALETTE_ITEMS = [
 const Editor = () => {
     const { user } = useAuth();
     const { settings } = useConfig();
+    const { hasFeature } = useLicense();
     const { projectId } = useParams();
     const navigate = useNavigate();
     const reactFlowWrapper = useRef(null);
@@ -2257,7 +2259,7 @@ Please write the full novel-style story based on these elements.`;
                             <Button variant="ghost" size="icon" onClick={validateGraph} title="Validate Graph Health" className="h-8 w-8">
                                 <Stethoscope className={`w-4 h-4 ${isDarkMode ? 'text-emerald-400' : 'text-emerald-600'}`} />
                             </Button>
-                            {settings.enableAIBuild !== false && (
+                            {settings.enableAIBuild !== false && hasFeature('ai_build') && (
                                 <div className="flex items-center">
                                     <div className="w-px h-4 bg-white/10"></div>
                                     <Button
