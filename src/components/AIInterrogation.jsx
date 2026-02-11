@@ -3,9 +3,11 @@ import { motion, AnimatePresence } from 'framer-motion';
 import { MessageSquare, Send, X, Brain, Cpu, Loader2, Star, User, ShieldAlert, AlertCircle, Info, Radio, Activity, Terminal } from 'lucide-react';
 import { callAI } from '../lib/ai';
 import { useConfig } from '../lib/config';
+import { useLicense } from '../lib/licensing';
 
 const AIInterrogation = ({ node, onComplete, onFail, requestCount, onAIRequest }) => {
     const { settings } = useConfig();
+    const { licenseData } = useLicense();
     const [messages, setMessages] = useState([
         { role: 'assistant', text: "Neural link established. Interrogation protocol initialized. Subject is ready for questioning. What is your first inquiry, Detective?" }
     ]);
@@ -38,13 +40,57 @@ const AIInterrogation = ({ node, onComplete, onFail, requestCount, onAIRequest }
 
     const [showLimitPopup, setShowLimitPopup] = useState(false);
 
-    const MAX_REQUESTS = parseInt(settings.maxAIRequests) || 10;
+    const getEffectiveLimit = () => {
+        // Priority 1: Direct Field in License
+        const directLimit = licenseData?.num_of_tact_questions;
+        if (directLimit !== undefined && directLimit !== null) {
+            const parsed = parseInt(directLimit);
+            if (!isNaN(parsed)) return parsed;
+        }
+
+        // Priority 2: Quantified entry in features array (e.g. "num_of_tact_questions:15")
+        if (licenseData?.features && Array.isArray(licenseData.features)) {
+            const quantified = licenseData.features.find(f =>
+                f.startsWith('num_of_tact_questions:') ||
+                f.startsWith('num_of_tact_questions=')
+            );
+            if (quantified) {
+                const separator = quantified.includes(':') ? ':' : '=';
+                const parsed = parseInt(quantified.split(separator)[1]);
+                if (!isNaN(parsed)) return parsed;
+            }
+        }
+
+        // Priority 3: System Settings Limit
+        const settingsLimit = settings.maxAIRequests;
+        if (settingsLimit !== undefined && settingsLimit !== null) {
+            const parsed = parseInt(settingsLimit);
+            if (!isNaN(parsed)) return parsed;
+        }
+
+        // Fallback: Default
+        return 10;
+    };
+
+    const MAX_REQUESTS = getEffectiveLimit();
     const isLimitReached = requestCount >= MAX_REQUESTS;
 
     const handleSendMessage = async () => {
         if (!input.trim() || isTyping) return;
 
-        if (isLimitReached && apiKey) {
+        // Re-calculate inside handler to ensure we have the most up-to-date props/context
+        const currentLimit = getEffectiveLimit();
+        const currentLimitReached = requestCount >= currentLimit;
+
+        console.log("[AI_LIMIT_DEBUG_LIVE]", {
+            currentLimit,
+            requestCount,
+            currentLimitReached,
+            licenseDataRaw: licenseData,
+            settingsRaw: settings?.maxAIRequests
+        });
+
+        if (currentLimitReached) {
             setShowLimitPopup(true);
             return;
         }
@@ -55,9 +101,7 @@ const AIInterrogation = ({ node, onComplete, onFail, requestCount, onAIRequest }
         setIsTyping(true);
         setError(null);
 
-        if (apiKey) {
-            onAIRequest();
-        }
+        onAIRequest();
 
         try {
             const response = await callAI(provider, systemPrompt, userMsg, apiKey || 'SIMULATION_MODE');

@@ -39,11 +39,22 @@ const Dashboard = () => {
     const [incomingRequest, setIncomingRequest] = useState(null); // { project, request }
     const [imageUploadProject, setImageUploadProject] = useState(null);
     const [uploadingImage, setUploadingImage] = useState(false);
-    const { licenseData } = useLicense();
+    const { licenseData, loading: licenseLoading } = useLicense();
     const [isLicenseModalOpen, setIsLicenseModalOpen] = useState(false);
     const isAdmin = user?.role === 'Admin';
 
-    if (!licenseData || !licenseData.sub) {
+    if (licenseLoading) {
+        return (
+            <div className="fixed inset-0 flex items-center justify-center bg-black">
+                <Loader2 className="w-8 h-8 text-indigo-500 animate-spin" />
+            </div>
+        );
+    }
+
+    if (!licenseData || licenseData._expired) {
+        const isExpired = licenseData?._expired;
+        const expiredAt = licenseData?._expiredAt;
+
         return (
             <div className="fixed inset-0 flex flex-col items-center justify-center bg-black text-white p-6 font-sans">
                 {/* Background Decor */}
@@ -59,9 +70,21 @@ const Dashboard = () => {
                         </div>
                     </div>
                     <div className="space-y-3">
-                        <h1 className="text-3xl font-black uppercase tracking-tight text-white">Framework Inactive</h1>
+                        <h1 className="text-3xl font-black uppercase tracking-tight text-white">
+                            {isExpired ? 'License Expired' : 'Framework Inactive'}
+                        </h1>
                         <p className="text-zinc-500 text-sm leading-relaxed font-medium">
-                            The Mystery Games Framework v2.0 requires an active license to access the command dashboard.
+                            {isExpired ? (
+                                <>
+                                    Your Mystery Games Framework license expired on{' '}
+                                    <span className="text-amber-400 font-bold">
+                                        {new Date(expiredAt).toLocaleString()}
+                                    </span>
+                                    . Please reactivate to continue using the framework.
+                                </>
+                            ) : (
+                                'The Mystery Games Framework v2.0 requires an active license to access the command dashboard.'
+                            )}
                         </p>
                     </div>
                     <div className="pt-4 space-y-4">

@@ -1627,7 +1627,10 @@ const GamePreview = ({ nodes, edges, onClose, gameMetadata, onGameEnd }) => {
                                 <AIInterrogation
                                     node={activeModalNode}
                                     requestCount={aiRequestCount}
-                                    onAIRequest={() => setAiRequestCount(prev => prev + 1)}
+                                    onAIRequest={() => {
+                                        console.log("[PREVIEW_LIMIT_DEBUG] Incrementing AI Request Count. Current:", aiRequestCount);
+                                        setAiRequestCount(prev => prev + 1);
+                                    }}
                                     onComplete={() => {
                                         // Handle score/points if needed
                                         if (activeModalNode.data.score && !scoredNodes.has(activeModalNode.id)) {

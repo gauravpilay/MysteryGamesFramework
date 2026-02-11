@@ -166,7 +166,7 @@ const Editor = () => {
     console.log("[EDITOR_GATE] Entry point.");
     const { user } = useAuth();
     const { settings } = useConfig();
-    const { hasFeature, licenseData } = useLicense();
+    const { hasFeature, licenseData, loading: licenseLoading } = useLicense();
     console.log("[EDITOR_GATE_DEBUG] License Data:", licenseData);
 
     const { projectId } = useParams();
@@ -2206,7 +2206,18 @@ Please provide a concise plot summary and narrative overview based on these elem
         ]);
     }, [nodes, setNodes, onNodeUpdate, isLocked]);
 
-    if (!licenseData || !licenseData.sub) {
+    if (licenseLoading) {
+        return (
+            <div className={`fixed inset-0 flex items-center justify-center ${isDarkMode ? 'bg-black' : 'bg-zinc-50'}`}>
+                <Loader2 className="w-8 h-8 text-indigo-500 animate-spin" />
+            </div>
+        );
+    }
+
+    if (!licenseData || licenseData._expired) {
+        const isExpired = licenseData?._expired;
+        const expiredAt = licenseData?._expiredAt;
+
         return (
             <div className={`fixed inset-0 flex flex-col items-center justify-center transition-colors duration-300 font-sans ${isDarkMode ? 'bg-black text-white' : 'bg-zinc-50 text-zinc-900'}`}>
                 <div className="absolute inset-0 z-0 pointer-events-none opacity-20">
@@ -2221,9 +2232,21 @@ Please provide a concise plot summary and narrative overview based on these elem
                         </div>
                     </div>
                     <div className="space-y-3">
-                        <h1 className="text-3xl font-black uppercase tracking-tight text-white">Access Restricted</h1>
+                        <h1 className="text-3xl font-black uppercase tracking-tight text-white">
+                            {isExpired ? 'License Expired' : 'Access Restricted'}
+                        </h1>
                         <p className="text-zinc-500 text-sm leading-relaxed font-medium">
-                            Your Mystery Framework v2.0 license is currently inactive or has expired. Please activate your framework to access the mission architect.
+                            {isExpired ? (
+                                <>
+                                    Your Mystery Games Framework license expired on{' '}
+                                    <span className="text-amber-400 font-bold">
+                                        {new Date(expiredAt).toLocaleString()}
+                                    </span>
+                                    . Please reactivate to access the mission architect.
+                                </>
+                            ) : (
+                                'Your Mystery Framework v2.0 license is currently inactive or has expired. Please activate your framework to access the mission architect.'
+                            )}
                         </p>
                     </div>
                     <div className="pt-4 space-y-4">

@@ -1646,40 +1646,57 @@ Keep responses concise but immersive.
                             />
                         </div>
 
-                        <div className="space-y-1 p-2 bg-red-500/5 border border-red-500/10 rounded-xl">
-                            <p className="text-[8px] text-red-400 uppercase font-black tracking-wider flex items-center gap-1.5 ml-1 mb-1">
-                                <ShieldAlert className="w-2.5 h-2.5" /> Critical Secret
-                            </p>
-                            <TextArea
-                                value={data.secret}
-                                onChange={(e) => handleChange('secret', e.target.value)}
-                                placeholder="The truth they are hiding..."
-                                rows={2}
-                                className="!bg-black/60 !border-red-900/20 focus:!border-red-500 !text-[10px]"
-                            />
-                        </div>
-                    </div>
-
-                    {/* Scoring & Logic */}
-                    <div className="pt-2 border-t border-indigo-900/20 space-y-3">
-                        <div className="flex items-center justify-between">
-                            <p className="text-[9px] font-bold text-indigo-400 uppercase tracking-wider flex items-center gap-1">
-                                <Star className="w-3 h-3" /> Achievement Score
-                            </p>
-                            <InputField
-                                type="number"
-                                placeholder="0"
-                                value={data.score}
-                                onChange={(e) => handleChange('score', parseInt(e.target.value) || 0)}
-                                className="w-16 text-right bg-indigo-950/30 border-indigo-900/30 text-indigo-200"
-                            />
-                        </div>
-                        <ObjectiveSelector
-                            values={data.learningObjectiveIds}
-                            onChange={(v) => handleChange('learningObjectiveIds', v)}
-                            objectives={data.learningObjectives}
+                        <p className="text-[8px] text-red-400 uppercase font-black tracking-wider flex items-center gap-1.5 ml-1 mb-1">
+                            <ShieldAlert className="w-2.5 h-2.5" /> Critical Secret
+                        </p>
+                        <TextArea
+                            value={data.secret}
+                            onChange={(e) => handleChange('secret', e.target.value)}
+                            placeholder="The truth they are hiding..."
+                            rows={2}
+                            className="!bg-black/60 !border-red-900/20 focus:!border-red-500 !text-[10px]"
                         />
                     </div>
+
+                    {/* AI Limit Indicator (Preview in Editor) */}
+                    <div className="p-2.5 bg-indigo-500/5 border border-indigo-500/10 rounded-xl">
+                        <div className="flex items-center justify-between mb-1.5">
+                            <p className="text-[9px] text-indigo-400/70 uppercase font-black tracking-widest flex items-center gap-1.5">
+                                <MessageSquare className="w-3 h-3" /> Question Limit
+                            </p>
+                            <span className="text-[10px] font-mono text-indigo-300 font-bold">
+                                {(licenseData?.num_of_tact_questions !== undefined && licenseData?.num_of_tact_questions !== null)
+                                    ? licenseData.num_of_tact_questions
+                                    : (settings.maxAIRequests || 10)}
+                            </span>
+                        </div>
+                        <p className="text-[8px] text-zinc-500 leading-relaxed italic">
+                            {(licenseData?.num_of_tact_questions !== undefined && licenseData?.num_of_tact_questions !== null)
+                                ? "Controlled by active framework license."
+                                : "Controlled by global platform settings."}
+                        </p>
+                    </div>
+                </div>
+
+                {/* Scoring & Logic */}
+                <div className="pt-2 border-t border-indigo-900/20 space-y-3">
+                    <div className="flex items-center justify-between">
+                        <p className="text-[9px] font-bold text-indigo-400 uppercase tracking-wider flex items-center gap-1">
+                            <Star className="w-3 h-3" /> Achievement Score
+                        </p>
+                        <InputField
+                            type="number"
+                            placeholder="0"
+                            value={data.score}
+                            onChange={(e) => handleChange('score', parseInt(e.target.value) || 0)}
+                            className="w-16 text-right bg-indigo-950/30 border-indigo-900/30 text-indigo-200"
+                        />
+                    </div>
+                    <ObjectiveSelector
+                        values={data.learningObjectiveIds}
+                        onChange={(v) => handleChange('learningObjectiveIds', v)}
+                        objectives={data.learningObjectives}
+                    />
                 </div>
             </NodeWrapper>
             {(!data.actions || data.actions.length === 0) && (

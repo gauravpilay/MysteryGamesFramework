@@ -85,11 +85,16 @@ export const AuthProvider = ({ children }) => {
                 const userSnap = await getDoc(userRef);
 
                 if (!userSnap.exists()) {
+                    // Check if this is the first user
+                    const usersColl = collection(db, "users");
+                    const usersSnap = await getDocs(usersColl);
+                    const isFirstUser = usersSnap.empty;
+
                     await setDoc(userRef, {
                         displayName: user.displayName,
                         photoURL: user.photoURL,
                         email: user.email,
-                        role: "User",
+                        role: isFirstUser ? "Admin" : "User",
                         createdAt: new Date().toISOString()
                     });
                 } else {

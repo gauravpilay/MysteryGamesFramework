@@ -2,11 +2,13 @@ import React, { useState, useEffect } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { X, Settings, Shield, Key, Sliders, Save, AlertTriangle, Cpu, Globe, Box, Brain, ShieldCheck } from 'lucide-react';
 import { useConfig } from '../lib/config';
+import { useLicense } from '../lib/licensing';
 import { Button, Input, Label } from './ui/shared';
 import LicenseConfigModal from './LicenseConfigModal';
 
 const SystemSettingsModal = ({ onClose }) => {
     const { settings, updateSettings } = useConfig();
+    const { licenseData } = useLicense();
     const [formData, setFormData] = useState({
         aiApiKey: settings.aiApiKey || '',
         maxAIRequests: settings.maxAIRequests || 10,
@@ -178,6 +180,14 @@ const SystemSettingsModal = ({ onClose }) => {
                                     <p className="mt-2 text-[10px] text-zinc-600 leading-relaxed">
                                         Defines the maximum number of AI requests allowed per game session to manage usage quotas.
                                     </p>
+                                    {licenseData?.num_of_tact_questions !== undefined && licenseData?.num_of_tact_questions !== null && (
+                                        <div className="mt-3 p-3 bg-emerald-500/10 border border-emerald-500/20 rounded-xl flex items-center gap-3">
+                                            <ShieldCheck className="w-4 h-4 text-emerald-500" />
+                                            <p className="text-[10px] text-emerald-400 font-bold uppercase tracking-tight">
+                                                License Managed: {licenseData.num_of_tact_questions} questions currently authorized.
+                                            </p>
+                                        </div>
+                                    )}
                                 </div>
                             </div>
                         </div>
