@@ -32,7 +32,7 @@ import { useAuth } from '../lib/auth';
 import { useConfig } from '../lib/config';
 import { callAI } from '../lib/ai';
 import { useLicense } from '../lib/licensing';
-import { Document as DocxDocument, Packer, Paragraph, TextRun, HeadingLevel, AlignmentType } from 'docx';
+import { Document as DocxDocument, Packer, Paragraph, TextRun, HeadingLevel, AlignmentType, ImageRun } from 'docx';
 import { jsPDF } from 'jspdf';
 
 // ... (other imports)
@@ -1018,7 +1018,7 @@ const Editor = () => {
                     id: n.id,
                     type: n.type,
                     label: n.data?.label || n.type,
-                    text: n.data?.text || n.data?.description || n.data?.dialogue || "",
+                    text: n.data?.text || n.data?.description || n.data?.dialogue || n.data?.question || "",
                     metadata: {
                         name: n.data?.name || "",
                         role: n.data?.role || "",
@@ -1028,10 +1028,12 @@ const Editor = () => {
                         command: n.data?.command || "",
                         answer: n.data?.answer || "",
                         url: n.data?.url || "",
+                        image: n.data?.image || "",
                         mediaType: n.data?.mediaType || "",
                         blocking: n.data?.blocking || false,
                         correctAnswers: n.data?.correctAnswers || [],
                         options: n.data?.options || [],
+                        hints: n.data?.hints || [],
                         variableId: n.data?.variableId || "",
                         variableValue: n.data?.variableValue || "",
                         condition: n.data?.condition || "",
@@ -1045,17 +1047,15 @@ const Editor = () => {
                 }))
             };
 
-            const systemPrompt = `You are an elite detective novelist. Your goal is to convert the raw node-based structure of a mystery game into a professional, atmospheric, and seamless novel-style story.
+            const systemPrompt = `You are an elite detective novelist and case architect. Your goal is to provide a concise and compelling plot summary of a mystery game based on its node-based structure.
 
-STORYTELLING GUIDELINES:
-1. CAPTURE EVERY NODE: Every story beat, suspect, and piece of evidence provided must be integrated into the narrative.
-2. SEAMLESS FLOW: Do not just list nodes. Create transitions, build suspense, and weave the connections (edges) into the narrative flow. 
-3. ATMOSPHERE: Use evocative language matching the "noir" or "cyber" aesthetic of a modern mystery.
-4. CHARACTER DEPTH: Flesh out the suspects' personalities and their interactions based on their roles and alibis.
-5. NOVEL STYLE: Write in a continuous prose format, using chapters or scene breaks as appropriate.
-6. CLIMAX: If there's an 'Identify Culprit' node, build the story towards that final confrontation.
+SUMMARY GUIDELINES:
+1. CONCISE PLOT: Write a few paragraphs (a summary) that set the context, plot, and mystery. Do not write a full novel.
+2. FLOW & TRANSITIONS: Explain how the story starts, the key suspects introduced, the major clues found, and how it leads to the final confrontation.
+3. ATMOSPHERE: Maintain a "noir" or "cyber" aesthetic in your summary.
+4. NO EXPOSITION ON MECHANICS: Do not mention "nodes" or "game mechanics". Write it as a story pitch or high-level narrative overview.
 
-IMPORTANT: Do not mention "nodes" or "game mechanics". Write it purely as a piece of literature.`;
+IMPORTANT: Focus on the Narrative Summary and the Plot Logic.`;
 
             const userMessage = `Title: ${storyData.title}
 Background: ${storyData.description}
@@ -1070,7 +1070,7 @@ ${n.metadata.description ? `Detail: ${n.metadata.description}` : ''}
 Connections:
 ${storyData.edges.map(e => `From "${storyData.nodes.find(n => n.id === e.source)?.label || 'Unknown'}" to "${storyData.nodes.find(n => n.id === e.target)?.label || 'Unknown'}" ${e.label ? `via "${e.label}"` : ''}`).join('\n')}
 
-Please write the full novel-style story based on these elements.`;
+Please provide a concise plot summary and narrative overview based on these elements.`;
 
             const story = await callAI('gemini', systemPrompt, userMessage, settings.aiApiKey);
 
@@ -1091,7 +1091,7 @@ Please write the full novel-style story based on these elements.`;
                 document.body.removeChild(a);
                 window.URL.revokeObjectURL(url);
             } else if (format === 'pdf') {
-                generateEnhancedPDF(storyData, story, designerReview);
+                await generateEnhancedPDF(storyData, story, designerReview);
             } else if (format === 'google-docs') {
                 await generateEnhancedDOCX(storyData, story, designerReview);
             }
@@ -1162,10 +1162,13 @@ Please write the full novel-style story based on these elements.`;
                     if (node.metadata.role) review += `**Role:** ${node.metadata.role}\n`;
                     if (node.metadata.alibi) review += `**Alibi:** ${node.metadata.alibi}\n`;
                     if (node.metadata.description) review += `**Description:** ${node.metadata.description}\n`;
+                    if (node.metadata.culprit) review += `**⚠️ CULPRIT STATUS:** This character is designated as the culprit (${node.metadata.culprit}).\n`;
                     review += '\n';
                     break;
                 case 'evidence':
-                    if (node.metadata.description) review += `**Evidence Details:** ${node.metadata.description}\n\n`;
+                    if (node.metadata.description) review += `**Evidence Details:** ${node.metadata.description}\n`;
+                    if (node.metadata.image) review += `**Evidence Image:** ![Evidence](${node.metadata.image})\n`;
+                    review += '\n';
                     break;
                 case 'terminal':
                     if (node.metadata.command) review += `**Required Command:** ${node.metadata.command}\n`;
@@ -1180,11 +1183,22 @@ Please write the full novel-style story based on these elements.`;
                     review += '\n';
                     break;
                 case 'question':
-                    if (node.metadata.options && node.metadata.options.length > 0) {
-                        review += `**Options:** ${node.metadata.options.join(', ')}\n`;
+                    review += `**Question:** ${node.text || 'Untitled Question'}\n`;
+                    if (node.metadata.options && Array.isArray(node.metadata.options) && node.metadata.options.length > 0) {
+                        review += `**Options:**\n`;
+                        node.metadata.options.forEach(opt => {
+                            if (opt) {
+                                review += `  - ${opt.text || 'Untitled Option'} ${opt.isCorrect ? '(CORRECT ✅)' : ''}\n`;
+                            }
+                        });
                     }
-                    if (node.metadata.correctAnswers && node.metadata.correctAnswers.length > 0) {
-                        review += `**Correct Answer(s):** ${node.metadata.correctAnswers.join(', ')}\n`;
+                    if (node.metadata.hints && Array.isArray(node.metadata.hints) && node.metadata.hints.length > 0) {
+                        review += `**Applied Hints:**\n`;
+                        node.metadata.hints.forEach(hint => {
+                            if (hint) {
+                                review += `  - ${hint.text || 'Untitled Hint'} (Penalty: ${hint.penalty || 0} pts)\n`;
+                            }
+                        });
                     }
                     review += '\n';
                     break;
@@ -1379,8 +1393,27 @@ Please write the full novel-style story based on these elements.`;
         return text.replace(/[\u{1F300}-\u{1F9FF}]/gu, '').trim();
     };
 
+    // Helper to fetch and convert image URL to Base64 for PDF/DOCX
+    const fetchImageAsBase64 = (url) => {
+        return new Promise((resolve, reject) => {
+            const img = new Image();
+            img.crossOrigin = 'Anonymous';
+            img.onload = () => {
+                const canvas = document.createElement('canvas');
+                canvas.width = img.width;
+                canvas.height = img.height;
+                const ctx = canvas.getContext('2d');
+                ctx.drawImage(img, 0, 0);
+                const dataURL = canvas.toDataURL('image/jpeg', 0.8);
+                resolve({ dataURL, width: img.width, height: img.height });
+            };
+            img.onerror = (err) => reject(err);
+            img.src = url;
+        });
+    };
+
     // Enhanced PDF Generator with beautiful formatting
-    const generateEnhancedPDF = (storyData, story, designerReview) => {
+    const generateEnhancedPDF = async (storyData, story, designerReview) => {
         const doc = new jsPDF();
         const pageWidth = doc.internal.pageSize.getWidth();
         const pageHeight = doc.internal.pageSize.getHeight();
@@ -1585,15 +1618,14 @@ Please write the full novel-style story based on these elements.`;
         yPos = margin;
 
         const reviewLines = designerReview.split('\n');
-        let inList = false;
         let currentSection = 'default';
 
-        reviewLines.forEach(line => {
+        for (const line of reviewLines) {
             const trimmed = line.trim();
 
             if (!trimmed) {
                 yPos += 3;
-                return;
+                continue;
             }
 
             // Main heading (# DESIGNER'S CANVAS REVIEW)
@@ -1607,7 +1639,7 @@ Please write the full novel-style story based on these elements.`;
                 doc.setFont('helvetica', 'bold');
                 doc.text(text, margin, yPos + 8);
                 yPos += 25;
-                return;
+                continue;
             }
 
             // Section headings (## )
@@ -1634,7 +1666,7 @@ Please write the full novel-style story based on these elements.`;
                 doc.setFont('helvetica', 'bold');
                 doc.text(text, margin, yPos + 5);
                 yPos += 18;
-                return;
+                continue;
             }
 
             // Subsection headings (### )
@@ -1646,7 +1678,7 @@ Please write the full novel-style story based on these elements.`;
                 doc.setFont('helvetica', 'bold');
                 doc.text(text, margin, yPos);
                 yPos += 10;
-                return;
+                continue;
             }
 
             // Bold text (**text**) - now handled by renderFormattedText
@@ -1679,7 +1711,7 @@ Please write the full novel-style story based on these elements.`;
                 yPos += 2;
                 renderFormattedText(labeledText, 10, [146, 64, 14], 3);
                 yPos = savedYPos + boxHeight + 3;
-                return;
+                continue;
             }
 
             // Suggestion boxes (💭)
@@ -1704,7 +1736,7 @@ Please write the full novel-style story based on these elements.`;
                 yPos += 2;
                 renderFormattedText(labeledText, 10, [30, 64, 175], 3);
                 yPos = savedYPos + boxHeight + 3;
-                return;
+                continue;
             }
 
             // List items (  - or  →  or  ←)
@@ -1736,7 +1768,38 @@ Please write the full novel-style story based on these elements.`;
                 doc.setFont('helvetica', 'normal');
                 const savedYPos = yPos;
                 renderFormattedText(text, 10, [80, 80, 80], 12);
-                return;
+                continue;
+            }
+
+            // Evidence Images detector
+            if (trimmed.includes('![Evidence](') || (trimmed.startsWith('![') && trimmed.includes(']('))) {
+                const urlMatch = trimmed.match(/\((.*?)\)/);
+                if (urlMatch && urlMatch[1]) {
+                    const url = urlMatch[1];
+                    try {
+                        checkPageBreak(70); // Reserve space for image
+                        const imgData = await fetchImageAsBase64(url);
+
+                        // Calculate dimensions to fit content width
+                        const maxWidth = contentWidth - 20;
+                        const ratio = imgData.width / imgData.height;
+                        const displayWidth = Math.min(maxWidth, 80); // Cap width
+                        const displayHeight = displayWidth / ratio;
+
+                        doc.setDrawColor(200, 200, 200);
+                        doc.rect(margin + 10, yPos, displayWidth + 4, displayHeight + 4);
+                        doc.addImage(imgData.dataURL, 'JPEG', margin + 12, yPos + 2, displayWidth, displayHeight);
+
+                        yPos += displayHeight + 10;
+                    } catch (err) {
+                        console.error("Failed to load image for PDF", err);
+                        doc.setFontSize(8);
+                        doc.setTextColor(150, 0, 0);
+                        doc.text(`[Image could not be loaded: ${url.substring(0, 30)}...]`, margin + 12, yPos);
+                        yPos += 8;
+                    }
+                    continue;
+                }
             }
 
             // Divider lines (===)
@@ -1746,7 +1809,7 @@ Please write the full novel-style story based on these elements.`;
                 doc.setLineWidth(0.3);
                 doc.line(margin, yPos, pageWidth - margin, yPos);
                 yPos += 8;
-                return;
+                continue;
             }
 
             // Horizontal rule (---)
@@ -1756,21 +1819,26 @@ Please write the full novel-style story based on these elements.`;
                 doc.setLineWidth(0.2);
                 doc.line(margin + 20, yPos, pageWidth - margin - 20, yPos);
                 yPos += 6;
-                return;
+                continue;
             }
 
             // Italic text (*text*) - use formatted renderer
             if (trimmed.startsWith('*') && trimmed.endsWith('*') && !trimmed.startsWith('**')) {
                 renderFormattedText(trimmed, 9, [120, 120, 120], 0);
-                return;
+                continue;
             }
 
             // Regular paragraph
             addText(trimmed, 10, [60, 60, 60], false, 0);
-        });
+        }
 
         // Save the PDF
-        doc.save(`${storyData.title.replace(/\s+/g, '_')}_Mystery_Novel.pdf`);
+        try {
+            doc.save(`${storyData.title.replace(/\s+/g, '_')}_Mystery_Novel.pdf`);
+        } catch (saveErr) {
+            console.error("PDF Save error:", saveErr);
+            alert("Could not save PDF. Try Markdown format instead.");
+        }
     };
 
     // Enhanced DOCX Generator with beautiful formatting
@@ -1835,17 +1903,11 @@ Please write the full novel-style story based on these elements.`;
 
         // Designer Review Section
         const reviewLines = designerReview.split('\n');
-        let currentList = [];
 
-        reviewLines.forEach((line, index) => {
+        for (const line of reviewLines) {
             const trimmed = line.trim();
 
-            if (!trimmed) {
-                if (currentList.length > 0) {
-                    currentList = [];
-                }
-                return;
-            }
+            if (!trimmed) continue;
 
             // Main heading
             if (trimmed.startsWith('# ')) {
@@ -1857,7 +1919,7 @@ Please write the full novel-style story based on these elements.`;
                         shading: { fill: '4F46E5', color: 'FFFFFF' },
                     })
                 );
-                return;
+                continue;
             }
 
             // Section headings
@@ -1869,7 +1931,7 @@ Please write the full novel-style story based on these elements.`;
                         spacing: { before: 300, after: 150 },
                     })
                 );
-                return;
+                continue;
             }
 
             // Subsection headings
@@ -1881,7 +1943,7 @@ Please write the full novel-style story based on these elements.`;
                         spacing: { before: 200, after: 100 },
                     })
                 );
-                return;
+                continue;
             }
 
             // Bold text
@@ -1898,7 +1960,7 @@ Please write the full novel-style story based on these elements.`;
                         spacing: { after: 100 },
                     })
                 );
-                return;
+                continue;
             }
 
             // List items
@@ -1911,31 +1973,59 @@ Please write the full novel-style story based on these elements.`;
                         spacing: { after: 50 },
                     })
                 );
-                return;
+                continue;
             }
 
-            // Warning/Alert
-            if (trimmed.includes('⚠️')) {
-                children.push(
-                    new Paragraph({
-                        children: [new TextRun({ text: trimmed, bold: true, color: '92400E' })],
-                        spacing: { after: 150 },
-                        shading: { fill: 'FEF3C7' },
-                    })
-                );
-                return;
+            // Evidence Images detector
+            if (trimmed.includes('![Evidence](')) {
+                const urlMatch = trimmed.match(/\((.*?)\)/);
+                if (urlMatch && urlMatch[1]) {
+                    try {
+                        const imgData = await fetchImageAsBase64(urlMatch[1]);
+
+                        // Convert DataURL to Uint8Array manually (more robust than fetch in some contexts)
+                        const base64Data = imgData.dataURL.split(',')[1];
+                        const binaryString = window.atob(base64Data);
+                        const len = binaryString.length;
+                        const bytes = new Uint8Array(len);
+                        for (let i = 0; i < len; i++) {
+                            bytes[i] = binaryString.charCodeAt(i);
+                        }
+
+                        children.push(
+                            new Paragraph({
+                                children: [
+                                    new ImageRun({
+                                        data: bytes.buffer,
+                                        transformation: {
+                                            width: 400,
+                                            height: 400 * (imgData.height / imgData.width),
+                                        },
+                                    }),
+                                ],
+                                spacing: { before: 200, after: 200 },
+                                alignment: AlignmentType.CENTER
+                            })
+                        );
+                    } catch (e) {
+                        console.error("DOCX Image fail:", e);
+                    }
+                }
+                continue;
             }
 
-            // Suggestion
-            if (trimmed.includes('💭')) {
+            // Warnings/Suggestions
+            if (trimmed.includes('⚠️') || trimmed.includes('💭')) {
+                const color = trimmed.includes('⚠️') ? '92400E' : '1E40AF';
+                const fill = trimmed.includes('⚠️') ? 'FEF3C7' : 'DBEAFE';
                 children.push(
                     new Paragraph({
-                        children: [new TextRun({ text: trimmed, bold: true, color: '1E40AF' })],
+                        children: [new TextRun({ text: trimmed, bold: true, color: color })],
                         spacing: { after: 150 },
-                        shading: { fill: 'DBEAFE' },
+                        shading: { fill: fill },
                     })
                 );
-                return;
+                continue;
             }
 
             // Dividers
@@ -1943,18 +2033,11 @@ Please write the full novel-style story based on these elements.`;
                 children.push(
                     new Paragraph({
                         text: '',
-                        border: {
-                            bottom: {
-                                color: 'CCCCCC',
-                                space: 1,
-                                style: 'single',
-                                size: 6,
-                            },
-                        },
+                        border: { bottom: { color: 'CCCCCC', space: 1, style: 'single', size: 6 } },
                         spacing: { before: 100, after: 100 },
                     })
                 );
-                return;
+                continue;
             }
 
             // Italic text
@@ -1965,19 +2048,17 @@ Please write the full novel-style story based on these elements.`;
                         spacing: { after: 100 },
                     })
                 );
-                return;
+                continue;
             }
 
             // Regular paragraph
-            if (!trimmed.startsWith('#') && !trimmed.startsWith('*') && !trimmed.startsWith('-')) {
-                children.push(
-                    new Paragraph({
-                        text: trimmed,
-                        spacing: { after: 100 },
-                    })
-                );
-            }
-        });
+            children.push(
+                new Paragraph({
+                    text: trimmed,
+                    spacing: { after: 100 },
+                })
+            );
+        }
 
         const doc = new DocxDocument({
             sections: [{
