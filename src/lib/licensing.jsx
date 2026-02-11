@@ -83,84 +83,59 @@ export const LicenseProvider = ({ children }) => {
     const [isConfiguring, setIsConfiguring] = useState(false);
     const [loading, setLoading] = useState(true);
 
-    console.log("[LICENSE_PROVIDER] Mounting/Rendering. User:", user?.uid);
-
     // Initial load & Sync
     useEffect(() => {
-        console.log("[LICENSE_INIT] Starting license initialization...");
         const cached = localStorage.getItem('mystery_framework_license_payload');
-        console.log("[LICENSE_INIT] LocalStorage cache exists:", !!cached);
 
         if (cached) {
             try {
                 const payload = JSON.parse(cached);
-                console.log("[LICENSE_INIT] Parsed cache payload:", payload);
                 const extractedData = payload.data || payload;
-                console.log("[LICENSE_INIT] Setting licenseData from cache:", extractedData);
                 setLicenseData(extractedData);
                 if (payload.url) setLicenseUrl(payload.url);
-                if (payload.key) setKeyFromPayload(payload.key);
+                if (payload.key) setLicenseKey(payload.key);
                 setLoading(false); // Speed up initial render if we have a cache
-                console.log("[LICENSE_INIT] Cache loaded successfully. Loading set to false.");
             } catch (e) {
                 console.error("[LICENSE_INIT] Failed to parse cached license:", e);
                 setLoading(false);
             }
-        } else {
-            console.log("[LICENSE_INIT] No cache found. Will wait for Firestore sync.");
-        }
-
-        function setKeyFromPayload(k) {
-            setLicenseKey(k);
         }
 
         if (!db) {
-            console.log("[LICENSE_INIT] No database connection. Setting loading to false.");
             setLoading(false);
             return;
         }
 
-        console.log("[LICENSE_INIT] Setting up Firestore listener...");
         const licenseRef = doc(db, "system_config", "license");
         return onSnapshot(licenseRef, async (snap) => {
-            console.log("[LICENSE_SYNC] Firebase Snapshot Update Received. Exists:", snap.exists());
             if (snap.exists()) {
                 const cloudPayload = snap.data();
-                console.log("[LICENSE_SYNC] Cloud payload received:", cloudPayload);
                 if (await verifyLicenseIntegrity(cloudPayload, M_FRAMEWORK_PUBLIC_KEY)) {
-                    console.log("[LICENSE_SYNC] ✓ Integrity Verified");
                     // Extract data from JWT if needed or use raw data
                     const freshData = cloudPayload.data || (cloudPayload.token ? JSON.parse(atob(cloudPayload.token.split('.')[1])) : null);
-                    console.log("[LICENSE_SYNC] Extracted Data Object:", freshData);
                     if (freshData && cloudPayload.status !== 'deactivated') {
-                        console.log("[LICENSE_SYNC] Setting active license data");
                         setLicenseData(freshData);
                         if (cloudPayload.url) setLicenseUrl(cloudPayload.url);
                         if (cloudPayload.key) setLicenseKey(cloudPayload.key);
                     } else if (cloudPayload.status === 'deactivated') {
-                        console.warn("[LICENSE_SYNC] ✗ License is DEACTIVATED");
                         setLicenseData(null);
                         localStorage.removeItem('mystery_framework_license_payload');
                     }
                 } else {
-                    console.error("[LICENSE_SYNC] ✗ Integrity verification FAILED");
+                    console.error("[LICENSE_SYNC] Integrity verification FAILED");
                     setLicenseData(null);
                     localStorage.removeItem('mystery_framework_license_payload');
                 }
             } else {
-                console.warn("[LICENSE_SYNC] ✗ Cloud license document NOT FOUND in Firestore.");
                 // ONLY nuke local storage if we ALREADY had licenseData (meaning it WAS there and now it's GONE)
                 setLicenseData(prev => {
                     if (prev) {
-                        console.warn("[LICENSE_SYNC] Had previous license, now wiping because cloud is empty.");
                         localStorage.removeItem('mystery_framework_license_payload');
                         return null;
                     }
-                    console.log("[LICENSE_SYNC] No previous license, keeping null state.");
                     return prev;
                 });
             }
-            console.log("[LICENSE_SYNC] Setting loading to false.");
             setLoading(false);
         });
     }, [db]);
@@ -168,7 +143,7 @@ export const LicenseProvider = ({ children }) => {
     // Periodically check for license expiration
     useEffect(() => {
         const checkExpiry = () => {
-            if (!licenseData) return;
+            if (!licenseData || licenseData._expired) return;
 
             // exp is Unix timestamp in seconds, expiry might be ISO string
             const expiryDate = licenseData.exp
@@ -177,36 +152,13 @@ export const LicenseProvider = ({ children }) => {
 
             const now = new Date();
 
-            console.log("[LICENSE_EXPIRY_CHECK]", {
-                hasExpiry: !!expiryDate,
-                expiryDate: expiryDate?.toISOString(),
-                currentDate: now.toISOString(),
-                isExpired: expiryDate ? expiryDate < now : false,
-                rawExp: licenseData.exp,
-                rawExpiry: licenseData.expiry
-            });
-
             if (expiryDate && expiryDate < now) {
                 const hoursAgo = Math.floor((now - expiryDate) / (1000 * 60 * 60));
                 const minutesAgo = Math.floor((now - expiryDate) / (1000 * 60)) % 60;
                 console.warn("[LICENSE] ⚠️ License EXPIRED", hoursAgo, "hours and", minutesAgo, "minutes ago");
-                console.warn("[LICENSE] Expiry was:", expiryDate.toISOString(), "Current time:", now.toISOString());
-                console.warn("[LICENSE] Please reactivate your license from the Dashboard.");
 
                 // Mark as expired but don't delete - allow user to see expiry info and reactivate
                 setLicenseData(prev => prev ? { ...prev, _expired: true, _expiredAt: expiryDate.toISOString() } : null);
-            } else if (expiryDate) {
-                console.log("[LICENSE] ✓ License is valid until:", expiryDate.toISOString());
-                // Remove expired flag if it was previously set
-                setLicenseData(prev => {
-                    if (prev?._expired) {
-                        const { _expired, _expiredAt, ...rest } = prev;
-                        return rest;
-                    }
-                    return prev;
-                });
-            } else {
-                console.log("[LICENSE] ✓ No expiry date set - license is perpetual.");
             }
         };
 
@@ -217,8 +169,6 @@ export const LicenseProvider = ({ children }) => {
 
     const activateLicense = async (url, key) => {
         try {
-            console.log(`[SECURE_SYNC] Syncing with MysteryFrameworkLicenseManager-v2 at ${url}...`);
-
             let responsePayload;
 
             if (url.toLowerCase() === 'demo') {
@@ -229,7 +179,6 @@ export const LicenseProvider = ({ children }) => {
                 };
             } else {
                 const baseUrl = url.endsWith('/') ? url.slice(0, -1) : url;
-                // v2 Manager uses /v1/activate as primary
                 const endpointsToTry = [
                     `${baseUrl}/v1/activate`,
                     `${baseUrl}/activate`,
@@ -239,7 +188,6 @@ export const LicenseProvider = ({ children }) => {
                 let lastError = null;
                 for (const endpoint of endpointsToTry) {
                     try {
-                        console.log(`[TRY] ${endpoint}`);
                         const res = await fetch(endpoint, {
                             method: 'POST',
                             headers: { 'Content-Type': 'application/json' },
@@ -251,7 +199,6 @@ export const LicenseProvider = ({ children }) => {
 
                         if (res.ok) {
                             responsePayload = await res.json();
-                            console.log("[LICENSE_ACTIVATION] Raw Server Response:", responsePayload);
                             break;
                         }
                         if (res.status !== 404) {
@@ -287,12 +234,8 @@ export const LicenseProvider = ({ children }) => {
                 localStorage.setItem('mystery_license_url', url);
                 localStorage.setItem('mystery_license_key', key);
 
-                console.log("[LICENSE_ACTIVATION] Integrity verified. Syncing to Cloud? User Role:", user?.role);
                 if (db && user?.role === 'Admin') {
-                    console.log("[LICENSE_ACTIVATION] User is Admin. Initiating Firestore setDoc...");
                     await setDoc(doc(db, "system_config", "license"), fullStoragePayload);
-                } else {
-                    console.warn("[LICENSE_ACTIVATION] Sync to Firestore SKIPPED: User is not an Admin or DB missing.");
                 }
 
                 return { success: true, data: finalData };
@@ -309,15 +252,6 @@ export const LicenseProvider = ({ children }) => {
         if (!licenseData) return false;
         return licenseData.features?.includes(featureName);
     };
-
-    console.log("[LICENSE_PROVIDER] Rendering children. LicenseData exists:", !!licenseData);
-
-    console.log("[LICENSE_PROVIDER] State check:", {
-        hasData: !!licenseData,
-        customer: licenseData?.customer,
-        sub: licenseData?.sub,
-        features: licenseData?.features
-    });
 
     return (
         <LicenseContext.Provider value={{

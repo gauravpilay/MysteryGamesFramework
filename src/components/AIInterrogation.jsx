@@ -61,6 +61,36 @@ const AIInterrogation = ({ node, onComplete, onFail, requestCount, onAIRequest }
             }
         }
 
+        // Priority 2.5: Check encrypted_features (might contain quantified values)
+        if (licenseData?.encrypted_features) {
+            try {
+                const encryptedData = typeof licenseData.encrypted_features === 'string'
+                    ? licenseData.encrypted_features.split(',').map(s => s.trim())
+                    : licenseData.encrypted_features;
+
+                if (Array.isArray(encryptedData)) {
+                    const quantified = encryptedData.find(f =>
+                        f.includes('num_of_tact_questions:') ||
+                        f.includes('num_of_tact_questions=')
+                    );
+                    if (quantified) {
+                        const separator = quantified.includes(':') ? ':' : '=';
+                        const parsed = parseInt(quantified.split(separator)[1]);
+                        if (!isNaN(parsed)) return parsed;
+                    }
+                }
+            } catch (e) {
+                console.error("Error parsing encrypted_features:", e);
+            }
+        }
+
+        // Priority 2.7: Check limits or quotas object
+        const limitsObj = licenseData?.limits || licenseData?.quotas;
+        if (limitsObj?.num_of_tact_questions !== undefined) {
+            const parsed = parseInt(limitsObj.num_of_tact_questions);
+            if (!isNaN(parsed)) return parsed;
+        }
+
         // Priority 3: System Settings Limit
         const settingsLimit = settings.maxAIRequests;
         if (settingsLimit !== undefined && settingsLimit !== null) {
@@ -81,14 +111,6 @@ const AIInterrogation = ({ node, onComplete, onFail, requestCount, onAIRequest }
         // Re-calculate inside handler to ensure we have the most up-to-date props/context
         const currentLimit = getEffectiveLimit();
         const currentLimitReached = requestCount >= currentLimit;
-
-        console.log("[AI_LIMIT_DEBUG_LIVE]", {
-            currentLimit,
-            requestCount,
-            currentLimitReached,
-            licenseDataRaw: licenseData,
-            settingsRaw: settings?.maxAIRequests
-        });
 
         if (currentLimitReached) {
             setShowLimitPopup(true);

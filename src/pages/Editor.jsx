@@ -163,11 +163,9 @@ const PALETTE_ITEMS = [
 ];
 
 const Editor = () => {
-    console.log("[EDITOR_GATE] Entry point.");
     const { user } = useAuth();
     const { settings } = useConfig();
     const { hasFeature, licenseData, loading: licenseLoading } = useLicense();
-    console.log("[EDITOR_GATE_DEBUG] License Data:", licenseData);
 
     const { projectId } = useParams();
     const navigate = useNavigate();

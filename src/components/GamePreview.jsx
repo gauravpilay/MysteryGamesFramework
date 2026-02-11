@@ -1628,7 +1628,6 @@ const GamePreview = ({ nodes, edges, onClose, gameMetadata, onGameEnd }) => {
                                     node={activeModalNode}
                                     requestCount={aiRequestCount}
                                     onAIRequest={() => {
-                                        console.log("[PREVIEW_LIMIT_DEBUG] Incrementing AI Request Count. Current:", aiRequestCount);
                                         setAiRequestCount(prev => prev + 1);
                                     }}
                                     onComplete={() => {

@@ -59,7 +59,6 @@ const PrivateRoute = ({ children }) => {
     );
   }
 
-  console.log("[PRIVATE_ROUTE] Rendering child component. User:", !!user);
   return user ? children : <Navigate to="/login" />;
 };
 

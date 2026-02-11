@@ -7,6 +7,7 @@ import { storage } from '../../lib/firebase';
 import { ref, uploadBytes, getDownloadURL } from 'firebase/storage';
 import { callAI } from '../../lib/ai';
 import { useConfig } from '../../lib/config';
+import { useLicense } from '../../lib/licensing';
 
 // ... (existing code for SetterNode) ...
 
@@ -1520,6 +1521,9 @@ export const ThreeDSceneNode = memo(({ id, data, selected }) => {
 
 
 export const InterrogationNode = memo(({ id, data, selected }) => {
+    const { settings } = useConfig();
+    const { licenseData } = useLicense();
+
     const handleChange = (key, val) => {
         const newData = { ...data, [key]: val };
 
