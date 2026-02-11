@@ -250,12 +250,79 @@ export const LicenseProvider = ({ children }) => {
 
     const hasFeature = (featureName) => {
         if (!licenseData) return false;
-        return licenseData.features?.includes(featureName);
+
+        // Priority 1: Check if features is an object with the feature as a key
+        if (licenseData.features && typeof licenseData.features === 'object' && !Array.isArray(licenseData.features)) {
+            const value = licenseData.features[featureName];
+            // Return true if the feature exists and is truthy (true, or a number > 0)
+            return value !== undefined && value !== false && value !== null && value !== 0;
+        }
+
+        // Priority 2: Check if features is an array (legacy format or quantified format)
+        if (Array.isArray(licenseData.features)) {
+            // First check for exact match (legacy format)
+            if (licenseData.features.includes(featureName)) {
+                return true;
+            }
+
+            // Check for quantified format (e.g., "enable_ai_build_feature:enable" or "num_of_tact_questions:10")
+            const quantified = licenseData.features.find(f =>
+                typeof f === 'string' && (f.startsWith(`${featureName}:`) || f.startsWith(`${featureName}=`))
+            );
+
+            if (quantified) {
+                const separator = quantified.includes(':') ? ':' : '=';
+                const value = quantified.split(separator)[1];
+                // Return true if value exists and is not "disable", "disabled", "false", "0"
+                return value && !['disable', 'disabled', 'false', '0'].includes(value.toLowerCase());
+            }
+
+            return false;
+        }
+
+        // Priority 3: Check if the feature is a direct property on licenseData
+        const directValue = licenseData[featureName];
+        return directValue !== undefined && directValue !== false && directValue !== null && directValue !== 0;
+    };
+
+    const getFeatureValue = (featureName, defaultValue = null) => {
+        if (!licenseData) return defaultValue;
+
+        // Priority 1: Check if features is an object with the feature as a key
+        if (licenseData.features && typeof licenseData.features === 'object' && !Array.isArray(licenseData.features)) {
+            const value = licenseData.features[featureName];
+            return value !== undefined ? value : defaultValue;
+        }
+
+        // Priority 1.5: Check if features is an array with quantified format
+        if (Array.isArray(licenseData.features)) {
+            const quantified = licenseData.features.find(f =>
+                typeof f === 'string' && (f.startsWith(`${featureName}:`) || f.startsWith(`${featureName}=`))
+            );
+
+            if (quantified) {
+                const separator = quantified.includes(':') ? ':' : '=';
+                const value = quantified.split(separator)[1];
+
+                // Try to parse as number if it looks like a number
+                const numValue = parseInt(value);
+                if (!isNaN(numValue)) {
+                    return numValue;
+                }
+
+                // Return string value
+                return value;
+            }
+        }
+
+        // Priority 2: Check if the feature is a direct property on licenseData
+        const directValue = licenseData[featureName];
+        return directValue !== undefined ? directValue : defaultValue;
     };
 
     return (
         <LicenseContext.Provider value={{
-            licenseData, activateLicense, hasFeature,
+            licenseData, activateLicense, hasFeature, getFeatureValue,
             licenseUrl, licenseKey,
             isConfiguring, setIsConfiguring,
             loading

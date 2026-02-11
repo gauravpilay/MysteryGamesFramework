@@ -7,7 +7,7 @@ import { useLicense } from '../lib/licensing';
 
 const AIInterrogation = ({ node, onComplete, onFail, requestCount, onAIRequest }) => {
     const { settings } = useConfig();
-    const { licenseData } = useLicense();
+    const { licenseData, getFeatureValue } = useLicense();
     const [messages, setMessages] = useState([
         { role: 'assistant', text: "Neural link established. Interrogation protocol initialized. Subject is ready for questioning. What is your first inquiry, Detective?" }
     ]);
@@ -41,64 +41,21 @@ const AIInterrogation = ({ node, onComplete, onFail, requestCount, onAIRequest }
     const [showLimitPopup, setShowLimitPopup] = useState(false);
 
     const getEffectiveLimit = () => {
-        // Priority 1: Direct Field in License
-        const directLimit = licenseData?.num_of_tact_questions;
-        if (directLimit !== undefined && directLimit !== null) {
-            const parsed = parseInt(directLimit);
+        // Try to get from license using the new helper function
+        const licenseLimit = getFeatureValue('num_of_tact_questions');
+        if (licenseLimit !== null && licenseLimit !== undefined) {
+            const parsed = parseInt(licenseLimit);
             if (!isNaN(parsed)) return parsed;
         }
 
-        // Priority 2: Quantified entry in features array (e.g. "num_of_tact_questions:15")
-        if (licenseData?.features && Array.isArray(licenseData.features)) {
-            const quantified = licenseData.features.find(f =>
-                f.startsWith('num_of_tact_questions:') ||
-                f.startsWith('num_of_tact_questions=')
-            );
-            if (quantified) {
-                const separator = quantified.includes(':') ? ':' : '=';
-                const parsed = parseInt(quantified.split(separator)[1]);
-                if (!isNaN(parsed)) return parsed;
-            }
-        }
-
-        // Priority 2.5: Check encrypted_features (might contain quantified values)
-        if (licenseData?.encrypted_features) {
-            try {
-                const encryptedData = typeof licenseData.encrypted_features === 'string'
-                    ? licenseData.encrypted_features.split(',').map(s => s.trim())
-                    : licenseData.encrypted_features;
-
-                if (Array.isArray(encryptedData)) {
-                    const quantified = encryptedData.find(f =>
-                        f.includes('num_of_tact_questions:') ||
-                        f.includes('num_of_tact_questions=')
-                    );
-                    if (quantified) {
-                        const separator = quantified.includes(':') ? ':' : '=';
-                        const parsed = parseInt(quantified.split(separator)[1]);
-                        if (!isNaN(parsed)) return parsed;
-                    }
-                }
-            } catch (e) {
-                console.error("Error parsing encrypted_features:", e);
-            }
-        }
-
-        // Priority 2.7: Check limits or quotas object
-        const limitsObj = licenseData?.limits || licenseData?.quotas;
-        if (limitsObj?.num_of_tact_questions !== undefined) {
-            const parsed = parseInt(limitsObj.num_of_tact_questions);
-            if (!isNaN(parsed)) return parsed;
-        }
-
-        // Priority 3: System Settings Limit
+        // Fallback to system settings
         const settingsLimit = settings.maxAIRequests;
         if (settingsLimit !== undefined && settingsLimit !== null) {
             const parsed = parseInt(settingsLimit);
             if (!isNaN(parsed)) return parsed;
         }
 
-        // Fallback: Default
+        // Default fallback
         return 10;
     };
 
