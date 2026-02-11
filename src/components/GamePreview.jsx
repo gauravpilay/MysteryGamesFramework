@@ -1,6 +1,6 @@
 import React, { useState, useEffect, useMemo, useRef } from 'react';
 import { Button, Card } from './ui/shared';
-import { X, User, Search, Terminal, MessageSquare, FileText, ArrowRight, ShieldAlert, CheckCircle, AlertTriangle, Volume2, VolumeX, Image as ImageIcon, Briefcase, Star, MousePointerClick, Bell, HelpCircle, Clock, ZoomIn, LayoutGrid, ChevronRight, Fingerprint, Cpu, Activity, Shield, Hash, Box as BoxIcon, Radio } from 'lucide-react';
+import { X, User, Search, Terminal, MessageSquare, FileText, ArrowRight, ShieldAlert, CheckCircle, AlertTriangle, Volume2, VolumeX, Image as ImageIcon, Briefcase, Star, MousePointerClick, Bell, HelpCircle, Clock, ZoomIn, LayoutGrid, ChevronRight, Fingerprint, Cpu, Activity, Shield, Hash, Box as BoxIcon, Radio, Lightbulb } from 'lucide-react';
 import { motion, AnimatePresence } from 'framer-motion';
 import EvidenceBoard from './EvidenceBoard';
 import AdvancedTerminal from './AdvancedTerminal';
@@ -350,6 +350,7 @@ const GamePreview = ({ nodes, edges, onClose, gameMetadata, onGameEnd }) => {
     const [scoredNodes, setScoredNodes] = useState(new Set());
     const [aiRequestCount, setAiRequestCount] = useState(0);
     const [userAnswers, setUserAnswers] = useState(new Set()); // Set of selected option IDs for Question Nodes
+    const [revealedHints, setRevealedHints] = useState(new Set()); // Set of hint IDs
     const lastNodeId = useRef(null);
 
     // Clear score delta after animation
@@ -854,6 +855,20 @@ const GamePreview = ({ nodes, edges, onClose, gameMetadata, onGameEnd }) => {
                 }, 1500);
             }
         }
+    };
+
+    const handleRevealHint = (hint) => {
+        if (revealedHints.has(hint.id)) return;
+
+        // Deduct points
+        setScore(s => Math.max(0, s - (hint.penalty || 0)));
+        setScoreDelta(-(hint.penalty || 0));
+
+        // Track revealed hint
+        setRevealedHints(prev => new Set([...prev, hint.id]));
+
+        // Log it
+        addLog(`HINT USED: -${hint.penalty} Pts deducted.`);
     };
 
     const getAvatarColor = (name) => {
@@ -1822,6 +1837,54 @@ const GamePreview = ({ nodes, edges, onClose, gameMetadata, onGameEnd }) => {
                                                 );
                                             })}
                                         </div>
+
+                                        {/* Hints Section */}
+                                        {activeModalNode.data.hints && activeModalNode.data.hints.length > 0 && (
+                                            <div className="mt-8 space-y-4">
+                                                <div className="flex items-center gap-2 text-amber-500/80 mb-2">
+                                                    <Lightbulb className="w-4 h-4" />
+                                                    <span className="text-xs font-black uppercase tracking-[0.2em]">Strategy Intel / Hints</span>
+                                                </div>
+                                                <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
+                                                    {activeModalNode.data.hints.map((hint, idx) => {
+                                                        const isRevealed = revealedHints.has(hint.id);
+                                                        return (
+                                                            <div
+                                                                key={hint.id}
+                                                                className={`p-4 rounded-xl border transition-all duration-500 relative overflow-hidden group ${isRevealed
+                                                                    ? 'bg-amber-950/20 border-amber-500/30'
+                                                                    : 'bg-zinc-950 border-zinc-800 hover:border-amber-500/40 cursor-pointer'
+                                                                    }`}
+                                                                onClick={() => !isRevealed && handleRevealHint(hint)}
+                                                            >
+                                                                {isRevealed ? (
+                                                                    <div className="flex flex-col gap-1">
+                                                                        <span className="text-[10px] font-bold text-amber-500 uppercase tracking-wider mb-1">Decrypted Intel #{idx + 1}</span>
+                                                                        <p className="text-white text-sm leading-relaxed">{hint.text}</p>
+                                                                    </div>
+                                                                ) : (
+                                                                    <div className="flex items-center justify-between">
+                                                                        <div className="flex items-center gap-3">
+                                                                            <div className="w-8 h-8 rounded-lg bg-amber-500/10 flex items-center justify-center border border-amber-500/20 group-hover:animate-pulse">
+                                                                                <Star className="w-4 h-4 text-amber-500" />
+                                                                            </div>
+                                                                            <span className="text-sm font-bold text-zinc-400 group-hover:text-amber-200 transition-colors">Analyze Hint #{idx + 1}</span>
+                                                                        </div>
+                                                                        <div className="flex items-center gap-1.5 px-2 py-1 rounded bg-red-500/10 border border-red-500/20">
+                                                                            <span className="text-[10px] font-black text-red-400">-{hint.penalty} PTS</span>
+                                                                        </div>
+                                                                    </div>
+                                                                )}
+                                                                {/* Decorative glow */}
+                                                                {!isRevealed && (
+                                                                    <div className="absolute inset-0 bg-gradient-to-r from-amber-500/0 via-amber-500/5 to-amber-500/0 -translate-x-full group-hover:translate-x-full transition-transform duration-1000" />
+                                                                )}
+                                                            </div>
+                                                        );
+                                                    })}
+                                                </div>
+                                            </div>
+                                        )}
                                     </div>
 
                                     <div className="mt-8 pt-4 border-t border-zinc-800 flex justify-end">

@@ -1,7 +1,7 @@
 import React, { memo, useState, useRef, useEffect } from 'react';
 import ReactDOM from 'react-dom';
 import { Handle, Position, NodeResizer } from 'reactflow';
-import { FileText, User, Search, GitMerge, Terminal, MessageSquare, Music, Image as ImageIcon, Star, MousePointerClick, Trash2, Plus, Copy, Fingerprint, Bell, HelpCircle, ToggleLeft, Unlock, Binary, Grid3x3, Folder, ChevronDown, ChevronUp, Maximize, X, Save, File, FolderOpen, AlertCircle, Brain, Cpu, Send, Loader2, Check, Filter, ShieldAlert, Box, CheckCircle, Activity, Shield, Hash, Film, Globe } from 'lucide-react';
+import { FileText, User, Search, GitMerge, Terminal, MessageSquare, Music, Image as ImageIcon, Star, MousePointerClick, Trash2, Plus, Copy, Fingerprint, Bell, HelpCircle, ToggleLeft, Unlock, Binary, Grid3x3, Folder, ChevronDown, ChevronUp, Maximize, X, Save, File, FolderOpen, AlertCircle, Brain, Cpu, Send, Loader2, Check, Filter, ShieldAlert, Box, CheckCircle, Activity, Shield, Hash, Film, Globe, Lightbulb } from 'lucide-react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { storage } from '../../lib/firebase';
 import { ref, uploadBytes, getDownloadURL } from 'firebase/storage';
@@ -1988,6 +1988,21 @@ export const QuestionNode = memo(({ id, data, selected }) => {
         handleChange('options', currentOptions.filter(o => o.id !== optId));
     };
 
+    const addHint = () => {
+        const currentHints = data.hints || [];
+        handleChange('hints', [...currentHints, { id: crypto.randomUUID(), text: '', penalty: 5 }]);
+    };
+
+    const updateHint = (hintId, updates) => {
+        const currentHints = data.hints || [];
+        handleChange('hints', currentHints.map(h => h.id === hintId ? { ...h, ...updates } : h));
+    };
+
+    const deleteHint = (hintId) => {
+        const currentHints = data.hints || [];
+        handleChange('hints', currentHints.filter(h => h.id !== hintId));
+    };
+
     return (
         <>
             <Handle type="target" position={Position.Top} className="!bg-zinc-500 !w-3 !h-3 !border-2 !border-black" />
@@ -2084,6 +2099,45 @@ export const QuestionNode = memo(({ id, data, selected }) => {
                                     <button onClick={() => deleteOption(opt.id)} className="text-zinc-600 hover:text-red-500">
                                         <Trash2 className="w-3 h-3" />
                                     </button>
+                                </div>
+                            ))}
+                        </div>
+                    </div>
+
+                    <div className="pt-2 border-t border-fuchsia-900/20">
+                        <div className="flex justify-between items-center mb-2">
+                            <p className="text-[10px] text-zinc-500 font-bold uppercase flex items-center gap-1">
+                                <Lightbulb className="w-3 h-3 text-amber-500" /> Hints
+                            </p>
+                            <button onClick={addHint} className="text-[10px] text-amber-500 hover:text-amber-400 flex items-center gap-1">
+                                <Plus className="w-3 h-3" /> Add Hint
+                            </button>
+                        </div>
+
+                        <div className="space-y-2">
+                            {(data.hints || []).map((hint) => (
+                                <div key={hint.id} className="p-2 bg-amber-500/5 border border-amber-500/10 rounded-lg space-y-1">
+                                    <div className="flex items-center gap-2">
+                                        <InputField
+                                            placeholder="Hint text (what the player sees)"
+                                            value={hint.text}
+                                            onChange={(e) => updateHint(hint.id, { text: e.target.value })}
+                                            className="!py-0.5"
+                                        />
+                                        <div className="flex items-center gap-1 bg-black/40 px-1.5 py-0.5 rounded border border-amber-900/20">
+                                            <span className="text-[8px] text-red-400 font-bold uppercase">-</span>
+                                            <input
+                                                type="number"
+                                                value={hint.penalty}
+                                                onChange={(e) => updateHint(hint.id, { penalty: parseInt(e.target.value) || 0 })}
+                                                className="w-8 bg-transparent text-[10px] text-red-400 text-right outline-none border-none p-0"
+                                            />
+                                            <span className="text-[8px] text-zinc-500 font-bold uppercase">Pts</span>
+                                        </div>
+                                        <button onClick={() => deleteHint(hint.id)} className="text-zinc-600 hover:text-red-500">
+                                            <Trash2 className="w-3 h-3" />
+                                        </button>
+                                    </div>
                                 </div>
                             ))}
                         </div>
