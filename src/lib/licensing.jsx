@@ -76,7 +76,7 @@ const verifySignature = async (dataString, signatureBase64, pemKey, isRawData = 
 };
 
 export const LicenseProvider = ({ children }) => {
-    const { user } = useAuth();
+    const { user, loading: authLoading } = useAuth();
     const [licenseData, setLicenseData] = useState(null);
     const [licenseUrl, setLicenseUrl] = useState('');
     const [licenseKey, setLicenseKey] = useState('');
@@ -85,8 +85,8 @@ export const LicenseProvider = ({ children }) => {
 
     // Initial load & Sync
     useEffect(() => {
+        // Step 1: Try to load from cache immediately for fast initial render
         const cached = localStorage.getItem('mystery_framework_license_payload');
-
         if (cached) {
             try {
                 const payload = JSON.parse(cached);
@@ -94,51 +94,79 @@ export const LicenseProvider = ({ children }) => {
                 setLicenseData(extractedData);
                 if (payload.url) setLicenseUrl(payload.url);
                 if (payload.key) setLicenseKey(payload.key);
-                setLoading(false); // Speed up initial render if we have a cache
+                // We still want to sync with cloud, so don't set loading=false yet
+                // unless we are offline or have no DB
             } catch (e) {
                 console.error("[LICENSE_INIT] Failed to parse cached license:", e);
-                setLoading(false);
             }
         }
 
-        if (!db) {
+        if (!db || authLoading) {
+            if (!authLoading && !db) setLoading(false);
+            return;
+        }
+
+        // If no user, we can't listen to protected system_config (will trigger permission-denied)
+        if (!user) {
             setLoading(false);
             return;
         }
 
         const licenseRef = doc(db, "system_config", "license");
-        return onSnapshot(licenseRef, async (snap) => {
-            if (snap.exists()) {
-                const cloudPayload = snap.data();
-                if (await verifyLicenseIntegrity(cloudPayload, M_FRAMEWORK_PUBLIC_KEY)) {
-                    // Extract data from JWT if needed or use raw data
-                    const freshData = cloudPayload.data || (cloudPayload.token ? JSON.parse(atob(cloudPayload.token.split('.')[1])) : null);
-                    if (freshData && cloudPayload.status !== 'deactivated') {
-                        setLicenseData(freshData);
-                        if (cloudPayload.url) setLicenseUrl(cloudPayload.url);
-                        if (cloudPayload.key) setLicenseKey(cloudPayload.key);
-                    } else if (cloudPayload.status === 'deactivated') {
+
+        const unsubscribe = onSnapshot(licenseRef, async (snap) => {
+            try {
+                if (snap.exists()) {
+                    const cloudPayload = snap.data();
+                    if (await verifyLicenseIntegrity(cloudPayload, M_FRAMEWORK_PUBLIC_KEY)) {
+                        // Extract data from JWT if needed or use raw data
+                        let freshData = cloudPayload.data;
+                        if (!freshData && cloudPayload.token) {
+                            try {
+                                const payloadPart = cloudPayload.token.split('.')[1];
+                                const standardB64 = payloadPart.replace(/-/g, '+').replace(/_/g, '/');
+                                freshData = JSON.parse(atob(standardB64));
+                            } catch (e) {
+                                console.error("[LICENSE_SYNC] Failed to decode JWT payload:", e);
+                            }
+                        }
+                        if (freshData && cloudPayload.status !== 'deactivated') {
+                            setLicenseData(freshData);
+                            if (cloudPayload.url) setLicenseUrl(cloudPayload.url);
+                            if (cloudPayload.key) setLicenseKey(cloudPayload.key);
+                        } else if (cloudPayload.status === 'deactivated') {
+                            setLicenseData(null);
+                            localStorage.removeItem('mystery_framework_license_payload');
+                        }
+                    } else {
+                        console.error("[LICENSE_SYNC] Integrity verification FAILED");
                         setLicenseData(null);
                         localStorage.removeItem('mystery_framework_license_payload');
                     }
                 } else {
-                    console.error("[LICENSE_SYNC] Integrity verification FAILED");
-                    setLicenseData(null);
-                    localStorage.removeItem('mystery_framework_license_payload');
+                    // ONLY nuke local storage if we ALREADY had licenseData (meaning it WAS there and now it's GONE)
+                    setLicenseData(prev => {
+                        if (prev) {
+                            localStorage.removeItem('mystery_framework_license_payload');
+                            return null;
+                        }
+                        return prev;
+                    });
                 }
-            } else {
-                // ONLY nuke local storage if we ALREADY had licenseData (meaning it WAS there and now it's GONE)
-                setLicenseData(prev => {
-                    if (prev) {
-                        localStorage.removeItem('mystery_framework_license_payload');
-                        return null;
-                    }
-                    return prev;
-                });
+            } catch (err) {
+                console.error("[LICENSE_SYNC] Processing error:", err);
+            } finally {
+                setLoading(false);
             }
+        }, (error) => {
+            // This happens if the user doesn't have permissions or connection is lost
+            console.warn("[LICENSE_SYNC] Listener subscription error:", error);
+            // Don't nuke data on error (maybe transient), just stop loading
             setLoading(false);
         });
-    }, [db]);
+
+        return unsubscribe;
+    }, [db, user?.uid, authLoading]);
 
     // Periodically check for license expiration
     useEffect(() => {
