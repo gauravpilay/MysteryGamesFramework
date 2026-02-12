@@ -32,13 +32,19 @@ const AnimatedStatCard = ({
     // Extract numeric value
     const numericValue = typeof value === 'string' ? parseFloat(value.replace(/[^0-9.-]/g, '')) || 0 : value;
 
+    const isNumeric = typeof value === 'number' || (typeof value === 'string' && !isNaN(parseFloat(value)) && isFinite(value));
+
     // Animated counter
     useEffect(() => {
-        if (!isInView) return;
+        if (!isInView || !isNumeric) {
+            if (!isNumeric) setDisplayValue(value);
+            return;
+        }
 
+        const numericVal = typeof value === 'string' ? parseFloat(value.replace(/[^0-9.-]/g, '')) || 0 : value;
         const duration = 2000; // 2 seconds
         const steps = 60;
-        const increment = numericValue / steps;
+        const increment = numericVal / steps;
         let current = 0;
         let step = 0;
 
@@ -47,18 +53,18 @@ const AnimatedStatCard = ({
             current += increment;
 
             if (step >= steps) {
-                setDisplayValue(numericValue);
+                setDisplayValue(numericVal);
                 clearInterval(timer);
             } else {
                 // Easing function
                 const progress = step / steps;
                 const eased = 1 - Math.pow(1 - progress, 3); // Cubic ease-out
-                setDisplayValue(Math.floor(numericValue * eased));
+                setDisplayValue(Math.floor(numericVal * eased));
             }
         }, duration / steps);
 
         return () => clearInterval(timer);
-    }, [isInView, numericValue]);
+    }, [isInView, value, isNumeric]);
 
     // Generate particles for sparkle effect
     useEffect(() => {
@@ -181,7 +187,7 @@ const AnimatedStatCard = ({
                     </div>
 
                     {/* Animated Progress Bar (optional) */}
-                    {numericValue <= 100 && (
+                    {isNumeric && numericValue <= 100 && (
                         <motion.div
                             className="mt-4 h-1.5 bg-zinc-800/50 rounded-full overflow-hidden"
                             initial={{ opacity: 0 }}

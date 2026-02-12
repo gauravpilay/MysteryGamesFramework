@@ -15,6 +15,16 @@ import AchievementBadge from './reports/AchievementBadge';
 import JourneyTimeline from './reports/JourneyTimeline';
 import ProgressCelebration from './reports/ProgressCelebration';
 
+const formatDuration = (totalSeconds) => {
+    if (!totalSeconds) return '0m 0s';
+    const h = Math.floor(totalSeconds / 3600);
+    const m = Math.floor((totalSeconds % 3600) / 60);
+    const s = Math.floor(totalSeconds % 60);
+
+    if (h > 0) return `${h}h ${m}m ${s}s`;
+    return `${m}m ${s}s`;
+};
+
 
 const ProgressReportModal = ({ onClose }) => {
     const { user } = useAuth();
@@ -348,7 +358,7 @@ const ProgressReportModal = ({ onClose }) => {
             const statCards = [
                 { label: 'MISSIONS', value: stats.totalGames, color: [59, 130, 246] },
                 { label: 'SUCCESS', value: `${stats.winRate}%`, color: [16, 185, 129] },
-                { label: 'TIME', value: `${Math.floor(stats.totalTime / 60)}m`, color: [245, 158, 11] },
+                { label: 'TIME', value: formatDuration(stats.totalTime), color: [245, 158, 11] },
                 { label: 'SKILLS', value: Object.keys(stats.objectiveStats).length, color: [168, 85, 247] }
             ];
 
@@ -866,7 +876,7 @@ const ProgressReportModal = ({ onClose }) => {
                 new Date(game.playedAt).toLocaleDateString(),
                 game.caseTitle,
                 game.outcome.toUpperCase(),
-                `${Math.floor(game.timeSpentSeconds / 60)}m ${game.timeSpentSeconds % 60}s`,
+                formatDuration(game.timeSpentSeconds),
                 `${game.score} PTS`
             ]);
 
@@ -1017,7 +1027,7 @@ const ProgressReportModal = ({ onClose }) => {
                                 <AnimatedStatCard
                                     icon={Clock}
                                     title="Field Time"
-                                    value={`${Math.floor(stats.totalTime / 60)}m ${stats.totalTime % 60}s`}
+                                    value={formatDuration(stats.totalTime)}
                                     color="text-amber-400"
                                     bg="bg-amber-500/10"
                                     border="border-amber-500/20"
