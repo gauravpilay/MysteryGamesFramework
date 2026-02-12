@@ -8,6 +8,7 @@ const AuthContext = createContext({});
 export const AuthProvider = ({ children }) => {
     const [user, setUser] = useState(null);
     const [loading, setLoading] = useState(true);
+    const [error, setError] = useState(null);
 
     const [isAuthenticating, setIsAuthenticating] = useState(false);
     const hasLoadedOnce = React.useRef(false);
@@ -77,7 +78,7 @@ export const AuthProvider = ({ children }) => {
         if (isAuthenticating) return;
 
         if (!auth) {
-            alert("Firebase configuration missing. Using Mock Login.");
+            setError("Firebase configuration missing. Using Mock Login.");
             setUser({
                 displayName: "Detective User",
                 email: "detective@agency.com",
@@ -96,6 +97,52 @@ export const AuthProvider = ({ children }) => {
             if (db) {
                 const userRef = doc(db, "users", user.uid);
                 const userSnap = await getDoc(userRef);
+
+                // Check license limit if it's a new user
+                if (!userSnap.exists()) {
+                    try {
+                        const licenseRef = doc(db, "system_config", "license");
+                        const licenseSnap = await getDoc(licenseRef);
+
+                        let allowedUsers = Infinity;
+                        if (licenseSnap.exists()) {
+                            const licData = licenseSnap.data();
+                            const data = licData.data || licData;
+
+                            // Try multiple common keys for user limit
+                            allowedUsers = data.number_of_users_allowed ||
+                                (data.features && data.features.number_of_users_allowed) ||
+                                Infinity;
+
+                            // Check for quantified format features if it's an array
+                            if (Array.isArray(data.features)) {
+                                const quantified = data.features.find(f =>
+                                    typeof f === 'string' && (f.startsWith('number_of_users_allowed:') || f.startsWith('number_of_users_allowed='))
+                                );
+                                if (quantified) {
+                                    const val = quantified.split(/[:=]/)[1];
+                                    const num = parseInt(val);
+                                    if (!isNaN(num)) allowedUsers = num;
+                                }
+                            }
+                        }
+
+                        if (allowedUsers !== Infinity) {
+                            const usersColl = collection(db, "users");
+                            const usersSnap = await getDocs(usersColl);
+                            const currentCount = usersSnap.size;
+
+                            if (currentCount >= allowedUsers) {
+                                await signOut(auth);
+                                setError("Allowed user quota exhausted.");
+                                setIsAuthenticating(false);
+                                return;
+                            }
+                        }
+                    } catch (e) {
+                        console.warn("[AUTH] License check failed or skipped. Continuing...", e.message);
+                    }
+                }
 
                 if (!userSnap.exists()) {
                     let isFirstUser = false;
@@ -141,7 +188,7 @@ export const AuthProvider = ({ children }) => {
             console.error("Auth/Firestore Sync Error:", error);
 
             if (error.code === 'auth/popup-blocked') {
-                alert("The login popup was blocked by your browser. Please allow popups for this site and try again.");
+                setError("The login popup was blocked by your browser. Please allow popups for this site and try again.");
             } else if (error.code === 'auth/cancelled-popup-request') {
                 console.warn("Popup request cancelled (possible duplicate call or manual closure)");
             } else if (error.code === 'permission-denied') {
@@ -149,7 +196,7 @@ export const AuthProvider = ({ children }) => {
                 console.error("Firestore Permission Denied. User authenticated but profile sync failed.");
                 // We don't alert here because onAuthStateChanged will still try to pick up the user
             } else if (error.code !== 'auth/popup-closed-by-user') {
-                alert(`Login process encountered an issue: ${error.message}`);
+                setError(`Login process encountered an issue: ${error.message}`);
             }
         } finally {
             setIsAuthenticating(false);
@@ -166,7 +213,7 @@ export const AuthProvider = ({ children }) => {
     };
 
     return (
-        <AuthContext.Provider value={{ user, login, logout, loading }}>
+        <AuthContext.Provider value={{ user, login, logout, loading, error, setError }}>
             {children}
         </AuthContext.Provider>
     );

@@ -5,7 +5,7 @@ import { motion } from 'framer-motion';
 import { Logo } from '../components/ui/Logo';
 
 const Login = () => {
-    const { user, login } = useAuth();
+    const { user, login, error, setError } = useAuth();
     const { settings } = useConfig();
 
     if (user) return <Navigate to="/" />;
@@ -29,6 +29,24 @@ const Login = () => {
                         Design immersive, engaging, and interactive detective games.
                     </p>
                 </div>
+
+                {error && (
+                    <motion.div
+                        initial={{ opacity: 0, y: -10 }}
+                        animate={{ opacity: 1, y: 0 }}
+                        className="bg-red-500/10 border border-red-500/50 p-4 rounded-xl text-center"
+                    >
+                        <p className="text-sm text-red-400 font-medium">
+                            {error}
+                        </p>
+                        <button
+                            onClick={() => setError(null)}
+                            className="mt-2 text-xs text-red-400/60 hover:text-red-400 transition-colors uppercase tracking-wider font-bold"
+                        >
+                            Dismiss
+                        </button>
+                    </motion.div>
+                )}
 
                 <div className="mt-8">
                     <button

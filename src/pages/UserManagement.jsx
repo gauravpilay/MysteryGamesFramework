@@ -24,7 +24,7 @@ const UserManagement = () => {
     // Case Management State
     const [cases, setCases] = useState([]);
     const [managingUser, setManagingUser] = useState(null);
-    const [confirmDeleteUser, setConfirmDeleteUser] = useState(null);
+    const [confirmReleaseLicense, setConfirmReleaseLicense] = useState(null);
     const [tempAssignedIds, setTempAssignedIds] = useState([]);
     const [isCustomAccess, setIsCustomAccess] = useState(false);
 
@@ -194,28 +194,29 @@ const UserManagement = () => {
         }
     };
 
-    const handleRemoveUser = (targetUser) => {
-        setConfirmDeleteUser(targetUser);
+    const handleReleaseLicense = (targetUser) => {
+        setConfirmReleaseLicense(targetUser);
     };
 
-    const executeRemoveUser = async () => {
-        if (!confirmDeleteUser) return;
-        const userId = confirmDeleteUser.id;
+    const executeReleaseLicense = async () => {
+        if (!confirmReleaseLicense) return;
+        const userId = confirmReleaseLicense.id;
 
         if (!db) {
             setUsers(users.filter(u => u.id !== userId));
-            setConfirmDeleteUser(null);
+            setConfirmReleaseLicense(null);
             return;
         }
 
         try {
+            console.log("[DEBUG] Releasing license. Current User Role:", user?.role, "UID:", user?.uid, "Target User:", userId);
             await deleteDoc(doc(db, "users", userId));
             setUsers(users.filter(u => u.id !== userId));
-            setConfirmDeleteUser(null);
+            setConfirmReleaseLicense(null);
         } catch (err) {
-            console.error("Error removing user:", err);
-            setError("Failed to remove user record.");
-            setConfirmDeleteUser(null);
+            console.error("Error releasing license:", err);
+            setError("Failed to release license. Check permissions.");
+            setConfirmReleaseLicense(null);
         }
     };
 
@@ -367,9 +368,9 @@ const UserManagement = () => {
                                                 size="sm"
                                                 variant="ghost"
                                                 className="h-8 w-8 p-0 text-red-500 hover:bg-red-500/10"
-                                                onClick={() => handleRemoveUser(u)}
+                                                onClick={() => handleReleaseLicense(u)}
                                                 disabled={u.id === user.uid || u.id === user.id}
-                                                title="Remove User"
+                                                title="Release License"
                                             >
                                                 <Trash2 className="w-4 h-4" />
                                             </Button>
@@ -459,29 +460,29 @@ const UserManagement = () => {
                 </div>
             )}
 
-            {/* Delete Confirmation Modal */}
-            {confirmDeleteUser && (
+            {/* Release License Confirmation Modal */}
+            {confirmReleaseLicense && (
                 <div className="fixed inset-0 z-[70] flex items-center justify-center bg-black/90 backdrop-blur-md p-4 animate-in fade-in duration-300">
                     <div className="w-full max-w-sm bg-zinc-950 border border-red-500/30 rounded-2xl shadow-[0_0_50px_rgba(239,68,68,0.1)] overflow-hidden">
                         <div className="p-8 text-center">
                             <div className="w-16 h-16 bg-red-500/10 rounded-full flex items-center justify-center mx-auto mb-6 border border-red-500/20">
                                 <Trash2 className="w-8 h-8 text-red-500" />
                             </div>
-                            <h3 className="text-xl font-bold text-white mb-2">Purge Personnel Record?</h3>
+                            <h3 className="text-xl font-bold text-white mb-2">Release User License?</h3>
                             <p className="text-zinc-400 text-sm mb-6">
-                                You are about to permanently delete <span className="text-red-400 font-mono font-bold">{confirmDeleteUser.email}</span>. This action is irreversible and will revoke all access immediately.
+                                You are about to release the license for <span className="text-red-400 font-mono font-bold">{confirmReleaseLicense.email}</span>. This will remove the user from the system and free up a license slot.
                             </p>
                             <div className="flex flex-col gap-3">
                                 <Button
                                     className="w-full bg-red-600 hover:bg-red-700 text-white font-bold py-6 shadow-[0_0_20px_rgba(220,38,38,0.4)]"
-                                    onClick={executeRemoveUser}
+                                    onClick={executeReleaseLicense}
                                 >
-                                    CONFIRM PURGE
+                                    CONFIRM RELEASE
                                 </Button>
                                 <Button
                                     variant="ghost"
                                     className="w-full text-zinc-500 hover:text-white"
-                                    onClick={() => setConfirmDeleteUser(null)}
+                                    onClick={() => setConfirmReleaseLicense(null)}
                                 >
                                     Abort Operation
                                 </Button>
