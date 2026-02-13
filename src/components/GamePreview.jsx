@@ -913,9 +913,7 @@ const GamePreview = ({ nodes, edges, onClose, gameMetadata, onGameEnd }) => {
         };
 
         setShowFeedback(false);
-        if (isQuitting) {
-            onClose();
-        } else if (onGameEnd) {
+        if (onGameEnd) {
             onGameEnd(finalData);
         } else {
             onClose();
@@ -924,9 +922,7 @@ const GamePreview = ({ nodes, edges, onClose, gameMetadata, onGameEnd }) => {
 
     const handleFeedbackSkip = () => {
         setShowFeedback(false);
-        if (isQuitting) {
-            onClose();
-        } else if (onGameEnd) {
+        if (onGameEnd) {
             onGameEnd(pendingResultData);
         } else {
             onClose();

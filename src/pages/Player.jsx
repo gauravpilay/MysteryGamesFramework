@@ -51,10 +51,12 @@ const Player = () => {
         if (db) {
             try {
                 // Save game result
+                console.log("[PLAYER] Saving game result:", newResult);
                 await addDoc(collection(db, "game_results"), newResult);
 
                 // Save feedback separately if it exists
                 if (resultData.feedback) {
+                    console.log("[PLAYER] Feedback detected, saving to game_feedback:", resultData.feedback);
                     const feedbackData = {
                         ...resultData.feedback,
                         userId: user.email,
