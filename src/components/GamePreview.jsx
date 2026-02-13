@@ -10,6 +10,7 @@ import SuspectProfile from './SuspectProfile';
 import CinematicCutscene from './CinematicCutscene';
 import CaseClosedNewsReport from './CaseClosedNewsReport';
 import DeepWebOS from './DeepWebOS';
+import FeedbackModal from './FeedbackModal';
 import {
     checkLogicCondition as checkLogic,
     evaluateLogic as evalLogic,
@@ -338,6 +339,11 @@ const GamePreview = ({ nodes, edges, onClose, gameMetadata, onGameEnd }) => {
 
     // Logic/Outputs State
     const [nodeOutputs, setNodeOutputs] = useState({});
+
+    // Feedback State
+    const [showFeedback, setShowFeedback] = useState(false);
+    const [pendingResultData, setPendingResultData] = useState(null);
+    const [isQuitting, setIsQuitting] = useState(false);
 
     // Timer State
     const initialTime = (gameMetadata?.timeLimit || 15) * 60; // Convert minutes to seconds
@@ -896,8 +902,32 @@ const GamePreview = ({ nodes, edges, onClose, gameMetadata, onGameEnd }) => {
             timeSpentSeconds: timeSpent
         };
 
-        if (onGameEnd) {
-            onGameEnd(resultData);
+        setPendingResultData(resultData);
+        setShowFeedback(true);
+    };
+
+    const handleFeedbackSubmit = (feedback) => {
+        const finalData = {
+            ...pendingResultData,
+            feedback
+        };
+
+        setShowFeedback(false);
+        if (isQuitting) {
+            onClose();
+        } else if (onGameEnd) {
+            onGameEnd(finalData);
+        } else {
+            onClose();
+        }
+    };
+
+    const handleFeedbackSkip = () => {
+        setShowFeedback(false);
+        if (isQuitting) {
+            onClose();
+        } else if (onGameEnd) {
+            onGameEnd(pendingResultData);
         } else {
             onClose();
         }
@@ -1214,7 +1244,17 @@ const GamePreview = ({ nodes, edges, onClose, gameMetadata, onGameEnd }) => {
                         else if (showEvidenceBoard) setShowEvidenceBoard(false);
                         else if (showAccuseModal) setShowAccuseModal(false);
                         else if (zoomedImage) setZoomedImage(null);
-                        else onClose();
+                        else {
+                            const timeSpent = initialTime - timeLeft;
+                            setPendingResultData({
+                                score,
+                                objectiveScores: playerObjectiveScores,
+                                outcome: 'aborted',
+                                timeSpentSeconds: timeSpent
+                            });
+                            setIsQuitting(true);
+                            setShowFeedback(true);
+                        }
                     }}>
                         <X className="w-4 h-4 md:w-5 md:h-5" />
                     </Button>
@@ -2275,6 +2315,14 @@ const GamePreview = ({ nodes, edges, onClose, gameMetadata, onGameEnd }) => {
                     />
                 )}
             </AnimatePresence>
+
+            {/* Feedback Modal */}
+            <FeedbackModal
+                isOpen={showFeedback}
+                onClose={handleFeedbackSkip}
+                onSubmit={handleFeedbackSubmit}
+                caseTitle={gameMetadata?.title || "Unknown Mission"}
+            />
         </div >
     );
 };

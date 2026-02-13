@@ -36,6 +36,12 @@ service cloud.firestore {
       allow read, write: if request.auth != null;
     }
 
+    // GAME FEEDBACK COLLECTION
+    match /game_feedback/{feedbackId} {
+      allow create: if request.auth != null;
+      allow read: if isAdmin();
+    }
+
     // SYSTEM CONFIG
     match /system_config/{configId} {
       allow read: if request.auth != null;

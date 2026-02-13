@@ -5,7 +5,7 @@ import { collection, addDoc, deleteDoc, updateDoc, setDoc, doc, onSnapshot, quer
 import { ref, uploadBytes, getDownloadURL } from 'firebase/storage';
 import { Button, Card, Input, Label } from '../components/ui/shared';
 import { Logo } from '../components/ui/Logo';
-import { Plus, FolderOpen, LogOut, Search, Trash2, Rocket, Copy, Users, BookOpen, Lock, Unlock, Activity, FileText, CheckCircle, Clock, TrendingUp, Pencil, Fingerprint, Trophy, AlertTriangle, Package, Image as ImageIcon, Upload, Loader2 } from 'lucide-react';
+import { Plus, FolderOpen, LogOut, Search, Trash2, Rocket, Copy, Users, BookOpen, Lock, Unlock, Activity, FileText, CheckCircle, Clock, TrendingUp, Pencil, Fingerprint, Trophy, AlertTriangle, Package, Image as ImageIcon, Upload, Loader2, MessageSquare } from 'lucide-react';
 import { useNavigate } from 'react-router-dom';
 import { motion, AnimatePresence } from 'framer-motion';
 import ProgressReportModal from '../components/ProgressReportModal';
@@ -428,6 +428,14 @@ const Dashboard = () => {
                                 >
                                     <Users className="w-4 h-4 text-purple-400" />
                                     <span className="hidden md:inline">Users Progress</span>
+                                </Button>
+                                <Button
+                                    variant="ghost"
+                                    className="text-zinc-400 hover:text-white flex items-center gap-2"
+                                    onClick={() => navigate('/admin/feedback')}
+                                >
+                                    <MessageSquare className="w-4 h-4 text-indigo-400" />
+                                    <span className="hidden md:inline">Feedback Reports</span>
                                 </Button>
                                 <Button
                                     variant="ghost"
@@ -870,7 +878,7 @@ const Dashboard = () => {
                     </div>
                 )}
             </AnimatePresence>
-        </div>
+        </div >
     );
 };
 

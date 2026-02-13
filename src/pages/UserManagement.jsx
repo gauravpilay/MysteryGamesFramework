@@ -11,7 +11,7 @@ import {
     TableHeader,
     TableRow
 } from "../components/ui/table";
-import { Shield, ShieldAlert, User, ArrowLeft, MoreHorizontal, Check, X, FolderLock, Lock, Trash2, UserX, UserCheck } from "lucide-react";
+import { Shield, ShieldAlert, User, ArrowLeft, MoreHorizontal, Check, X, FolderLock, Lock, Trash2, UserX, UserCheck, MessageSquare } from "lucide-react";
 import { useNavigate } from "react-router-dom";
 
 const UserManagement = () => {
@@ -259,8 +259,18 @@ const UserManagement = () => {
                         <h1 className="text-xl font-bold tracking-tight">Admin Console</h1>
                     </div>
                 </div>
-                <div className="text-sm text-zinc-500 font-mono">
-                    ACCESS LEVEL: TOP SECRET
+                <div className="flex items-center gap-4">
+                    <Button
+                        variant="ghost"
+                        onClick={() => navigate('/admin/feedback')}
+                        className="text-zinc-400 hover:text-indigo-400 gap-2"
+                    >
+                        <MessageSquare className="w-4 h-4" />
+                        Feedback Reports
+                    </Button>
+                    <div className="text-sm text-zinc-500 font-mono">
+                        ACCESS LEVEL: TOP SECRET
+                    </div>
                 </div>
             </header>
 

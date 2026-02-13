@@ -6,6 +6,7 @@ import Editor from './pages/Editor';
 import Player from './pages/Player';
 import UserManagement from './pages/UserManagement';
 import Leaderboard from './pages/Leaderboard';
+import FeedbackReports from './pages/FeedbackReports';
 import { AuthProvider, useAuth } from './lib/auth';
 import { ConfigProvider, useConfig } from './lib/config';
 import { ShieldAlert, LogOut } from 'lucide-react';
@@ -109,6 +110,14 @@ function App() {
                 element={
                   <PrivateRoute>
                     <UserManagement />
+                  </PrivateRoute>
+                }
+              />
+              <Route
+                path="/admin/feedback"
+                element={
+                  <PrivateRoute>
+                    <FeedbackReports />
                   </PrivateRoute>
                 }
               />

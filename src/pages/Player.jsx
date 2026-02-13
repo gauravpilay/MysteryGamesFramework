@@ -50,7 +50,23 @@ const Player = () => {
 
         if (db) {
             try {
+                // Save game result
                 await addDoc(collection(db, "game_results"), newResult);
+
+                // Save feedback separately if it exists
+                if (resultData.feedback) {
+                    const feedbackData = {
+                        ...resultData.feedback,
+                        userId: user.email,
+                        userDisplayName: user.displayName || user.email.split('@')[0],
+                        caseId: projectId,
+                        caseTitle: gameData?.title || 'Unknown Case',
+                        score: resultData.score,
+                        outcome: resultData.outcome,
+                        timestamp: new Date().toISOString()
+                    };
+                    await addDoc(collection(db, "game_feedback"), feedbackData);
+                }
             } catch (err) {
                 console.error("Failed to save game stats to DB, falling back to local storage", err);
                 saveToLocalStorage(newResult);
