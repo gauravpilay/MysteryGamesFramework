@@ -1,6 +1,14 @@
 import React, { createContext, useContext, useState, useEffect } from 'react';
 import { auth, googleProvider, db } from './firebase';
-import { signInWithPopup, signOut, onAuthStateChanged } from 'firebase/auth';
+import {
+    signInWithPopup,
+    signOut,
+    onAuthStateChanged,
+    createUserWithEmailAndPassword,
+    signInWithEmailAndPassword,
+    updateProfile,
+    sendPasswordResetEmail
+} from 'firebase/auth';
 import { doc, getDoc, setDoc, onSnapshot, updateDoc, collection, getDocs, query, limit } from 'firebase/firestore';
 
 const AuthContext = createContext({});
@@ -74,9 +82,88 @@ export const AuthProvider = ({ children }) => {
         };
     }, []);
 
+    const syncUserToFirestore = async (user, isNewUser = false) => {
+        if (!db) return;
+
+        const userRef = doc(db, "users", user.uid);
+        const userSnap = await getDoc(userRef);
+
+        // Check license limit if it's a new user
+        if (!userSnap.exists()) {
+            try {
+                const licenseRef = doc(db, "system_config", "license");
+                const licenseSnap = await getDoc(licenseRef);
+
+                let allowedUsers = Infinity;
+                if (licenseSnap.exists()) {
+                    const licData = licenseSnap.data();
+                    const data = licData.data || licData;
+
+                    allowedUsers = data.number_of_users_allowed ||
+                        (data.features && data.features.number_of_users_allowed) ||
+                        Infinity;
+
+                    if (Array.isArray(data.features)) {
+                        const quantified = data.features.find(f =>
+                            typeof f === 'string' && (f.startsWith('number_of_users_allowed:') || f.startsWith('number_of_users_allowed='))
+                        );
+                        if (quantified) {
+                            const val = quantified.split(/[:=]/)[1];
+                            const num = parseInt(val);
+                            if (!isNaN(num)) allowedUsers = num;
+                        }
+                    }
+                }
+
+                if (allowedUsers !== Infinity) {
+                    const usersColl = collection(db, "users");
+                    const usersSnap = await getDocs(usersColl);
+                    const currentCount = usersSnap.size;
+
+                    if (currentCount >= allowedUsers) {
+                        await signOut(auth);
+                        throw new Error("Allowed user quota exhausted.");
+                    }
+                }
+            } catch (e) {
+                console.warn("[AUTH] License check failed or skipped.", e.message);
+                if (e.message === "Allowed user quota exhausted.") throw e;
+            }
+        }
+
+        if (!userSnap.exists()) {
+            let isFirstUser = false;
+            try {
+                const usersColl = collection(db, "users");
+                const usersSnap = await getDocs(query(usersColl, limit(1)));
+                isFirstUser = usersSnap.empty;
+            } catch (e) {
+                console.warn("[AUTH] Could not verify if first user due to permissions.");
+                isFirstUser = false;
+            }
+
+            await setDoc(userRef, {
+                displayName: user.displayName || user.email.split('@')[0],
+                photoURL: user.photoURL || `https://ui-avatars.com/api/?name=${user.email}&background=random`,
+                email: user.email,
+                role: isFirstUser ? "Admin" : "User",
+                status: 'active',
+                createdAt: new Date().toISOString()
+            });
+        } else {
+            const data = userSnap.data();
+            const updates = {};
+            if (!data.displayName && user.displayName) updates.displayName = user.displayName;
+            if (!data.photoURL && user.photoURL) updates.photoURL = user.photoURL;
+
+            if (Object.keys(updates).length > 0) {
+                await updateDoc(userRef, updates);
+            }
+        }
+    };
+
     const login = async () => {
         if (isAuthenticating) return;
-
         if (!auth) {
             setError("Firebase configuration missing. Using Mock Login.");
             setUser({
@@ -92,114 +179,64 @@ export const AuthProvider = ({ children }) => {
         setIsAuthenticating(true);
         try {
             const result = await signInWithPopup(auth, googleProvider);
-            const user = result.user;
-
-            if (db) {
-                const userRef = doc(db, "users", user.uid);
-                const userSnap = await getDoc(userRef);
-
-                // Check license limit if it's a new user
-                if (!userSnap.exists()) {
-                    try {
-                        const licenseRef = doc(db, "system_config", "license");
-                        const licenseSnap = await getDoc(licenseRef);
-
-                        let allowedUsers = Infinity;
-                        if (licenseSnap.exists()) {
-                            const licData = licenseSnap.data();
-                            const data = licData.data || licData;
-
-                            // Try multiple common keys for user limit
-                            allowedUsers = data.number_of_users_allowed ||
-                                (data.features && data.features.number_of_users_allowed) ||
-                                Infinity;
-
-                            // Check for quantified format features if it's an array
-                            if (Array.isArray(data.features)) {
-                                const quantified = data.features.find(f =>
-                                    typeof f === 'string' && (f.startsWith('number_of_users_allowed:') || f.startsWith('number_of_users_allowed='))
-                                );
-                                if (quantified) {
-                                    const val = quantified.split(/[:=]/)[1];
-                                    const num = parseInt(val);
-                                    if (!isNaN(num)) allowedUsers = num;
-                                }
-                            }
-                        }
-
-                        if (allowedUsers !== Infinity) {
-                            const usersColl = collection(db, "users");
-                            const usersSnap = await getDocs(usersColl);
-                            const currentCount = usersSnap.size;
-
-                            if (currentCount >= allowedUsers) {
-                                await signOut(auth);
-                                setError("Allowed user quota exhausted.");
-                                setIsAuthenticating(false);
-                                return;
-                            }
-                        }
-                    } catch (e) {
-                        console.warn("[AUTH] License check failed or skipped. Continuing...", e.message);
-                    }
-                }
-
-                if (!userSnap.exists()) {
-                    let isFirstUser = false;
-                    try {
-                        // Check if this is the first user - attempt a limited query
-                        // This might fail due to security rules (listing users is usually restricted)
-                        const usersColl = collection(db, "users");
-                        const usersSnap = await getDocs(query(usersColl, limit(1)));
-                        isFirstUser = usersSnap.empty;
-                    } catch (e) {
-                        console.warn("[AUTH] Could not verify if first user due to permissions. Defaulting to 'User' role.");
-                        isFirstUser = false;
-                    }
-
-                    await setDoc(userRef, {
-                        displayName: user.displayName,
-                        photoURL: user.photoURL,
-                        email: user.email,
-                        role: isFirstUser ? "Admin" : "User",
-                        status: 'active',
-                        createdAt: new Date().toISOString()
-                    });
-                } else {
-                    // Update if missing profile info
-                    const data = userSnap.data();
-                    const updates = {};
-                    if (!data.displayName && user.displayName) updates.displayName = user.displayName;
-                    if (!data.photoURL && user.photoURL) updates.photoURL = user.photoURL;
-
-                    if (Object.keys(updates).length > 0) {
-                        try {
-                            await updateDoc(userRef, updates);
-                        } catch (e) {
-                            console.warn("[AUTH] Failed to update user profile info:", e.message);
-                        }
-                    }
-                }
-            }
+            await syncUserToFirestore(result.user);
         } catch (error) {
-            // If the error is permission-denied but we ALREADY have result.user (unlikely for catch but possible in some flows)
-            // Or if it's just a Firestore error after successful Auth, we might not want to show a scary "Login Failed" alert
-
             console.error("Auth/Firestore Sync Error:", error);
-
             if (error.code === 'auth/popup-blocked') {
-                setError("The login popup was blocked by your browser. Please allow popups for this site and try again.");
-            } else if (error.code === 'auth/cancelled-popup-request') {
-                console.warn("Popup request cancelled (possible duplicate call or manual closure)");
-            } else if (error.code === 'permission-denied') {
-                // Special case: Auth succeeded but Firestore failed
-                console.error("Firestore Permission Denied. User authenticated but profile sync failed.");
-                // We don't alert here because onAuthStateChanged will still try to pick up the user
+                setError("The login popup was blocked by your browser.");
+            } else if (error.message === "Allowed user quota exhausted.") {
+                setError(error.message);
             } else if (error.code !== 'auth/popup-closed-by-user') {
-                setError(`Login process encountered an issue: ${error.message}`);
+                setError(`Login issue: ${error.message}`);
             }
         } finally {
             setIsAuthenticating(false);
+        }
+    };
+
+    const signUpWithEmail = async (email, password, displayName) => {
+        if (isAuthenticating) return;
+        setIsAuthenticating(true);
+        setError(null);
+        try {
+            const result = await createUserWithEmailAndPassword(auth, email, password);
+            if (displayName) {
+                await updateProfile(result.user, { displayName });
+            }
+            await syncUserToFirestore({ ...result.user, displayName }, true);
+        } catch (error) {
+            console.error("Signup Error:", error);
+            setError(error.message);
+            throw error;
+        } finally {
+            setIsAuthenticating(false);
+        }
+    };
+
+    const loginWithEmail = async (email, password) => {
+        if (isAuthenticating) return;
+        setIsAuthenticating(true);
+        setError(null);
+        try {
+            const result = await signInWithEmailAndPassword(auth, email, password);
+            await syncUserToFirestore(result.user);
+        } catch (error) {
+            console.error("Login Error:", error);
+            setError(error.message);
+            throw error;
+        } finally {
+            setIsAuthenticating(false);
+        }
+    };
+
+    const resetPassword = async (email) => {
+        setError(null);
+        try {
+            await sendPasswordResetEmail(auth, email);
+        } catch (error) {
+            console.error("Reset Password Error:", error);
+            setError(error.message);
+            throw error;
         }
     };
 
@@ -209,11 +246,22 @@ export const AuthProvider = ({ children }) => {
             return;
         }
         await signOut(auth);
-        setUser(null); // Ensure state clears
+        setUser(null);
     };
 
     return (
-        <AuthContext.Provider value={{ user, login, logout, loading, error, setError }}>
+        <AuthContext.Provider value={{
+            user,
+            login,
+            logout,
+            loading,
+            error,
+            setError,
+            signUpWithEmail,
+            loginWithEmail,
+            resetPassword,
+            isAuthenticating
+        }}>
             {children}
         </AuthContext.Provider>
     );
