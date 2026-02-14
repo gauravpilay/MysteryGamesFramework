@@ -1,7 +1,7 @@
 import React, { memo, useState, useRef, useEffect } from 'react';
 import ReactDOM from 'react-dom';
 import { Handle, Position, NodeResizer } from 'reactflow';
-import { FileText, User, Search, GitMerge, Terminal, MessageSquare, Music, Image as ImageIcon, Star, MousePointerClick, Trash2, Plus, Copy, Fingerprint, Bell, HelpCircle, ToggleLeft, Unlock, Binary, Grid3x3, Folder, ChevronDown, ChevronUp, Maximize, X, Save, File, FolderOpen, AlertCircle, Brain, Cpu, Send, Loader2, Check, Filter, ShieldAlert, Box, CheckCircle, Activity, Shield, Hash, Film, Globe, Lightbulb } from 'lucide-react';
+import { FileText, User, Search, GitMerge, Terminal, MessageSquare, Music, Image as ImageIcon, Star, MousePointerClick, Trash2, Plus, Copy, Fingerprint, Bell, HelpCircle, ToggleLeft, Unlock, Binary, Grid3x3, Folder, ChevronDown, ChevronUp, Maximize, X, Save, File, FolderOpen, AlertCircle, Brain, Cpu, Send, Loader2, Check, Filter, ShieldAlert, Box, CheckCircle, Activity, Shield, Hash, Film, Globe, Lightbulb, Mail } from 'lucide-react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { storage } from '../../lib/firebase';
 import { ref, uploadBytes, getDownloadURL } from 'firebase/storage';
@@ -778,6 +778,155 @@ export const EvidenceNode = memo(({ id, data, selected }) => {
         </>
     );
 });
+
+export const EmailNode = memo(({ id, data, selected }) => {
+    const handleChange = (key, val) => {
+        data.onChange && data.onChange(id, { ...data, [key]: val });
+    };
+
+    const [isUploading, setIsUploading] = useState(false);
+
+    const handleFileUpload = async (e) => {
+        const files = Array.from(e.target.files);
+        if (files.length === 0) return;
+
+        if (!storage) {
+            alert("Firebase Storage not initialized.");
+            return;
+        }
+
+        setIsUploading(true);
+        try {
+            const uploadPromises = files.map(async (file) => {
+                const storageRef = ref(storage, `emails/${Date.now()}_${file.name}`);
+                await uploadBytes(storageRef, file);
+                return await getDownloadURL(storageRef);
+            });
+
+            const urls = await Promise.all(uploadPromises);
+            const currentImages = data.images || [];
+            handleChange('images', [...currentImages, ...urls]);
+        } catch (error) {
+            console.error("Upload failed", error);
+            alert("Upload failed. Check console.");
+        } finally {
+            setIsUploading(false);
+        }
+    };
+
+    const removeImage = (index) => {
+        const currentImages = data.images || [];
+        const newImages = currentImages.filter((_, i) => i !== index);
+        handleChange('images', newImages);
+    };
+
+    return (
+        <>
+            <Handle type="target" position={Position.Top} className="!bg-zinc-500 !w-3 !h-3 !border-2 !border-black" />
+            <NodeWrapper id={id} title="Email Transmission" icon={Mail} selected={selected} headerClass="bg-blue-950/30 text-blue-200" colorClass="border-blue-900/30" data={data} onLabelChange={(v) => handleChange('label', v)}>
+                <div className="space-y-3 font-sans">
+                    {/* Email Headers */}
+                    <div className="p-3 bg-black/40 border border-blue-900/20 rounded-lg space-y-2">
+                        <div className="flex items-center gap-2">
+                            <span className="text-[10px] font-bold text-zinc-500 w-12 uppercase">From:</span>
+                            <InputField
+                                placeholder="sender@example.com"
+                                value={data.sender}
+                                onChange={(e) => handleChange('sender', e.target.value)}
+                                className="!bg-transparent !border-b !border-zinc-800 !rounded-none !px-0"
+                            />
+                        </div>
+                        <div className="flex items-center gap-2">
+                            <span className="text-[10px] font-bold text-zinc-500 w-12 uppercase">To:</span>
+                            <InputField
+                                placeholder="player@detective.net"
+                                value={data.recipient}
+                                onChange={(e) => handleChange('recipient', e.target.value)}
+                                className="!bg-transparent !border-b !border-zinc-800 !rounded-none !px-0"
+                            />
+                        </div>
+                        <div className="flex items-center gap-2">
+                            <span className="text-[10px] font-bold text-zinc-500 w-12 uppercase">Subj:</span>
+                            <InputField
+                                placeholder="Confidential Data"
+                                value={data.subject}
+                                onChange={(e) => handleChange('subject', e.target.value)}
+                                className="!bg-transparent !border-b !border-zinc-800 !rounded-none !px-0 font-bold"
+                            />
+                        </div>
+                    </div>
+
+                    {/* Email Body */}
+                    <div className="space-y-1">
+                        <p className="text-[9px] font-bold text-zinc-500 uppercase ml-1">Message Content</p>
+                        <TextArea
+                            placeholder="Type your email message here..."
+                            rows={6}
+                            value={data.body}
+                            onChange={(e) => handleChange('body', e.target.value)}
+                            className="font-serif leading-relaxed"
+                        />
+                    </div>
+
+                    {/* Images / Attachments */}
+                    <div className="space-y-2">
+                        <div className="flex items-center justify-between">
+                            <p className="text-[9px] font-bold text-zinc-500 uppercase ml-1">Images / Attachments</p>
+                            <label className="cursor-pointer text-[10px] text-blue-400 hover:text-blue-300 font-bold uppercase flex items-center gap-1 transition-colors">
+                                <Plus className="w-3 h-3" /> Add
+                                <input type="file" multiple accept="image/*" className="hidden" onChange={handleFileUpload} disabled={isUploading} />
+                            </label>
+                        </div>
+
+                        <div className="grid grid-cols-3 gap-2">
+                            {data.images?.map((url, index) => (
+                                <div key={index} className="relative aspect-square bg-zinc-900 rounded-lg overflow-hidden border border-zinc-800 group">
+                                    <img src={url} className="w-full h-full object-cover" />
+                                    <button
+                                        type="button"
+                                        onClick={(e) => { e.stopPropagation(); removeImage(index); }}
+                                        className="absolute top-1 right-1 p-1 bg-black/60 rounded-full text-white opacity-0 group-hover:opacity-100 transition-opacity"
+                                    >
+                                        <Trash2 className="w-2.5 h-2.5" />
+                                    </button>
+                                </div>
+                            ))}
+                            {isUploading && (
+                                <div className="aspect-square bg-zinc-900/50 border border-dashed border-zinc-800 rounded-lg flex items-center justify-center">
+                                    <Loader2 className="w-4 h-4 animate-spin text-blue-500" />
+                                </div>
+                            )}
+                        </div>
+                    </div>
+
+                    <div className="mt-2 p-2 bg-black/40 border border-blue-900/20 rounded-lg space-y-2">
+                        <div className="flex items-center justify-between">
+                            <p className="text-[9px] font-bold text-blue-400 uppercase tracking-wider flex items-center gap-1">
+                                <Star className="w-3 h-3" /> Points
+                            </p>
+                            <InputField
+                                type="number"
+                                placeholder="0"
+                                value={data.score}
+                                onChange={(e) => handleChange('score', parseInt(e.target.value) || 0)}
+                                className="w-16 text-right bg-blue-950/30 border-blue-900/30 text-blue-200"
+                            />
+                        </div>
+                        <ObjectiveSelector
+                            values={data.learningObjectiveIds}
+                            onChange={(v) => handleChange('learningObjectiveIds', v)}
+                            objectives={data.learningObjectives}
+                        />
+                    </div>
+                </div>
+            </NodeWrapper>
+            {(!data.actions || data.actions.length === 0) && (
+                <Handle type="source" position={Position.Bottom} className="!bg-blue-500 !w-3 !h-3 !border-2 !border-black" />
+            )}
+        </>
+    );
+});
+
 
 export const LogicNode = memo(({ id, data, selected }) => {
     // Logic nodes might have multiple handles? Or just one output that branches?

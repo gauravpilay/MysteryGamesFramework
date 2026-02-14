@@ -1,6 +1,6 @@
 import React, { useState, useEffect, useMemo, useRef } from 'react';
 import { Button, Card } from './ui/shared';
-import { X, User, Search, Terminal, MessageSquare, FileText, ArrowRight, ShieldAlert, CheckCircle, AlertTriangle, Volume2, VolumeX, Image as ImageIcon, Briefcase, Star, MousePointerClick, Bell, HelpCircle, Clock, ZoomIn, LayoutGrid, ChevronRight, Fingerprint, Cpu, Activity, Shield, Hash, Box as BoxIcon, Radio, Lightbulb } from 'lucide-react';
+import { X, User, Search, Terminal, MessageSquare, FileText, ArrowRight, ShieldAlert, CheckCircle, AlertTriangle, Volume2, VolumeX, Image as ImageIcon, Briefcase, Star, MousePointerClick, Bell, HelpCircle, Clock, ZoomIn, LayoutGrid, ChevronRight, Fingerprint, Cpu, Activity, Shield, Hash, Box as BoxIcon, Radio, Lightbulb, Mail, Paperclip } from 'lucide-react';
 import { motion, AnimatePresence } from 'framer-motion';
 import EvidenceBoard from './EvidenceBoard';
 import AdvancedTerminal from './AdvancedTerminal';
@@ -679,7 +679,7 @@ const GamePreview = ({ nodes, edges, onClose, gameMetadata, onGameEnd }) => {
         setCurrentNodeId(nodeId);
 
         // If it's a type that requires a popup, set it as active modal AND add to inventory
-        if (node && ['suspect', 'evidence', 'terminal', 'message', 'media', 'notification', 'question', 'lockpick', 'decryption', 'keypad', 'interrogation', 'threed'].includes(node.type)) {
+        if (node && ['suspect', 'evidence', 'terminal', 'message', 'media', 'notification', 'question', 'lockpick', 'decryption', 'keypad', 'interrogation', 'threed', 'email'].includes(node.type)) {
             setActiveModalNode(node);
             if (node.type === 'question') setUserAnswers(new Set());
 
@@ -932,7 +932,7 @@ const GamePreview = ({ nodes, edges, onClose, gameMetadata, onGameEnd }) => {
     const handleCloseModal = () => {
         if (!activeModalNode) return;
 
-        const MODAL_TYPES = ['suspect', 'evidence', 'terminal', 'message', 'media', 'notification', 'question', 'lockpick', 'decryption', 'keypad', 'identify', 'interrogation', 'threed'];
+        const MODAL_TYPES = ['suspect', 'evidence', 'terminal', 'message', 'media', 'notification', 'question', 'lockpick', 'decryption', 'keypad', 'identify', 'interrogation', 'threed', 'email'];
         const SKIP_TYPES = ['logic', 'setter', 'music', ...MODAL_TYPES];
 
         // If the modal node is the current navigational node, closing it should revert to the previous narrative
@@ -991,6 +991,7 @@ const GamePreview = ({ nodes, edges, onClose, gameMetadata, onGameEnd }) => {
         if (node.type === 'terminal') return `Command Interface: ${node.data.label}`;
         if (node.type === 'message') return `Decrypted Msg: ${node.data.label}`;
         if (node.type === 'question') return `Decision: ${node.data.label}`;
+        if (node.type === 'email') return `Read Email: ${node.data.subject || node.data.label}`;
         if (node.type === 'action') return node.data.label || "Execute Action";
         return `Navigate to ${node.data.label || 'Next Objective'}`;
     }
@@ -1468,6 +1469,12 @@ const GamePreview = ({ nodes, edges, onClose, gameMetadata, onGameEnd }) => {
                                                             color = "text-indigo-400";
                                                             bg = "bg-indigo-500/10";
                                                             actionLabel = "INTERACTION";
+                                                        } else if (displayNode.type === 'email') {
+                                                            icon = Mail;
+                                                            color = "text-blue-200";
+                                                            bg = "bg-blue-600/20";
+                                                            actionLabel = "ENCRYPTED INTEL";
+                                                            title = displayNode.data.subject || title;
                                                         }
                                                     }
 
@@ -1596,6 +1603,87 @@ const GamePreview = ({ nodes, edges, onClose, gameMetadata, onGameEnd }) => {
                             >
                                 <X className="w-5 h-5" />
                             </button>
+                            {activeModalNode.type === 'email' && (
+                                <div className="p-0 bg-[#f3f4f6] flex flex-col w-full h-full min-h-0 text-zinc-900 font-sans">
+                                    <div className="bg-[#2563eb] p-4 text-white flex items-center justify-between shrink-0">
+                                        <div className="flex items-center gap-3">
+                                            <Mail className="w-5 h-5 text-white/90" />
+                                            <h2 className="text-sm font-bold tracking-tight truncate max-w-[200px] md:max-w-md">
+                                                {activeModalNode.data.subject || 'New Message Received'}
+                                            </h2>
+                                        </div>
+                                    </div>
+
+                                    <div className="p-6 bg-white border-b border-zinc-200 shrink-0">
+                                        <div className="flex items-start gap-4 mb-4">
+                                            <div className="w-10 h-10 rounded-full bg-blue-100 flex items-center justify-center text-blue-600 font-bold shrink-0">
+                                                {(activeModalNode.data.sender || 'U').charAt(0).toUpperCase()}
+                                            </div>
+                                            <div className="flex-1 min-w-0">
+                                                <div className="flex flex-col md:flex-row md:items-center justify-between gap-1 mb-1">
+                                                    <h3 className="font-bold text-zinc-900 truncate">{activeModalNode.data.sender || 'Unknown Sender'}</h3>
+                                                    <span className="text-[10px] text-zinc-500 font-medium uppercase tracking-wider">{new Date().toLocaleString()}</span>
+                                                </div>
+                                                <p className="text-xs text-zinc-500 truncate">To: {activeModalNode.data.recipient || 'player@detective.net'}</p>
+                                            </div>
+                                        </div>
+                                        <h1 className="text-xl md:text-2xl font-black text-zinc-900 tracking-tight leading-tight">
+                                            {activeModalNode.data.subject}
+                                        </h1>
+                                    </div>
+
+                                    <div className="flex-1 overflow-y-auto p-6 md:p-10 bg-white">
+                                        <div className="max-w-3xl mx-auto">
+                                            <div className="prose prose-sm md:prose-base prose-zinc prose-p:leading-relaxed text-zinc-800 whitespace-pre-wrap font-serif">
+                                                {activeModalNode.data.body}
+                                            </div>
+
+                                            {activeModalNode.data.images && activeModalNode.data.images.length > 0 && (
+                                                <div className="mt-12 space-y-6">
+                                                    <div className="flex items-center gap-2 text-zinc-400 mb-4 pb-2 border-b border-zinc-100">
+                                                        <Paperclip className="w-4 h-4" />
+                                                        <span className="text-xs font-bold uppercase tracking-widest">{activeModalNode.data.images.length} Attachments</span>
+                                                    </div>
+                                                    <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                                                        {activeModalNode.data.images.map((url, i) => (
+                                                            <div
+                                                                key={i}
+                                                                className="group relative aspect-video bg-zinc-100 rounded-xl overflow-hidden shadow-sm border border-zinc-200 cursor-pointer"
+                                                                onClick={() => setZoomedImage(url)}
+                                                            >
+                                                                <img src={url} className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-500" alt={`Attachment ${i + 1}`} />
+                                                                <div className="absolute inset-0 bg-black/20 opacity-0 group-hover:opacity-100 transition-opacity flex items-center justify-center">
+                                                                    <div className="bg-white/90 backdrop-blur-sm text-zinc-900 px-3 py-1.5 rounded-full text-[10px] font-bold uppercase tracking-widest shadow-xl">View Image</div>
+                                                                </div>
+                                                            </div>
+                                                        ))}
+                                                    </div>
+                                                </div>
+                                            )}
+                                        </div>
+                                    </div>
+
+                                    <div className="p-4 border-t border-zinc-200 bg-zinc-50 flex justify-end shrink-0">
+                                        <Button
+                                            className="bg-blue-600 hover:bg-blue-700 text-white font-black uppercase tracking-[0.15em] text-[11px] h-11 px-8 shadow-lg transition-all rounded-xl"
+                                            onClick={() => {
+                                                if (activeModalNode.data.score && !scoredNodes.has(activeModalNode.id)) {
+                                                    setScore(s => s + activeModalNode.data.score);
+                                                    setScoreDelta(activeModalNode.data.score);
+                                                    rewardObjectivePoints(activeModalNode, activeModalNode.data.score);
+                                                    setScoredNodes(prev => new Set([...prev, activeModalNode.id]));
+                                                    addLog(`EMAIL INTEL REWARD: +${activeModalNode.data.score} Points`);
+                                                }
+                                                const next = options[0] || edges.find(e => e.source === activeModalNode.id);
+                                                setActiveModalNode(null);
+                                                if (next) handleOptionClick(next.target);
+                                            }}
+                                        >
+                                            Continue <ArrowRight className="w-4 h-4 ml-2" />
+                                        </Button>
+                                    </div>
+                                </div>
+                            )}
                             {activeModalNode.type === 'suspect' && (
                                 <SuspectProfile
                                     suspect={activeModalNode}

@@ -14,8 +14,8 @@ import 'reactflow/dist/style.css';
 import { useParams, useNavigate } from 'react-router-dom';
 import { Button } from '../components/ui/shared';
 import { Logo } from '../components/ui/Logo';
-import { Save, ArrowLeft, X, FileText, User, Search, GitMerge, Terminal, MessageSquare, CircleHelp, Play, Settings, Music, Image as ImageIcon, MousePointerClick, Fingerprint, Bell, HelpCircle, ChevronLeft, ChevronRight, ToggleLeft, Lock, Sun, Moon, Stethoscope, Unlock, Binary, Grid3x3, CheckCircle, AlertTriangle, Plus, Trash2, Target, Box, FolderOpen, Brain, Pencil, Film, Menu, Globe, ShieldAlert } from 'lucide-react';
-import { StoryNode, SuspectNode, EvidenceNode, LogicNode, TerminalNode, MessageNode, MusicNode, MediaNode, ActionNode, IdentifyNode, NotificationNode, QuestionNode, SetterNode, LockpickNode, DecryptionNode, KeypadNode, GroupNode, InputField, InterrogationNode, ThreeDSceneNode, CutsceneNode, DeepWebOSNode } from '../components/nodes/CustomNodes';
+import { Save, ArrowLeft, X, FileText, User, Search, GitMerge, Terminal, MessageSquare, CircleHelp, Play, Settings, Music, Image as ImageIcon, MousePointerClick, Fingerprint, Bell, HelpCircle, ChevronLeft, ChevronRight, ToggleLeft, Lock, Sun, Moon, Stethoscope, Unlock, Binary, Grid3x3, CheckCircle, AlertTriangle, Plus, Trash2, Target, Box, FolderOpen, Brain, Pencil, Film, Menu, Globe, ShieldAlert, Mail } from 'lucide-react';
+import { StoryNode, SuspectNode, EvidenceNode, LogicNode, TerminalNode, MessageNode, MusicNode, MediaNode, ActionNode, IdentifyNode, NotificationNode, QuestionNode, SetterNode, LockpickNode, DecryptionNode, KeypadNode, GroupNode, InputField, InterrogationNode, ThreeDSceneNode, CutsceneNode, DeepWebOSNode, EmailNode } from '../components/nodes/CustomNodes';
 import AICaseGeneratorModal from '../components/AICaseGeneratorModalAdvanced';
 import CaseMetadataModal from '../components/CaseMetadataModal';
 import LicenseConfigModal from '../components/LicenseConfigModal';
@@ -83,6 +83,11 @@ const NODE_HELP = {
         desc: "Sets the mood. The specified audio track will loop when this node is active.",
         examples: ["Suspense Theme", "Action Music", "Silence"]
     },
+    email: {
+        title: "Email Transmission",
+        desc: "A realistic email interface for the player. Can contain sender info, subject, body, and multiple image attachments.",
+        examples: ["Leaked Document", "Anonymous Tip", "Corporate Briefing"]
+    },
     media: {
         desc: "Displays a visual asset (Image or Video) to the player.",
         examples: ["CCTV Footage (YouTube)", "Crime Scene Photo", "Document Scan"]
@@ -149,6 +154,7 @@ const PALETTE_ITEMS = [
     { type: 'interrogation', label: 'AI Interrogate', icon: Brain, className: "hover:border-indigo-500/50", iconClass: "text-indigo-400" },
     { type: 'message', label: 'Message Block', icon: MessageSquare, className: "hover:border-violet-500/50", iconClass: "text-violet-400" },
     { type: 'music', label: 'Background Audio', icon: Music, className: "hover:border-pink-500/50", iconClass: "text-pink-400" },
+    { type: 'email', label: 'Email Node', icon: Mail, className: "hover:border-blue-500/50", iconClass: "text-blue-400" },
     { type: 'media', label: 'Media Asset', icon: ImageIcon, className: "hover:border-orange-500/50", iconClass: "text-orange-400" },
     { type: 'action', label: 'Action Button', icon: MousePointerClick, className: "hover:border-indigo-500/50", iconClass: "text-indigo-400" },
     { type: 'notification', label: 'Notification', icon: Bell, className: "hover:border-sky-500/50", iconClass: "text-sky-400" },
@@ -259,6 +265,7 @@ const Editor = () => {
         interrogation: InterrogationNode,
         message: MessageNode,
         music: MusicNode,
+        email: EmailNode,
         media: MediaNode,
         action: ActionNode,
         identify: IdentifyNode,

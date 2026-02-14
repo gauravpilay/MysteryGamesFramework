@@ -110,7 +110,7 @@ The JSON structure MUST follow this exact format:
   "nodes": [
     {
       "id": "unique-string-id",
-      "type": "story | suspect | evidence | logic | terminal | interrogation | message | action | identify | question",
+      "type": "story | suspect | evidence | logic | terminal | interrogation | message | action | identify | question | email",
       "position": { "x": number, "y": number },
       "data": {
         "label": "Short Node Name",
@@ -121,6 +121,11 @@ The JSON structure MUST follow this exact format:
         "motive": "Suspect's potential motive",
         "personality": "Personality traits",
         "description": "Evidence description",
+        "sender": "Email sender (eg: boss@corp.com)",
+        "recipient": "Email recipient (eg: player@detective.net)",
+        "subject": "Email subject line",
+        "body": "Full body of the email message",
+        "images": ["optional_image_url1", "optional_image_url2"],
         "variableId": "unique_variable_id for tracking",
         "actions": [
           { "id": "unique-action-id", "label": "Button Text", "variant": "default | primary | danger | mystic" }
