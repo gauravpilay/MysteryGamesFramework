@@ -158,8 +158,8 @@ const PALETTE_ITEMS = [
     { type: 'lockpick', label: 'Lockpick Game', icon: Unlock, className: "hover:border-amber-500/50", iconClass: "text-amber-400" },
     { type: 'decryption', label: 'Decryption', icon: Binary, className: "hover:border-lime-500/50", iconClass: "text-lime-400" },
     { type: 'keypad', label: 'Keypad Lock', icon: Grid3x3, className: "hover:border-slate-500/50", iconClass: "text-slate-400" },
-    { type: 'threed', label: '3D Holodeck', icon: Box, className: "hover:border-cyan-500/50", iconClass: "text-cyan-400" },
-    { type: 'deepweb', label: 'Deep Web OS', icon: Globe, className: "hover:border-emerald-500/50", iconClass: "text-emerald-400" },
+    // { type: 'threed', label: '3D Holodeck', icon: Box, className: "hover:border-cyan-500/50", iconClass: "text-cyan-400" },
+    // { type: 'deepweb', label: 'Deep Web OS', icon: Globe, className: "hover:border-emerald-500/50", iconClass: "text-emerald-400" },
 ];
 
 const Editor = () => {

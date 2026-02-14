@@ -193,7 +193,7 @@ const SystemSettingsModal = ({ onClose }) => {
                         </div>
 
                         {/* Global Architecture Override */}
-                        <div className="space-y-6">
+                        {/* <div className="space-y-6">
                             <div className="flex items-center gap-2 border-l-2 border-cyan-500 pl-4">
                                 <Box className="w-4 h-4 text-cyan-500" />
                                 <h3 className="text-sm font-black text-white uppercase tracking-[0.2em]">Global Architecture Override</h3>
@@ -217,7 +217,7 @@ const SystemSettingsModal = ({ onClose }) => {
                             </div>
 
 
-                        </div>
+                        </div> */}
                         <div className="space-y-6">
                             <div className="flex items-center gap-2 border-l-2 border-purple-500 pl-4">
                                 <Globe className="w-4 h-4 text-purple-500" />
