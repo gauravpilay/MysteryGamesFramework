@@ -2173,6 +2173,35 @@ export const QuestionNode = memo(({ id, data, selected }) => {
         handleChange('hints', currentHints.filter(h => h.id !== hintId));
     };
 
+    const [isUploading, setIsUploading] = useState(false);
+
+    const handleFileUpload = async (e) => {
+        const file = e.target.files[0];
+        if (!file) return;
+
+        if (!storage) {
+            alert("Firebase Storage not initialized.");
+            return;
+        }
+
+        setIsUploading(true);
+        try {
+            const storageRef = ref(storage, `questions/${Date.now()}_${file.name}`);
+            await uploadBytes(storageRef, file);
+            const url = await getDownloadURL(storageRef);
+            handleChange('image', url);
+        } catch (error) {
+            console.error("Upload failed", error);
+            alert("Upload failed. Check console.");
+        } finally {
+            setIsUploading(false);
+        }
+    };
+
+    const removeImage = () => {
+        handleChange('image', null);
+    };
+
     return (
         <>
             <Handle type="target" position={Position.Top} className="!bg-zinc-500 !w-3 !h-3 !border-2 !border-black" />
@@ -2185,6 +2214,37 @@ export const QuestionNode = memo(({ id, data, selected }) => {
                         value={data.question}
                         onChange={(e) => handleChange('question', e.target.value)}
                     />
+
+                    {/* Question Image */}
+                    <div className="space-y-2">
+                        <div className="flex items-center justify-between">
+                            <p className="text-[9px] font-bold text-zinc-500 uppercase ml-1">Question Image</p>
+                            {!data.image && (
+                                <label className="cursor-pointer text-[10px] text-fuchsia-400 hover:text-fuchsia-300 font-bold uppercase flex items-center gap-1 transition-colors">
+                                    <Plus className="w-3 h-3" /> Add Image
+                                    <input type="file" accept="image/*" className="hidden" onChange={handleFileUpload} disabled={isUploading} />
+                                </label>
+                            )}
+                        </div>
+
+                        {data.image && (
+                            <div className="relative aspect-video bg-zinc-900 rounded-lg overflow-hidden border border-zinc-800 group">
+                                <img src={data.image} className="w-full h-full object-cover" />
+                                <button
+                                    type="button"
+                                    onClick={(e) => { e.stopPropagation(); removeImage(); }}
+                                    className="absolute top-2 right-2 p-1.5 bg-black/60 rounded-full text-white opacity-0 group-hover:opacity-100 transition-opacity"
+                                >
+                                    <Trash2 className="w-3 h-3" />
+                                </button>
+                            </div>
+                        )}
+                        {isUploading && (
+                            <div className="aspect-video bg-zinc-900/50 border border-dashed border-zinc-800 rounded-lg flex items-center justify-center">
+                                <Loader2 className="w-5 h-5 animate-spin text-fuchsia-500" />
+                            </div>
+                        )}
+                    </div>
 
                     <div className="w-1/2 mb-2">
                         <p className="text-[10px] text-zinc-500 mb-1">Type</p>

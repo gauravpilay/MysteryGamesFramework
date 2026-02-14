@@ -1594,7 +1594,7 @@ const GamePreview = ({ nodes, edges, onClose, gameMetadata, onGameEnd }) => {
                             initial={{ scale: 0.9, opacity: 0 }}
                             animate={{ scale: 1, opacity: 1 }}
                             exit={{ scale: 0.9, opacity: 0 }}
-                            className={`bg-zinc-950 border border-zinc-800 p-0 rounded-2xl relative overflow-hidden shadow-2xl shadow-black max-h-[95vh] flex flex-col transition-all duration-500 ${(activeModalNode.type === 'threed' || activeModalNode.type === 'suspect' || activeModalNode.type === 'interrogation') ? 'max-w-6xl w-full h-[95vh] md:h-[85vh]' : 'max-w-3xl w-full'}`}
+                            className={`bg-zinc-950 border border-zinc-800 p-0 rounded-2xl relative overflow-hidden shadow-2xl shadow-black max-h-[95vh] flex flex-col transition-all duration-500 ${(activeModalNode.type === 'threed' || activeModalNode.type === 'suspect' || activeModalNode.type === 'interrogation' || activeModalNode.type === 'question' || activeModalNode.type === 'email') ? 'max-w-6xl w-full h-[95vh] md:h-[85vh]' : 'max-w-3xl w-full'}`}
                         >
                             {/* Modal Close Button - Elevated to top priority */}
                             <button
@@ -1924,7 +1924,7 @@ const GamePreview = ({ nodes, edges, onClose, gameMetadata, onGameEnd }) => {
 
                             {/* Question Layout */}
                             {activeModalNode.type === 'question' && (
-                                <div className="p-8 bg-zinc-900 border-t-4 border-fuchsia-500 h-full flex flex-col">
+                                <div className="p-8 bg-zinc-900 border-t-4 border-fuchsia-500 h-full min-h-0 flex flex-col">
                                     <div className="flex items-center justify-between mb-6">
                                         <div className="flex items-center gap-3 text-fuchsia-400">
                                             <HelpCircle className="w-8 h-8" />
@@ -1934,6 +1934,17 @@ const GamePreview = ({ nodes, edges, onClose, gameMetadata, onGameEnd }) => {
                                     </div>
 
                                     <div className="flex-1 overflow-y-auto">
+                                        {activeModalNode.data.image && (
+                                            <div className="w-full mb-6 rounded-xl overflow-hidden border border-fuchsia-900/30 shadow-2xl relative group">
+                                                <img src={activeModalNode.data.image} alt="Question Visual" className="w-full h-auto object-contain max-h-[300px]" />
+                                                <div className="absolute inset-0 bg-black/40 opacity-0 group-hover:opacity-100 transition-opacity flex items-center justify-center cursor-pointer" onClick={() => setZoomedImage(activeModalNode.data.image)}>
+                                                    <div className="flex items-center gap-2 bg-black/80 text-white px-4 py-2 rounded-full border border-white/20 backdrop-blur-md transform scale-95 group-hover:scale-100 transition-transform">
+                                                        <ZoomIn className="w-5 h-5" />
+                                                        <span className="text-sm font-bold uppercase tracking-wider">Expand Visual</span>
+                                                    </div>
+                                                </div>
+                                            </div>
+                                        )}
                                         <p className="text-xl text-white font-medium leading-relaxed mb-8">
                                             {activeModalNode.data.question}
                                         </p>
