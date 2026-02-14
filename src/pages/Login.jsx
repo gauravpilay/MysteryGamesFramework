@@ -4,6 +4,7 @@ import { useConfig } from '../lib/config';
 import { Navigate } from 'react-router-dom';
 import { motion, AnimatePresence } from 'framer-motion';
 import { Logo } from '../components/ui/Logo';
+import { Shield, Zap, Lock, Sparkles } from 'lucide-react';
 
 const Login = () => {
     const { user, login, loginWithEmail, signUpWithEmail, resetPassword, error, setError, isAuthenticating } = useAuth();
@@ -46,17 +47,58 @@ const Login = () => {
                 transition={{ duration: 0.5 }}
                 className="w-full max-w-md space-y-8 rounded-2xl border border-white/10 bg-black/40 p-10 backdrop-blur-xl shadow-[0_0_40px_rgba(79,70,229,0.15)]"
             >
-                <div className="text-center">
-                    <div className="mx-auto flex h-20 w-20 items-center justify-center rounded-full bg-indigo-900/10 ring-1 ring-indigo-500/20 mb-6 shadow-[0_0_30px_rgba(79,70,229,0.15)]">
-                        <Logo className="h-12 w-12" />
-                    </div>
-                    <h1 className="text-3xl font-bold tracking-tight text-white">
-                        {settings.systemName || 'Mystery Architect'}
+                <div className="text-center mb-6">
+                    <motion.div
+                        initial={{ scale: 0.5, opacity: 0, rotate: -10 }}
+                        animate={{ scale: 1, opacity: 1, rotate: 0 }}
+                        transition={{
+                            type: "spring",
+                            stiffness: 260,
+                            damping: 20,
+                            delay: 0.1
+                        }}
+                        className="relative mx-auto w-32 h-32 mb-8 group"
+                    >
+                        {/* Animated Outer Glow */}
+                        <div className="absolute inset-[-10px] rounded-full bg-gradient-to-r from-blue-600 via-indigo-500 to-orange-500 opacity-20 blur-2xl group-hover:opacity-40 transition-opacity duration-700 animate-pulse"></div>
+                        <div className="absolute inset-0 rounded-full bg-gradient-to-tr from-blue-500/20 to-orange-500/20 ring-1 ring-white/20"></div>
+
+                        {/* Main Circular Image */}
+                        <div className="relative w-full h-full rounded-full border-4 border-white/10 p-1.5 backdrop-blur-xl bg-gradient-to-b from-white/10 to-transparent overflow-hidden shadow-[0_0_50px_rgba(0,0,0,0.5)]">
+                            <div className="w-full h-full rounded-full overflow-hidden bg-zinc-900 flex items-center justify-center">
+                                <img
+                                    src="/logo.jpg"
+                                    alt="Simplee5 Hero"
+                                    className="w-full h-full object-cover transform scale-110 group-hover:scale-125 transition-transform duration-700"
+                                />
+                            </div>
+                        </div>
+
+                        {/* Floating Decorative Elements */}
+                        <motion.div
+                            animate={{ y: [0, -5, 0] }}
+                            transition={{ repeat: Infinity, duration: 3, ease: "easeInOut" }}
+                            className="absolute -top-2 -right-2 w-8 h-8 bg-orange-500 rounded-lg flex items-center justify-center shadow-lg border border-white/20"
+                        >
+                            <Sparkles className="w-4 h-4 text-white" />
+                        </motion.div>
+
+                        <motion.div
+                            animate={{ y: [0, 5, 0] }}
+                            transition={{ repeat: Infinity, duration: 4, ease: "easeInOut", delay: 1 }}
+                            className="absolute -bottom-1 -left-1 w-8 h-8 bg-blue-600 rounded-full flex items-center justify-center shadow-lg border border-white/20"
+                        >
+                            <Shield className="w-4 h-4 text-white" />
+                        </motion.div>
+                    </motion.div>
+
+                    <h1 className="text-4xl font-black tracking-tighter text-white uppercase">
+                        Mystery <span className="text-orange-500 not-italic">Architect</span>
                     </h1>
-                    <p className="mt-2 text-sm text-gray-400">
-                        {view === 'login' && 'Welcome back, Detective.'}
-                        {view === 'signup' && 'Join the Research Agency.'}
-                        {view === 'forgot' && 'Reset your credentials.'}
+                    <p className="mt-3 text-sm text-gray-400 font-medium tracking-wide">
+                        {view === 'login' && 'RE-ENGINEERING EXCELLENCE'}
+                        {view === 'signup' && 'JOIN THE ELITE AGENCY'}
+                        {view === 'forgot' && 'SYSTEM CREDENTIAL RECOVERY'}
                     </p>
                 </div>
 
@@ -205,7 +247,7 @@ const Login = () => {
                                     fill="#EA4335"
                                 />
                             </svg>
-                            Google Workspace
+                            Google
                         </button>
                     </>
                 )}

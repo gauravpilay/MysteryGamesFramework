@@ -391,7 +391,7 @@ const Dashboard = () => {
                         <div className="flex items-center justify-center">
                             <Logo className="w-8 h-8 md:w-9 md:h-9 drop-shadow-[0_0_10px_rgba(99,102,241,0.5)]" />
                         </div>
-                        <span className="font-bold text-base md:text-lg tracking-tight truncate max-w-[120px] md:max-w-none">{settings.systemName || 'Mystery Architect'}</span>
+                        <span className="font-bold text-base md:text-lg tracking-tight truncate max-w-[120px] md:max-w-none">{settings.systemName || 'Simplee5'}</span>
                     </div>
                     <div className="flex items-center gap-4">
                         <Button
@@ -465,7 +465,7 @@ const Dashboard = () => {
             <main className="container mx-auto px-4 md:px-6 py-6 md:py-10 space-y-8 md:space-y-12 relative z-10">
                 <div className="relative">
                     <h1 className="text-3xl md:text-5xl font-extrabold tracking-tight mb-2">
-                        <span className="bg-clip-text text-transparent bg-gradient-to-r from-indigo-400 via-purple-400 to-white">
+                        <span className="bg-clip-text text-transparent bg-gradient-to-r from-blue-400 via-indigo-400 to-orange-500">
                             Welcome Back, Detective
                         </span>
                     </h1>

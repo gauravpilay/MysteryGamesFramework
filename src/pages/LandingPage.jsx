@@ -70,11 +70,9 @@ const LandingPage = () => {
             <nav className={`fixed top-0 left-0 right-0 z-50 transition-all duration-300 ${scrolled ? 'bg-[#020205]/80 backdrop-blur-md border-b border-white/5 py-4' : 'bg-transparent py-6'}`}>
                 <div className="max-w-7xl mx-auto px-6 flex items-center justify-between">
                     <Link to="/" className="flex items-center gap-3 group">
-                        <div className="w-10 h-10 bg-indigo-600 rounded-lg flex items-center justify-center shadow-lg shadow-indigo-600/20 group-hover:scale-110 transition-transform">
-                            <Boxes className="w-6 h-6" />
-                        </div>
-                        <span className="text-xl font-bold tracking-tight bg-gradient-to-r from-white to-white/60 bg-clip-text text-transparent italic">
-                            MYSTERY <span className="text-indigo-500 not-italic">GAMES</span>
+                        <img src="/logo.jpg" alt="Simplee5 Logo" className="w-10 h-10 rounded-lg shadow-lg group-hover:scale-110 transition-transform object-contain" />
+                        <span className="text-xl font-extrabold tracking-tight text-white italic">
+                            Simplee<span className="text-orange-500 not-italic">5</span>
                         </span>
                     </Link>
 
@@ -129,9 +127,9 @@ const LandingPage = () => {
                         </div>
 
                         <h1 className="text-5xl md:text-7xl font-bold leading-tight mb-8">
-                            Architecting <br />
-                            <span className="bg-gradient-to-r from-indigo-400 via-purple-400 to-indigo-600 bg-clip-text text-transparent">
-                                Infinite Mysteries
+                            Simplify Excellence.<br />
+                            <span className="bg-gradient-to-r from-blue-400 via-indigo-500 to-orange-500 bg-clip-text text-transparent">
+                                Master the Mystery.
                             </span>
                         </h1>
 
@@ -307,10 +305,10 @@ const LandingPage = () => {
             {/* Footer */}
             <footer className="py-12 border-t border-white/5 text-zinc-600 text-sm">
                 <div className="max-w-7xl mx-auto px-6 flex flex-col md:flex-row items-center justify-between gap-8">
-                    <div className="flex items-center gap-3 grayscale opacity-60">
-                        <Boxes className="w-5 h-5" />
+                    <div className="flex items-center gap-3">
+                        <img src="/logo.jpg" alt="Simplee5 Logo" className="w-8 h-8 rounded-md grayscale opacity-60" />
                         <span className="font-bold tracking-tight italic">
-                            MYSTERY <span className="not-italic">GAMES</span>
+                            Simplee<span className="not-italic">5</span>
                         </span>
                     </div>
 

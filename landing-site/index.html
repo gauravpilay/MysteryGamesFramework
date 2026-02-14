@@ -20,14 +20,17 @@
 
     <style>
         :root {
-            --bg-color: #020205;
-            --accent-primary: #6366f1;
-            --accent-secondary: #d946ef;
+            --bg-color: #050508;
+            --accent-primary: #3b82f6;
+            /* A more vibrant blue from the logo */
+            --accent-secondary: #f97316;
+            /* Orange from the '5' in the logo */
             --text-main: #ffffff;
             --text-dim: #a1a1aa;
             --glass-bg: rgba(255, 255, 255, 0.03);
             --glass-border: rgba(255, 255, 255, 0.1);
-            --gradient-1: linear-gradient(135deg, #6366f1 0%, #d946ef 100%);
+            --gradient-1: linear-gradient(135deg, #3b82f6 0%, #f97316 100%);
+            --navy-brand: #1e293b;
         }
 
         * {
@@ -142,6 +145,12 @@
             font-weight: 800;
             font-size: 1.5rem;
             letter-spacing: -0.02em;
+            font-style: italic;
+        }
+
+        .logo span b {
+            color: var(--accent-secondary);
+            font-style: normal;
         }
 
         .logo img {
@@ -526,7 +535,7 @@
         <div class="container nav-content">
             <a href="#" class="logo">
                 <img src="logo.jpg" alt="Simplee5 Logo">
-                <span>Simplee5</span>
+                <span>Simplee<b>5</b></span>
             </a>
 
             <ul class="nav-links">
@@ -669,7 +678,7 @@
                 <div class="footer-logo">
                     <a href="#" class="logo">
                         <img src="logo.jpg" alt="Simplee5 Logo" style="height: 60px;">
-                        <span>Simplee5</span>
+                        <span>Simplee<b>5</b></span>
                     </a>
                     <p>Redefining corporate excellence through the power of story-driven education and entertainment
                         (Edutainment).</p>
