@@ -678,26 +678,22 @@ const GamePreview = ({ nodes, edges, onClose, gameMetadata, onGameEnd }) => {
 
         setCurrentNodeId(nodeId);
 
-        // If it's a type that requires a popup, set it as active modal AND add to inventory
+        // Global Inventory Update: track visited nodes and their Logic IDs
+        const idsToAdd = [nodeId, ...intermediateIds];
+        [node, ...intermediateIds.map(id => nodes.find(n => n.id === id))].forEach(n => {
+            if (n && n.data?.variableId) idsToAdd.push(n.data.variableId);
+            if (n && n.type === 'evidence' && n.data.condition) idsToAdd.push(n.data.condition);
+        });
+        setInventory(prev => new Set([...prev, ...idsToAdd]));
+
+        // Handle Type-Specific UI logic
         if (node && ['suspect', 'evidence', 'terminal', 'message', 'media', 'notification', 'question', 'lockpick', 'decryption', 'keypad', 'interrogation', 'threed', 'email'].includes(node.type)) {
             setActiveModalNode(node);
             if (node.type === 'question') setUserAnswers(new Set());
-
-            const idsToAdd = [nodeId, ...intermediateIds];
-
-            [node, ...intermediateIds.map(id => nodes.find(n => n.id === id))].forEach(n => {
-                if (n && n.data?.variableId) idsToAdd.push(n.data.variableId);
-                if (n && n.type === 'evidence' && n.data.condition) idsToAdd.push(n.data.condition);
-            });
-
-            setInventory(prev => new Set([...prev, ...idsToAdd]));
         } else if (node && node.type === 'cutscene') {
-            // Show full-screen cutscene
             setShowCutscene(true);
-            setInventory(prev => new Set([...prev, nodeId, ...intermediateIds]));
         } else if (node && node.type === 'deepweb') {
             setShowDeepWeb(true);
-            setInventory(prev => new Set([...prev, nodeId, ...intermediateIds]));
         } else if (node && node.type === 'identify') {
             setActiveAccusationNode(node);
             setShowAccuseModal(true);
@@ -705,9 +701,6 @@ const GamePreview = ({ nodes, edges, onClose, gameMetadata, onGameEnd }) => {
         } else {
             setActiveModalNode(null);
             setIsConfronting(false);
-            if (intermediateIds.length > 0) {
-                setInventory(prev => new Set([...prev, ...intermediateIds]));
-            }
         }
     };
 

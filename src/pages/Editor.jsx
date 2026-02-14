@@ -1207,6 +1207,11 @@ Please provide a concise plot summary and narrative overview based on these elem
                     }
                     review += '\n';
                     break;
+                case 'story':
+                case 'email':
+                    if (node.metadata.variableId) review += `**Logic ID (Set on Visit):** ${node.metadata.variableId}\n`;
+                    review += '\n';
+                    break;
                 case 'setter':
                     if (node.metadata.variableId) review += `**Variable ID:** ${node.metadata.variableId}\n`;
                     if (node.metadata.variableValue) review += `**Value:** ${node.metadata.variableValue}\n`;

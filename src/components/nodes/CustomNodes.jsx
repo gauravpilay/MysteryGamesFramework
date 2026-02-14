@@ -464,6 +464,15 @@ export const StoryNode = memo(({ id, data, selected }) => {
                         onChange={(v) => handleChange('learningObjectiveIds', v)}
                         objectives={data.learningObjectives}
                     />
+                    <div className="pt-2 border-t border-blue-900/20">
+                        <p className="text-[10px] text-zinc-500 mb-1">Logic ID (Set on Visit)</p>
+                        <InputField
+                            placeholder="e.g. intro_complete"
+                            value={data.variableId}
+                            onChange={(e) => handleChange('variableId', e.target.value)}
+                            className="font-mono text-blue-400/80"
+                        />
+                    </div>
                 </div>
             </NodeWrapper>
             {(!data.actions || data.actions.length === 0) && (
