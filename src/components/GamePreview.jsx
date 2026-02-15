@@ -1,6 +1,6 @@
 import React, { useState, useEffect, useMemo, useRef } from 'react';
 import { Button, Card } from './ui/shared';
-import { X, User, Search, Terminal, MessageSquare, FileText, ArrowRight, ShieldAlert, CheckCircle, AlertTriangle, Volume2, VolumeX, Image as ImageIcon, Briefcase, Star, MousePointerClick, Bell, HelpCircle, Clock, ZoomIn, LayoutGrid, ChevronRight, Fingerprint, Cpu, Activity, Shield, Hash, Box as BoxIcon, Radio, Lightbulb, Mail, Paperclip } from 'lucide-react';
+import { X, User, Search, Terminal, MessageSquare, FileText, ArrowRight, ShieldAlert, CheckCircle, AlertTriangle, Volume2, VolumeX, Image as ImageIcon, Briefcase, Star, MousePointerClick, Bell, HelpCircle, Clock, ZoomIn, LayoutGrid, ChevronRight, Fingerprint, Cpu, Activity, Shield, Hash, Box as BoxIcon, Radio, Lightbulb, Mail, Paperclip, Unlock } from 'lucide-react';
 import { motion, AnimatePresence } from 'framer-motion';
 import EvidenceBoard from './EvidenceBoard';
 import AdvancedTerminal from './AdvancedTerminal';
@@ -198,47 +198,170 @@ const LockpickMinigame = ({ node, onSuccess, onFail }) => {
 const KeypadMinigame = ({ node, onSuccess }) => {
     const [input, setInput] = useState("");
     const [error, setError] = useState(false);
+    const lockType = node.data.lockType || 'numeric';
+    const targetCode = node.data.passcode || "";
 
     const handlePress = (key) => {
-        if (key === 'C') {
+        if (key === 'CLR') {
             setInput("");
             setError(false);
+        } else if (key === 'BACK') {
+            setInput(prev => prev.slice(0, -1));
+            setError(false);
         } else if (key === 'Enter') {
-            if (input === node.data.passcode) {
+            if (input === targetCode) {
                 onSuccess();
             } else {
                 setError(true);
                 setTimeout(() => {
-                    setInput("");
                     setError(false);
+                    // Optional: keep input or clear it? Keeping it feels more "mechanical"
                 }, 1000);
             }
         } else {
-            if (input.length < 8) setInput(prev => prev + key);
+            if (input.length < 12) setInput(prev => prev + key);
         }
     };
 
-    return (
-        <div className="p-8 bg-zinc-900 h-full flex flex-col items-center justify-center border-t-4 border-slate-500">
-            <div className="bg-zinc-950 p-8 rounded-2xl border border-zinc-800 shadow-2xl">
-                <div className={`bg-black h-16 mb-6 rounded border font-mono text-3xl flex items-center justify-end px-4 tracking-widest ${error ? 'border-red-500 text-red-500 animate-pulse' : 'border-emerald-900/50 text-emerald-500'}`}>
-                    {error ? "ACCESS DENIED" : input.replace(/./g, '•') || "ENTER CODE"}
-                </div>
+    useEffect(() => {
+        const handleKeyDown = (e) => {
+            if (error) return;
+            const key = e.key;
+            if (key === 'Backspace') {
+                handlePress('BACK');
+            } else if (key === 'Escape') {
+                handlePress('CLR');
+            } else if (key === 'Enter') {
+                handlePress('Enter');
+            } else {
+                const char = key.toUpperCase();
+                if (lockType === 'alphanumeric') {
+                    if (/^[A-Z0-9]$/.test(char)) {
+                        handlePress(char);
+                    }
+                } else if (/^[0-9]$/.test(char)) {
+                    handlePress(char);
+                }
+            }
+        };
+        window.addEventListener('keydown', handleKeyDown);
+        return () => window.removeEventListener('keydown', handleKeyDown);
+    }, [input, error, lockType]);
 
-                <div className="grid grid-cols-3 gap-3">
-                    {['1', '2', '3', '4', '5', '6', '7', '8', '9', 'C', '0', 'Enter'].map(key => (
+    return (
+        <div className="p-8 bg-zinc-950 h-full flex flex-col items-center justify-center relative overflow-hidden">
+            {/* Briefcase Leather Texture Background */}
+            <div className="absolute inset-0 opacity-20 pointer-events-none" style={{ backgroundImage: `url("data:image/svg+xml,%3Csvg width='100' height='100' viewBox='0 0 100 100' xmlns='http://www.w3.org/2000/svg'%3E%3Cpath d='M0 0h100v100H0z' fill='%23111'/%3E%3Ccircle cx='50' cy='50' r='1' fill='%23333'/%3E%3C/svg%3E")` }}></div>
+
+            <div className="relative w-full max-w-sm">
+                {/* Briefcase Handle Base (Visual element) */}
+                <div className="absolute -top-12 left-1/2 -translate-x-1/2 w-48 h-8 bg-gradient-to-b from-zinc-800 to-zinc-900 rounded-t-3xl border-t border-x border-white/10 shadow-lg"></div>
+
+                <div className="bg-zinc-900 border-[10px] border-zinc-800 rounded-[2rem] shadow-[0_50px_100px_-20px_rgba(0,0,0,0.8),inset_0_2px_10px_rgba(255,255,255,0.05)] overflow-hidden">
+                    {/* Metal Top Plate */}
+                    <div className="bg-gradient-to-b from-zinc-700 via-zinc-800 to-zinc-900 p-6 flex items-center justify-between border-b border-black shadow-lg">
+                        <div className="flex gap-2">
+                            {[1, 2].map(i => <div key={i} className="w-4 h-4 rounded-full bg-black shadow-inner flex items-center justify-center"><div className="w-1.5 h-1.5 bg-zinc-600 rounded-full"></div></div>)}
+                        </div>
+                        <div className="flex items-center gap-2">
+                            <div className="px-3 py-1 bg-black/50 rounded border border-white/5">
+                                <span className="text-[10px] font-black text-zinc-500 uppercase tracking-widest">{lockType}</span>
+                            </div>
+                        </div>
+                        <div className="flex gap-2">
+                            {[1, 2].map(i => <div key={i} className="w-4 h-4 rounded-full bg-black shadow-inner flex items-center justify-center"><div className="w-1.5 h-1.5 bg-zinc-600 rounded-full"></div></div>)}
+                        </div>
+                    </div>
+
+                    {/* Display Segment */}
+                    <div className="p-8 bg-zinc-900/50">
+                        <div className={`relative bg-black h-24 rounded-xl border-4 transition-all duration-300 flex items-center justify-center shadow-[inset_0_4px_20px_rgba(0,0,0,0.8)]
+                            ${error ? 'border-red-900 shadow-[0_0_30px_rgba(220,38,38,0.2)]' : 'border-zinc-800 shadow-[0_0_15px_rgba(0,0,0,0.3)]'}`}>
+
+                            {/* LCD Glow */}
+                            <div className={`absolute inset-0 opacity-10 transition-colors ${error ? 'bg-red-500' : 'bg-amber-500'}`}></div>
+
+                            {error ? (
+                                <motion.div initial={{ scale: 0.8 }} animate={{ scale: 1 }} className="flex flex-col items-center">
+                                    <span className="text-red-600 font-black text-xl tracking-[0.3em]">REJECTED</span>
+                                    <span className="text-[8px] text-red-900 font-bold uppercase mt-1">Invalid Combination</span>
+                                </motion.div>
+                            ) : (
+                                <div className="flex items-center gap-1.5 px-4 overflow-hidden">
+                                    {input.length > 0 ? (
+                                        input.split('').map((char, i) => (
+                                            <motion.div
+                                                key={i}
+                                                initial={{ y: 20, opacity: 0 }}
+                                                animate={{ y: 0, opacity: 1 }}
+                                                className="w-8 h-12 bg-zinc-950/80 rounded-lg border border-white/5 flex items-center justify-center shadow-lg"
+                                            >
+                                                <span className="text-2xl font-mono font-bold text-amber-500/90 drop-shadow-[0_0_8px_rgba(245,158,11,0.5)]">
+                                                    {lockType === 'numeric' ? '•' : char}
+                                                </span>
+                                            </motion.div>
+                                        ))
+                                    ) : (
+                                        <div className="flex items-center gap-4 text-zinc-800">
+                                            {[1, 2, 3, 4].map(i => <div key={i} className="w-8 h-12 border-2 border-zinc-800/30 rounded-lg flex items-center justify-center">?</div>)}
+                                        </div>
+                                    )}
+                                </div>
+                            )}
+                        </div>
+                    </div>
+
+                    {/* Input Grid - Industrial Style */}
+                    <div className="p-8 pt-0 grid grid-cols-3 gap-4">
+                        {/* Numerical/Alpha Layout */}
+                        {[
+                            '1', '2', '3',
+                            '4', '5', '6',
+                            '7', '8', '9',
+                            'CLR', '0', 'BACK'
+                        ].map((key) => (
+                            <button
+                                key={key}
+                                onClick={() => handlePress(key)}
+                                className={`h-16 rounded-xl border-b-4 active:border-b-0 active:translate-y-1 transition-all flex flex-col items-center justify-center font-bold shadow-lg group relative overflow-hidden
+                                    ${key === 'CLR' ? 'bg-zinc-800 border-zinc-950 text-red-400 hover:text-red-300' :
+                                        key === 'BACK' ? 'bg-zinc-800 border-zinc-950 text-amber-400 hover:text-amber-300' :
+                                            'bg-gradient-to-b from-zinc-700 to-zinc-800 border-zinc-950 text-zinc-300 hover:text-white'}`}
+                            >
+                                <span className={`text-${key.length > 3 ? 'xs' : 'xl'}`}>{key}</span>
+                                {lockType === 'alphanumeric' && key.length === 1 && (
+                                    <span className="text-[7px] text-zinc-500 font-black uppercase tracking-tighter mt-0.5">
+                                        {key === '2' ? 'ABC' : key === '3' ? 'DEF' : key === '4' ? 'GHI' : key === '5' ? 'JKL' : key === '6' ? 'MNO' : key === '7' ? 'PQRS' : key === '8' ? 'TUV' : key === '9' ? 'WXYZ' : ''}
+                                    </span>
+                                )}
+                                {/* Screw Head Decal */}
+                                <div className="absolute top-1 right-1 w-1 h-1 bg-black/40 rounded-full"></div>
+                                <div className="absolute bottom-1 left-1 w-1 h-1 bg-black/40 rounded-full"></div>
+                            </button>
+                        ))}
+
+                        {/* Large Unlock Button */}
                         <button
-                            key={key}
-                            onClick={() => handlePress(key)}
-                            className={`w-16 h-16 rounded text-xl font-bold transition-all active:scale-95
-                                ${key === 'Enter' ? 'bg-emerald-600 hover:bg-emerald-500 text-white' :
-                                    key === 'C' ? 'bg-red-900/50 hover:bg-red-800 text-red-200' :
-                                        'bg-zinc-800 hover:bg-zinc-700 text-zinc-300 border border-zinc-700'}`}
+                            onClick={() => handlePress('Enter')}
+                            className="col-span-3 h-20 mt-4 bg-gradient-to-r from-amber-600 via-amber-500 to-amber-600 border-b-4 border-amber-900 rounded-2xl active:border-b-0 active:translate-y-1 transition-all flex items-center justify-center gap-4 group shadow-[0_10px_20px_-5px_rgba(245,158,11,0.4)]"
                         >
-                            {key === 'Enter' ? '⏎' : key}
+                            <Unlock className="w-6 h-6 text-amber-950" />
+                            <span className="text-amber-950 font-black text-lg tracking-widest uppercase">Release Latches</span>
+                            <div className="absolute inset-0 bg-white/10 opacity-0 group-hover:opacity-100 transition-opacity"></div>
                         </button>
-                    ))}
+                    </div>
+
+                    {/* Bottom Rivets */}
+                    <div className="bg-zinc-800 p-4 flex justify-between px-10">
+                        {[1, 2, 3, 4].map(i => <div key={i} className="w-2.5 h-2.5 bg-black rounded-full shadow-inner"></div>)}
+                    </div>
                 </div>
+            </div>
+
+            {/* Status Footer */}
+            <div className="mt-8 flex items-center gap-3">
+                <div className="w-2 h-2 rounded-full bg-emerald-500 animate-pulse shadow-[0_0_8px_rgba(16,185,129,0.5)]"></div>
+                <span className="text-[9px] font-black text-zinc-600 uppercase tracking-[0.5em]">LOCKED • SYSTEM ACTIVE</span>
             </div>
         </div>
     );

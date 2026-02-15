@@ -140,11 +140,23 @@ export const KeypadNode = memo(({ id, data, selected }) => {
             <Handle type="target" position={Position.Top} className="!bg-zinc-500 !w-3 !h-3 !border-2 !border-black" />
             <NodeWrapper id={id} title="Security Keypad" icon={Grid3x3} selected={selected} headerClass="bg-slate-950/30 text-slate-200" colorClass="border-slate-900/30" data={data} onLabelChange={(v) => handleChange('label', v)}>
                 <div className="space-y-2">
-                    <p className="text-[10px] text-zinc-500 mb-1">Passcode (Numeric)</p>
+                    <div className="flex items-center justify-between mb-1">
+                        <p className="text-[10px] text-zinc-500">Lock Type</p>
+                        <select
+                            value={data.lockType || 'numeric'}
+                            onChange={(e) => handleChange('lockType', e.target.value)}
+                            className="bg-black border border-zinc-800 rounded px-2 py-0.5 text-[9px] text-zinc-400 focus:border-indigo-500 outline-none"
+                        >
+                            <option value="numeric">Numeric Only</option>
+                            <option value="alphanumeric">Alphanumeric</option>
+                        </select>
+                    </div>
+
+                    <p className="text-[10px] text-zinc-500 mb-1">Passcode ({data.lockType === 'alphanumeric' ? 'Alpha-Numeric' : 'Numeric'})</p>
                     <InputField
-                        placeholder="e.g. 1234"
+                        placeholder={data.lockType === 'alphanumeric' ? "e.g. ALPHA123" : "e.g. 1234"}
                         value={data.passcode}
-                        onChange={(e) => handleChange('passcode', e.target.value)}
+                        onChange={(e) => handleChange('passcode', data.lockType === 'alphanumeric' ? e.target.value.toUpperCase() : e.target.value.replace(/[^0-9]/g, ''))}
                         className="font-mono text-slate-300 tracking-widest text-center"
                     />
                     <div>
