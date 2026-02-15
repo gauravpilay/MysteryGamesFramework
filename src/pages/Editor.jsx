@@ -466,9 +466,16 @@ const Editor = () => {
     const onEdgeClick = useCallback((event, edge) => {
         event.stopPropagation();
         if (isLocked) return;
-        setEditingEdge(edge);
-        setTempLabel(edge.label || "");
-    }, [isLocked]);
+
+        // On the first click, React Flow will select the edge via onEdgesChange.
+        // On the second click, the edge will already be selected, so we open the editor.
+        const currentEdge = edges.find(e => e.id === edge.id);
+
+        if (currentEdge?.selected) {
+            setEditingEdge(edge);
+            setTempLabel(edge.label || "");
+        }
+    }, [isLocked, edges]);
 
     const saveEdgeLabel = () => {
         if (!editingEdge) return;

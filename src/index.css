@@ -291,3 +291,40 @@
 .animate-slide-in {
   animation: slideInRight 0.3s ease-out;
 }
+
+/* React Flow Customizations */
+.react-flow__edge.selected .react-flow__edge-path {
+  stroke: #6366f1 !important; /* indigo-500 */
+  stroke-width: 4 !important;
+  filter: drop-shadow(0 0 8px rgba(99, 102, 241, 0.6));
+  transition: all 0.3s ease;
+}
+
+.react-flow__edge-path {
+  transition: all 0.3s ease;
+  stroke: #3f3f46;
+  stroke-width: 2;
+}
+
+.react-flow__edge.selected .react-flow__edge-textbg {
+  fill: #6366f1 !important;
+  transition: all 0.3s ease;
+}
+
+.react-flow__edge.selected .react-flow__edge-text {
+  fill: white !important;
+  font-weight: bold;
+  transition: all 0.3s ease;
+}
+
+/* Handle Highlights */
+.react-flow__handle:hover {
+  transform: scale(1.5);
+  box-shadow: 0 0 10px rgba(99, 102, 241, 0.8);
+  border-color: #6366f1 !important;
+}
+
+.react-flow__handle.connecting {
+  background: #6366f1 !important;
+  animation: pulse-glow 1s infinite;
+}
