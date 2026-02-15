@@ -1,5 +1,5 @@
 import { motion, AnimatePresence } from 'framer-motion';
-import { User, Shield, Activity, MessageSquare, Search, Terminal, ChevronRight, Briefcase, ShieldAlert, Fingerprint, Dna, AlertTriangle, Eye, Zap, Target } from 'lucide-react';
+import { User, Shield, Activity, MessageSquare, Search, Terminal, ChevronRight, Briefcase, ShieldAlert, Fingerprint, Dna, AlertTriangle, Eye, Zap, Target, Mail, X } from 'lucide-react';
 import { useState, useEffect } from 'react';
 
 const getAvatarColor = (name) => {
@@ -181,6 +181,7 @@ export default function SuspectProfile({
 }) {
     const [scanActive, setScanActive] = useState(false);
     const [showParticles, setShowParticles] = useState(true);
+    const [previewEvidence, setPreviewEvidence] = useState(null);
 
     useEffect(() => {
         // Activate scan effect on mount
@@ -604,6 +605,19 @@ export default function SuspectProfile({
                                                                 transition={{ duration: 1.5, repeat: Infinity }}
                                                             />
 
+                                                            {/* Preview Button */}
+                                                            <div
+                                                                className="absolute top-3 left-3 z-30 opacity-0 group-hover:opacity-100 transition-all duration-300"
+                                                                onClick={(e) => {
+                                                                    e.stopPropagation();
+                                                                    setPreviewEvidence(eNode);
+                                                                }}
+                                                            >
+                                                                <div className="p-2 bg-black/80 backdrop-blur-md rounded-lg border border-white/10 hover:border-amber-500/50 hover:bg-amber-500/10 transition-all cursor-pointer group/preview shadow-2xl">
+                                                                    <Eye className="w-4 h-4 text-white/50 group-hover/preview:text-amber-400" />
+                                                                </div>
+                                                            </div>
+
                                                             {/* Evidence ID Tag */}
                                                             <div className="absolute top-3 right-3 px-3 py-1.5 bg-black/90 backdrop-blur-md rounded-lg border border-amber-500/50 flex items-center gap-2">
                                                                 <Target className="w-3 h-3 text-amber-400" />
@@ -763,6 +777,116 @@ export default function SuspectProfile({
                     </div>
                 </div>
             </div>
+            {/* Evidence Preview Modal */}
+            <AnimatePresence>
+                {previewEvidence && (
+                    <motion.div
+                        initial={{ opacity: 0 }}
+                        animate={{ opacity: 1 }}
+                        exit={{ opacity: 0 }}
+                        className="fixed inset-0 z-[100] flex items-center justify-center p-4 bg-black/95 backdrop-blur-xl"
+                        onClick={() => setPreviewEvidence(null)}
+                    >
+                        <motion.div
+                            initial={{ scale: 0.9, opacity: 0, y: 20 }}
+                            animate={{ scale: 1, opacity: 1, y: 0 }}
+                            exit={{ scale: 0.9, opacity: 0, y: 20 }}
+                            className="w-full max-w-2xl bg-zinc-950 border border-white/10 rounded-[2rem] overflow-hidden shadow-2xl"
+                            onClick={(e) => e.stopPropagation()}
+                        >
+                            {/* Header */}
+                            <div className="p-6 border-b border-white/5 flex items-center justify-between bg-zinc-900/50">
+                                <div className="flex items-center gap-3">
+                                    <div className="p-2 bg-amber-500/10 rounded-lg border border-amber-500/20">
+                                        {previewEvidence.type === 'email' ? <Mail className="w-5 h-5 text-amber-500" /> : <Search className="w-5 h-5 text-amber-500" />}
+                                    </div>
+                                    <div>
+                                        <h3 className="text-xl font-black text-white uppercase tracking-tight">
+                                            {previewEvidence.data.displayName || previewEvidence.data.label}
+                                        </h3>
+                                        <p className="text-[10px] text-zinc-500 font-bold uppercase tracking-widest leading-none mt-1">
+                                            {previewEvidence.type === 'email' ? 'Digital Intelligence' : 'Physical Evidence'}
+                                        </p>
+                                    </div>
+                                </div>
+                                <button onClick={() => setPreviewEvidence(null)} className="p-2 hover:bg-white/5 rounded-full transition-colors">
+                                    <X className="w-6 h-6 text-zinc-400" />
+                                </button>
+                            </div>
+
+                            {/* Content */}
+                            <div className="p-8 space-y-6 max-h-[70vh] overflow-y-auto custom-scrollbar">
+                                {(previewEvidence.data.image || (previewEvidence.type === 'email' && previewEvidence.data.images?.[0])) && (
+                                    <div className="w-full aspect-video rounded-2xl overflow-hidden border border-white/5 shadow-2xl relative">
+                                        <img
+                                            src={previewEvidence.data.image || previewEvidence.data.images[0]}
+                                            className="w-full h-full object-cover"
+                                            alt="Evidence"
+                                        />
+                                        <div className="absolute inset-0 bg-gradient-to-t from-black/60 to-transparent" />
+                                    </div>
+                                )}
+
+                                <div className="space-y-4">
+                                    {previewEvidence.type === 'email' && (
+                                        <div className="grid grid-cols-2 gap-4 pb-4 border-b border-white/5 text-[10px]">
+                                            <div>
+                                                <p className="text-zinc-500 uppercase font-black mb-1 opacity-50">From</p>
+                                                <p className="text-white font-mono truncate">{previewEvidence.data.sender || 'Unknown'}</p>
+                                            </div>
+                                            <div>
+                                                <p className="text-zinc-500 uppercase font-black mb-1 opacity-50">To</p>
+                                                <p className="text-white font-mono truncate">{previewEvidence.data.recipient || 'Surveillance Hack'}</p>
+                                            </div>
+                                            <div className="col-span-2">
+                                                <p className="text-zinc-500 uppercase font-black mb-1 opacity-50">Subject</p>
+                                                <p className="text-white font-mono">{previewEvidence.data.subject || 'CORRUPTED FILE'}</p>
+                                            </div>
+                                        </div>
+                                    )}
+                                    <div className="space-y-4">
+                                        <p className="text-zinc-300 text-lg leading-relaxed font-serif whitespace-pre-wrap">
+                                            {previewEvidence.type === 'email' ? previewEvidence.data.body : previewEvidence.data.description}
+                                        </p>
+                                    </div>
+                                </div>
+                            </div>
+
+                            {/* Footer */}
+                            <div className="p-6 bg-zinc-900/50 border-t border-white/5 flex gap-4">
+                                <button
+                                    onClick={() => setPreviewEvidence(null)}
+                                    className="flex-1 py-4 bg-zinc-800 hover:bg-zinc-700 text-white font-black uppercase tracking-widest text-[11px] rounded-xl transition-all"
+                                >
+                                    Close Analysis
+                                </button>
+                                <button
+                                    onClick={() => {
+                                        const eNode = previewEvidence;
+                                        setPreviewEvidence(null);
+                                        const match = edges.find(e =>
+                                            e.source === suspect.id &&
+                                            (e.label?.toLowerCase() === eNode.data.label?.toLowerCase() || e.data?.evidenceId === eNode.id)
+                                        );
+                                        if (match) {
+                                            const evidenceName = eNode.data.displayName || eNode.data.label;
+                                            onLog(`⚡ BREAKTHROUGH: Confronted subject with ${evidenceName}.`);
+                                            onClose();
+                                            onNavigate(match.target);
+                                        } else {
+                                            const evidenceName = eNode.data.displayName || eNode.data.label;
+                                            onLog(`❌ DISMISSAL: Subject ignored the ${evidenceName}.`);
+                                        }
+                                    }}
+                                    className="flex-2 py-4 bg-amber-600 hover:bg-amber-500 text-white font-black uppercase tracking-widest text-[11px] rounded-xl transition-all shadow-lg shadow-amber-900/20 px-10"
+                                >
+                                    Confront Subject
+                                </button>
+                            </div>
+                        </motion.div>
+                    </motion.div>
+                )}
+            </AnimatePresence>
         </div>
     );
 }
