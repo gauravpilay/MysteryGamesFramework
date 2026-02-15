@@ -344,82 +344,107 @@ const NodeWrapper = ({ children, title, icon: Icon, colorClass = "border-zinc-70
                 <div className={`p-1.5 rounded-lg bg-black/40 shadow-inner border border-white/10 relative z-10`}>
                     <Icon className="w-4 h-4" />
                 </div>
-                <span className="text-xs font-extrabold uppercase tracking-widest flex-1 relative z-10 drop-shadow-sm">{title}</span>
-                {data.onDuplicate && (
+                <span className="text-xs font-extrabold uppercase tracking-widest flex-1 relative z-10 drop-shadow-sm truncate">{title}</span>
+                <div className="flex items-center gap-1.5 relative z-10">
                     <button
-                        className="p-1.5 hover:bg-white/10 rounded-md text-white/50 hover:text-white transition-all relative z-10"
-                        onClick={(e) => { e.stopPropagation(); data.onDuplicate(id); }}
-                        title="Duplicate Node"
+                        className={`p-1.5 hover:bg-white/10 rounded-md transition-all ${data.collapsed ? 'text-indigo-400' : 'text-zinc-500 hover:text-white'}`}
+                        onClick={(e) => {
+                            e.stopPropagation();
+                            data.onChange && data.onChange(id, { ...data, collapsed: !data.collapsed });
+                        }}
+                        title={data.collapsed ? "Expand Node" : "Collapse Node"}
                     >
-                        <Copy className="w-3.5 h-3.5" />
+                        {data.collapsed ? <ChevronDown className="w-3.5 h-3.5" /> : <ChevronUp className="w-3.5 h-3.5" />}
                     </button>
-                )}
-            </div>
-            {onLabelChange && (
-                <div className="px-4 pt-4 pb-2">
-                    <InputField
-                        placeholder="Node Identifier"
-                        value={data.label}
-                        onChange={(e) => onLabelChange(e.target.value)}
-                        className="!bg-white/5 !border-white/10 !text-sm !font-bold text-white placeholder:text-zinc-600 focus:!bg-black focus:!border-indigo-500 transition-all rounded-lg"
-                    />
+                    {data.onDuplicate && (
+                        <button
+                            className="p-1.5 hover:bg-white/10 rounded-md text-zinc-500 hover:text-white transition-all"
+                            onClick={(e) => { e.stopPropagation(); data.onDuplicate(id); }}
+                            title="Duplicate Node"
+                        >
+                            <Copy className="w-3.5 h-3.5" />
+                        </button>
+                    )}
                 </div>
-            )}
-            <div className="p-4 space-y-3">
-                {children}
+            </div>
 
-                {/* Nested Actions List */}
-                {data.actions && data.actions.length > 0 && (
-                    <div className="mt-4 pt-4 border-t border-white/5">
-                        <div className="flex items-center gap-2 mb-3 px-1">
-                            <MousePointerClick className="w-3 h-3 text-indigo-400" />
-                            <span className="text-[10px] font-bold text-zinc-500 uppercase tracking-wider">Interactive elements</span>
-                        </div>
-                        <div className="space-y-2">
-                            {data.actions.map((action, i) => (
-                                <div key={action.id} className="relative bg-black/40 border border-white/5 rounded-lg p-2 group hover:border-indigo-500/30 transition-colors">
-                                    <InputField
-                                        value={action.label}
-                                        placeholder="Action Label"
-                                        onChange={(e) => updateAction(action.id, { label: e.target.value })}
-                                        className="mb-2 !bg-transparent !border-transparent hover:!bg-white/5 !px-1.5 !py-0.5 !text-xs !font-medium"
-                                    />
-                                    <div className="flex justify-between items-center px-1">
-                                        <select
-                                            className="bg-zinc-900 border border-zinc-700 text-[10px] text-zinc-400 rounded px-2 py-1 hover:border-zinc-500 transition-colors cursor-pointer outline-none"
-                                            value={action.variant || 'default'}
-                                            onChange={(e) => updateAction(action.id, { variant: e.target.value })}
-                                        >
-                                            <option value="default">Default</option>
-                                            <option value="primary">Primary</option>
-                                            <option value="danger">Danger</option>
-                                            <option value="success">Success</option>
-                                            <option value="warning">Warning</option>
-                                            <option value="mystic">Mystic</option>
-                                            <option value="tech">Tech</option>
-                                        </select>
-                                        <button onClick={() => deleteAction(action.id)} className="text-zinc-600 hover:text-red-400 p-1 hover:bg-red-500/10 rounded transition-colors">
-                                            <Trash2 className="w-3.5 h-3.5" />
-                                        </button>
+            <AnimatePresence>
+                {!data.collapsed && (
+                    <motion.div
+                        initial={{ height: 0, opacity: 0 }}
+                        animate={{ height: 'auto', opacity: 1 }}
+                        exit={{ height: 0, opacity: 0 }}
+                        transition={{ duration: 0.2 }}
+                        className="overflow-hidden"
+                    >
+                        {onLabelChange && (
+                            <div className="px-4 pt-4 pb-2">
+                                <InputField
+                                    placeholder="Node Identifier"
+                                    value={data.label}
+                                    onChange={(e) => onLabelChange(e.target.value)}
+                                    className="!bg-white/5 !border-white/10 !text-sm !font-bold text-white placeholder:text-zinc-600 focus:!bg-black focus:!border-indigo-500 transition-all rounded-lg"
+                                />
+                            </div>
+                        )}
+                        <div className="p-4 space-y-3">
+                            {children}
+
+                            {/* Nested Actions List */}
+                            {data.actions && data.actions.length > 0 && (
+                                <div className="mt-4 pt-4 border-t border-white/5">
+                                    <div className="flex items-center gap-2 mb-3 px-1">
+                                        <MousePointerClick className="w-3 h-3 text-indigo-400" />
+                                        <span className="text-[10px] font-bold text-zinc-500 uppercase tracking-wider">Interactive elements</span>
                                     </div>
-                                    <Handle
-                                        type="source"
-                                        position={Position.Right}
-                                        id={action.id}
-                                        className="!bg-indigo-500 !w-3 !h-3 !border-2 !border-black shadow-[0_0_10px_rgba(99,102,241,0.5)] transition-all hover:scale-150 hover:bg-white"
-                                        style={{ right: -16, top: '50%' }}
-                                    />
+                                    <div className="space-y-2">
+                                        {data.actions.map((action, i) => (
+                                            <div key={action.id} className="relative bg-black/40 border border-white/5 rounded-lg p-2 group hover:border-indigo-500/30 transition-colors">
+                                                <InputField
+                                                    value={action.label}
+                                                    placeholder="Action Label"
+                                                    onChange={(e) => updateAction(action.id, { label: e.target.value })}
+                                                    className="mb-2 !bg-transparent !border-transparent hover:!bg-white/5 !px-1.5 !py-0.5 !text-xs !font-medium"
+                                                />
+                                                <div className="flex justify-between items-center px-1">
+                                                    <select
+                                                        className="bg-zinc-900 border border-zinc-700 text-[10px] text-zinc-400 rounded px-2 py-1 hover:border-zinc-500 transition-colors cursor-pointer outline-none"
+                                                        value={action.variant || 'default'}
+                                                        onChange={(e) => updateAction(action.id, { variant: e.target.value })}
+                                                    >
+                                                        <option value="default">Default</option>
+                                                        <option value="primary">Primary</option>
+                                                        <option value="danger">Danger</option>
+                                                        <option value="success">Success</option>
+                                                        <option value="warning">Warning</option>
+                                                        <option value="mystic">Mystic</option>
+                                                        <option value="tech">Tech</option>
+                                                    </select>
+                                                    <button onClick={() => deleteAction(action.id)} className="text-zinc-600 hover:text-red-400 p-1 hover:bg-red-500/10 rounded transition-colors">
+                                                        <Trash2 className="w-3.5 h-3.5" />
+                                                    </button>
+                                                </div>
+                                                <Handle
+                                                    type="source"
+                                                    position={Position.Right}
+                                                    id={action.id}
+                                                    className="!bg-indigo-500 !w-3 !h-3 !border-2 !border-black shadow-[0_0_10px_rgba(99,102,241,0.5)] transition-all hover:scale-150 hover:bg-white"
+                                                    style={{ right: -16, top: '50%' }}
+                                                />
+                                            </div>
+                                        ))}
+                                    </div>
                                 </div>
-                            ))}
-                        </div>
-                    </div>
-                )}
+                            )}
 
-                <div className="mt-3 text-[9px] text-center text-zinc-700 font-mono tracking-widest border border-dashed border-zinc-800/50 rounded-lg p-2 hover:border-zinc-700 hover:text-zinc-500 transition-colors cursor-default">
-                    DROP ACTION TO LINK
-                </div>
-            </div>
-        </div >
+                            <div className="mt-3 text-[9px] text-center text-zinc-700 font-mono tracking-widest border border-dashed border-zinc-800/50 rounded-lg p-2 hover:border-zinc-700 hover:text-zinc-500 transition-colors cursor-default">
+                                DROP ACTION TO LINK
+                            </div>
+                        </div>
+                    </motion.div>
+                )}
+            </AnimatePresence>
+        </div>
     );
 };
 

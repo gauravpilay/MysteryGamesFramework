@@ -14,8 +14,9 @@ import 'reactflow/dist/style.css';
 import { useParams, useNavigate } from 'react-router-dom';
 import { Button } from '../components/ui/shared';
 import { Logo } from '../components/ui/Logo';
-import { Save, ArrowLeft, X, FileText, User, Search, GitMerge, Terminal, MessageSquare, CircleHelp, Play, Settings, Music, Image as ImageIcon, MousePointerClick, Fingerprint, Bell, HelpCircle, ChevronLeft, ChevronRight, ToggleLeft, Lock, Sun, Moon, Stethoscope, Unlock, Binary, Grid3x3, CheckCircle, AlertTriangle, Plus, Trash2, Target, Box, FolderOpen, Brain, Pencil, Film, Menu, Globe, ShieldAlert, Mail } from 'lucide-react';
+import { Save, ArrowLeft, X, FileText, User, Search, GitMerge, Terminal, MessageSquare, CircleHelp, Play, Settings, Music, Image as ImageIcon, MousePointerClick, Fingerprint, Bell, HelpCircle, ChevronLeft, ChevronRight, ToggleLeft, Lock, Sun, Moon, Stethoscope, Unlock, Binary, Grid3x3, CheckCircle, AlertTriangle, Plus, Trash2, Target, Box, FolderOpen, Brain, Pencil, Film, Menu, Globe, ShieldAlert, Mail, LayoutGrid } from 'lucide-react';
 import { StoryNode, SuspectNode, EvidenceNode, LogicNode, TerminalNode, MessageNode, MusicNode, MediaNode, ActionNode, IdentifyNode, NotificationNode, QuestionNode, SetterNode, LockpickNode, DecryptionNode, KeypadNode, GroupNode, InputField, InterrogationNode, ThreeDSceneNode, CutsceneNode, DeepWebOSNode, EmailNode } from '../components/nodes/CustomNodes';
+import dagre from 'dagre';
 import AICaseGeneratorModal from '../components/AICaseGeneratorModalAdvanced';
 import CaseMetadataModal from '../components/CaseMetadataModal';
 import LicenseConfigModal from '../components/LicenseConfigModal';
@@ -167,6 +168,41 @@ const PALETTE_ITEMS = [
     // { type: 'threed', label: '3D Holodeck', icon: Box, className: "hover:border-cyan-500/50", iconClass: "text-cyan-400" },
     // { type: 'deepweb', label: 'Deep Web OS', icon: Globe, className: "hover:border-emerald-500/50", iconClass: "text-emerald-400" },
 ];
+const dagreGraph = new dagre.graphlib.Graph();
+dagreGraph.setDefaultEdgeLabel(() => ({}));
+
+const getLayoutedElements = (nodes, edges, direction = 'TB') => {
+    const isHorizontal = direction === 'LR';
+    dagreGraph.setGraph({ rankdir: direction });
+
+    nodes.forEach((node) => {
+        const width = node.width || (node.data?.collapsed ? 280 : 320);
+        const height = node.height || (node.data?.collapsed ? 60 : 200);
+        dagreGraph.setNode(node.id, { width, height });
+    });
+
+    edges.forEach((edge) => {
+        dagreGraph.setEdge(edge.source, edge.target);
+    });
+
+    dagre.layout(dagreGraph);
+
+    return {
+        nodes: nodes.map((node) => {
+            const nodeWithPosition = dagreGraph.node(node.id);
+            const width = node.width || (node.data?.collapsed ? 280 : 320);
+            const height = node.height || (node.data?.collapsed ? 60 : 200);
+
+            node.position = {
+                x: nodeWithPosition.x - width / 2,
+                y: nodeWithPosition.y - height / 2,
+            };
+
+            return node;
+        }),
+        edges
+    };
+};
 
 const Editor = () => {
     const { user } = useAuth();
@@ -467,6 +503,21 @@ const Editor = () => {
             });
         });
     }, [setNodes, isLocked]);
+
+    const layoutNodes = useCallback((direction = 'TB') => {
+        const { nodes: layoutedNodes, edges: layoutedEdges } = getLayoutedElements(
+            nodes,
+            edges,
+            direction
+        );
+
+        setNodes([...layoutedNodes]);
+        setEdges([...layoutedEdges]);
+
+        if (reactFlowInstance) {
+            setTimeout(() => reactFlowInstance.fitView({ padding: 0.1, duration: 800 }), 100);
+        }
+    }, [nodes, edges, setNodes, setEdges, reactFlowInstance]);
 
     // Generic Duplicate Handler
     const onDuplicateNode = useCallback((id) => {
@@ -2422,6 +2473,9 @@ Please provide a concise plot summary and narrative overview based on these elem
                             </Button>
                             <Button variant="ghost" size="icon" onClick={validateGraph} title="Validate Graph Health" className="h-8 w-8">
                                 <Stethoscope className={`w-4 h-4 ${isDarkMode ? 'text-emerald-400' : 'text-emerald-600'}`} />
+                            </Button>
+                            <Button variant="ghost" size="icon" onClick={() => layoutNodes('TB')} title="NICE ARRANGE: Auto-organize canvas" className="h-8 w-8">
+                                <LayoutGrid className={`w-4 h-4 ${isDarkMode ? 'text-sky-400' : 'text-sky-600'}`} />
                             </Button>
                             {hasFeature('enable_ai_build_feature') && (
                                 <div className="flex items-center">
