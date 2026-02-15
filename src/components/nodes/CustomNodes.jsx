@@ -713,6 +713,12 @@ export const EvidenceNode = memo(({ id, data, selected }) => {
             <Handle type="target" position={Position.Top} className="!bg-zinc-500 !w-3 !h-3 !border-2 !border-black" />
             <NodeWrapper id={id} title="Evidence / Clue" icon={Search} selected={selected} headerClass="bg-yellow-950/30 text-yellow-200" colorClass="border-yellow-900/30" data={data} onLabelChange={(v) => handleChange('label', v)}>
                 <div className="space-y-2">
+                    <InputField
+                        placeholder="Display Name (shown to player)"
+                        value={data.displayName}
+                        onChange={(e) => handleChange('displayName', e.target.value)}
+                        className="!bg-yellow-500/10 !border-yellow-500/20 text-yellow-200"
+                    />
                     {/* Label managed by NodeWrapper now */}
                     <TextArea placeholder="Description of the clue..." rows={2} value={data.description} onChange={(e) => handleChange('description', e.target.value)} />
 
@@ -834,6 +840,12 @@ export const EmailNode = memo(({ id, data, selected }) => {
             <Handle type="target" position={Position.Top} className="!bg-zinc-500 !w-3 !h-3 !border-2 !border-black" />
             <NodeWrapper id={id} title="Email Transmission" icon={Mail} selected={selected} headerClass="bg-blue-950/30 text-blue-200" colorClass="border-blue-900/30" data={data} onLabelChange={(v) => handleChange('label', v)}>
                 <div className="space-y-3 font-sans">
+                    <InputField
+                        placeholder="Display Name (shown to player)"
+                        value={data.displayName}
+                        onChange={(e) => handleChange('displayName', e.target.value)}
+                        className="!bg-blue-500/10 !border-blue-500/20 text-blue-200"
+                    />
                     {/* Email Headers */}
                     <div className="p-3 bg-black/40 border border-blue-900/20 rounded-lg space-y-2">
                         <div className="flex items-center gap-2">

@@ -559,12 +559,13 @@ const GamePreview = ({ nodes, edges, onClose, gameMetadata, onGameEnd }) => {
         if (!currentNode) return;
 
         // 1. Evidence & Suspects: Auto-collect
-        if (currentNode.type === 'evidence' || currentNode.type === 'suspect') {
+        if (currentNode.type === 'evidence' || currentNode.type === 'suspect' || currentNode.type === 'email') {
             const flag = currentNode.data.variableId || currentNode.data.condition || currentNode.id;
             if (!inventory.has(flag)) {
                 setInventory(prev => new Set([...prev, flag]));
-                if (currentNode.type === 'evidence') {
-                    addLog(`EVIDENCE ACQUIRED: ${currentNode.data.label}`);
+                if (currentNode.type === 'evidence' || currentNode.type === 'email') {
+                    const evidenceName = currentNode.data.displayName || currentNode.data.label;
+                    addLog(`EVIDENCE ACQUIRED: ${evidenceName}`);
                 } else {
                     addLog(`SUSPECT ENCOUNTERED: ${currentNode.data.name}`);
                 }
@@ -1710,7 +1711,7 @@ const GamePreview = ({ nodes, edges, onClose, gameMetadata, onGameEnd }) => {
                                                 </div>
                                             </div>
                                         )}
-                                        <h3 className="text-xl md:text-2xl font-bold text-yellow-200 mb-4">{activeModalNode.data.label}</h3>
+                                        <h3 className="text-xl md:text-2xl font-bold text-yellow-200 mb-4">{activeModalNode.data.displayName || activeModalNode.data.label}</h3>
                                         <p className="text-zinc-300 text-base md:text-lg leading-relaxed">{activeModalNode.data.description}</p>
                                     </Card>
 

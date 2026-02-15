@@ -526,7 +526,7 @@ export default function SuspectProfile({
 
                                 {(() => {
                                     const collectedEvidence = Array.from(inventory)
-                                        .map(id => nodes.find(n => n.id === id && n.type === 'evidence'))
+                                        .map(id => nodes.find(n => n.id === id && (n.type === 'evidence' || n.type === 'email')))
                                         .filter(Boolean);
 
                                     if (collectedEvidence.length === 0) {
@@ -567,11 +567,13 @@ export default function SuspectProfile({
                                                             (e.label?.toLowerCase() === eNode.data.label?.toLowerCase() || e.data?.evidenceId === eNode.id)
                                                         );
                                                         if (match) {
-                                                            onLog(`⚡ BREAKTHROUGH: Confronted subject with ${eNode.data.label}.`);
+                                                            const evidenceName = eNode.data.displayName || eNode.data.label;
+                                                            onLog(`⚡ BREAKTHROUGH: Confronted subject with ${evidenceName}.`);
                                                             onClose();
                                                             onNavigate(match.target);
                                                         } else {
-                                                            onLog(`❌ DISMISSAL: Subject ignored the ${eNode.data.label}.`);
+                                                            const evidenceName = eNode.data.displayName || eNode.data.label;
+                                                            onLog(`❌ DISMISSAL: Subject ignored the ${evidenceName}.`);
                                                         }
                                                     }}
                                                     className="relative group flex flex-col items-center"
@@ -583,10 +585,10 @@ export default function SuspectProfile({
                                                     {/* Enhanced Photo Card */}
                                                     <div className="w-full bg-zinc-900 border-x-[6px] border-t-[6px] border-b-[32px] border-white/95 rounded-lg shadow-[0_25px_60px_rgba(0,0,0,0.6)] overflow-hidden transition-all duration-500 group-hover:border-amber-400 group-hover:shadow-[0_25px_60px_rgba(245,158,11,0.4)] relative">
                                                         <div className="aspect-square relative overflow-hidden">
-                                                            {eNode.data.image ? (
+                                                            {(eNode.data.image || (eNode.type === 'email' && eNode.data.images?.[0])) ? (
                                                                 <img
-                                                                    src={eNode.data.image}
-                                                                    alt={eNode.data.label}
+                                                                    src={eNode.data.image || eNode.data.images[0]}
+                                                                    alt={eNode.data.displayName || eNode.data.label}
                                                                     className="w-full h-full object-cover group-hover:scale-125 transition-transform duration-1000"
                                                                 />
                                                             ) : (
@@ -613,7 +615,7 @@ export default function SuspectProfile({
                                                     {/* Label */}
                                                     <div className="mt-4 flex flex-col items-center">
                                                         <div className="text-xs font-black text-white uppercase tracking-[0.15em] mb-2 group-hover:text-amber-400 transition-colors">
-                                                            {eNode.data.label}
+                                                            {eNode.data.displayName || eNode.data.label}
                                                         </div>
                                                         <div className="flex items-center gap-2">
                                                             <div className="h-px w-8 bg-gradient-to-r from-transparent to-amber-500/50"></div>

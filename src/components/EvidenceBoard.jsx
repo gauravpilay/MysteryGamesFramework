@@ -23,7 +23,7 @@ const EvidenceBoard = ({
 
     // Get all unlocked resources
     const allUnlockedSuspects = nodes.filter(n => n.type === 'suspect' && history.includes(n.id));
-    const allUnlockedEvidence = nodes.filter(n => n.type === 'evidence' && inventory.has(n.id));
+    const allUnlockedEvidence = nodes.filter(n => (n.type === 'evidence' || n.type === 'email') && inventory.has(n.id));
 
     const addItemToBoard = (item) => {
         if (boardItems.find(i => i.id === item.id)) return;
@@ -31,9 +31,9 @@ const EvidenceBoard = ({
         setBoardItems(prev => [...prev, {
             id: item.id,
             type: item.type,
-            label: item.data.label || item.data.name,
-            image: item.data.image || item.data.url,
-            description: item.data.description || item.data.role || '',
+            label: item.data.displayName || item.data.label || item.data.name,
+            image: item.data.image || item.data.url || (item.type === 'email' ? item.data.images?.[0] : null),
+            description: item.data.description || item.data.role || item.data.subject || '',
             x: 100 + Math.random() * 200,
             y: 100 + Math.random() * 200,
             data: item.data
@@ -185,8 +185,8 @@ const EvidenceBoard = ({
                                         </div>
                                         {sidebarOpen && (
                                             <div className="min-w-0 flex-1">
-                                                <div className="text-[10px] font-bold text-zinc-200 truncate">{e.data.label}</div>
-                                                <div className="text-[8px] text-zinc-400 truncate opacity-50 italic">Captured Clue</div>
+                                                <div className="text-[10px] font-bold text-zinc-200 truncate">{e.data.displayName || e.data.label}</div>
+                                                <div className="text-[8px] text-zinc-400 truncate opacity-50 italic">{e.type === 'email' ? 'Intercepted Email' : 'Captured Clue'}</div>
                                             </div>
                                         )}
                                         {sidebarOpen && !onBoard && <Plus className="w-3 h-3 text-zinc-600 group-hover:text-amber-500" />}
