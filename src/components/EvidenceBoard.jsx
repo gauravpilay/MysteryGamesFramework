@@ -14,7 +14,8 @@ const EvidenceBoard = ({
     connections,
     setConnections,
     notes,
-    setNotes
+    setNotes,
+    isSimultaneous = false
 }) => {
     const [linkingFrom, setLinkingFrom] = useState(null);
     const [zoomedImage, setZoomedImage] = useState(null);
@@ -99,7 +100,7 @@ const EvidenceBoard = ({
     };
 
     return (
-        <div className="fixed inset-0 z-[200] bg-zinc-950/98 flex font-mono overflow-hidden">
+        <div className={`${isSimultaneous ? 'absolute' : 'fixed'} inset-0 z-[200] bg-zinc-950/98 flex font-mono overflow-hidden`}>
             {/* Sidebar / Toolkit */}
             <motion.div
                 initial={false}
@@ -210,7 +211,7 @@ const EvidenceBoard = ({
             {!sidebarOpen && (
                 <button
                     onClick={() => setSidebarOpen(true)}
-                    className="md:hidden fixed bottom-20 right-6 w-14 h-14 bg-amber-500 rounded-full shadow-2xl flex items-center justify-center text-black z-[205] active:scale-95 transition-transform"
+                    className={`${isSimultaneous ? 'absolute' : 'fixed'} bottom-20 right-6 w-14 h-14 bg-amber-500 rounded-full shadow-2xl flex items-center justify-center text-black z-[205] active:scale-95 transition-transform`}
                 >
                     <Plus className="w-8 h-8" />
                 </button>
@@ -440,7 +441,7 @@ const EvidenceBoard = ({
                         initial={{ opacity: 0 }}
                         animate={{ opacity: 1 }}
                         exit={{ opacity: 0 }}
-                        className="fixed inset-0 z-[250] bg-black/98 flex items-center justify-center p-8 backdrop-blur-xl cursor-zoom-out"
+                        className={`${isSimultaneous ? 'absolute' : 'fixed'} inset-0 z-[250] bg-black/98 flex items-center justify-center p-8 backdrop-blur-xl cursor-zoom-out`}
                         onClick={() => setZoomedImage(null)}
                     >
                         <motion.div
@@ -468,7 +469,7 @@ const EvidenceBoard = ({
             </AnimatePresence >
 
             {/* Global Instruction Bar */}
-            < div className="fixed bottom-4 left-1/2 -translate-x-1/2 px-4 md:px-6 py-2 bg-zinc-950/80 border border-zinc-800 rounded-full backdrop-blur-xl flex items-center gap-4 md:gap-8 text-[7px] md:text-[9px] text-zinc-500 uppercase tracking-widest z-50 shadow-2xl w-[90%] md:w-auto overflow-x-auto no-scrollbar" >
+            < div className={`${isSimultaneous ? 'absolute' : 'fixed'} bottom-4 left-1/2 -translate-x-1/2 px-4 md:px-6 py-2 bg-zinc-950/80 border border-zinc-800 rounded-full backdrop-blur-xl flex items-center gap-4 md:gap-8 text-[7px] md:text-[9px] text-zinc-500 uppercase tracking-widest z-50 shadow-2xl w-[90%] md:w-auto overflow-x-auto no-scrollbar`} >
                 <div className="flex items-center gap-2 shrink-0"><GripHorizontal className="w-3 h-3 md:w-4 md:h-4 text-zinc-700" /> Drag</div>
                 <div className="flex items-center gap-2 shrink-0"><Link className="w-3 h-3 md:w-4 md:h-4 text-zinc-700" /> Link</div>
                 <div className="flex items-center gap-2 shrink-0"><Type className="w-3 h-3 md:w-4 md:h-4 text-amber-500" /> Label</div>

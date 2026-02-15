@@ -21,7 +21,8 @@ const CinematicCutscene = ({
     cameraAngle = 'medium', // 'closeup', 'medium', 'wide', 'dramatic'
     onComplete,
     autoPlay = true,
-    showControls = true
+    showControls = true,
+    isSimultaneous = false
 }) => {
     const [isPlaying, setIsPlaying] = useState(autoPlay);
     const [currentTextIndex, setCurrentTextIndex] = useState(0);
@@ -202,7 +203,7 @@ const CinematicCutscene = ({
     };
 
     return (
-        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black">
+        <div className={`${isSimultaneous ? 'absolute' : 'fixed'} inset-0 z-50 flex items-center justify-center bg-black`}>
             {/* Cinematic Background */}
             <div className={`absolute inset-0 bg-gradient-to-br ${currentMood.bgGradient}`}>
                 {/* Animated Particles */}
@@ -358,7 +359,7 @@ const CinematicCutscene = ({
             {/* Playback Controls */}
             {showControls && (
                 <motion.div
-                    className="absolute bottom-24 left-1/2 transform -translate-x-1/2 flex items-center gap-4 bg-black/60 backdrop-blur-md border border-white/20 rounded-full px-6 py-3 z-20"
+                    className={`${isSimultaneous ? 'absolute' : 'fixed'} bottom-24 left-1/2 transform -translate-x-1/2 flex items-center gap-4 bg-black/60 backdrop-blur-md border border-white/20 rounded-full px-6 py-3 z-20`}
                     initial={{ y: 50, opacity: 0 }}
                     animate={{ y: 0, opacity: 1 }}
                     transition={{ delay: 1 }}

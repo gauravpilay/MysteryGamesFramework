@@ -19,8 +19,8 @@ const StarRating = ({ rating, setRating, hover, setHover }) => {
                 >
                     <Star
                         className={`w-10 h-10 transition-colors ${(hover || rating) >= star
-                                ? 'fill-amber-400 text-amber-400 drop-shadow-[0_0_10px_rgba(251,191,36,0.5)]'
-                                : 'text-zinc-700'
+                            ? 'fill-amber-400 text-amber-400 drop-shadow-[0_0_10px_rgba(251,191,36,0.5)]'
+                            : 'text-zinc-700'
                             }`}
                     />
                 </motion.button>
@@ -29,7 +29,7 @@ const StarRating = ({ rating, setRating, hover, setHover }) => {
     );
 };
 
-const FeedbackModal = ({ isOpen, onClose, onSubmit, caseTitle }) => {
+const FeedbackModal = ({ isOpen, onClose, onSubmit, caseTitle, isSimultaneous = false }) => {
     const [rating, setRating] = useState(0);
     const [hover, setHover] = useState(0);
     const [difficulty, setDifficulty] = useState('');
@@ -51,7 +51,7 @@ const FeedbackModal = ({ isOpen, onClose, onSubmit, caseTitle }) => {
     if (!isOpen) return null;
 
     return (
-        <div className="fixed inset-0 z-[200] flex items-center justify-center p-4 bg-black/90 backdrop-blur-xl">
+        <div className={`${isSimultaneous ? 'absolute' : 'fixed'} inset-0 z-[200] flex items-center justify-center p-4 bg-black/90 backdrop-blur-xl`}>
             <motion.div
                 initial={{ scale: 0.9, opacity: 0, y: 20 }}
                 animate={{ scale: 1, opacity: 1, y: 0 }}
@@ -116,8 +116,8 @@ const FeedbackModal = ({ isOpen, onClose, onSubmit, caseTitle }) => {
                                                     key={level}
                                                     onClick={() => setDifficulty(level)}
                                                     className={`px-4 py-3 rounded-xl border text-sm font-bold transition-all ${difficulty === level
-                                                            ? 'bg-indigo-600 border-indigo-500 text-white shadow-[0_0_15px_rgba(79,70,229,0.4)]'
-                                                            : 'bg-zinc-900/50 border-zinc-800 text-zinc-400 hover:border-zinc-700'
+                                                        ? 'bg-indigo-600 border-indigo-500 text-white shadow-[0_0_15px_rgba(79,70,229,0.4)]'
+                                                        : 'bg-zinc-900/50 border-zinc-800 text-zinc-400 hover:border-zinc-700'
                                                         }`}
                                                 >
                                                     {level}
@@ -156,8 +156,8 @@ const FeedbackModal = ({ isOpen, onClose, onSubmit, caseTitle }) => {
                                                     key={level}
                                                     onClick={() => setEngagement(level)}
                                                     className={`px-4 py-3 rounded-xl border text-sm font-bold transition-all ${engagement === level
-                                                            ? 'bg-fuchsia-600 border-fuchsia-500 text-white shadow-[0_0_15px_rgba(192,38,211,0.4)]'
-                                                            : 'bg-zinc-900/50 border-zinc-800 text-zinc-400 hover:border-zinc-700'
+                                                        ? 'bg-fuchsia-600 border-fuchsia-500 text-white shadow-[0_0_15px_rgba(192,38,211,0.4)]'
+                                                        : 'bg-zinc-900/50 border-zinc-800 text-zinc-400 hover:border-zinc-700'
                                                         }`}
                                                 >
                                                     {level}

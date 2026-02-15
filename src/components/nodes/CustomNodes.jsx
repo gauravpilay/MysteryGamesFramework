@@ -280,6 +280,7 @@ export const IdentifyNode = memo(({ id, data, selected }) => {
 import { Card, Button } from '../ui/shared';
 
 const NodeWrapper = ({ children, title, icon: Icon, colorClass = "border-zinc-700", headerClass = "bg-zinc-900", selected, data, onLabelChange, id }) => {
+    const isExecuting = data.isExecuting;
 
     const handleDrop = (e) => {
         const type = e.dataTransfer.getData('application/reactflow');
@@ -315,15 +316,15 @@ const NodeWrapper = ({ children, title, icon: Icon, colorClass = "border-zinc-70
             colorClass.includes('green') ? 'rgba(34,197,94,0.5)' :
                 colorClass.includes('yellow') ? 'rgba(234,179,8,0.5)' :
                     colorClass.includes('purple') || colorClass.includes('violet') ? 'rgba(139,92,246,0.5)' :
-                        'rgba(99,102,241,0.5)') : 'transparent';
+                        'rgba(99,102,241,0.5)') : isExecuting ? 'rgba(16,185,129,0.6)' : 'transparent';
 
     return (
         <div
             className={`w-72 rounded-2xl border transition-all duration-300 relative group pointer-events-auto
-                ${selected ? 'scale-[1.02] z-50' : 'hover:border-zinc-500 z-10'}
+                ${selected ? 'scale-[1.02] z-50 border-white/40' : (isExecuting ? 'scale-[1.05] z-[60] border-emerald-500' : 'hover:border-zinc-500 z-10')}
                 ${colorClass} backdrop-blur-md bg-black/80 shadow-2xl`}
             style={{
-                boxShadow: selected ? `0 0 30px ${glowColor}, inset 0 0 20px ${glowColor}` : '0 10px 30px -10px rgba(0,0,0,0.5)'
+                boxShadow: (selected || isExecuting) ? `0 0 40px ${glowColor}, inset 0 0 20px ${glowColor}` : '0 10px 30px -10px rgba(0,0,0,0.5)'
             }}
             onDrop={handleDrop}
             onDragOver={(e) => {
@@ -333,11 +334,23 @@ const NodeWrapper = ({ children, title, icon: Icon, colorClass = "border-zinc-70
                 }
             }}
         >
+            {/* Neural Execution Pulse */}
+            <AnimatePresence>
+                {isExecuting && (
+                    <motion.div
+                        initial={{ opacity: 0, scale: 1 }}
+                        animate={{ opacity: [0.2, 0, 0.2], scale: [1, 1.1, 1] }}
+                        transition={{ duration: 2, repeat: Infinity }}
+                        className="absolute -inset-4 border-2 border-emerald-500/30 rounded-[2.5rem] pointer-events-none z-0"
+                    />
+                )}
+            </AnimatePresence>
+
             {/* Tech Corners */}
-            <div className={`absolute -top-px -left-px w-3 h-3 border-t border-l rounded-tl-lg ${selected ? 'border-white' : 'border-zinc-600'} transition-colors`}></div>
-            <div className={`absolute -top-px -right-px w-3 h-3 border-t border-r rounded-tr-lg ${selected ? 'border-white' : 'border-zinc-600'} transition-colors`}></div>
-            <div className={`absolute -bottom-px -left-px w-3 h-3 border-b border-l rounded-bl-lg ${selected ? 'border-white' : 'border-zinc-600'} transition-colors`}></div>
-            <div className={`absolute -bottom-px -right-px w-3 h-3 border-b border-r rounded-br-lg ${selected ? 'border-white' : 'border-zinc-600'} transition-colors`}></div>
+            <div className={`absolute -top-px -left-px w-3 h-3 border-t border-l rounded-tl-lg ${selected || isExecuting ? 'border-white' : 'border-zinc-600'} transition-colors`}></div>
+            <div className={`absolute -top-px -right-px w-3 h-3 border-t border-r rounded-tr-lg ${selected || isExecuting ? 'border-white' : 'border-zinc-600'} transition-colors`}></div>
+            <div className={`absolute -bottom-px -left-px w-3 h-3 border-b border-l rounded-bl-lg ${selected || isExecuting ? 'border-white' : 'border-zinc-600'} transition-colors`}></div>
+            <div className={`absolute -bottom-px -right-px w-3 h-3 border-b border-r rounded-br-lg ${selected || isExecuting ? 'border-white' : 'border-zinc-600'} transition-colors`}></div>
 
             <div className={`flex items-center gap-3 px-4 py-3 rounded-t-2xl border-b border-white/5 ${headerClass} bg-opacity-20 backdrop-blur-sm relative overflow-hidden`}>
                 <div className="absolute inset-0 bg-gradient-to-r from-white/5 to-transparent opacity-50"></div>

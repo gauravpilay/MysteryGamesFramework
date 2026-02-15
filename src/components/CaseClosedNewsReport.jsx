@@ -13,7 +13,8 @@ const CaseClosedNewsReport = ({
     accusationResult,
     culpritName,
     objectiveScores,
-    onClose
+    onClose,
+    isSimultaneous = false
 }) => {
     const { settings } = useConfig();
     const [report, setReport] = useState(null);
@@ -192,7 +193,7 @@ const CaseClosedNewsReport = ({
     const tickerText = report?.ticker?.join(' • ') || "SCANNING FOR NEW DATA • NEURAL LINK STABLE • RECONSTRUCTION IN PROGRESS • ";
 
     return (
-        <div className="fixed inset-0 z-[200] bg-[#020202] text-white font-sans overflow-hidden flex flex-col">
+        <div className={`${isSimultaneous ? 'absolute' : 'fixed'} inset-0 z-[200] bg-[#020202] text-white font-sans overflow-hidden flex flex-col`}>
             {/* AMBIENT BACKGROUND */}
             <div className="absolute inset-0 z-0">
                 <div className={`absolute inset-0 opacity-20 bg-gradient-to-b ${report?.mood === 'triumphant' ? 'from-emerald-900/40' : report?.mood === 'somber' ? 'from-red-900/40' : 'from-indigo-900/40'} via-black to-black`} />
@@ -241,7 +242,7 @@ const CaseClosedNewsReport = ({
                         initial={{ opacity: 0, y: -20, x: '-50%' }}
                         animate={{ opacity: 1, y: 0, x: '-50%' }}
                         exit={{ opacity: 0, y: -20, x: '-50%' }}
-                        className="fixed top-24 left-1/2 z-[300] bg-indigo-600 px-6 py-3 rounded-2xl border border-white/20 shadow-2xl flex items-center gap-3"
+                        className={`${isSimultaneous ? 'absolute' : 'fixed'} top-24 left-1/2 z-[300] bg-indigo-600 px-6 py-3 rounded-2xl border border-white/20 shadow-2xl flex items-center gap-3`}
                     >
                         <Check className="w-4 h-4 text-white" />
                         <span className="text-sm font-bold uppercase tracking-widest text-white">{notification}</span>

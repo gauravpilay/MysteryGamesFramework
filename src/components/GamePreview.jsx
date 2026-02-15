@@ -18,8 +18,8 @@ import {
     resolveEdgeTarget as resolveTarget
 } from '../lib/gameLogic';
 
-const BackgroundEffect = () => (
-    <div className="fixed inset-0 pointer-events-none z-0 overflow-hidden">
+const BackgroundEffect = ({ isSimultaneous = false }) => (
+    <div className={`${isSimultaneous ? 'absolute' : 'fixed'} inset-0 pointer-events-none z-0 overflow-hidden`}>
         <style>
             {`
             @keyframes scanline {
@@ -435,9 +435,16 @@ const DecryptionMinigame = ({ node, onSuccess }) => {
     );
 };
 
-const GamePreview = ({ nodes, edges, onClose, gameMetadata, onGameEnd }) => {
+const GamePreview = ({ nodes, edges, onClose, gameMetadata, onGameEnd, onNodeChange, isSimultaneous = false }) => {
     // Game State
     const [currentNodeId, setCurrentNodeId] = useState(null);
+
+    // Notify parent of node changes for simultaneous view
+    useEffect(() => {
+        if (onNodeChange) {
+            onNodeChange(currentNodeId);
+        }
+    }, [currentNodeId, onNodeChange]);
     const [isContentReady, setIsContentReady] = useState(false);
     const [inventory, setInventory] = useState(new Set());
     const [history, setHistory] = useState([]); // Array of distinct visited node IDs
@@ -1236,8 +1243,8 @@ const GamePreview = ({ nodes, edges, onClose, gameMetadata, onGameEnd }) => {
     }, [currentNode, options]);
 
     return (
-        <div className="fixed inset-0 z-50 bg-black flex flex-col font-sans">
-            <BackgroundEffect />
+        <div className={`${isSimultaneous ? 'absolute w-full h-full' : 'fixed inset-0 z-50'} bg-black flex flex-col font-sans overflow-hidden`}>
+            <BackgroundEffect isSimultaneous={isSimultaneous} />
             {/* Audio Player (Hidden) */}
             <audio ref={audioRef} />
 
@@ -1309,7 +1316,7 @@ const GamePreview = ({ nodes, edges, onClose, gameMetadata, onGameEnd }) => {
                     </div>
 
                     {/* Timer Logic - Always Visible & Prominent */}
-                    <div className={`fixed top-2 left-1/2 -translate-x-1/2 px-4 py-1.5 md:px-8 md:py-3 rounded-xl border-2 shadow-[0_0_20px_rgba(0,0,0,0.5)] z-[120] flex items-center gap-2 md:gap-3 backdrop-blur-xl transition-all duration-300 ${timeLeft < 60 || !missionStarted ? 'bg-red-950/90 border-red-500 text-red-500' : 'bg-black/90 border-indigo-500 text-indigo-400'}`}>
+                    <div className={`${isSimultaneous ? 'relative mx-auto mt-2' : 'fixed top-2 left-1/2 -translate-x-1/2'} px-4 py-1.5 md:px-8 md:py-3 rounded-xl border-2 shadow-[0_0_20px_rgba(0,0,0,0.5)] z-[120] flex items-center gap-2 md:gap-3 backdrop-blur-xl transition-all duration-300 ${timeLeft < 60 || !missionStarted ? 'bg-red-950/90 border-red-500 text-red-500' : 'bg-black/90 border-indigo-500 text-indigo-400'}`}>
                         <Clock className={`w-4 h-4 md:w-6 md:h-6 ${timeLeft < 60 ? 'animate-pulse' : ''}`} />
                         <div className="flex flex-col items-center leading-none">
                             <span className="text-[7px] md:text-xs font-black uppercase tracking-[0.1em] md:tracking-[0.2em] opacity-80 mb-0.5 md:mb-1">
@@ -1706,7 +1713,7 @@ const GamePreview = ({ nodes, edges, onClose, gameMetadata, onGameEnd }) => {
             {/* Generic Interaction Modal (Replaces Suspect Modal) */}
             <AnimatePresence>
                 {activeModalNode && (
-                    <div className="fixed inset-0 z-[150] flex items-center justify-center p-4 bg-black/80 backdrop-blur-sm">
+                    <div className={`${isSimultaneous ? 'absolute' : 'fixed'} inset-0 z-[150] flex items-center justify-center p-4 bg-black/80 backdrop-blur-sm`}>
                         <motion.div
                             initial={{ scale: 0.9, opacity: 0 }}
                             animate={{ scale: 1, opacity: 1 }}
@@ -1810,6 +1817,7 @@ const GamePreview = ({ nodes, edges, onClose, gameMetadata, onGameEnd }) => {
                                     onClose={() => setActiveModalNode(null)}
                                     onNavigate={handleOptionClick}
                                     onLog={addLog}
+                                    isSimultaneous={isSimultaneous}
                                 />
                             )}
                             {activeModalNode.type === 'evidence' && (
@@ -1891,6 +1899,7 @@ const GamePreview = ({ nodes, edges, onClose, gameMetadata, onGameEnd }) => {
                                         }
                                     }}
                                     onFail={() => handleCloseModal()}
+                                    isSimultaneous={isSimultaneous}
                                 />
                             )}
 
@@ -2240,7 +2249,7 @@ const GamePreview = ({ nodes, edges, onClose, gameMetadata, onGameEnd }) => {
             < AnimatePresence >
                 {zoomedImage && (
                     <div
-                        className="fixed inset-0 z-[200] bg-black/95 backdrop-blur-sm flex items-center justify-center cursor-pointer"
+                        className={`${isSimultaneous ? 'absolute' : 'fixed'} inset-0 z-[200] bg-black/95 backdrop-blur-sm flex items-center justify-center cursor-pointer`}
                         onClick={() => setZoomedImage(null)}
                     >
                         <button
@@ -2287,6 +2296,7 @@ const GamePreview = ({ nodes, edges, onClose, gameMetadata, onGameEnd }) => {
                                 setShowEvidenceBoard(false);
                             }
                         }}
+                        isSimultaneous={isSimultaneous}
                     />
                 )}
             </AnimatePresence >
@@ -2294,7 +2304,7 @@ const GamePreview = ({ nodes, edges, onClose, gameMetadata, onGameEnd }) => {
             {/* Accusation Modal */}
             < AnimatePresence >
                 {showAccuseModal && (
-                    <div className="fixed inset-0 z-[150] flex items-center justify-center p-4 bg-black/90 backdrop-blur-md">
+                    <div className={`${isSimultaneous ? 'absolute' : 'fixed'} inset-0 z-[150] flex items-center justify-center p-4 bg-black/90 backdrop-blur-md`}>
                         <motion.div
                             initial={{ scale: 0.95, opacity: 0 }}
                             animate={{ scale: 1, opacity: 1 }}
@@ -2481,6 +2491,7 @@ const GamePreview = ({ nodes, edges, onClose, gameMetadata, onGameEnd }) => {
                                 handleOptionClick(options[0].target);
                             }
                         }}
+                        isSimultaneous={isSimultaneous}
                     />
                 )}
             </AnimatePresence>
@@ -2506,6 +2517,7 @@ const GamePreview = ({ nodes, edges, onClose, gameMetadata, onGameEnd }) => {
                         }}
                         autoPlay={true}
                         showControls={true}
+                        isSimultaneous={isSimultaneous}
                     />
                 )}
             </AnimatePresence>
@@ -2524,6 +2536,7 @@ const GamePreview = ({ nodes, edges, onClose, gameMetadata, onGameEnd }) => {
                             setShowNewsReport(false);
                             handleFinish();
                         }}
+                        isSimultaneous={isSimultaneous}
                     />
                 )}
             </AnimatePresence>
@@ -2534,6 +2547,7 @@ const GamePreview = ({ nodes, edges, onClose, gameMetadata, onGameEnd }) => {
                 onClose={handleFeedbackSkip}
                 onSubmit={handleFeedbackSubmit}
                 caseTitle={gameMetadata?.title || "Unknown Mission"}
+                isSimultaneous={isSimultaneous}
             />
         </div >
     );

@@ -14,7 +14,7 @@ import 'reactflow/dist/style.css';
 import { useParams, useNavigate } from 'react-router-dom';
 import { Button } from '../components/ui/shared';
 import { Logo } from '../components/ui/Logo';
-import { Save, ArrowLeft, X, FileText, User, Search, GitMerge, Terminal, MessageSquare, CircleHelp, Play, Settings, Music, Image as ImageIcon, MousePointerClick, Fingerprint, Bell, HelpCircle, ChevronLeft, ChevronRight, ToggleLeft, Lock, Sun, Moon, Stethoscope, Unlock, Binary, Grid3x3, CheckCircle, AlertTriangle, Plus, Trash2, Target, Box, FolderOpen, Brain, Pencil, Film, Menu, Globe, ShieldAlert, Mail, LayoutGrid } from 'lucide-react';
+import { Save, ArrowLeft, X, FileText, User, Search, GitMerge, Terminal, MessageSquare, CircleHelp, Play, Settings, Music, Image as ImageIcon, MousePointerClick, Fingerprint, Bell, HelpCircle, ChevronLeft, ChevronRight, ToggleLeft, Lock, Sun, Moon, Stethoscope, Unlock, Binary, Grid3x3, CheckCircle, AlertTriangle, Plus, Trash2, Target, Box, FolderOpen, Brain, Pencil, Film, Menu, Globe, ShieldAlert, Mail, LayoutGrid, Activity } from 'lucide-react';
 import { StoryNode, SuspectNode, EvidenceNode, LogicNode, TerminalNode, MessageNode, MusicNode, MediaNode, ActionNode, IdentifyNode, NotificationNode, QuestionNode, SetterNode, LockpickNode, DecryptionNode, KeypadNode, GroupNode, InputField, InterrogationNode, ThreeDSceneNode, CutsceneNode, DeepWebOSNode, EmailNode } from '../components/nodes/CustomNodes';
 import dagre from 'dagre';
 import AICaseGeneratorModal from '../components/AICaseGeneratorModalAdvanced';
@@ -224,6 +224,38 @@ const Editor = () => {
     const [searchQuery, setSearchQuery] = useState("");
     const [isSearchOpen, setIsSearchOpen] = useState(false);
     const [isPaletteCollapsed, setIsPaletteCollapsed] = useState(window.innerWidth < 768);
+    const [isSimultaneousMode, setIsSimultaneousMode] = useState(false);
+    const [activeExecutingNodeId, setActiveExecutingNodeId] = useState(null);
+
+    // Sync active state to nodes for highlighting
+    useEffect(() => {
+        setNodes(nds => nds.map(node => ({
+            ...node,
+            data: {
+                ...node.data,
+                isExecuting: node.id === activeExecutingNodeId
+            }
+        })));
+    }, [activeExecutingNodeId, setNodes]);
+
+    useEffect(() => {
+        if (!showPreview) {
+            setActiveExecutingNodeId(null);
+        }
+    }, [showPreview]);
+
+    const onGameNodeChange = useCallback((nodeId) => {
+        setActiveExecutingNodeId(nodeId);
+        if (nodeId && reactFlowInstance) {
+            const node = nodes.find(n => n.id === nodeId);
+            if (node) {
+                reactFlowInstance.setCenter(node.position.x + (node.width || 300) / 2, node.position.y + (node.height || 200) / 2, {
+                    zoom: 1.0,
+                    duration: 500
+                });
+            }
+        }
+    }, [reactFlowInstance, nodes]);
 
     useEffect(() => {
         const handleResize = () => {
@@ -328,7 +360,11 @@ const Editor = () => {
                     const isClosing = newData.collapsed && !node.data.collapsed;
                     const isOpening = !newData.collapsed && node.data.collapsed;
 
-                    let nextData = { ...newData, onChange: onNodeUpdate };
+                    let nextData = {
+                        ...newData,
+                        onChange: onNodeUpdate,
+                        isExecuting: node.id === activeExecutingNodeId
+                    };
 
                     if (isClosing) {
                         // Store current dimensions before collapsing
@@ -557,7 +593,8 @@ const Editor = () => {
                     onDuplicate: onDuplicateNode,
                     onUngroup: onUngroup,
                     learningObjectives, // Inject global objectives
-                    enableThreeD
+                    enableThreeD,
+                    isExecuting: node.id === activeExecutingNodeId
                 }
             })));
         }
@@ -2477,6 +2514,15 @@ Please provide a concise plot summary and narrative overview based on these elem
                             <Button variant="ghost" size="icon" onClick={() => layoutNodes('TB')} title="NICE ARRANGE: Auto-organize canvas" className="h-8 w-8">
                                 <LayoutGrid className={`w-4 h-4 ${isDarkMode ? 'text-sky-400' : 'text-sky-600'}`} />
                             </Button>
+                            <Button
+                                variant="ghost"
+                                size="icon"
+                                onClick={() => setIsSimultaneousMode(!isSimultaneousMode)}
+                                title={isSimultaneousMode ? "Disable Simultaneous View" : "Enable Simultaneous View: Side-by-side Game & Canvas"}
+                                className={`h-8 w-8 ${isSimultaneousMode ? 'bg-emerald-500/20 text-emerald-400 border border-emerald-500/50' : ''}`}
+                            >
+                                <Activity className="w-4 h-4" />
+                            </Button>
                             {hasFeature('enable_ai_build_feature') && (
                                 <div className="flex items-center">
                                     <div className="w-px h-4 bg-white/10"></div>
@@ -2738,38 +2784,89 @@ Please provide a concise plot summary and narrative overview based on these elem
                     )}
                 </aside>
 
-                {/* Canvas */}
-                <div id="editor-canvas" className="flex-1 h-full relative" ref={reactFlowWrapper}>
-                    <ReactFlow
-                        nodes={nodes}
-                        edges={edges}
-                        onNodesChange={isLocked ? undefined : onNodesChange}
-                        onEdgesChange={isLocked ? undefined : onEdgesChange}
-                        onConnect={isLocked ? undefined : onConnect}
-                        onInit={setReactFlowInstance}
-                        nodesDraggable={!isLocked}
-                        nodesConnectable={!isLocked}
-                        elementsSelectable={!isLocked}
-                        nodesFocusable={!isLocked}
-                        edgesFocusable={!isLocked}
-                        onDrop={onDrop}
-                        onDragOver={onDragOver}
-                        onNodeDragStop={onNodeDragStop}
-                        onEdgeClick={onEdgeClick}
-                        nodeTypes={nodeTypes}
-                        deleteKeyCode={['Backspace', 'Delete']}
-                        fitView
-                        className={isDarkMode ? "bg-transparent" : "bg-zinc-50"}
-                        proOptions={{ hideAttribution: true }}
-                    >
-                        <Background color={isDarkMode ? "#52525b" : "#e4e4e7"} gap={24} size={1} className="opacity-20" />
-                        <Controls className={`${isDarkMode ? 'bg-black/60 border-white/10 text-zinc-400 fill-zinc-400 backdrop-blur-md rounded-lg p-1' : 'bg-white border-zinc-200 text-zinc-600 fill-zinc-600'}`} showInteractive={false} />
-                        <MiniMap
-                            className={`${isDarkMode ? 'bg-black/60 border-white/10 backdrop-blur-md rounded-lg overflow-hidden' : 'bg-white border-zinc-200'}`}
-                            nodeColor="#6366f1"
-                            maskColor={isDarkMode ? "rgba(0, 0, 0, 0.6)" : "rgba(255, 255, 255, 0.7)"}
-                        />
-                    </ReactFlow>
+                {/* Main View Area */}
+                <div className="flex-1 flex flex-row overflow-hidden relative">
+                    {/* Canvas Container */}
+                    <div id="editor-canvas" className={`h-full relative transition-all duration-500 shrink-0 min-w-0 ${isSimultaneousMode && showPreview ? 'w-1/2 border-r border-white/10' : 'flex-1'}`} ref={reactFlowWrapper}>
+                        <ReactFlow
+                            nodes={nodes}
+                            edges={edges}
+                            onNodesChange={isLocked ? undefined : onNodesChange}
+                            onEdgesChange={isLocked ? undefined : onEdgesChange}
+                            onConnect={isLocked ? undefined : onConnect}
+                            onInit={setReactFlowInstance}
+                            nodesDraggable={!isLocked}
+                            nodeTypes={nodeTypes}
+                            fitView
+                            onDrop={onDrop}
+                            onDragOver={onDragOver}
+                            onNodeDragStop={onNodeDragStop}
+                            onEdgeClick={onEdgeClick}
+                            deleteKeyCode={isLocked ? null : 'Backspace'}
+                            selectionKeyCode={isLocked ? null : 'Shift'}
+                            multiSelectionKeyCode={isLocked ? null : 'Meta'}
+                            minZoom={0.1}
+                            maxZoom={4}
+                            snapToGrid
+                            snapGrid={[20, 20]}
+                        >
+                            <Background color={isDarkMode ? "#333" : "#ccc"} gap={20} />
+                            <Controls className={`${isDarkMode ? 'fill-white stroke-white !bg-zinc-900 !border-white/10' : ''}`} />
+                            <MiniMap
+                                nodeStrokeColor={(n) => {
+                                    if (n.type === 'story') return '#4f46e5';
+                                    if (n.type === 'suspect') return '#ef4444';
+                                    if (n.type === 'evidence') return '#eab308';
+                                    if (n.type === 'logic') return '#10b981';
+                                    return '#333';
+                                }}
+                                nodeColor={(n) => {
+                                    if (n.id === activeExecutingNodeId) return '#10b981';
+                                    return isDarkMode ? '#111' : '#fff';
+                                }}
+                                className={`!rounded-xl border shadow-2xl !bg-black/50 backdrop-blur-md ${isDarkMode ? 'border-white/10' : 'border-zinc-200'}`}
+                            />
+                        </ReactFlow>
+
+                        {/* Simultaneous Highlight Legend */}
+                        {isSimultaneousMode && showPreview && (
+                            <div className="absolute top-4 left-4 z-[100] px-3 py-1.5 rounded-full bg-emerald-500/20 border border-emerald-500/50 backdrop-blur-md flex items-center gap-2 animate-pulse shadow-[0_0_15px_rgba(16,185,129,0.3)]">
+                                <div className="w-2 h-2 rounded-full bg-emerald-500"></div>
+                                <span className="text-[10px] font-black text-emerald-400 uppercase tracking-widest">Simultaneous Mode Active</span>
+                            </div>
+                        )}
+                    </div>
+
+                    {/* Right Pane: Concurrent Game UI */}
+                    <AnimatePresence>
+                        {isSimultaneousMode && showPreview && (
+                            <motion.div
+                                initial={{ x: '100%', opacity: 0 }}
+                                animate={{ x: 0, opacity: 1 }}
+                                exit={{ x: '100%', opacity: 0 }}
+                                transition={{ type: 'spring', damping: 25, stiffness: 200 }}
+                                className="w-1/2 h-full bg-black relative z-20 border-l border-white/5 shadow-[-20px_0_50px_rgba(0,0,0,0.5)] shrink-0 overflow-hidden"
+                            >
+                                <GamePreview
+                                    nodes={nodes}
+                                    edges={edges}
+                                    onClose={() => setShowPreview(false)}
+                                    gameMetadata={{ timeLimit, learningObjectives }}
+                                    onGameEnd={handlePreviewGameEnd}
+                                    onNodeChange={onGameNodeChange}
+                                    isSimultaneous={true}
+                                />
+
+                                <button
+                                    onClick={() => setShowPreview(false)}
+                                    className="absolute top-4 right-4 z-[101] p-2 rounded-full bg-white/5 hover:bg-white/10 text-white/50 hover:text-white transition-all backdrop-blur-md border border-white/5"
+                                    title="Close Preview"
+                                >
+                                    <X className="w-5 h-5" />
+                                </button>
+                            </motion.div>
+                        )}
+                    </AnimatePresence>
                 </div>
             </div>
 
@@ -2810,8 +2907,8 @@ Please provide a concise plot summary and narrative overview based on these elem
                 {showTutorial && (
                     <TutorialOverlay steps={tutorialSteps} onClose={() => setShowTutorial(false)} />
                 )}
-                {showPreview && (
-                    <GamePreview nodes={nodes} edges={edges} onClose={() => setShowPreview(false)} gameMetadata={{ timeLimit, learningObjectives }} onGameEnd={handlePreviewGameEnd} />
+                {showPreview && !isSimultaneousMode && (
+                    <GamePreview nodes={nodes} edges={edges} onClose={() => setShowPreview(false)} gameMetadata={{ timeLimit, learningObjectives }} onGameEnd={handlePreviewGameEnd} onNodeChange={onGameNodeChange} />
                 )}
                 {/* Settings Modal */}
                 {showSettings && (

@@ -177,7 +177,8 @@ export default function SuspectProfile({
     edges,
     onClose,
     onNavigate,
-    onLog
+    onLog,
+    isSimultaneous = false
 }) {
     const [scanActive, setScanActive] = useState(false);
     const [showParticles, setShowParticles] = useState(true);
@@ -789,7 +790,7 @@ export default function SuspectProfile({
                         initial={{ opacity: 0 }}
                         animate={{ opacity: 1 }}
                         exit={{ opacity: 0 }}
-                        className="fixed inset-0 z-[100] flex items-center justify-center p-4 bg-black/95 backdrop-blur-xl"
+                        className={`${isSimultaneous ? 'absolute' : 'fixed'} inset-0 z-[100] flex items-center justify-center p-4 bg-black/95 backdrop-blur-xl`}
                         onClick={() => setPreviewEvidence(null)}
                     >
                         <motion.div

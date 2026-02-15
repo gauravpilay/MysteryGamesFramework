@@ -5,7 +5,7 @@ import { callAI } from '../lib/ai';
 import { useConfig } from '../lib/config';
 import { useLicense } from '../lib/licensing';
 
-const AIInterrogation = ({ node, onComplete, onFail, requestCount, onAIRequest }) => {
+const AIInterrogation = ({ node, onComplete, onFail, requestCount, onAIRequest, isSimultaneous = false }) => {
     const { settings } = useConfig();
     const { licenseData, getFeatureValue } = useLicense();
     const [messages, setMessages] = useState([
@@ -302,7 +302,7 @@ const AIInterrogation = ({ node, onComplete, onFail, requestCount, onAIRequest }
                         initial={{ opacity: 0, y: 10 }}
                         animate={{ opacity: 1, y: 0 }}
                         exit={{ opacity: 0, y: 10 }}
-                        className="fixed bottom-24 left-1/2 -translate-x-1/2 w-full max-w-lg z-[100] px-4"
+                        className={`${isSimultaneous ? 'absolute' : 'fixed'} bottom-24 left-1/2 -translate-x-1/2 w-full max-w-lg z-[100] px-4`}
                     >
                         <div className="p-6 bg-red-950/90 border border-red-500/50 rounded-2xl backdrop-blur-xl shadow-2xl shadow-red-950 flex items-center gap-4">
                             <div className="p-3 bg-red-500/10 rounded-xl border border-red-500/20">
@@ -320,7 +320,7 @@ const AIInterrogation = ({ node, onComplete, onFail, requestCount, onAIRequest }
             {/* LIMIT POPUP */}
             <AnimatePresence>
                 {showLimitPopup && (
-                    <div className="absolute inset-0 z-[200] flex items-center justify-center p-6 bg-black/95 backdrop-blur-3xl">
+                    <div className={`${isSimultaneous ? 'absolute' : 'fixed'} inset-0 z-[200] flex items-center justify-center p-6 bg-black/95 backdrop-blur-3xl`}>
                         <motion.div
                             initial={{ scale: 0.9, opacity: 0 }}
                             animate={{ scale: 1, opacity: 1 }}

@@ -2,7 +2,7 @@ import React, { useState, useEffect, useRef } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { Globe, X, Minimize2, Maximize2, Terminal, Shield, Lock, Search, Send, User, Hash, Camera, FileText, Database, ShieldAlert, Zap, Radio, Check } from 'lucide-react';
 
-const DeepWebOS = ({ data, onComplete }) => {
+const DeepWebOS = ({ data, onComplete, isSimultaneous = false }) => {
     // Screen Size Detection
     const [isMobile, setIsMobile] = useState(false);
 
@@ -141,7 +141,7 @@ const DeepWebOS = ({ data, onComplete }) => {
     };
 
     return (
-        <div className="fixed inset-0 z-[100] bg-[#020205] overflow-hidden font-mono select-none text-emerald-500 text-xs md:text-sm">
+        <div className={`${isSimultaneous ? 'absolute' : 'fixed'} inset-0 z-[100] bg-[#020205] overflow-hidden font-mono select-none text-emerald-500 text-xs md:text-sm`}>
             {/* AMBIENT BACKGROUND */}
             <div className="absolute inset-0 z-0">
                 <div className="absolute inset-0 bg-[radial-gradient(circle_at_center,_#10b98110_0%,_transparent_70%)]" />
