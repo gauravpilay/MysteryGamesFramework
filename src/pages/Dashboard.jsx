@@ -39,8 +39,9 @@ const Dashboard = () => {
     const [incomingRequest, setIncomingRequest] = useState(null); // { project, request }
     const [imageUploadProject, setImageUploadProject] = useState(null);
     const [uploadingImage, setUploadingImage] = useState(false);
-    const { licenseData, loading: licenseLoading } = useLicense();
+    const { licenseData, getFeatureValue, loading: licenseLoading } = useLicense();
     const [isLicenseModalOpen, setIsLicenseModalOpen] = useState(false);
+    const [showLimitModal, setShowLimitModal] = useState(false);
     const isAdmin = user?.role === 'Admin';
 
     if (licenseLoading) {
@@ -145,6 +146,13 @@ const Dashboard = () => {
     const handleCreateProject = async () => {
         if (!newProjectName.trim()) return;
 
+        const caseLimit = getFeatureValue('limit_number_of_cases');
+        if (caseLimit && projects.length >= caseLimit) {
+            setShowNewModal(false);
+            setShowLimitModal(true);
+            return;
+        }
+
         const newCase = {
             title: newProjectName,
             description: newProjectDesc,
@@ -181,6 +189,14 @@ const Dashboard = () => {
 
     const handleDuplicateProject = async () => {
         if (!duplicateId || !duplicateName || !db) return;
+
+        const caseLimit = getFeatureValue('limit_number_of_cases');
+        if (caseLimit && projects.length >= caseLimit) {
+            setDuplicateId(null);
+            setShowLimitModal(true);
+            return;
+        }
+
         const original = projects.find(p => p.id === duplicateId);
         if (!original) return;
 
@@ -877,10 +893,71 @@ const Dashboard = () => {
                         </motion.div>
                     </div>
                 )}
+                <LimitExhaustedModal
+                    isOpen={showLimitModal}
+                    onClose={() => setShowLimitModal(false)}
+                    limit={getFeatureValue('limit_number_of_cases')}
+                />
             </AnimatePresence>
         </div >
     );
 };
+
+const LimitExhaustedModal = ({ isOpen, onClose, limit }) => (
+    <AnimatePresence>
+        {isOpen && (
+            <div className="fixed inset-0 z-[500] flex items-center justify-center p-4">
+                <motion.div
+                    initial={{ opacity: 0 }}
+                    animate={{ opacity: 1 }}
+                    exit={{ opacity: 0 }}
+                    className="absolute inset-0 bg-black/80 backdrop-blur-md"
+                    onClick={onClose}
+                />
+                <motion.div
+                    initial={{ scale: 0.9, opacity: 0, y: 20 }}
+                    animate={{ scale: 1, opacity: 1, y: 0 }}
+                    exit={{ scale: 0.9, opacity: 0, y: 20 }}
+                    className="relative w-full max-w-md bg-zinc-950 border border-indigo-500/30 rounded-[2.5rem] p-10 overflow-hidden shadow-[0_0_100px_rgba(79,70,229,0.2)] text-center"
+                >
+                    {/* Background Glow */}
+                    <div className="absolute top-0 left-1/2 -translate-x-1/2 -translate-y-1/2 w-64 h-64 bg-indigo-600/20 rounded-full blur-[80px]" />
+
+                    <div className="relative z-10 flex flex-col items-center space-y-8">
+                        <div className="relative group">
+                            <div className="absolute inset-0 bg-indigo-500/30 blur-2xl rounded-full group-hover:bg-indigo-500/50 transition-all duration-500" />
+                            <div className="relative w-24 h-24 bg-zinc-900 rounded-[2rem] border-2 border-indigo-500/50 flex items-center justify-center shadow-2xl transform group-hover:rotate-12 transition-transform duration-500">
+                                <ShieldAlert className="w-12 h-12 text-indigo-400" />
+                            </div>
+                        </div>
+
+                        <div className="space-y-3">
+                            <h2 className="text-4xl font-black text-white tracking-tighter uppercase leading-none">Limit<br />Exhausted</h2>
+                            <p className="text-zinc-400 text-sm font-medium leading-relaxed max-w-[280px] mx-auto">
+                                You've reached your intelligence capacity. Your current agency plan is restricted to <span className="text-indigo-400 font-black">{limit} active case files</span>.
+                            </p>
+                        </div>
+
+                        <div className="w-full h-px bg-gradient-to-r from-transparent via-indigo-500/30 to-transparent" />
+
+                        <div className="space-y-4 w-full pt-2">
+                            <Button
+                                onClick={onClose}
+                                className="w-full h-14 bg-indigo-600 hover:bg-indigo-500 text-white font-black uppercase tracking-widest text-xs rounded-2xl shadow-[0_10px_30px_rgba(79,70,229,0.3)] transition-all active:scale-95 border-t border-white/20"
+                            >
+                                Understood, Detective
+                            </Button>
+                            <div className="flex flex-col gap-1">
+                                <p className="text-[10px] text-zinc-500 font-bold uppercase tracking-[0.2em]">Contact Agency for Cap Expansion</p>
+                                <div className="text-[9px] text-zinc-700 font-mono">CODE: CASE_LIMIT_EXCEEDED</div>
+                            </div>
+                        </div>
+                    </div>
+                </motion.div>
+            </div>
+        )}
+    </AnimatePresence>
+);
 
 const CaseCard = ({ project, isAdmin, onPlay, onEdit, onDelete, onDuplicate, onToggleStatus, onUploadImage }) => {
     // Deterministic gradient based on project ID
