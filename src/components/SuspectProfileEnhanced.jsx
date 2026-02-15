@@ -1,5 +1,5 @@
 import { motion, AnimatePresence } from 'framer-motion';
-import { User, Shield, Activity, MessageSquare, Search, Terminal, ChevronRight, Briefcase, ShieldAlert, Fingerprint, Dna, AlertTriangle, Eye, Zap, Target } from 'lucide-react';
+import { User, Shield, Activity, MessageSquare, Search, Terminal, ChevronRight, Briefcase, ShieldAlert, Fingerprint, Dna, AlertTriangle, Eye, Zap, Target, Mail, X } from 'lucide-react';
 import { useState, useEffect } from 'react';
 
 const getAvatarColor = (name) => {
@@ -474,126 +474,138 @@ export default function SuspectProfile({
                             animate={{ opacity: 1, x: 0 }}
                             transition={{ delay: 0.4 }}
                         >
-                            <div className="flex items-center gap-4 mb-8">
+                            <div className="flex items-center gap-4 mb-3">
                                 <motion.div
                                     whileHover={{ rotate: 360 }}
                                     transition={{ duration: 0.6 }}
-                                    className="w-12 h-12 rounded-2xl bg-gradient-to-br from-amber-500/20 to-orange-500/20 border-2 border-amber-500/30 flex items-center justify-center shadow-lg"
+                                    className="w-10 h-10 md:w-12 md:h-12 rounded-xl md:rounded-2xl bg-gradient-to-br from-amber-500/20 to-orange-500/20 border-2 border-amber-500/30 flex items-center justify-center shadow-lg"
                                 >
-                                    <Search className="w-6 h-6 text-amber-400" />
+                                    <Search className="w-5 h-5 text-amber-400" />
                                 </motion.div>
                                 <div>
-                                    <h3 className="text-lg font-black text-white uppercase tracking-[0.2em]">Evidence Confrontation</h3>
-                                    <p className="text-xs text-zinc-500 uppercase tracking-wider">Physical Evidence • Chain of Custody</p>
+                                    <h3 className="text-xs md:text-sm font-black text-white uppercase tracking-[0.2em]">Evidence Confrontation</h3>
+                                    <p className="text-[9px] md:text-[10px] text-zinc-500 uppercase tracking-wider">Field Operative Tools • Case Files</p>
                                 </div>
                             </div>
 
-                            <div className="bg-gradient-to-br from-black/70 to-zinc-900/70 border-2 border-white/10 rounded-[2.5rem] p-12 shadow-2xl backdrop-blur-xl min-h-[500px] relative overflow-hidden">
-                                {/* Animated Grid Background */}
-                                <div className="absolute inset-0 opacity-[0.03]" style={{
-                                    backgroundImage: 'linear-gradient(rgba(245, 158, 11, 0.5) 1px, transparent 1px), linear-gradient(90deg, rgba(245, 158, 11, 0.5) 1px, transparent 1px)',
-                                    backgroundSize: '40px 40px'
-                                }}></div>
+                            <p className="text-[10px] font-bold text-amber-400/80 uppercase tracking-widest mb-6 px-1">
+                                SELECT EVIDENCE TO CHALLENGE THE SUBJECT'S TESTIMONY
+                            </p>
 
-                                {/* Corner Accents */}
-                                <div className="absolute top-0 left-0 w-20 h-20 border-t-4 border-l-4 border-amber-500/30 rounded-tl-3xl"></div>
-                                <div className="absolute bottom-0 right-0 w-20 h-20 border-b-4 border-r-4 border-amber-500/30 rounded-br-3xl"></div>
+                            <div className="bg-zinc-950/50 border-2 border-white/5 rounded-2xl md:rounded-[2.5rem] p-4 md:p-8 shadow-2xl backdrop-blur-3xl min-h-[400px] md:min-h-[500px] relative overflow-hidden flex flex-col">
+                                {/* Animated Grid Background */}
+                                <div className="absolute inset-0 opacity-[0.02]" style={{
+                                    backgroundImage: 'linear-gradient(rgba(245, 158, 11, 0.5) 1px, transparent 1px), linear-gradient(90deg, rgba(245, 158, 11, 0.5) 1px, transparent 1px)',
+                                    backgroundSize: '30px 30px'
+                                }}></div>
 
                                 {(() => {
                                     const collectedEvidence = Array.from(inventory)
-                                        .map(id => nodes.find(n => n.id === id && n.type === 'evidence'))
+                                        .map(id => nodes.find(n => n.id === id && (n.type === 'evidence' || n.type === 'email')))
                                         .filter(Boolean);
 
                                     if (collectedEvidence.length === 0) {
                                         return (
-                                            <div className="h-full flex flex-col items-center justify-center py-24 opacity-40 relative z-10">
-                                                <motion.div
-                                                    animate={{ rotate: [0, 360] }}
-                                                    transition={{ duration: 20, repeat: Infinity, ease: 'linear' }}
-                                                    className="p-10 bg-zinc-900/50 rounded-full mb-6 border-2 border-zinc-800"
-                                                >
-                                                    <Briefcase className="w-16 h-16 text-zinc-600" />
-                                                </motion.div>
-                                                <p className="text-sm font-black text-zinc-500 uppercase tracking-[0.4em]">No Evidence Collected</p>
-                                                <p className="text-xs text-zinc-600 mt-2">Gather evidence to confront suspect</p>
+                                            <div className="flex-1 flex flex-col items-center justify-center py-20 opacity-30 relative z-10">
+                                                <div className="p-8 bg-zinc-900/50 rounded-full mb-6 border-2 border-zinc-800">
+                                                    <Briefcase className="w-12 h-12 text-zinc-600" />
+                                                </div>
+                                                <p className="text-[10px] font-black text-zinc-500 uppercase tracking-[0.4em]">NO CASE EVIDENCE</p>
+                                                <p className="text-[9px] text-zinc-600 mt-2 uppercase">Collect files in the field to use here</p>
                                             </div>
                                         );
                                     }
 
                                     return (
-                                        <div className="grid grid-cols-1 sm:grid-cols-2 gap-8 relative z-10">
+                                        <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 md:gap-6 relative z-10 overflow-y-auto custom-scrollbar pr-2 max-h-[600px]">
                                             {collectedEvidence.map((eNode, index) => (
                                                 <motion.button
                                                     key={eNode.id}
-                                                    initial={{ opacity: 0, scale: 0.8, rotateY: -90 }}
-                                                    animate={{ opacity: 1, scale: 1, rotateY: 0 }}
-                                                    transition={{ delay: index * 0.1, type: 'spring' }}
-                                                    whileHover={{
-                                                        y: -20,
-                                                        rotateY: 5,
-                                                        rotateX: 5,
-                                                        scale: 1.05,
-                                                        transition: { duration: 0.3 }
-                                                    }}
-                                                    whileTap={{ scale: 0.95 }}
+                                                    initial={{ opacity: 0, scale: 0.9 }}
+                                                    animate={{ opacity: 1, scale: 1 }}
+                                                    transition={{ delay: index * 0.05 }}
+                                                    whileHover={{ y: -5 }}
+                                                    whileTap={{ scale: 0.98 }}
+                                                    className="group relative flex flex-col bg-zinc-900/80 border border-white/10 rounded-xl md:rounded-2xl overflow-hidden hover:border-amber-500/50 transition-all duration-300 text-left shadow-xl"
                                                     onClick={() => {
                                                         const match = edges.find(e =>
                                                             e.source === suspect.id &&
                                                             (e.label?.toLowerCase() === eNode.data.label?.toLowerCase() || e.data?.evidenceId === eNode.id)
                                                         );
                                                         if (match) {
-                                                            onLog(`⚡ BREAKTHROUGH: Confronted subject with ${eNode.data.label}.`);
+                                                            const evidenceName = eNode.data.displayName || eNode.data.label;
+                                                            onLog(`⚡ BREAKTHROUGH: Confronted subject with ${evidenceName}.`);
                                                             onClose();
                                                             onNavigate(match.target);
                                                         } else {
-                                                            onLog(`❌ DISMISSAL: Subject ignored the ${eNode.data.label}.`);
+                                                            const evidenceName = eNode.data.displayName || eNode.data.label;
+                                                            onLog(`❌ DISMISSAL: Subject ignored the ${evidenceName}.`);
                                                         }
                                                     }}
-                                                    className="relative group flex flex-col items-center"
-                                                    style={{ perspective: '1000px' }}
                                                 >
-                                                    {/* Glow on Hover */}
-                                                    <div className="absolute -inset-4 bg-gradient-to-r from-amber-500/20 to-orange-500/20 opacity-0 group-hover:opacity-100 transition-opacity rounded-2xl blur-xl"></div>
-
-                                                    {/* Enhanced Photo Card */}
-                                                    <div className="w-full bg-zinc-900 border-x-[6px] border-t-[6px] border-b-[32px] border-white/95 rounded-lg shadow-[0_25px_60px_rgba(0,0,0,0.6)] overflow-hidden transition-all duration-500 group-hover:border-amber-400 group-hover:shadow-[0_25px_60px_rgba(245,158,11,0.4)] relative">
-                                                        <div className="aspect-square relative overflow-hidden">
-                                                            {eNode.data.image ? (
-                                                                <img
-                                                                    src={eNode.data.image}
-                                                                    alt={eNode.data.label}
-                                                                    className="w-full h-full object-cover group-hover:scale-125 transition-transform duration-1000"
-                                                                />
-                                                            ) : (
-                                                                <div className="w-full h-full bg-zinc-800 flex items-center justify-center">
-                                                                    <Search className="w-20 h-20 text-zinc-700 group-hover:text-amber-500 transition-colors duration-500" />
-                                                                </div>
-                                                            )}
-
-                                                            {/* Scan Effect */}
-                                                            <motion.div
-                                                                className="absolute inset-0 bg-gradient-to-b from-amber-500/30 via-transparent to-transparent h-full opacity-0 group-hover:opacity-100"
-                                                                animate={{ y: ['0%', '100%'] }}
-                                                                transition={{ duration: 1.5, repeat: Infinity }}
+                                                    {/* Evidence Image Thumbnail */}
+                                                    <div className="aspect-[16/10] md:aspect-video relative overflow-hidden bg-black shrink-0">
+                                                        {(eNode.data.image || (eNode.type === 'email' && eNode.data.images?.[0])) ? (
+                                                            <img
+                                                                src={eNode.data.image || eNode.data.images[0]}
+                                                                alt={eNode.data.displayName || eNode.data.label}
+                                                                className="w-full h-full object-cover group-hover:scale-110 transition-transform duration-700 opacity-70 group-hover:opacity-100"
                                                             />
+                                                        ) : (
+                                                            <div className="w-full h-full flex items-center justify-center bg-zinc-900">
+                                                                {eNode.type === 'email' ?
+                                                                    <Mail className="w-10 h-10 text-zinc-700 group-hover:text-amber-500 transition-colors" /> :
+                                                                    <Fingerprint className="w-10 h-10 text-zinc-700 group-hover:text-amber-500 transition-colors" />
+                                                                }
+                                                            </div>
+                                                        )}
 
-                                                            {/* Evidence ID Tag */}
-                                                            <div className="absolute top-3 right-3 px-3 py-1.5 bg-black/90 backdrop-blur-md rounded-lg border border-amber-500/50 flex items-center gap-2">
-                                                                <Target className="w-3 h-3 text-amber-400" />
-                                                                <span className="text-[8px] font-mono text-amber-400 tracking-widest uppercase">EV-{eNode.id.substring(0, 4)}</span>
+                                                        {/* Scanning Animation */}
+                                                        <motion.div
+                                                            className="absolute inset-0 bg-gradient-to-b from-transparent via-amber-500/10 to-transparent h-12 w-full opacity-0 group-hover:opacity-100"
+                                                            animate={{ y: ['-100%', '300%'] }}
+                                                            transition={{ duration: 2, repeat: Infinity, ease: 'linear' }}
+                                                        />
+
+                                                        {/* Preview Overlay Button */}
+                                                        <div
+                                                            className="absolute top-2 right-2 p-2 bg-black/60 backdrop-blur-md rounded-lg border border-white/10 opacity-0 group-hover:opacity-100 transition-all cursor-pointer hover:bg-amber-500/20 hover:border-amber-500/50"
+                                                            onClick={(e) => {
+                                                                e.stopPropagation();
+                                                                setPreviewEvidence(eNode);
+                                                            }}
+                                                        >
+                                                            <Eye className="w-4 h-4 text-white" />
+                                                        </div>
+
+                                                        <div className="absolute bottom-0 left-0 right-0 p-3 bg-gradient-to-t from-black to-transparent">
+                                                            <div className="flex items-center gap-2">
+                                                                <Target className="w-3 h-3 text-amber-500" />
+                                                                <span className="text-[8px] font-mono text-amber-400 tracking-widest uppercase truncate">Ref: CASE-{eNode.id.substring(0, 6)}</span>
                                                             </div>
                                                         </div>
                                                     </div>
 
-                                                    {/* Label */}
-                                                    <div className="mt-6 flex flex-col items-center">
-                                                        <div className="text-sm font-black text-white uppercase tracking-[0.15em] mb-2 group-hover:text-amber-400 transition-colors">
-                                                            {eNode.data.label}
+                                                    {/* Evidence Details */}
+                                                    <div className="p-4 flex flex-col justify-between flex-1 gap-3">
+                                                        <div>
+                                                            <h4 className="text-[10px] md:text-xs font-black text-white uppercase tracking-wider mb-1 group-hover:text-amber-400 transition-colors">
+                                                                {eNode.data.displayName || eNode.data.label}
+                                                            </h4>
+                                                            <p className="text-[9px] text-zinc-500 uppercase font-bold leading-tight line-clamp-2">
+                                                                {eNode.data.description || "Intelligence data ready for confrontation"}
+                                                            </p>
                                                         </div>
-                                                        <div className="flex items-center gap-2">
-                                                            <div className="h-px w-8 bg-gradient-to-r from-transparent to-amber-500/50"></div>
-                                                            <Zap className="w-3 h-3 text-amber-500" />
-                                                            <div className="h-px w-8 bg-gradient-to-l from-transparent to-amber-500/50"></div>
+
+                                                        {/* Action Reveal */}
+                                                        <div className="flex items-center justify-between border-t border-white/5 pt-3">
+                                                            <span className="text-[8px] font-black text-amber-500/50 uppercase tracking-[0.2em] group-hover:text-amber-400 transition-colors">Confront</span>
+                                                            <motion.div
+                                                                animate={{ x: [0, 5, 0] }}
+                                                                transition={{ duration: 1.5, repeat: Infinity }}
+                                                            >
+                                                                <ChevronRight className="w-4 h-4 text-amber-500" />
+                                                            </motion.div>
                                                         </div>
                                                     </div>
                                                 </motion.button>
@@ -601,6 +613,10 @@ export default function SuspectProfile({
                                         </div>
                                     );
                                 })()}
+
+                                {/* Corner Decals */}
+                                <div className="absolute top-0 right-0 w-20 h-20 border-t border-r border-amber-500/10 pointer-events-none"></div>
+                                <div className="absolute bottom-0 left-0 w-20 h-20 border-b border-l border-amber-500/10 pointer-events-none"></div>
                             </div>
                         </motion.div>
 
@@ -641,7 +657,7 @@ export default function SuspectProfile({
                                         // Filter out any edge that matches an evidence node (by ID or label)
                                         // These are reserved for the "Evidence Confrontation" flow
                                         const isEvidenceLink = nodes.some(n =>
-                                            n.type === 'evidence' && (
+                                            (n.type === 'evidence' || n.type === 'email') && (
                                                 e.label?.toLowerCase() === n.data.label?.toLowerCase() ||
                                                 e.data?.evidenceId === n.id ||
                                                 e.label === n.id
@@ -671,7 +687,7 @@ export default function SuspectProfile({
 
                                     if (allThreads.length === 0) {
                                         return (
-                                            <div className="h-[400px] flex flex-col items-center justify-center p-12 text-center border-2 border-dashed border-white/10 rounded-3xl bg-black/30 backdrop-blur-sm">
+                                            <div className="h-[300px] md:h-[400px] flex flex-col items-center justify-center p-8 md:p-12 text-center border-2 border-dashed border-white/10 rounded-3xl bg-black/30 backdrop-blur-sm">
                                                 <motion.div
                                                     animate={{ rotate: [0, 360] }}
                                                     transition={{ duration: 20, repeat: Infinity, ease: 'linear' }}
@@ -679,8 +695,8 @@ export default function SuspectProfile({
                                                 >
                                                     <ShieldAlert className="w-10 h-10 text-zinc-700" />
                                                 </motion.div>
-                                                <p className="text-zinc-600 font-black text-xs uppercase tracking-[0.3em]">Neural Paths Exhausted</p>
-                                                <p className="text-zinc-700 text-xs mt-2">No further interrogation options available</p>
+                                                <p className="text-zinc-600 font-black text-[10px] md:text-xs uppercase tracking-[0.3em]">Neural Paths Exhausted</p>
+                                                <p className="text-zinc-700 text-[10px] md:text-xs mt-2">No further interrogation options available</p>
                                             </div>
                                         );
                                     }
@@ -694,7 +710,7 @@ export default function SuspectProfile({
                                             whileHover={{ scale: 1.02, x: 5 }}
                                             whileTap={{ scale: 0.98 }}
                                             onClick={() => { onClose(); onNavigate(thread.target); }}
-                                            className="w-full flex items-center justify-between p-8 bg-gradient-to-r from-white/5 to-transparent border-2 border-white/10 hover:border-indigo-500/50 hover:from-indigo-500/10 hover:to-purple-500/10 rounded-[1.5rem] transition-all group overflow-hidden relative shadow-xl"
+                                            className="w-full flex items-center justify-between p-4 md:p-8 bg-gradient-to-r from-white/5 to-transparent border-2 border-white/10 hover:border-indigo-500/50 hover:from-indigo-500/10 hover:to-purple-500/10 rounded-xl md:rounded-[1.5rem] transition-all group overflow-hidden relative shadow-xl"
                                         >
                                             {/* Animated Background */}
                                             <motion.div
@@ -706,19 +722,19 @@ export default function SuspectProfile({
                                             {/* Bottom Accent Line */}
                                             <div className="absolute inset-x-0 bottom-0 h-1 bg-gradient-to-r from-transparent via-indigo-500 to-transparent scale-x-0 group-hover:scale-x-100 transition-transform duration-700"></div>
 
-                                            <div className="flex items-center gap-6 relative z-10">
+                                            <div className="flex items-center gap-4 md:gap-6 relative z-10">
                                                 {/* Icon Container */}
                                                 <motion.div
                                                     whileHover={{ rotate: 90 }}
                                                     transition={{ duration: 0.3 }}
-                                                    className="w-16 h-16 rounded-2xl bg-gradient-to-br from-zinc-900 to-black border-2 border-white/10 flex items-center justify-center group-hover:from-indigo-600 group-hover:to-purple-600 group-hover:border-indigo-500 transition-all duration-500 shadow-lg group-hover:shadow-indigo-500/50"
+                                                    className="w-10 h-10 md:w-16 md:h-16 rounded-xl md:rounded-2xl bg-gradient-to-br from-zinc-900 to-black border-2 border-white/10 flex items-center justify-center group-hover:from-indigo-600 group-hover:to-purple-600 group-hover:border-indigo-500 transition-all duration-500 shadow-lg group-hover:shadow-indigo-500/50"
                                                 >
-                                                    <ChevronRight className="w-7 h-7 text-zinc-600 group-hover:text-white group-hover:translate-x-1 transition-all" />
+                                                    <ChevronRight className="w-5 h-5 md:w-7 md:h-7 text-zinc-600 group-hover:text-white group-hover:translate-x-1 transition-all" />
                                                 </motion.div>
 
                                                 <div className="flex flex-col items-start text-left">
-                                                    <span className="text-[10px] font-black text-indigo-500 uppercase tracking-[.3em] mb-2 leading-none opacity-70">Cognitive Probe</span>
-                                                    <span className="text-xl font-black text-zinc-400 group-hover:text-white transition-colors tracking-tight uppercase leading-tight">
+                                                    <span className="text-[9px] md:text-[10px] font-black text-indigo-500 uppercase tracking-[.3em] mb-1 leading-none opacity-70">Cognitive Probe</span>
+                                                    <span className="text-sm md:text-xl font-black text-zinc-400 group-hover:text-white transition-colors tracking-tight uppercase leading-tight">
                                                         {thread.label}
                                                     </span>
                                                 </div>
@@ -730,7 +746,7 @@ export default function SuspectProfile({
                                                 transition={{ duration: 1.5, repeat: Infinity }}
                                                 className="opacity-0 group-hover:opacity-100 transition-opacity"
                                             >
-                                                <ChevronRight className="w-6 h-6 text-indigo-400" />
+                                                <ChevronRight className="w-5 h-5 md:w-6 md:h-6 text-indigo-400" />
                                             </motion.div>
                                         </motion.button>
                                     ));
@@ -740,6 +756,116 @@ export default function SuspectProfile({
                     </div>
                 </div>
             </div>
+            {/* Evidence Preview Modal */}
+            <AnimatePresence>
+                {previewEvidence && (
+                    <motion.div
+                        initial={{ opacity: 0 }}
+                        animate={{ opacity: 1 }}
+                        exit={{ opacity: 0 }}
+                        className="fixed inset-0 z-[100] flex items-center justify-center p-4 bg-black/95 backdrop-blur-xl"
+                        onClick={() => setPreviewEvidence(null)}
+                    >
+                        <motion.div
+                            initial={{ scale: 0.9, opacity: 0, y: 20 }}
+                            animate={{ scale: 1, opacity: 1, y: 0 }}
+                            exit={{ scale: 0.9, opacity: 0, y: 20 }}
+                            className="w-full max-w-2xl bg-zinc-950 border border-white/10 rounded-[2rem] overflow-hidden shadow-2xl"
+                            onClick={(e) => e.stopPropagation()}
+                        >
+                            {/* Header */}
+                            <div className="p-6 border-b border-white/5 flex items-center justify-between bg-zinc-900/50">
+                                <div className="flex items-center gap-3">
+                                    <div className="p-2 bg-amber-500/10 rounded-lg border border-amber-500/20">
+                                        {previewEvidence.type === 'email' ? <Mail className="w-5 h-5 text-amber-500" /> : <Search className="w-5 h-5 text-amber-500" />}
+                                    </div>
+                                    <div>
+                                        <h3 className="text-xl font-black text-white uppercase tracking-tight">
+                                            {previewEvidence.data.displayName || previewEvidence.data.label}
+                                        </h3>
+                                        <p className="text-[10px] text-zinc-500 font-bold uppercase tracking-widest leading-none mt-1">
+                                            {previewEvidence.type === 'email' ? 'Digital Intelligence' : 'Physical Evidence'}
+                                        </p>
+                                    </div>
+                                </div>
+                                <button onClick={() => setPreviewEvidence(null)} className="p-2 hover:bg-white/5 rounded-full transition-colors">
+                                    <X className="w-6 h-6 text-zinc-400" />
+                                </button>
+                            </div>
+
+                            {/* Content */}
+                            <div className="p-8 space-y-6 max-h-[70vh] overflow-y-auto custom-scrollbar">
+                                {(previewEvidence.data.image || (previewEvidence.type === 'email' && previewEvidence.data.images?.[0])) && (
+                                    <div className="w-full aspect-video rounded-2xl overflow-hidden border border-white/5 shadow-2xl relative">
+                                        <img
+                                            src={previewEvidence.data.image || previewEvidence.data.images[0]}
+                                            className="w-full h-full object-cover"
+                                            alt="Evidence"
+                                        />
+                                        <div className="absolute inset-0 bg-gradient-to-t from-black/60 to-transparent" />
+                                    </div>
+                                )}
+
+                                <div className="space-y-4">
+                                    {previewEvidence.type === 'email' && (
+                                        <div className="grid grid-cols-2 gap-4 pb-4 border-b border-white/5 text-[10px]">
+                                            <div>
+                                                <p className="text-zinc-500 uppercase font-black mb-1 opacity-50">From</p>
+                                                <p className="text-white font-mono truncate">{previewEvidence.data.sender || 'Unknown'}</p>
+                                            </div>
+                                            <div>
+                                                <p className="text-zinc-500 uppercase font-black mb-1 opacity-50">To</p>
+                                                <p className="text-white font-mono truncate">{previewEvidence.data.recipient || 'Surveillance Hack'}</p>
+                                            </div>
+                                            <div className="col-span-2">
+                                                <p className="text-zinc-500 uppercase font-black mb-1 opacity-50">Subject</p>
+                                                <p className="text-white font-mono">{previewEvidence.data.subject || 'CORRUPTED FILE'}</p>
+                                            </div>
+                                        </div>
+                                    )}
+                                    <div className="space-y-4">
+                                        <p className="text-zinc-300 text-lg leading-relaxed font-serif whitespace-pre-wrap">
+                                            {previewEvidence.type === 'email' ? previewEvidence.data.body : previewEvidence.data.description}
+                                        </p>
+                                    </div>
+                                </div>
+                            </div>
+
+                            {/* Footer */}
+                            <div className="p-6 bg-zinc-900/50 border-t border-white/5 flex gap-4">
+                                <button
+                                    onClick={() => setPreviewEvidence(null)}
+                                    className="flex-1 py-4 bg-zinc-800 hover:bg-zinc-700 text-white font-black uppercase tracking-widest text-[11px] rounded-xl transition-all"
+                                >
+                                    Close Analysis
+                                </button>
+                                <button
+                                    onClick={() => {
+                                        const eNode = previewEvidence;
+                                        setPreviewEvidence(null);
+                                        const match = edges.find(e =>
+                                            e.source === suspect.id &&
+                                            (e.label?.toLowerCase() === eNode.data.label?.toLowerCase() || e.data?.evidenceId === eNode.id)
+                                        );
+                                        if (match) {
+                                            const evidenceName = eNode.data.displayName || eNode.data.label;
+                                            onLog(`⚡ BREAKTHROUGH: Confronted subject with ${evidenceName}.`);
+                                            onClose();
+                                            onNavigate(match.target);
+                                        } else {
+                                            const evidenceName = eNode.data.displayName || eNode.data.label;
+                                            onLog(`❌ DISMISSAL: Subject ignored the ${evidenceName}.`);
+                                        }
+                                    }}
+                                    className="flex-2 py-4 bg-amber-600 hover:bg-amber-500 text-white font-black uppercase tracking-widest text-[11px] rounded-xl transition-all shadow-lg shadow-amber-900/20 px-10"
+                                >
+                                    Confront Subject
+                                </button>
+                            </div>
+                        </motion.div>
+                    </motion.div>
+                )}
+            </AnimatePresence>
         </div>
     );
 }

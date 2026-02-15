@@ -180,7 +180,7 @@ export const resolveEdgeTarget = (edge, { nodes, edges, inventory, nodeOutputs, 
     // 1. Evidence-based visibility: If edge label or data matches an evidence ID or label, 
     // it's ONLY enabled if that evidence has been acquired.
     const isEvidenceLink = nodes.some(n =>
-        n.type === 'evidence' && (
+        (n.type === 'evidence' || n.type === 'email') && (
             edge.label?.toLowerCase() === n.data.label?.toLowerCase() ||
             edge.data?.evidenceId === n.id ||
             edge.label === n.id
@@ -190,7 +190,7 @@ export const resolveEdgeTarget = (edge, { nodes, edges, inventory, nodeOutputs, 
     if (isEvidenceLink) {
         // Find the specific evidence ID to check against inventory
         const evidenceNode = nodes.find(n =>
-            n.type === 'evidence' && (
+            (n.type === 'evidence' || n.type === 'email') && (
                 edge.label?.toLowerCase() === n.data.label?.toLowerCase() ||
                 edge.data?.evidenceId === n.id ||
                 edge.label === n.id
