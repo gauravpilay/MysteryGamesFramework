@@ -555,9 +555,9 @@ const Dashboard = () => {
                         Available Missions
                     </h3>
                     <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-8">
-                        {publishedProjects.length > 0 ? publishedProjects.map(project => (
+                        {publishedProjects.length > 0 ? publishedProjects.map((project, idx) => (
                             <CaseCard
-                                key={project.id}
+                                key={project.id || `published-${idx}`}
                                 project={project}
                                 isAdmin={isAdmin}
                                 onPlay={() => navigate(`/play/${project.id}`)}
@@ -581,9 +581,9 @@ const Dashboard = () => {
                             Draft Files
                         </h3>
                         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-8">
-                            {draftProjects.length > 0 ? draftProjects.map(project => (
+                            {draftProjects.length > 0 ? draftProjects.map((project, idx) => (
                                 <CaseCard
-                                    key={project.id}
+                                    key={project.id || `draft-${idx}`}
                                     project={project}
                                     isAdmin={isAdmin}
                                     onPlay={() => navigate(`/play/${project.id}`)}
@@ -602,9 +602,9 @@ const Dashboard = () => {
             </main>
 
             {/* Modals */}
-            <AnimatePresence>
+            <AnimatePresence mode="popLayout">
                 {showNewModal && (
-                    <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/80 backdrop-blur-sm p-4">
+                    <div key="modal-new-project" className="fixed inset-0 z-50 flex items-center justify-center bg-black/80 backdrop-blur-sm p-4">
                         <motion.div
                             initial={{ scale: 0.95, opacity: 0 }}
                             animate={{ scale: 1, opacity: 1 }}
@@ -630,7 +630,7 @@ const Dashboard = () => {
                 )}
 
                 {deleteId && (
-                    <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/80 backdrop-blur-sm p-4">
+                    <div key="modal-delete-project" className="fixed inset-0 z-50 flex items-center justify-center bg-black/80 backdrop-blur-sm p-4">
                         <motion.div
                             initial={{ scale: 0.95, opacity: 0 }}
                             animate={{ scale: 1, opacity: 1 }}
@@ -649,7 +649,7 @@ const Dashboard = () => {
                 )}
 
                 {duplicateId && (
-                    <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/80 backdrop-blur-sm p-4">
+                    <div key="modal-duplicate-project" className="fixed inset-0 z-50 flex items-center justify-center bg-black/80 backdrop-blur-sm p-4">
                         <motion.div
                             initial={{ scale: 0.95, opacity: 0 }}
                             animate={{ scale: 1, opacity: 1 }}
@@ -675,7 +675,7 @@ const Dashboard = () => {
                     if (!currentProject.editingBy) return null;
 
                     return (
-                        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/80 backdrop-blur-sm p-4">
+                        <div key="modal-locked-project" className="fixed inset-0 z-50 flex items-center justify-center bg-black/80 backdrop-blur-sm p-4">
                             <motion.div
                                 initial={{ scale: 0.95, opacity: 0 }}
                                 animate={{ scale: 1, opacity: 1 }}
@@ -767,15 +767,15 @@ const Dashboard = () => {
                 })()}
 
                 {showProgressModal && (
-                    <ProgressReportModal onClose={() => setShowProgressModal(false)} />
+                    <ProgressReportModal key="modal-progress" onClose={() => setShowProgressModal(false)} />
                 )}
 
                 {showAdminProgressModal && isAdmin && (
-                    <AdminProgressModal onClose={() => setShowAdminProgressModal(false)} />
+                    <AdminProgressModal key="modal-admin-progress" onClose={() => setShowAdminProgressModal(false)} />
                 )}
 
                 {showSettingsModal && isAdmin && (
-                    <SystemSettingsModal onClose={() => setShowSettingsModal(false)} />
+                    <SystemSettingsModal key="modal-settings" onClose={() => setShowSettingsModal(false)} />
                 )}
 
                 {/* Marketplace modal temporarily hidden */}
@@ -789,7 +789,7 @@ const Dashboard = () => {
 
                 {/* Incoming Access Request Modal */}
                 {incomingRequest && (
-                    <div className="fixed inset-0 z-[300] flex items-end justify-center p-6 md:items-center pointer-events-none">
+                    <div key="modal-incoming-request" className="fixed inset-0 z-[300] flex items-end justify-center p-6 md:items-center pointer-events-none">
                         <motion.div
                             initial={{ y: 100, opacity: 0 }}
                             animate={{ y: 0, opacity: 1 }}
@@ -829,7 +829,7 @@ const Dashboard = () => {
 
                 {/* Image Upload Modal */}
                 {imageUploadProject && (
-                    <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/80 backdrop-blur-sm p-4">
+                    <div key="modal-image-upload" className="fixed inset-0 z-50 flex items-center justify-center bg-black/80 backdrop-blur-sm p-4">
                         <motion.div
                             initial={{ scale: 0.95, opacity: 0 }}
                             animate={{ scale: 1, opacity: 1 }}
@@ -893,70 +893,71 @@ const Dashboard = () => {
                         </motion.div>
                     </div>
                 )}
-                <LimitExhaustedModal
-                    isOpen={showLimitModal}
-                    onClose={() => setShowLimitModal(false)}
-                    limit={getFeatureValue('limit_number_of_cases')}
-                />
+                {showLimitModal && (
+                    <LimitExhaustedModal
+                        key="modal-limit-exhausted"
+                        isOpen={showLimitModal}
+                        onClose={() => setShowLimitModal(false)}
+                        limit={getFeatureValue('limit_number_of_cases')}
+                    />
+                )}
             </AnimatePresence>
         </div >
     );
 };
 
 const LimitExhaustedModal = ({ isOpen, onClose, limit }) => (
-    <AnimatePresence>
-        {isOpen && (
-            <div className="fixed inset-0 z-[500] flex items-center justify-center p-4">
-                <motion.div
-                    initial={{ opacity: 0 }}
-                    animate={{ opacity: 1 }}
-                    exit={{ opacity: 0 }}
-                    className="absolute inset-0 bg-black/80 backdrop-blur-md"
-                    onClick={onClose}
-                />
-                <motion.div
-                    initial={{ scale: 0.9, opacity: 0, y: 20 }}
-                    animate={{ scale: 1, opacity: 1, y: 0 }}
-                    exit={{ scale: 0.9, opacity: 0, y: 20 }}
-                    className="relative w-full max-w-md bg-zinc-950 border border-indigo-500/30 rounded-[2.5rem] p-10 overflow-hidden shadow-[0_0_100px_rgba(79,70,229,0.2)] text-center"
-                >
-                    {/* Background Glow */}
-                    <div className="absolute top-0 left-1/2 -translate-x-1/2 -translate-y-1/2 w-64 h-64 bg-indigo-600/20 rounded-full blur-[80px]" />
+    <div key="modal-container" className="fixed inset-0 z-[500] flex items-center justify-center p-4">
+        <motion.div
+            key="modal-backdrop"
+            initial={{ opacity: 0 }}
+            animate={{ opacity: 1 }}
+            exit={{ opacity: 0 }}
+            className="absolute inset-0 bg-black/80 backdrop-blur-md"
+            onClick={onClose}
+        />
+        <motion.div
+            key="modal-content-panel"
+            initial={{ scale: 0.9, opacity: 0, y: 20 }}
+            animate={{ scale: 1, opacity: 1, y: 0 }}
+            exit={{ scale: 0.9, opacity: 0, y: 20 }}
+            className="relative w-full max-w-md bg-zinc-950 border border-indigo-500/30 rounded-[2.5rem] p-10 overflow-hidden shadow-[0_0_100px_rgba(79,70,229,0.2)] text-center"
+        >
+            {/* Background Glow */}
+            <div className="absolute top-0 left-1/2 -translate-x-1/2 -translate-y-1/2 w-64 h-64 bg-indigo-600/20 rounded-full blur-[80px]" />
 
-                    <div className="relative z-10 flex flex-col items-center space-y-8">
-                        <div className="relative group">
-                            <div className="absolute inset-0 bg-indigo-500/30 blur-2xl rounded-full group-hover:bg-indigo-500/50 transition-all duration-500" />
-                            <div className="relative w-24 h-24 bg-zinc-900 rounded-[2rem] border-2 border-indigo-500/50 flex items-center justify-center shadow-2xl transform group-hover:rotate-12 transition-transform duration-500">
-                                <ShieldAlert className="w-12 h-12 text-indigo-400" />
-                            </div>
-                        </div>
-
-                        <div className="space-y-3">
-                            <h2 className="text-4xl font-black text-white tracking-tighter uppercase leading-none">Limit<br />Exhausted</h2>
-                            <p className="text-zinc-400 text-sm font-medium leading-relaxed max-w-[280px] mx-auto">
-                                You've reached your intelligence capacity. Your current agency plan is restricted to <span className="text-indigo-400 font-black">{limit} active case files</span>.
-                            </p>
-                        </div>
-
-                        <div className="w-full h-px bg-gradient-to-r from-transparent via-indigo-500/30 to-transparent" />
-
-                        <div className="space-y-4 w-full pt-2">
-                            <Button
-                                onClick={onClose}
-                                className="w-full h-14 bg-indigo-600 hover:bg-indigo-500 text-white font-black uppercase tracking-widest text-xs rounded-2xl shadow-[0_10px_30px_rgba(79,70,229,0.3)] transition-all active:scale-95 border-t border-white/20"
-                            >
-                                Understood, Detective
-                            </Button>
-                            <div className="flex flex-col gap-1">
-                                <p className="text-[10px] text-zinc-500 font-bold uppercase tracking-[0.2em]">Contact Agency for Cap Expansion</p>
-                                <div className="text-[9px] text-zinc-700 font-mono">CODE: CASE_LIMIT_EXCEEDED</div>
-                            </div>
-                        </div>
+            <div className="relative z-10 flex flex-col items-center space-y-8">
+                <div className="relative group">
+                    <div className="absolute inset-0 bg-indigo-500/30 blur-2xl rounded-full group-hover:bg-indigo-500/50 transition-all duration-500" />
+                    <div className="relative w-24 h-24 bg-zinc-900 rounded-[2rem] border-2 border-indigo-500/50 flex items-center justify-center shadow-2xl transform group-hover:rotate-12 transition-transform duration-500">
+                        <ShieldAlert className="w-12 h-12 text-indigo-400" />
                     </div>
-                </motion.div>
+                </div>
+
+                <div className="space-y-3">
+                    <h2 className="text-4xl font-black text-white tracking-tighter uppercase leading-none">Limit<br />Exhausted</h2>
+                    <p className="text-zinc-400 text-sm font-medium leading-relaxed max-w-[280px] mx-auto">
+                        You've reached your intelligence capacity. Your current agency plan is restricted to <span className="text-indigo-400 font-black">{limit} active case files</span>.
+                    </p>
+                </div>
+
+                <div className="w-full h-px bg-gradient-to-r from-transparent via-indigo-500/30 to-transparent" />
+
+                <div className="space-y-4 w-full pt-2">
+                    <Button
+                        onClick={onClose}
+                        className="w-full h-14 bg-indigo-600 hover:bg-indigo-500 text-white font-black uppercase tracking-widest text-xs rounded-2xl shadow-[0_10px_30px_rgba(79,70,229,0.3)] transition-all active:scale-95 border-t border-white/20"
+                    >
+                        Understood, Detective
+                    </Button>
+                    <div className="flex flex-col gap-1">
+                        <p className="text-[10px] text-zinc-500 font-bold uppercase tracking-[0.2em]">Contact Agency for Cap Expansion</p>
+                        <div className="text-[9px] text-zinc-700 font-mono">CODE: CASE_LIMIT_EXCEEDED</div>
+                    </div>
+                </div>
             </div>
-        )}
-    </AnimatePresence>
+        </motion.div>
+    </div>
 );
 
 const CaseCard = ({ project, isAdmin, onPlay, onEdit, onDelete, onDuplicate, onToggleStatus, onUploadImage }) => {

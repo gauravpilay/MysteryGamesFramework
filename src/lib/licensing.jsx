@@ -1,4 +1,4 @@
-import React, { createContext, useContext, useState, useEffect } from 'react';
+import React, { createContext, useContext, useState, useEffect, useRef } from 'react';
 import { db } from './firebase';
 import { doc, onSnapshot, setDoc, getDoc } from 'firebase/firestore';
 import { useAuth } from './auth';
@@ -167,6 +167,22 @@ export const LicenseProvider = ({ children }) => {
 
         return unsubscribe;
     }, [db, user?.uid, authLoading]);
+
+    // Auto-refresh logic on Login
+    const hasSyncedRef = useRef(false);
+    useEffect(() => {
+        if (user && licenseUrl && licenseKey && !authLoading && !hasSyncedRef.current) {
+            console.log("[LICENSE] 🔄 User login detected. Synchronizing latest remote features...");
+            hasSyncedRef.current = true;
+            activateLicense(licenseUrl, licenseKey)
+                .then(() => console.log("[LICENSE] ✅ Remote sync complete."))
+                .catch(err => console.warn("[LICENSE] ⚠️ Background sync failed:", err));
+        }
+
+        if (!user) {
+            hasSyncedRef.current = false;
+        }
+    }, [user?.uid, licenseUrl, licenseKey, authLoading]);
 
     // Periodically check for license expiration
     useEffect(() => {
