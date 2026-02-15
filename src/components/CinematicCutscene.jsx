@@ -322,7 +322,7 @@ const CinematicCutscene = ({
                                     {displayedText ? (
                                         <>
                                             <p
-                                                className="relative"
+                                                className="relative whitespace-pre-wrap"
                                                 dangerouslySetInnerHTML={{ __html: parseRichText(displayedText) }}
                                             />
 

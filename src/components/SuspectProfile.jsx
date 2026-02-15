@@ -448,7 +448,7 @@ export default function SuspectProfile({
                                     </motion.div>
                                 </div>
 
-                                <p className="text-base md:text-lg font-medium text-white/95 leading-relaxed italic tracking-tight mb-6 relative z-10">
+                                <p className="text-base md:text-lg font-medium text-white/95 leading-relaxed italic tracking-tight mb-6 relative z-10 whitespace-pre-wrap">
                                     "{suspect.data.alibi || "I have nothing to say to you. I was nowhere near the scene when it happened."}"
                                 </p>
 

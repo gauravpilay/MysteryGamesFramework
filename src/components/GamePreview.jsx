@@ -1843,7 +1843,7 @@ const GamePreview = ({ nodes, edges, onClose, gameMetadata, onGameEnd, onNodeCha
                                             </div>
                                         )}
                                         <h3 className="text-xl md:text-2xl font-bold text-yellow-200 mb-4">{activeModalNode.data.displayName || activeModalNode.data.label}</h3>
-                                        <p className="text-zinc-300 text-base md:text-lg leading-relaxed">{activeModalNode.data.description}</p>
+                                        <p className="text-zinc-300 text-base md:text-lg leading-relaxed whitespace-pre-wrap">{activeModalNode.data.description}</p>
                                     </Card>
 
                                     <div className="flex justify-end">
@@ -1917,7 +1917,7 @@ const GamePreview = ({ nodes, edges, onClose, gameMetadata, onGameEnd, onNodeCha
                                     <div className="bg-zinc-950 p-6 rounded-lg border border-zinc-800 relative">
                                         <div className="absolute top-4 right-4 text-xs font-bold text-zinc-600 uppercase">ENCRYPTED</div>
                                         <span className="text-xs font-bold text-indigo-400 block mb-2">FROM: {activeModalNode.data.sender || 'Unknown'}</span>
-                                        <p className="text-zinc-200 text-lg font-mono leading-relaxed">{activeModalNode.data.message || activeModalNode.data.content}</p>
+                                        <p className="text-zinc-200 text-lg font-mono leading-relaxed whitespace-pre-wrap">{activeModalNode.data.message || activeModalNode.data.content}</p>
                                     </div>
                                     <div className="mt-6 flex justify-end">
                                         <Button
@@ -1990,7 +1990,7 @@ const GamePreview = ({ nodes, edges, onClose, gameMetadata, onGameEnd, onNodeCha
 
                                         <div className="w-full max-w-3xl bg-zinc-900/80 p-6 rounded-xl border border-zinc-800 backdrop-blur-sm shrink-0">
                                             <h3 className="text-orange-200 font-bold mb-2">{activeModalNode.data.label}</h3>
-                                            <p className="text-zinc-300 leading-relaxed">{activeModalNode.data.text}</p>
+                                            <p className="text-zinc-300 leading-relaxed whitespace-pre-wrap">{activeModalNode.data.text}</p>
                                         </div>
                                     </div>
 
@@ -2019,7 +2019,7 @@ const GamePreview = ({ nodes, edges, onClose, gameMetadata, onGameEnd, onNodeCha
                                         <Bell className="w-10 h-10" />
                                     </div>
                                     <h2 className="text-2xl font-black text-white mb-6 tracking-tight uppercase">{activeModalNode.data.label || 'System Notification'}</h2>
-                                    <p className="text-zinc-300 text-lg leading-relaxed mb-10 max-w-lg font-medium">
+                                    <p className="text-zinc-300 text-lg leading-relaxed mb-10 max-w-lg font-medium whitespace-pre-wrap">
                                         {activeModalNode.data.message}
                                     </p>
                                     <Button
@@ -2071,7 +2071,7 @@ const GamePreview = ({ nodes, edges, onClose, gameMetadata, onGameEnd, onNodeCha
                                                 </div>
                                             </div>
                                         )}
-                                        <p className="text-xl text-white font-medium leading-relaxed mb-8">
+                                        <p className="text-xl text-white font-medium leading-relaxed mb-8 whitespace-pre-wrap">
                                             {activeModalNode.data.question}
                                         </p>
 
