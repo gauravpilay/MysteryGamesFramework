@@ -177,6 +177,30 @@ export const resolveNextNode = (startId, { nodes, edges, inventory, nodeOutputs,
 };
 
 export const resolveEdgeTarget = (edge, { nodes, edges, inventory, nodeOutputs, history, processedLogicNodes = new Set() }) => {
+    // 1. Evidence-based visibility: If edge label or data matches an evidence ID or label, 
+    // it's ONLY enabled if that evidence has been acquired.
+    const isEvidenceLink = nodes.some(n =>
+        n.type === 'evidence' && (
+            edge.label?.toLowerCase() === n.data.label?.toLowerCase() ||
+            edge.data?.evidenceId === n.id ||
+            edge.label === n.id
+        )
+    );
+
+    if (isEvidenceLink) {
+        // Find the specific evidence ID to check against inventory
+        const evidenceNode = nodes.find(n =>
+            n.type === 'evidence' && (
+                edge.label?.toLowerCase() === n.data.label?.toLowerCase() ||
+                edge.data?.evidenceId === n.id ||
+                edge.label === n.id
+            )
+        );
+        if (evidenceNode && !inventory.has(evidenceNode.id)) {
+            return null; // Evidence not found yet, path is hidden
+        }
+    }
+
     const targetNode = nodes.find(n => n.id === edge.target);
     if (!targetNode) return null;
 

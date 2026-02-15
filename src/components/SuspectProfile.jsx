@@ -679,13 +679,17 @@ export default function SuspectProfile({
                                         if (e.label?.startsWith('evidence:')) return false;
                                         if (e.data?.isEvidenceLink) return false;
 
-                                        const hasEvidenceMatch = collectedEvidenceIds.some(evidenceId => {
-                                            const evidence = nodes.find(n => n.id === evidenceId);
-                                            return e.label?.toLowerCase() === evidence?.data?.label?.toLowerCase() ||
-                                                e.data?.evidenceId === evidenceId;
-                                        });
+                                        // Filter out any edge that matches an evidence node (by ID or label)
+                                        // These are reserved for the "Evidence Confrontation" flow
+                                        const isEvidenceLink = nodes.some(n =>
+                                            n.type === 'evidence' && (
+                                                e.label?.toLowerCase() === n.data.label?.toLowerCase() ||
+                                                e.data?.evidenceId === n.id ||
+                                                e.label === n.id
+                                            )
+                                        );
 
-                                        return !hasEvidenceMatch;
+                                        return !isEvidenceLink;
                                     });
 
                                     const handledEdgeIds = new Set();
