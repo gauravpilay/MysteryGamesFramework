@@ -24,7 +24,7 @@ const EvidenceBoard = ({
 
     // Get all unlocked resources
     const allUnlockedSuspects = nodes.filter(n => n.type === 'suspect' && history.includes(n.id));
-    const allUnlockedEvidence = nodes.filter(n => (n.type === 'evidence' || n.type === 'email') && inventory.has(n.id));
+    const allUnlockedEvidence = nodes.filter(n => (n.type === 'evidence' || n.type === 'email' || n.type === 'fact') && inventory.has(n.id));
 
     const addItemToBoard = (item) => {
         if (boardItems.find(i => i.id === item.id)) return;
@@ -186,8 +186,8 @@ const EvidenceBoard = ({
                                         </div>
                                         {sidebarOpen && (
                                             <div className="min-w-0 flex-1">
-                                                <div className="text-[10px] font-bold text-zinc-200 truncate">{e.data.displayName || e.data.label}</div>
-                                                <div className="text-[8px] text-zinc-400 truncate opacity-50 italic">{e.type === 'email' ? 'Intercepted Email' : 'Captured Clue'}</div>
+                                                <div className="text-[10px] font-bold text-zinc-200 truncate">{e.data.factTitle || e.data.displayName || e.data.label}</div>
+                                                <div className="text-[8px] text-zinc-400 truncate opacity-50 italic">{e.type === 'email' ? 'Intercepted Email' : (e.type === 'fact' ? 'Intel Discovery' : 'Captured Clue')}</div>
                                             </div>
                                         )}
                                         {sidebarOpen && !onBoard && <Plus className="w-3 h-3 text-zinc-600 group-hover:text-amber-500" />}

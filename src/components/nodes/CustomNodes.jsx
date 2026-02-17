@@ -1,7 +1,7 @@
 import React, { memo, useState, useRef, useEffect } from 'react';
 import ReactDOM from 'react-dom';
 import { Handle, Position, NodeResizer } from 'reactflow';
-import { FileText, User, Search, GitMerge, Terminal, MessageSquare, Music, Image as ImageIcon, Star, MousePointerClick, Trash2, Plus, Copy, Fingerprint, Bell, HelpCircle, ToggleLeft, Unlock, Binary, Grid3x3, Folder, ChevronDown, ChevronUp, Maximize, X, Save, File, FolderOpen, AlertCircle, Brain, Cpu, Send, Loader2, Check, Filter, ShieldAlert, Box, CheckCircle, Activity, Shield, Hash, Film, Globe, Lightbulb, Mail } from 'lucide-react';
+import { FileText, User, Search, GitMerge, Terminal, MessageSquare, Music, Image as ImageIcon, Star, MousePointerClick, Trash2, Plus, Copy, Fingerprint, Bell, HelpCircle, ToggleLeft, Unlock, Binary, Grid3x3, Folder, ChevronDown, ChevronUp, Maximize, X, Save, File, FolderOpen, AlertCircle, Brain, Cpu, Send, Loader2, Check, Filter, ShieldAlert, Box, CheckCircle, Activity, Shield, Hash, Film, Globe, Lightbulb, Mail, Bold, Italic, List, Type, Palette, Info } from 'lucide-react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { storage } from '../../lib/firebase';
 import { ref, uploadBytes, getDownloadURL } from 'firebase/storage';
@@ -993,6 +993,192 @@ export const EmailNode = memo(({ id, data, selected }) => {
             </NodeWrapper>
             {(!data.actions || data.actions.length === 0) && (
                 <Handle type="source" position={Position.Bottom} className="!bg-blue-500 !w-3 !h-3 !border-2 !border-black" />
+            )}
+        </>
+    );
+});
+
+export const FactNode = memo(({ id, data, selected }) => {
+    const handleChange = (key, val) => {
+        data.onChange && data.onChange(id, { ...data, [key]: val });
+    };
+
+    const [isUploading, setIsUploading] = useState(false);
+
+    const handleFileUpload = async (e) => {
+        const files = Array.from(e.target.files);
+        if (files.length === 0) return;
+
+        if (!storage) {
+            alert("Firebase Storage not initialized.");
+            return;
+        }
+
+        setIsUploading(true);
+        try {
+            const uploadPromises = files.map(async (file) => {
+                const storageRef = ref(storage, `facts/${Date.now()}_${file.name}`);
+                await uploadBytes(storageRef, file);
+                return await getDownloadURL(storageRef);
+            });
+
+            const urls = await Promise.all(uploadPromises);
+            const currentImages = data.images || [];
+            handleChange('images', [...currentImages, ...urls]);
+        } catch (error) {
+            console.error("Upload failed", error);
+            alert("Upload failed. Check console.");
+        } finally {
+            setIsUploading(false);
+        }
+    };
+
+    const removeImage = (index) => {
+        const currentImages = data.images || [];
+        const newImages = currentImages.filter((_, i) => i !== index);
+        handleChange('images', newImages);
+    };
+
+    const insertFormat = (format) => {
+        const textarea = document.getElementById(`fact-text-${id}`);
+        if (!textarea) return;
+
+        const start = textarea.selectionStart;
+        const end = textarea.selectionEnd;
+        const text = data.text || '';
+        const selectedText = text.substring(start, end);
+        let replacement = '';
+
+        switch (format) {
+            case 'bold': replacement = `**${selectedText}**`; break;
+            case 'italic': replacement = `_${selectedText}_`; break;
+            case 'bullet': replacement = `\n* ${selectedText}`; break;
+            case 'red': replacement = `[red]${selectedText}[/red]`; break;
+            case 'blue': replacement = `[blue]${selectedText}[/blue]`; break;
+            case 'green': replacement = `[green]${selectedText}[/green]`; break;
+            default: return;
+        }
+
+        const newText = text.substring(0, start) + replacement + text.substring(end);
+        handleChange('text', newText);
+
+        // Focus back
+        setTimeout(() => {
+            textarea.focus();
+            textarea.setSelectionRange(start + replacement.length, start + replacement.length);
+        }, 0);
+    };
+
+    return (
+        <>
+            <Handle type="target" position={Position.Top} className="!bg-zinc-500 !w-3 !h-3 !border-2 !border-black" />
+            <NodeWrapper id={id} title="Fact / Info" icon={Lightbulb} selected={selected} headerClass="bg-amber-950/30 text-amber-200" colorClass="border-amber-900/30" data={data} onLabelChange={(v) => handleChange('label', v)}>
+                <div className="space-y-3">
+                    <div>
+                        <p className="text-[10px] text-zinc-500 mb-1 uppercase font-bold tracking-tight">Fact Title</p>
+                        <InputField
+                            placeholder="e.g. The Hidden Compartment"
+                            value={data.factTitle}
+                            onChange={(e) => handleChange('factTitle', e.target.value)}
+                            className="!bg-amber-500/10 !border-amber-500/20 text-amber-200"
+                        />
+                    </div>
+
+                    <div className="relative">
+                        <div className="flex items-center gap-1 mb-1 px-1 overflow-x-auto pb-1 no-scrollbar">
+                            <button onClick={() => insertFormat('bold')} className="p-1.5 hover:bg-white/10 rounded text-zinc-400 hover:text-white transition-colors" title="Bold">
+                                <Bold className="w-3.5 h-3.5" />
+                            </button>
+                            <button onClick={() => insertFormat('italic')} className="p-1.5 hover:bg-white/10 rounded text-zinc-400 hover:text-white transition-colors" title="Italic">
+                                <Italic className="w-3.5 h-3.5" />
+                            </button>
+                            <button onClick={() => insertFormat('bullet')} className="p-1.5 hover:bg-white/10 rounded text-zinc-400 hover:text-white transition-colors" title="Bullet List">
+                                <List className="w-3.5 h-3.5" />
+                            </button>
+                            <div className="w-px h-3 bg-zinc-800 mx-1 flex-shrink-0" />
+                            <button onClick={() => insertFormat('red')} className="w-3.5 h-3.5 rounded-full bg-red-500 hover:scale-110 transition-transform flex-shrink-0" title="Red Highlight" />
+                            <button onClick={() => insertFormat('blue')} className="w-3.5 h-3.5 rounded-full bg-blue-500 hover:scale-110 transition-transform flex-shrink-0" title="Blue Highlight" />
+                            <button onClick={() => insertFormat('green')} className="w-3.5 h-3.5 rounded-full bg-green-500 hover:scale-110 transition-transform flex-shrink-0" title="Green Highlight" />
+                        </div>
+                        <textarea
+                            id={`fact-text-${id}`}
+                            className="w-full bg-zinc-900/50 border border-zinc-800 rounded-lg px-3 py-2 text-xs text-zinc-200 placeholder:text-zinc-600 resize-none focus:outline-none focus:border-amber-500/50 min-h-[140px] font-sans leading-relaxed nodrag"
+                            placeholder="Explain the fact to the player... Use the toolbar for formatting."
+                            value={data.text || ''}
+                            onChange={(e) => handleChange('text', e.target.value)}
+                        />
+                    </div>
+
+                    {/* Image Gallery */}
+                    <div className="space-y-2">
+                        <div className="flex items-center justify-between px-1">
+                            <p className="text-[10px] text-zinc-500 uppercase font-bold tracking-tight">Attached Media</p>
+                            <div className="relative">
+                                <input
+                                    type="file"
+                                    multiple
+                                    accept="image/*"
+                                    className="absolute inset-0 w-full h-full opacity-0 cursor-pointer z-10"
+                                    onChange={handleFileUpload}
+                                    disabled={isUploading}
+                                />
+                                <button className="flex items-center gap-1 text-[10px] text-indigo-400 hover:text-indigo-300 font-bold uppercase transition-colors">
+                                    <Plus className="w-3 h-3" /> Add Image
+                                </button>
+                            </div>
+                        </div>
+
+                        {data.images && data.images.length > 0 ? (
+                            <div className="grid grid-cols-2 gap-2 max-h-48 overflow-y-auto pr-1 no-scrollbar">
+                                {data.images.map((url, idx) => (
+                                    <div key={idx} className="relative aspect-video bg-zinc-900 rounded-lg overflow-hidden border border-zinc-800 group/img">
+                                        <img src={url} alt={`Fact ${idx}`} className="w-full h-full object-cover" />
+                                        <button
+                                            onClick={() => removeImage(idx)}
+                                            className="absolute top-1 right-1 p-1 bg-black/60 hover:bg-black/90 rounded-full text-white opacity-0 group-hover/img:opacity-100 transition-all shadow-lg"
+                                        >
+                                            <Trash2 className="w-2.5 h-2.5" />
+                                        </button>
+                                    </div>
+                                ))}
+                            </div>
+                        ) : (
+                            <div className="p-4 border border-dashed border-zinc-800 rounded-lg text-center bg-white/5">
+                                <ImageIcon className="w-5 h-5 text-zinc-800 mx-auto mb-1" />
+                                <p className="text-[9px] text-zinc-600 uppercase font-bold tracking-widest">No images attached</p>
+                            </div>
+                        )}
+                        {isUploading && (
+                            <div className="flex items-center justify-center py-2 bg-indigo-500/10 rounded-lg">
+                                <Loader2 className="w-4 h-4 animate-spin text-indigo-500" />
+                                <span className="text-[10px] text-indigo-500 font-bold ml-2">UPLOADING...</span>
+                            </div>
+                        )}
+                    </div>
+
+                    <div className="mt-2 p-2 bg-black/40 border border-amber-900/20 rounded-lg space-y-2">
+                        <div className="flex items-center justify-between">
+                            <p className="text-[9px] font-bold text-amber-400 uppercase tracking-wider flex items-center gap-1">
+                                <Star className="w-3 h-3" /> Reward Points
+                            </p>
+                            <InputField
+                                type="number"
+                                placeholder="0"
+                                value={data.score}
+                                onChange={(e) => handleChange('score', parseInt(e.target.value) || 0)}
+                                className="w-20 text-right bg-amber-950/30 border-amber-900/30 text-amber-200"
+                            />
+                        </div>
+                        <ObjectiveSelector
+                            values={data.learningObjectiveIds}
+                            onChange={(v) => handleChange('learningObjectiveIds', v)}
+                            objectives={data.learningObjectives}
+                        />
+                    </div>
+                </div>
+            </NodeWrapper>
+            {(!data.actions || data.actions.length === 0) && (
+                <Handle type="source" position={Position.Bottom} className="!bg-amber-500 !w-3 !h-3 !border-2 !border-black" />
             )}
         </>
     );

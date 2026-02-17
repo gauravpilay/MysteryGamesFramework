@@ -48,42 +48,42 @@ const BackgroundEffect = ({ isSimultaneous = false }) => (
     </div>
 );
 
+const parseRichText = (input) => {
+    if (!input) return "";
+    // Bold: **text**
+    let parsed = input.replace(/\*\*(.*?)\*\*/g, '<b class="text-white font-black drop-shadow-sm">$1</b>');
+
+    // Colors: [red]text[/red], [blue]text[/blue], etc.
+    const colors = ['red', 'blue', 'green', 'yellow', 'indigo', 'orange', 'emerald', 'amber', 'rose', 'cyan'];
+    colors.forEach(color => {
+        const regex = new RegExp(`\\[${color}\\](.*?)\\[\\/${color}\\]`, 'g');
+        // Mapping colors to Tailwind classes
+        const colorMap = {
+            red: 'text-red-500',
+            blue: 'text-blue-400',
+            green: 'text-emerald-400',
+            yellow: 'text-amber-300',
+            indigo: 'text-indigo-400',
+            orange: 'text-orange-400',
+            emerald: 'text-emerald-400',
+            amber: 'text-amber-400',
+            rose: 'text-rose-500',
+            cyan: 'text-cyan-400'
+        };
+        parsed = parsed.replace(regex, `<span class="${colorMap[color]} font-bold">$1</span>`);
+    });
+
+    // Handle unclosed bold tags for a smoother typing experience
+    if (parsed.includes('**') && !parsed.includes('</b>')) {
+        parsed = parsed.replace(/\*\*(.*)$/, '<b class="text-white font-black">$1</b>');
+    }
+
+    return parsed;
+};
+
 const TypewriterText = ({ text, onComplete }) => {
     const [displayedText, setDisplayedText] = useState('');
     const index = useRef(0);
-
-    const parseRichText = (input) => {
-        if (!input) return "";
-        // Bold: **text**
-        let parsed = input.replace(/\*\*(.*?)\*\*/g, '<b class="text-white font-black drop-shadow-sm">$1</b>');
-
-        // Colors: [red]text[/red], [blue]text[/blue], etc.
-        const colors = ['red', 'blue', 'green', 'yellow', 'indigo', 'orange', 'emerald', 'amber', 'rose', 'cyan'];
-        colors.forEach(color => {
-            const regex = new RegExp(`\\[${color}\\](.*?)\\[\\/${color}\\]`, 'g');
-            // Mapping colors to Tailwind classes
-            const colorMap = {
-                red: 'text-red-500',
-                blue: 'text-blue-400',
-                green: 'text-emerald-400',
-                yellow: 'text-amber-300',
-                indigo: 'text-indigo-400',
-                orange: 'text-orange-400',
-                emerald: 'text-emerald-400',
-                amber: 'text-amber-400',
-                rose: 'text-rose-500',
-                cyan: 'text-cyan-400'
-            };
-            parsed = parsed.replace(regex, `<span class="${colorMap[color]} font-bold">$1</span>`);
-        });
-
-        // Handle unclosed bold tags for a smoother typing experience
-        if (parsed.includes('**') && !parsed.includes('</b>')) {
-            parsed = parsed.replace(/\*\*(.*)$/, '<b class="text-white font-black">$1</b>');
-        }
-
-        return parsed;
-    };
 
     useEffect(() => {
         setDisplayedText('');
@@ -612,7 +612,7 @@ const GamePreview = ({ nodes, edges, onClose, gameMetadata, onGameEnd, onNodeCha
             const isBriefing = (start.data?.label || '').toLowerCase().includes('briefing');
             if (!isBriefing) setMissionStarted(true);
 
-            if (['media', 'suspect', 'terminal', 'evidence', 'message'].includes(start.type)) {
+            if (['media', 'suspect', 'terminal', 'evidence', 'message', 'email', 'fact'].includes(start.type)) {
                 setActiveModalNode(start);
                 setInventory(prev => new Set([...prev, start.id]));
             }
@@ -689,13 +689,13 @@ const GamePreview = ({ nodes, edges, onClose, gameMetadata, onGameEnd, onNodeCha
         if (!currentNode) return;
 
         // 1. Evidence & Suspects: Auto-collect
-        if (currentNode.type === 'evidence' || currentNode.type === 'suspect' || currentNode.type === 'email') {
+        if (currentNode.type === 'evidence' || currentNode.type === 'suspect' || currentNode.type === 'email' || currentNode.type === 'fact') {
             const flag = currentNode.data.variableId || currentNode.data.condition || currentNode.id;
             if (!inventory.has(flag)) {
                 setInventory(prev => new Set([...prev, flag]));
-                if (currentNode.type === 'evidence' || currentNode.type === 'email') {
-                    const evidenceName = currentNode.data.displayName || currentNode.data.label;
-                    addLog(`EVIDENCE ACQUIRED: ${evidenceName}`);
+                if (currentNode.type === 'evidence' || currentNode.type === 'email' || currentNode.type === 'fact') {
+                    const evidenceName = currentNode.data.factTitle || currentNode.data.displayName || currentNode.data.label;
+                    addLog(`INTEL DISCOVERED: ${evidenceName}`);
                 } else {
                     addLog(`SUSPECT ENCOUNTERED: ${currentNode.data.name}`);
                 }
@@ -818,7 +818,7 @@ const GamePreview = ({ nodes, edges, onClose, gameMetadata, onGameEnd, onNodeCha
         setInventory(prev => new Set([...prev, ...idsToAdd]));
 
         // Handle Type-Specific UI logic
-        if (node && ['suspect', 'evidence', 'terminal', 'message', 'media', 'notification', 'question', 'lockpick', 'decryption', 'keypad', 'interrogation', 'threed', 'email'].includes(node.type)) {
+        if (node && ['suspect', 'evidence', 'terminal', 'message', 'media', 'notification', 'question', 'lockpick', 'decryption', 'keypad', 'interrogation', 'threed', 'email', 'fact'].includes(node.type)) {
             setActiveModalNode(node);
             if (node.type === 'question') setUserAnswers(new Set());
         } else if (node && node.type === 'cutscene') {
@@ -1599,6 +1599,11 @@ const GamePreview = ({ nodes, edges, onClose, gameMetadata, onGameEnd, onNodeCha
                                                             bg = "bg-blue-600/20";
                                                             actionLabel = "ENCRYPTED INTEL";
                                                             title = displayNode.data.subject || title;
+                                                        } else if (displayNode.type === 'fact') {
+                                                            icon = Lightbulb;
+                                                            color = "text-amber-400";
+                                                            bg = "bg-amber-500/10";
+                                                            actionLabel = "INFORMATION";
                                                         }
                                                     }
 
@@ -1718,7 +1723,7 @@ const GamePreview = ({ nodes, edges, onClose, gameMetadata, onGameEnd, onNodeCha
                             initial={{ scale: 0.9, opacity: 0 }}
                             animate={{ scale: 1, opacity: 1 }}
                             exit={{ scale: 0.9, opacity: 0 }}
-                            className={`bg-zinc-950 border border-zinc-800 p-0 rounded-2xl relative overflow-hidden shadow-2xl shadow-black max-h-[95vh] flex flex-col transition-all duration-500 ${(activeModalNode.type === 'threed' || activeModalNode.type === 'suspect' || activeModalNode.type === 'interrogation' || activeModalNode.type === 'question' || activeModalNode.type === 'email') ? 'max-w-6xl w-full h-[95vh] md:h-[85vh]' : 'max-w-3xl w-full'}`}
+                            className={`bg-zinc-950 border border-zinc-800 p-0 rounded-2xl relative overflow-hidden shadow-2xl shadow-black max-h-[95vh] flex flex-col transition-all duration-500 ${(activeModalNode.type === 'threed' || activeModalNode.type === 'suspect' || activeModalNode.type === 'interrogation' || activeModalNode.type === 'question' || activeModalNode.type === 'email' || activeModalNode.type === 'fact') ? 'max-w-6xl w-full h-[95vh] md:h-[85vh]' : 'max-w-3xl w-full'}`}
                         >
                             {/* Modal Close Button - Elevated to top priority */}
                             <button
@@ -2227,6 +2232,85 @@ const GamePreview = ({ nodes, edges, onClose, gameMetadata, onGameEnd, onNodeCha
                                         }
                                     }}
                                 />
+                            )}
+
+                            {/* Fact / Info Layout */}
+                            {activeModalNode.type === 'fact' && (
+                                <div className="p-0 bg-zinc-950 flex flex-col w-full h-full min-h-0 text-white font-sans overflow-hidden">
+                                    <div className="bg-amber-900/20 p-6 border-b border-amber-500/30 flex items-center justify-between shrink-0">
+                                        <div className="flex items-center gap-4">
+                                            <div className="w-12 h-12 rounded-xl bg-amber-500/10 flex items-center justify-center border border-amber-500/20 shadow-[0_0_15px_rgba(245,158,11,0.1)]">
+                                                <Lightbulb className="w-6 h-6 text-amber-500" />
+                                            </div>
+                                            <div>
+                                                <div className="flex items-center gap-2 mb-1">
+                                                    <span className="text-[10px] font-bold tracking-[0.2em] text-amber-500 uppercase">Case Intelligence</span>
+                                                </div>
+                                                <h2 className="text-xl md:text-2xl font-black text-white uppercase tracking-tight">
+                                                    {activeModalNode.data.factTitle || activeModalNode.data.label || 'Information Found'}
+                                                </h2>
+                                            </div>
+                                        </div>
+                                    </div>
+
+                                    <div className="flex-1 overflow-y-auto p-6 md:p-10 no-scrollbar">
+                                        <div className="max-w-4xl mx-auto space-y-8">
+                                            {/* Images Gallery */}
+                                            {activeModalNode.data.images && activeModalNode.data.images.length > 0 && (
+                                                <div className={`grid gap-4 ${activeModalNode.data.images.length === 1 ? 'grid-cols-1' : 'grid-cols-1 md:grid-cols-2'}`}>
+                                                    {activeModalNode.data.images.map((url, i) => (
+                                                        <motion.div
+                                                            key={i}
+                                                            initial={{ opacity: 0, y: 20 }}
+                                                            animate={{ opacity: 1, y: 0 }}
+                                                            transition={{ delay: i * 0.1 }}
+                                                            className="group relative aspect-video bg-zinc-900 rounded-2xl overflow-hidden border border-zinc-800 shadow-2xl cursor-pointer"
+                                                            onClick={() => setZoomedImage(url)}
+                                                        >
+                                                            <img src={url} className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-700" alt={`Fact Media ${i + 1}`} />
+                                                            <div className="absolute inset-0 bg-gradient-to-t from-black/60 via-transparent to-transparent opacity-0 group-hover:opacity-100 transition-opacity flex items-end p-4">
+                                                                <div className="flex items-center gap-2 text-white text-[10px] font-bold uppercase tracking-widest">
+                                                                    <ZoomIn className="w-4 h-4" /> Click to enlarge
+                                                                </div>
+                                                            </div>
+                                                        </motion.div>
+                                                    ))}
+                                                </div>
+                                            )}
+
+                                            {/* Content Area */}
+                                            <div className="relative">
+                                                <div className="absolute -left-4 md:-left-6 top-0 bottom-0 w-1 bg-amber-500/20 rounded-full" />
+                                                <div className="prose prose-invert max-w-none">
+                                                    <div
+                                                        className="whitespace-pre-wrap font-sans text-zinc-200 text-lg md:text-xl leading-relaxed font-medium md:tracking-wide"
+                                                        dangerouslySetInnerHTML={{ __html: parseRichText(activeModalNode.data.text) || 'No content provided.' }}
+                                                    />
+                                                </div>
+                                            </div>
+                                        </div>
+                                    </div>
+
+                                    <div className="p-6 border-t border-zinc-800 bg-zinc-900/50 flex justify-end shrink-0">
+                                        <Button
+                                            className="bg-amber-600 hover:bg-amber-500 text-white font-black uppercase tracking-[0.15em] text-[11px] h-12 px-10 shadow-[0_8px_20px_rgba(245,158,11,0.2)] transition-all rounded-xl flex items-center gap-2"
+                                            onClick={() => {
+                                                if (activeModalNode.data.score && !scoredNodes.has(activeModalNode.id)) {
+                                                    setScore(s => s + activeModalNode.data.score);
+                                                    setScoreDelta(activeModalNode.data.score);
+                                                    rewardObjectivePoints(activeModalNode, activeModalNode.data.score);
+                                                    setScoredNodes(prev => new Set([...prev, activeModalNode.id]));
+                                                    addLog(`FACT DISCOVERED: +${activeModalNode.data.score} Points`);
+                                                }
+                                                const rawEdges = edges.filter(e => e.source === activeModalNode.id);
+                                                setActiveModalNode(null);
+                                                if (rawEdges.length > 0) handleOptionClick(rawEdges[0].target);
+                                            }}
+                                        >
+                                            Confirm Intelligence <ArrowRight className="w-4 h-4 md:ml-2" />
+                                        </Button>
+                                    </div>
+                                </div>
                             )}
 
                             {/* 3D Holodeck Experience */}
