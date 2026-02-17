@@ -227,19 +227,33 @@ const KeypadMinigame = ({ node, onSuccess }) => {
         const handleKeyDown = (e) => {
             if (error) return;
             const key = e.key;
+            const code = e.code;
+
+            // Handle functional keys
             if (key === 'Backspace') {
+                e.preventDefault();
                 handlePress('BACK');
             } else if (key === 'Escape') {
+                e.preventDefault();
                 handlePress('CLR');
-            } else if (key === 'Enter') {
+            } else if (key === 'Enter' || code === 'NumpadEnter') {
+                e.preventDefault();
                 handlePress('Enter');
             } else {
-                const char = key.toUpperCase();
-                if (lockType === 'alphanumeric') {
-                    if (/^[A-Z0-9]$/.test(char)) {
-                        handlePress(char);
-                    }
-                } else if (/^[0-9]$/.test(char)) {
+                // Handle numeric/alphanumeric input
+                let char = '';
+
+                // Try to get digit from Numpad code first (works regardless of NumLock)
+                if (code.startsWith('Numpad') && code.length === 7 && /^[0-9]$/.test(code[6])) {
+                    char = code[6];
+                } else if (/^[0-9]$/.test(key)) {
+                    char = key;
+                } else if (lockType === 'alphanumeric' && /^[a-zA-Z]$/.test(key) && key.length === 1) {
+                    char = key.toUpperCase();
+                }
+
+                if (char) {
+                    e.preventDefault();
                     handlePress(char);
                 }
             }
@@ -249,7 +263,7 @@ const KeypadMinigame = ({ node, onSuccess }) => {
     }, [input, error, lockType]);
 
     return (
-        <div className="p-8 bg-zinc-950 h-full flex flex-col items-center justify-center relative overflow-hidden">
+        <div className="p-8 bg-zinc-950 h-full flex flex-col items-center justify-center relative overflow-hidden pointer-events-auto">
             {/* Briefcase Leather Texture Background */}
             <div className="absolute inset-0 opacity-20 pointer-events-none" style={{ backgroundImage: `url("data:image/svg+xml,%3Csvg width='100' height='100' viewBox='0 0 100 100' xmlns='http://www.w3.org/2000/svg'%3E%3Cpath d='M0 0h100v100H0z' fill='%23111'/%3E%3Ccircle cx='50' cy='50' r='1' fill='%23333'/%3E%3C/svg%3E")` }}></div>
 
@@ -312,38 +326,48 @@ const KeypadMinigame = ({ node, onSuccess }) => {
                     </div>
 
                     {/* Input Grid - Industrial Style */}
-                    <div className="p-8 pt-0 grid grid-cols-3 gap-4">
-                        {/* Numerical/Alpha Layout */}
-                        {[
-                            '1', '2', '3',
-                            '4', '5', '6',
-                            '7', '8', '9',
-                            'CLR', '0', 'BACK'
-                        ].map((key) => (
-                            <button
-                                key={key}
-                                onClick={() => handlePress(key)}
-                                className={`h-16 rounded-xl border-b-4 active:border-b-0 active:translate-y-1 transition-all flex flex-col items-center justify-center font-bold shadow-lg group relative overflow-hidden
-                                    ${key === 'CLR' ? 'bg-zinc-800 border-zinc-950 text-red-400 hover:text-red-300' :
-                                        key === 'BACK' ? 'bg-zinc-800 border-zinc-950 text-amber-400 hover:text-amber-300' :
-                                            'bg-gradient-to-b from-zinc-700 to-zinc-800 border-zinc-950 text-zinc-300 hover:text-white'}`}
-                            >
-                                <span className={`text-${key.length > 3 ? 'xs' : 'xl'}`}>{key}</span>
-                                {lockType === 'alphanumeric' && key.length === 1 && (
-                                    <span className="text-[7px] text-zinc-500 font-black uppercase tracking-tighter mt-0.5">
-                                        {key === '2' ? 'ABC' : key === '3' ? 'DEF' : key === '4' ? 'GHI' : key === '5' ? 'JKL' : key === '6' ? 'MNO' : key === '7' ? 'PQRS' : key === '8' ? 'TUV' : key === '9' ? 'WXYZ' : ''}
-                                    </span>
-                                )}
-                                {/* Screw Head Decal */}
-                                <div className="absolute top-1 right-1 w-1 h-1 bg-black/40 rounded-full"></div>
-                                <div className="absolute bottom-1 left-1 w-1 h-1 bg-black/40 rounded-full"></div>
-                            </button>
-                        ))}
+                    <div className="p-8 pt-0 flex flex-col gap-4">
+                        <div className="grid grid-cols-3 gap-4">
+                            {/* Numerical/Alpha Layout */}
+                            {[
+                                '1', '2', '3',
+                                '4', '5', '6',
+                                '7', '8', '9',
+                                'CLR', '0', 'BACK'
+                            ].map((key) => (
+                                <button
+                                    key={key}
+                                    onClick={(e) => {
+                                        e.preventDefault();
+                                        e.stopPropagation();
+                                        handlePress(key);
+                                    }}
+                                    className={`h-16 rounded-xl border-b-4 active:border-b-0 active:translate-y-1 transition-all flex flex-col items-center justify-center font-bold shadow-lg group relative overflow-hidden z-10
+                                        ${key === 'CLR' ? 'bg-zinc-800 border-zinc-950 text-red-400 hover:text-red-300' :
+                                            key === 'BACK' ? 'bg-zinc-800 border-zinc-950 text-amber-400 hover:text-amber-300' :
+                                                'bg-gradient-to-b from-zinc-700 to-zinc-800 border-zinc-950 text-zinc-300 hover:text-white'}`}
+                                >
+                                    <span className={`text-${key.length > 3 ? 'xs' : 'xl'}`}>{key}</span>
+                                    {lockType === 'alphanumeric' && key.length === 1 && (
+                                        <span className="text-[7px] text-zinc-500 font-black uppercase tracking-tighter mt-0.5">
+                                            {key === '2' ? 'ABC' : key === '3' ? 'DEF' : key === '4' ? 'GHI' : key === '5' ? 'JKL' : key === '6' ? 'MNO' : key === '7' ? 'PQRS' : key === '8' ? 'TUV' : key === '9' ? 'WXYZ' : ''}
+                                        </span>
+                                    )}
+                                    {/* Screw Head Decal */}
+                                    <div className="absolute top-1 right-1 w-1 h-1 bg-black/40 rounded-full"></div>
+                                    <div className="absolute bottom-1 left-1 w-1 h-1 bg-black/40 rounded-full"></div>
+                                </button>
+                            ))}
+                        </div>
 
                         {/* Large Unlock Button */}
                         <button
-                            onClick={() => handlePress('Enter')}
-                            className="col-span-3 h-20 mt-4 bg-gradient-to-r from-amber-600 via-amber-500 to-amber-600 border-b-4 border-amber-900 rounded-2xl active:border-b-0 active:translate-y-1 transition-all flex items-center justify-center gap-4 group shadow-[0_10px_20px_-5px_rgba(245,158,11,0.4)]"
+                            onClick={(e) => {
+                                e.preventDefault();
+                                e.stopPropagation();
+                                handlePress('Enter');
+                            }}
+                            className="w-full h-20 bg-gradient-to-r from-amber-600 via-amber-500 to-amber-600 border-b-4 border-amber-900 rounded-2xl active:border-b-0 active:translate-y-1 transition-all flex items-center justify-center gap-4 group shadow-[0_10px_20px_-5px_rgba(245,158,11,0.4)] relative z-10"
                         >
                             <Unlock className="w-6 h-6 text-amber-950" />
                             <span className="text-amber-950 font-black text-lg tracking-widest uppercase">Release Latches</span>
