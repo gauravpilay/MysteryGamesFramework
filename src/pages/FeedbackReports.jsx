@@ -2,7 +2,7 @@ import React, { useEffect, useState } from "react";
 import { useAuth } from "../lib/auth";
 import { db } from "../lib/firebase";
 import { collection, getDocs, query, where, orderBy } from "firebase/firestore";
-import { Button, Card } from "../components/ui/shared";
+import { Button, Card, Input, cn } from "../components/ui/shared";
 import {
     BarChart,
     MessageSquare,
@@ -12,10 +12,12 @@ import {
     Filter,
     Calendar,
     ChevronRight,
+    ChevronDown,
     Search,
     ThumbsUp,
     AlertTriangle,
-    Target
+    Target,
+    Check
 } from "lucide-react";
 import { useNavigate } from "react-router-dom";
 import { motion, AnimatePresence } from "framer-motion";
@@ -30,6 +32,9 @@ const FeedbackReports = () => {
     const [feedbackList, setFeedbackList] = useState([]);
     const [loading, setLoading] = useState(true);
     const [stats, setStats] = useState(null);
+    const [searchQuery, setSearchQuery] = useState("");
+    const [isDropdownOpen, setIsDropdownOpen] = useState(false);
+    const dropdownRef = React.useRef(null);
 
     // Only allow access if user is Admin
     useEffect(() => {
@@ -47,10 +52,18 @@ const FeedbackReports = () => {
             }
             try {
                 const querySnapshot = await getDocs(collection(db, "cases"));
-                const casesList = querySnapshot.docs.map(doc => ({
-                    id: doc.id,
-                    title: doc.data().title || "Untitled Mission"
-                }));
+                const casesList = querySnapshot.docs.map(doc => {
+                    const data = doc.data();
+                    return {
+                        id: doc.id,
+                        title: data.title || "Untitled Mission",
+                        hasTitle: !!data.title,
+                        createdAt: data.createdAt || data.updatedAt || null
+                    };
+                })
+                    .filter(c => c.hasTitle) // Only show missions that have a proper title
+                    .sort((a, b) => a.title.localeCompare(b.title));
+
                 setCases(casesList);
                 if (casesList.length > 0) {
                     setSelectedCaseId(casesList[0].id);
@@ -63,6 +76,21 @@ const FeedbackReports = () => {
         };
         fetchCases();
     }, []);
+
+    // Handle clicking outside the dropdown
+    useEffect(() => {
+        const handleClickOutside = (event) => {
+            if (dropdownRef.current && !dropdownRef.current.contains(event.target)) {
+                setIsDropdownOpen(false);
+            }
+        };
+        document.addEventListener("mousedown", handleClickOutside);
+        return () => document.removeEventListener("mousedown", handleClickOutside);
+    }, []);
+
+    const filteredCases = cases.filter(c =>
+        c.title.toLowerCase().includes(searchQuery.toLowerCase())
+    );
 
     useEffect(() => {
         const fetchFeedback = async () => {
@@ -214,15 +242,77 @@ const FeedbackReports = () => {
                     </div>
                 </div>
                 <div className="flex items-center gap-4">
-                    <select
-                        value={selectedCaseId}
-                        onChange={(e) => setSelectedCaseId(e.target.value)}
-                        className="bg-zinc-900 border border-zinc-800 rounded-lg px-3 py-1.5 text-sm font-medium focus:ring-2 focus:ring-indigo-500 outline-none transition-all"
-                    >
-                        {cases.map(c => (
-                            <option key={c.id} value={c.id}>{c.title}</option>
-                        ))}
-                    </select>
+                    {/* Searchable Mission Dropdown */}
+                    <div className="relative" ref={dropdownRef}>
+                        <button
+                            onClick={() => setIsDropdownOpen(!isDropdownOpen)}
+                            className="flex items-center justify-between gap-2 bg-zinc-900 border border-zinc-800 rounded-lg px-4 py-2 text-sm font-medium hover:border-zinc-700 focus:ring-2 focus:ring-indigo-500 outline-none transition-all w-64 text-left"
+                        >
+                            <span className="truncate">{selectedCase?.title || "Select Mission"}</span>
+                            <ChevronDown className={cn("w-4 h-4 text-zinc-500 transition-transform duration-200", isDropdownOpen && "rotate-180")} />
+                        </button>
+
+                        <AnimatePresence>
+                            {isDropdownOpen && (
+                                <motion.div
+                                    initial={{ opacity: 0, y: 10, scale: 0.95 }}
+                                    animate={{ opacity: 1, y: 0, scale: 1 }}
+                                    exit={{ opacity: 0, y: 10, scale: 0.95 }}
+                                    transition={{ duration: 0.15 }}
+                                    className="absolute right-0 mt-2 w-72 bg-zinc-950 border border-zinc-800 rounded-xl shadow-2xl overflow-hidden z-[60] backdrop-blur-xl"
+                                >
+                                    <div className="p-3 border-b border-zinc-800">
+                                        <div className="relative">
+                                            <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-zinc-500" />
+                                            <input
+                                                autoFocus
+                                                type="text"
+                                                placeholder="Search missions..."
+                                                value={searchQuery}
+                                                onChange={(e) => setSearchQuery(e.target.value)}
+                                                className="w-full bg-zinc-900 border border-zinc-800 rounded-lg pl-9 pr-3 py-2 text-sm text-zinc-100 placeholder:text-zinc-600 focus:outline-none focus:ring-1 focus:ring-indigo-500"
+                                            />
+                                        </div>
+                                    </div>
+                                    <div className="max-h-64 overflow-y-auto p-1 custom-scrollbar">
+                                        {filteredCases.length > 0 ? (
+                                            filteredCases.map(c => (
+                                                <button
+                                                    key={c.id}
+                                                    onClick={() => {
+                                                        setSelectedCaseId(c.id);
+                                                        setIsDropdownOpen(false);
+                                                        setSearchQuery("");
+                                                    }}
+                                                    className={cn(
+                                                        "w-full flex items-center justify-between px-3 py-2.5 rounded-lg text-sm text-left transition-colors",
+                                                        selectedCaseId === c.id
+                                                            ? "bg-indigo-600/20 text-indigo-400 font-bold"
+                                                            : "text-zinc-400 hover:bg-zinc-800 hover:text-white"
+                                                    )}
+                                                >
+                                                    <div className="flex flex-col min-w-0 flex-1">
+                                                        <span className="truncate">{c.title}</span>
+                                                        {!c.hasTitle && c.createdAt && (
+                                                            <span className="text-[10px] text-zinc-500 font-mono mt-0.5">
+                                                                AUTO-GENERATED: {new Date(c.createdAt).toLocaleDateString()}
+                                                            </span>
+                                                        )}
+                                                    </div>
+                                                    {selectedCaseId === c.id && <Check className="w-4 h-4 shrink-0" />}
+                                                </button>
+                                            ))
+                                        ) : (
+                                            <div className="px-4 py-8 text-center text-zinc-600 text-sm">
+                                                No missions found
+                                            </div>
+                                        )}
+                                    </div>
+                                </motion.div>
+                            )}
+                        </AnimatePresence>
+                    </div>
+
                     <Button
                         disabled={!stats}
                         onClick={exportPDF}

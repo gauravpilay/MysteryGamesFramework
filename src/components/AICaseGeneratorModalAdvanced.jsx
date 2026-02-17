@@ -107,6 +107,8 @@ RETURN ONLY A VALID JSON OBJECT. NO MARKDOWN. NO EXPLANATION.
 
 The JSON structure MUST follow this exact format:
 {
+  "caseTitle": "Catchy Mystery Title",
+  "caseDescription": "One sentence mission briefing",
   "nodes": [
     {
       "id": "unique-string-id",
@@ -501,7 +503,7 @@ Transform this into a complete, playable mystery game with engaging characters, 
             setProgress(100);
 
             setTimeout(() => {
-                onGenerate(data.nodes, data.edges);
+                onGenerate(data.nodes, data.edges, data);
                 onClose();
                 resetForm();
             }, 500);

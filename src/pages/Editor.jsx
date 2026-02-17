@@ -2888,7 +2888,7 @@ Please provide a concise plot summary and narrative overview based on these elem
                 isOpen={showAIGenerator}
                 onClose={() => setShowAIGenerator(false)}
                 projectId={projectId}
-                onGenerate={(newNodes, newEdges) => {
+                onGenerate={(newNodes, newEdges, meta) => {
                     const preparedNodes = newNodes.map(node => ({
                         ...node,
                         data: {
@@ -2902,6 +2902,13 @@ Please provide a concise plot summary and narrative overview based on these elem
                     }));
                     setNodes(preparedNodes);
                     setEdges(newEdges);
+
+                    // Update metadata if provided by AI
+                    if (meta) {
+                        if (meta.caseTitle) setCaseTitle(meta.caseTitle);
+                        if (meta.caseDescription) setCaseDescription(meta.caseDescription);
+                    }
+
                     // Force fit view after generation
                     setTimeout(() => {
                         if (reactFlowInstance) reactFlowInstance.fitView({ duration: 800 });
