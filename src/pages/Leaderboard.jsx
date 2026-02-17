@@ -46,7 +46,12 @@ const Leaderboard = () => {
 
                 const resultsData = resultsSnap.docs.map(doc => ({ id: doc.id, ...doc.data() }));
                 const usersData = usersSnap.docs.map(doc => ({ id: doc.id, ...doc.data() }));
-                const casesData = casesSnap.docs.map(doc => ({ id: doc.id, ...doc.data() }));
+                const casesData = casesSnap.docs
+                    .map(doc => ({ id: doc.id, ...doc.data() }))
+                    .filter(c => {
+                        const title = c.title?.trim().toLowerCase();
+                        return title && !title.startsWith('untitled');
+                    });
 
                 setResults(resultsData);
                 setUsers(usersData);

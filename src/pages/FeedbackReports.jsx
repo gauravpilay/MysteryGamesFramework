@@ -60,8 +60,7 @@ const FeedbackReports = () => {
                         hasTitle: !!data.title,
                         createdAt: data.createdAt || data.updatedAt || null
                     };
-                })
-                    .filter(c => c.hasTitle) // Only show missions that have a proper title
+                }).filter(c => c.hasTitle && !c.title.trim().toLowerCase().startsWith('untitled')) // Only show missions that have a proper title and are not untitled
                     .sort((a, b) => a.title.localeCompare(b.title));
 
                 setCases(casesList);

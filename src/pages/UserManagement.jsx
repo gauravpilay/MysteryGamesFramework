@@ -92,10 +92,16 @@ const UserManagement = () => {
             }
             try {
                 const querySnapshot = await getDocs(collection(db, "cases"));
-                setCases(querySnapshot.docs.map(doc => ({
-                    id: doc.id,
-                    ...doc.data()
-                })));
+                const filteredCases = querySnapshot.docs
+                    .map(doc => ({
+                        id: doc.id,
+                        ...doc.data()
+                    }))
+                    .filter(c => {
+                        const title = c.title?.trim().toLowerCase();
+                        return title && !title.startsWith('untitled');
+                    });
+                setCases(filteredCases);
             } catch (err) {
                 console.error("Error fetching cases:", err);
             }
