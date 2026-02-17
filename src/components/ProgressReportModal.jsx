@@ -58,7 +58,7 @@ const ProgressReportModal = ({ onClose }) => {
                         const snapshot = await getDocs(q);
                         data = snapshot.docs.map(d => ({ id: d.id, ...d.data() }));
 
-                        const casesSnap = await getDocs(query(collection(db, "cases")));
+                        const casesSnap = await getDocs(query(collection(db, "cases"), where("status", "==", "published")));
 
                         casesSnap.docs.forEach(doc => {
                             const c = doc.data();

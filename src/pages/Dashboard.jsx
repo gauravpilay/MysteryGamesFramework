@@ -1,7 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import { useAuth } from '../lib/auth';
 import { db, storage } from '../lib/firebase';
-import { collection, addDoc, deleteDoc, updateDoc, setDoc, doc, onSnapshot, query, orderBy } from 'firebase/firestore';
+import { collection, addDoc, deleteDoc, updateDoc, setDoc, doc, onSnapshot, query, orderBy, where } from 'firebase/firestore';
 import { ref, uploadBytes, getDownloadURL } from 'firebase/storage';
 import { Button, Card, Input, Label } from '../components/ui/shared';
 import { Logo } from '../components/ui/Logo';
@@ -18,7 +18,7 @@ import { useLicense } from '../lib/licensing';
 import LicenseConfigModal from '../components/LicenseConfigModal';
 
 const Dashboard = () => {
-    const { user, logout } = useAuth();
+    const { user, logout, loading: authLoading } = useAuth();
     const { settings } = useConfig();
     const navigate = useNavigate();
     const [projects, setProjects] = useState([]);
@@ -44,10 +44,13 @@ const Dashboard = () => {
     const [showLimitModal, setShowLimitModal] = useState(false);
     const isAdmin = user?.role === 'Admin';
 
-    if (licenseLoading) {
+    if (licenseLoading || authLoading) {
         return (
             <div className="fixed inset-0 flex items-center justify-center bg-black">
-                <Loader2 className="w-8 h-8 text-indigo-500 animate-spin" />
+                <div className="flex flex-col items-center gap-4">
+                    <Loader2 className="w-8 h-8 text-indigo-500 animate-spin" />
+                    <p className="text-xs text-indigo-500/50 font-mono tracking-widest animate-pulse">ESTABLISHING SECURE CONNECTION...</p>
+                </div>
             </div>
         );
     }
@@ -113,6 +116,15 @@ const Dashboard = () => {
 
     // Fetch Projects
     useEffect(() => {
+        // Clear projects if user logged out
+        if (!authLoading && !user) {
+            setProjects([]);
+            return;
+        }
+
+        // Wait for user data to be fully available (including role)
+        if (authLoading || !user) return;
+
         if (!db) {
             // Mock data if no DB
             setProjects([
@@ -122,22 +134,52 @@ const Dashboard = () => {
             return;
         }
 
-        const q = query(collection(db, "cases"), orderBy("updatedAt", "desc"));
+        let q;
+        if (isAdmin) {
+            q = query(collection(db, "cases"), orderBy("updatedAt", "desc"));
+        } else {
+            // Non-admins only query published cases to satisfy security rules
+            q = query(collection(db, "cases"), where("status", "==", "published"), orderBy("updatedAt", "desc"));
+        }
+
         const unsubscribe = onSnapshot(q, (snapshot) => {
             const docs = snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() }));
             setProjects(docs);
         }, (error) => {
-            console.error("Error fetching cases:", error);
+            // Only log actual permission errors, suppress noise during login transitions
+            if (error.code !== 'permission-denied' || (user && !authLoading)) {
+                console.error("[DASHBOARD_PERMISSIONS] Error fetching cases:", error);
+            }
+            setProjects([]);
         });
 
         return () => unsubscribe();
-    }, [user]);
+    }, [user, isAdmin, authLoading]);
 
     // Derived State
-    const accessibleProjects = projects.filter(p =>
-        p.title?.toLowerCase().includes(searchQuery.toLowerCase()) ||
-        p.description?.toLowerCase().includes(searchQuery.toLowerCase())
-    );
+    const accessibleProjects = projects.filter(p => {
+        const matchesSearch = p.title?.toLowerCase().includes(searchQuery.toLowerCase()) ||
+            p.description?.toLowerCase().includes(searchQuery.toLowerCase());
+
+        if (!matchesSearch) return false;
+
+        // Admin override: Admins see everything
+        if (isAdmin) return true;
+
+        // Access Control: If user has a specific list of assigned cases, strictly restrict to those
+        if (user && Object.prototype.hasOwnProperty.call(user, 'assignedCaseIds') && Array.isArray(user.assignedCaseIds)) {
+            const hasAccess = user.assignedCaseIds.includes(p.id);
+            return hasAccess;
+        }
+
+        // If user is a regular User but has NO assignedCaseIds field yet, 
+        // we show everything by default UNLESS we want to be strict.
+        // Let's stick with current default but log it clearly.
+        return true;
+    });
+
+
+
 
     const publishedProjects = accessibleProjects.filter(p => p.status === 'published');
     const draftProjects = accessibleProjects.filter(p => p.status !== 'published');

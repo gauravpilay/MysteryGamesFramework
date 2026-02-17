@@ -8,6 +8,7 @@ import GamePreview from '../components/GamePreview';
 const Player = () => {
     const { projectId } = useParams();
     const navigate = useNavigate();
+    const { user } = useAuth() || {};
     const [gameData, setGameData] = useState(null);
     const [error, setError] = useState(null);
 
@@ -15,11 +16,24 @@ const Player = () => {
         const loadCaseData = async () => {
             if (!db || !projectId) return;
             try {
+                // Wait for user data to be available for access check
+                if (!user) return;
+
                 const docRef = doc(db, "cases", projectId);
                 const docSnap = await getDoc(docRef);
 
                 if (docSnap.exists()) {
-                    setGameData(docSnap.data());
+                    const data = docSnap.data();
+
+                    // Access Control Check
+                    if (user.role !== 'Admin' && Array.isArray(user.assignedCaseIds)) {
+                        if (!user.assignedCaseIds.includes(projectId)) {
+                            setError("Unauthorized: You do not have clearance for this investigation file.");
+                            return;
+                        }
+                    }
+
+                    setGameData(data);
                 } else {
                     setError("Case not found.");
                 }
@@ -29,9 +43,7 @@ const Player = () => {
             }
         };
         loadCaseData();
-    }, [projectId]);
-
-    const { user } = useAuth() || {}; // Handle potential null if not wrapped (though it should be)
+    }, [projectId, user]);
 
     const handleGameEnd = async (resultData) => {
         if (!user || !user.email) {
@@ -89,8 +101,6 @@ const Player = () => {
             console.error("Local storage save failed", e);
         }
     };
-
-
 
     if (error) {
         return (

@@ -41,7 +41,7 @@ const Leaderboard = () => {
                 const [resultsSnap, usersSnap, casesSnap] = await Promise.all([
                     getDocs(collection(db, "game_results")),
                     getDocs(collection(db, "users")),
-                    getDocs(collection(db, "cases"))
+                    getDocs(query(collection(db, "cases"), where("status", "==", "published")))
                 ]);
 
                 const resultsData = resultsSnap.docs.map(doc => ({ id: doc.id, ...doc.data() }));

@@ -103,7 +103,7 @@ const UserManagement = () => {
                     });
                 setCases(filteredCases);
             } catch (err) {
-                console.error("Error fetching cases:", err);
+                console.error("[ADMIN_USERS] Error fetching cases:", err);
             }
         };
 

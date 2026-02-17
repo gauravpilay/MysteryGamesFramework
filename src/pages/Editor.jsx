@@ -650,6 +650,16 @@ const Editor = () => {
     useEffect(() => {
         const loadCaseData = async () => {
             if (!db || !projectId) return;
+            // Wait for user to be loaded
+            if (!user) return;
+
+            // Strict Access Control: Only Admins can edit cases
+            if (user.role !== 'Admin') {
+                console.error("Unauthorized access to editor.");
+                navigate('/');
+                return;
+            }
+
             try {
                 const docRef = doc(db, "cases", projectId);
                 const docSnap = await getDoc(docRef);
@@ -674,7 +684,7 @@ const Editor = () => {
             }
         };
         loadCaseData();
-    }, [projectId, setNodes, setEdges]);
+    }, [projectId, setNodes, setEdges, user, navigate]);
 
     // Lock and Heartbeat Logic
     useEffect(() => {

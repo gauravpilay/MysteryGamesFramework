@@ -68,13 +68,18 @@ const FeedbackReports = () => {
                     setSelectedCaseId(casesList[0].id);
                 }
             } catch (err) {
-                console.error("Error fetching cases:", err);
+                console.error("[ADMIN_FEEDBACK] Error fetching cases:", err);
             } finally {
                 setLoading(false);
             }
         };
-        fetchCases();
-    }, []);
+
+        if (user?.role === 'Admin') {
+            fetchCases();
+        } else if (user) {
+            setLoading(false);
+        }
+    }, [user]);
 
     // Handle clicking outside the dropdown
     useEffect(() => {
