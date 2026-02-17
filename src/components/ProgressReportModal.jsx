@@ -158,9 +158,10 @@ const ProgressReportModal = ({ onClose }) => {
 
                 if (!objectiveStats[name]) objectiveStats[name] = { total: 0, count: 0, runs: [] };
 
-                objectiveStats[name].total += score;
+                const cappedScore = Math.min(100, score);
+                objectiveStats[name].total += cappedScore;
                 objectiveStats[name].count += 1;
-                objectiveStats[name].runs.push({ date: game.playedAt, score });
+                objectiveStats[name].runs.push({ date: game.playedAt, score: cappedScore });
             });
         });
 
@@ -741,7 +742,7 @@ const ProgressReportModal = ({ onClose }) => {
                 const tableStartY = chartY + (objectiveData.length * 13) + 10;
                 const objectiveRows = objectiveData.map(([name, data]) => [
                     name,
-                    `${Math.round(data.total / data.count)}%`,
+                    `${Math.min(100, Math.round(data.total / data.count))}%`,
                     data.count
                 ]);
 

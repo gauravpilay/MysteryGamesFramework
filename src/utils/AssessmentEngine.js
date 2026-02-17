@@ -8,7 +8,7 @@ export const generateAssessment = (userData, objMap) => {
 
     // 1. Core Competency Analysis
     const competencies = Object.entries(objectiveStats).map(([name, stat]) => {
-        const avg = Math.round(stat.total / stat.count);
+        const avg = Math.min(100, Math.round(stat.total / stat.count));
         const sortedRuns = [...(stat.runs || [])].sort((a, b) => new Date(a.date) - new Date(b.date));
         const first = sortedRuns[0]?.score || 0;
         const last = sortedRuns[sortedRuns.length - 1]?.score || 0;
