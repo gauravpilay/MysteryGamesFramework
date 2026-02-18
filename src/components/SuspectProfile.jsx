@@ -183,6 +183,7 @@ export default function SuspectProfile({
     const [scanActive, setScanActive] = useState(false);
     const [showParticles, setShowParticles] = useState(true);
     const [previewEvidence, setPreviewEvidence] = useState(null);
+    const [suspectDismissal, setSuspectDismissal] = useState(null); // { evidenceName: string }
 
     useEffect(() => {
         // Activate scan effect on mount
@@ -567,6 +568,7 @@ export default function SuspectProfile({
                                                         } else {
                                                             const evidenceName = eNode.data.displayName || eNode.data.label;
                                                             onLog(`❌ DISMISSAL: Subject ignored the ${evidenceName}.`);
+                                                            setSuspectDismissal({ evidenceName });
                                                         }
                                                     }}
                                                 >
@@ -882,11 +884,85 @@ export default function SuspectProfile({
                                         } else {
                                             const evidenceName = eNode.data.displayName || eNode.data.label;
                                             onLog(`❌ DISMISSAL: Subject ignored the ${evidenceName}.`);
+                                            setSuspectDismissal({ evidenceName });
                                         }
                                     }}
                                     className="flex-2 py-4 bg-amber-600 hover:bg-amber-500 text-white font-black uppercase tracking-widest text-[11px] rounded-xl transition-all shadow-lg shadow-amber-900/20 px-10"
                                 >
                                     Confront Subject
+                                </button>
+                            </div>
+                        </motion.div>
+                    </motion.div>
+                )}
+            </AnimatePresence>
+
+            {/* Suspect Dismissal Modal */}
+            <AnimatePresence>
+                {suspectDismissal && (
+                    <motion.div
+                        initial={{ opacity: 0 }}
+                        animate={{ opacity: 1 }}
+                        exit={{ opacity: 0 }}
+                        className={`${isSimultaneous ? 'absolute' : 'fixed'} inset-0 z-[110] flex items-center justify-center p-6 bg-black/80 backdrop-blur-md`}
+                        onClick={() => setSuspectDismissal(null)}
+                    >
+                        <motion.div
+                            initial={{ scale: 0.85, opacity: 0, y: 30 }}
+                            animate={{ scale: 1, opacity: 1, y: 0 }}
+                            exit={{ scale: 0.85, opacity: 0, y: 30 }}
+                            transition={{ type: 'spring', stiffness: 300, damping: 25 }}
+                            className="w-full max-w-lg bg-zinc-950 border border-white/10 rounded-2xl overflow-hidden shadow-2xl"
+                            onClick={(e) => e.stopPropagation()}
+                        >
+                            {/* Header */}
+                            <div className="relative p-5 border-b border-white/5 bg-gradient-to-r from-zinc-900 to-black flex items-center gap-4 overflow-hidden">
+                                <div className="absolute inset-0 bg-gradient-to-r from-red-900/10 to-transparent pointer-events-none" />
+                                <div className="absolute top-0 left-0 right-0 h-px bg-gradient-to-r from-transparent via-red-500/40 to-transparent" />
+                                {/* Avatar */}
+                                <div className={`w-12 h-12 rounded-full bg-gradient-to-br ${getAvatarColor(suspect.data.name)} flex items-center justify-center shrink-0 shadow-lg`}>
+                                    <User className="w-6 h-6 text-white/80" />
+                                </div>
+                                <div className="flex-1 min-w-0">
+                                    <p className="text-[10px] font-black text-red-400 uppercase tracking-[0.25em] mb-0.5">Suspect Response</p>
+                                    <h3 className="text-base font-black text-white uppercase tracking-tight truncate">{suspect.data.name}</h3>
+                                </div>
+                                <motion.div
+                                    animate={{ opacity: [0.5, 1, 0.5] }}
+                                    transition={{ duration: 2, repeat: Infinity }}
+                                    className="flex items-center gap-1.5 px-3 py-1 bg-red-500/10 border border-red-500/30 rounded-full"
+                                >
+                                    <div className="w-1.5 h-1.5 rounded-full bg-red-500" />
+                                    <span className="text-[9px] font-black text-red-400 uppercase tracking-widest">Live</span>
+                                </motion.div>
+                            </div>
+
+                            {/* Dialogue Body */}
+                            <div className="p-6 md:p-8">
+                                <div className="relative p-6 bg-gradient-to-br from-zinc-900/60 to-black/60 border border-white/5 border-l-4 border-l-red-500/60 rounded-xl">
+                                    {/* Quote marks */}
+                                    <span className="absolute -top-3 left-4 text-5xl text-red-500/20 font-serif leading-none select-none">"</span>
+                                    <p className="text-white text-base md:text-lg font-medium leading-relaxed italic tracking-tight relative z-10">
+                                        I don't know anything about this <span className="text-amber-400 not-italic font-black">{suspectDismissal.evidenceName}</span>.
+                                    </p>
+                                    <span className="absolute -bottom-5 right-4 text-5xl text-red-500/20 font-serif leading-none select-none">"</span>
+                                </div>
+
+                                {/* Analysis bar */}
+                                <div className="mt-5 flex items-center gap-3 px-1">
+                                    <div className="flex-1 h-px bg-white/5" />
+                                    <span className="text-[9px] font-black text-zinc-600 uppercase tracking-[0.3em]">No Reaction Detected</span>
+                                    <div className="flex-1 h-px bg-white/5" />
+                                </div>
+                            </div>
+
+                            {/* Footer */}
+                            <div className="p-5 bg-zinc-900/50 border-t border-white/5 flex justify-end">
+                                <button
+                                    onClick={() => setSuspectDismissal(null)}
+                                    className="px-8 py-3 bg-zinc-800 hover:bg-zinc-700 text-white font-black uppercase tracking-widest text-[11px] rounded-xl transition-all border border-white/5 hover:border-white/10"
+                                >
+                                    Continue Investigation
                                 </button>
                             </div>
                         </motion.div>
