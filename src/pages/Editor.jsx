@@ -600,6 +600,11 @@ const Editor = () => {
     // Using a ref flag prevents this from re-running on every edit (which would
     // overwrite node data with stale values and reset question options/text).
     const hasInitializedHandlers = useRef(false);
+
+    // Guard flag: prevents loadCaseData from re-running when the user object
+    // reference changes (e.g. every minute when totalTimeLogged is incremented,
+    // which triggers the auth onSnapshot and creates a new user object).
+    const hasLoadedData = useRef(false);
     useEffect(() => {
         if (nodes.length > 0 && !hasInitializedHandlers.current) {
             hasInitializedHandlers.current = true;
@@ -651,11 +656,27 @@ const Editor = () => {
     }, [reactFlowInstance, onNodeUpdate, onDuplicateNode, setNodes, isLocked]);
 
     // Initial Load
+    // IMPORTANT: We use `user?.uid` (not the full `user` object) in the dependency
+    // array to avoid re-running this effect when the user object reference changes.
+    // The user object is recreated every time the Firestore user doc changes (e.g.
+    // every minute when totalTimeLogged increments), which would reload nodes from
+    // Firestore and reset any unsaved node positions the user has dragged.
+    // The hasLoadedData ref provides an additional guard so that if the same user
+    // navigates to the same project, we don't reload and clobber unsaved changes.
+    useEffect(() => {
+        // Reset the guard when the project changes so we load the new project.
+        hasLoadedData.current = false;
+    }, [projectId]);
+
     useEffect(() => {
         const loadCaseData = async () => {
             if (!db || !projectId) return;
             // Wait for user to be loaded
             if (!user) return;
+            // Only load once per project session to prevent Firestore user-doc
+            // updates (e.g. totalTimeLogged) from re-triggering a full reload
+            // that would overwrite unsaved node positions.
+            if (hasLoadedData.current) return;
 
             // Strict Access Control: Only Admins can edit cases
             if (user.role !== 'Admin') {
@@ -680,6 +701,9 @@ const Editor = () => {
                     if (data.isLocked !== undefined) setIsLocked(data.isLocked);
                     if (data.title) setCaseTitle(data.title);
                     if (data.description) setCaseDescription(data.description);
+                    // Mark as loaded so re-renders caused by user object reference
+                    // changes don't trigger another load.
+                    hasLoadedData.current = true;
                 } else {
                     console.error("No such document!");
                 }
@@ -688,7 +712,7 @@ const Editor = () => {
             }
         };
         loadCaseData();
-    }, [projectId, setNodes, setEdges, user, navigate]);
+    }, [projectId, setNodes, setEdges, user?.uid, user?.role, navigate]);
 
     // Lock and Heartbeat Logic
     useEffect(() => {
