@@ -329,9 +329,9 @@ const AIInterrogation = ({ node, onComplete, onFail, requestCount, onAIRequest, 
                             <div className="w-20 h-20 bg-red-500/10 rounded-3xl border border-red-500/20 flex items-center justify-center mx-auto mb-8 shadow-inner">
                                 <AlertCircle className="w-10 h-10 text-red-500" />
                             </div>
-                            <h3 className="text-2xl font-black text-white uppercase tracking-tighter mb-4">Neural Saturation</h3>
+                            <h3 className="text-2xl font-black text-white uppercase tracking-tighter mb-4">Limit Reached</h3>
                             <p className="text-sm text-zinc-400 mb-10 leading-relaxed px-4">
-                                The subject has reached cognitive limit. Further interrogation requires re-initialization from a physical node.
+                                You can not ask additional questions. Please complete the interrogation to continue.
                             </p>
                             <div className="space-y-4">
                                 <button

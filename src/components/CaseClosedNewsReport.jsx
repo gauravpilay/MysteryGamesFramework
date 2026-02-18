@@ -38,7 +38,7 @@ const CaseClosedNewsReport = ({
 
                 const systemPrompt = `
                     You are a sensationalist news anchor for "The Midnight Chronos", a high-tech detective news network.
-                    Your task is to write a "Breaking News" report about the recently concluded mystery case.
+                    Your task is to write a "Breaking News" report about the recently concluded mystery case in a simple and concise English which anyone can understand.
                     
                     The report should include:
                     1. A catchy Headline.
