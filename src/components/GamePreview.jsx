@@ -821,8 +821,15 @@ const GamePreview = ({ nodes, edges, onClose, gameMetadata, onGameEnd, onNodeCha
         }
 
         if (audioToPlay) {
-            setAudioSource(audioToPlay);
+            const url = typeof audioToPlay === 'object' ? audioToPlay.url : audioToPlay;
+            const volume = typeof audioToPlay === 'object' ? (audioToPlay.volume ?? 0.5) : 0.5;
+            setAudioSource(url);
+            setAudioVolume(volume);
             addLog(`AUDIO: Background track started.`);
+        } else if (node && node.data?.bgMusicUrl) {
+            setAudioSource(node.data.bgMusicUrl);
+            setAudioVolume(node.data.bgMusicVolume ?? 0.5);
+            addLog(`AUDIO: Background track changed.`);
         }
 
         // Add current and intermediates to history
@@ -1227,6 +1234,7 @@ const GamePreview = ({ nodes, edges, onClose, gameMetadata, onGameEnd, onNodeCha
     // Audio State
     const [isMuted, setIsMuted] = useState(false);
     const [audioSource, setAudioSource] = useState(null);
+    const [audioVolume, setAudioVolume] = useState(0.5);
     const audioRef = useRef(null);
 
     // Audio Control Loop
@@ -1235,6 +1243,7 @@ const GamePreview = ({ nodes, edges, onClose, gameMetadata, onGameEnd, onNodeCha
 
         audioRef.current.src = audioSource;
         audioRef.current.loop = true;
+        audioRef.current.volume = isMuted ? 0 : audioVolume;
 
         if (!isMuted) {
             audioRef.current.play().catch(e => console.log("Audio autoplay blocked:", e));
@@ -1243,28 +1252,33 @@ const GamePreview = ({ nodes, edges, onClose, gameMetadata, onGameEnd, onNodeCha
 
     useEffect(() => {
         if (!audioRef.current) return;
+        audioRef.current.volume = isMuted ? 0 : audioVolume;
         if (isMuted) audioRef.current.pause();
         else if (audioSource) audioRef.current.play().catch(e => console.log("Audio play failed:", e));
-    }, [isMuted, audioSource]);
+    }, [isMuted, audioSource, audioVolume]);
 
-    // Handle Music Nodes (Auto-play and Auto-advance)
+    // Handle Music Nodes & Node-specific background music
     useEffect(() => {
         if (!currentNode) return;
 
         if (currentNode.type === 'music') {
             if (currentNode.data.url) {
                 setAudioSource(currentNode.data.url);
+                setAudioVolume(currentNode.data.volume ?? 0.5);
                 addLog(`AUDIO: Now playing background track.`);
             }
 
-            // Auto advance like logic nodes
-            // Find edges
+            // Auto advance
             const edgesOut = options.filter(e => e.source === currentNode.id);
             if (edgesOut.length > 0) {
                 setTimeout(() => handleOptionClick(edgesOut[0].target), 500);
             }
+        } else if (currentNode.data?.bgMusicUrl) {
+            setAudioSource(currentNode.data.bgMusicUrl);
+            setAudioVolume(currentNode.data.bgMusicVolume ?? 0.5);
+            addLog(`AUDIO: Background track changed.`);
         }
-    }, [currentNode, options]);
+    }, [currentNode?.id]);
 
     return (
         <div className={`${isSimultaneous ? 'absolute w-full h-full' : 'fixed inset-0 z-50'} bg-black flex flex-col font-sans overflow-hidden`}>
@@ -1353,11 +1367,44 @@ const GamePreview = ({ nodes, edges, onClose, gameMetadata, onGameEnd, onNodeCha
                     </div>
                 </div>
                 <div className="flex items-center gap-1.5 md:gap-3">
-                    {/* Audio Toggle */}
+                    {/* Audio Controls */}
                     {audioSource && (
-                        <Button variant="ghost" size="icon" onClick={() => setIsMuted(!isMuted)} className={`w-8 h-8 md:w-10 md:h-10 ${isMuted ? "text-red-500" : "text-green-500"}`}>
-                            {isMuted ? <VolumeX className="w-4 h-4 md:w-5 md:h-5" /> : <Volume2 className="w-4 h-4 md:w-5 md:h-5" />}
-                        </Button>
+                        <motion.div
+                            className="flex items-center gap-0 md:gap-1 bg-zinc-900/40 border border-white/5 rounded-full px-1 overflow-hidden"
+                            initial="initial"
+                            whileHover="hover"
+                        >
+                            <Button
+                                variant="ghost"
+                                size="icon"
+                                onClick={() => setIsMuted(!isMuted)}
+                                className={`w-8 h-8 md:w-10 md:h-10 transition-colors shrink-0 ${isMuted ? "text-red-500 hover:bg-red-500/10" : "text-green-500 hover:bg-green-500/10"}`}
+                            >
+                                {isMuted ? <VolumeX className="w-4 h-4 md:w-5 md:h-5" /> : <Volume2 className="w-4 h-4 md:w-5 md:h-5" />}
+                            </Button>
+
+                            <motion.div
+                                variants={{
+                                    initial: { width: 0, opacity: 0, marginLeft: 0 },
+                                    hover: { width: "auto", opacity: 1, marginLeft: 8, marginRight: 12 }
+                                }}
+                                transition={{ type: "spring", stiffness: 300, damping: 30 }}
+                                className="flex items-center shrink-0"
+                            >
+                                <input
+                                    type="range"
+                                    min="0"
+                                    max="1"
+                                    step="0.01"
+                                    value={audioVolume}
+                                    onChange={(e) => {
+                                        setAudioVolume(parseFloat(e.target.value));
+                                        if (isMuted && parseFloat(e.target.value) > 0) setIsMuted(false);
+                                    }}
+                                    className="w-16 md:w-24 h-1 bg-zinc-800 rounded-lg appearance-none cursor-pointer accent-indigo-500"
+                                />
+                            </motion.div>
+                        </motion.div>
                     )}
 
 
@@ -1866,7 +1913,7 @@ const GamePreview = ({ nodes, edges, onClose, gameMetadata, onGameEnd, onNodeCha
                                                 <div className="absolute inset-0 bg-black/50 opacity-0 group-hover:opacity-100 transition-opacity flex items-center justify-center cursor-pointer" onClick={() => setZoomedImage(activeModalNode.data.image)}>
                                                     <div className="flex items-center gap-2 bg-black/80 text-white px-4 py-2 rounded-full border border-white/20 backdrop-blur-md transform scale-95 group-hover:scale-100 transition-transform">
                                                         <ZoomIn className="w-5 h-5" />
-                                                        <span className="text-sm font-bold uppercase tracking-wider">Investigate</span>
+                                                        <span className="text-sm font-bold uppercase tracking-wider">Zoom In</span>
                                                     </div>
                                                 </div>
                                             </div>

@@ -95,7 +95,10 @@ export const resolveNextNode = (startId, { nodes, edges, inventory, nodeOutputs,
         // Handle Music
         if (currNode.type === 'music') {
             if (currNode.data.url) {
-                audioToPlay = currNode.data.url;
+                audioToPlay = {
+                    url: currNode.data.url,
+                    volume: currNode.data.volume ?? 0.5
+                };
             }
             const outEdges = edges.filter(e => e.source === currNode.id);
             if (outEdges.length > 0) {

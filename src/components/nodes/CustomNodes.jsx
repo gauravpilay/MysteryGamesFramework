@@ -2169,12 +2169,26 @@ export const MusicNode = memo(({ id, data, selected }) => {
             <Handle type="target" position={Position.Top} className="!bg-zinc-500 !w-3 !h-3 !border-2 !border-black" />
             <NodeWrapper id={id} title="Background Audio" icon={Music} selected={selected} headerClass="bg-pink-950/30 text-pink-200" colorClass="border-pink-900/30" data={data} onLabelChange={(v) => handleChange('label', v)}>
                 <div className="space-y-2">
-                    <p className="text-[10px] text-zinc-500 mb-1">Audio Source URL (MP3/WAV)</p>
                     <InputField
                         placeholder="https://example.com/suspense.mp3"
                         value={data.url}
                         onChange={(e) => handleChange('url', e.target.value)}
                     />
+                    <div className="space-y-1">
+                        <div className="flex justify-between items-center">
+                            <p className="text-[10px] text-zinc-500">Volume</p>
+                            <span className="text-[10px] text-pink-400 font-mono">{Math.round((data.volume ?? 0.5) * 100)}%</span>
+                        </div>
+                        <input
+                            type="range"
+                            min="0"
+                            max="1"
+                            step="0.01"
+                            value={data.volume ?? 0.5}
+                            onChange={(e) => handleChange('volume', parseFloat(e.target.value))}
+                            className="w-full h-1 bg-zinc-800 rounded-lg appearance-none cursor-pointer accent-pink-500"
+                        />
+                    </div>
                     <div className="flex items-center gap-2 mt-2">
                         <span className="text-[10px] text-pink-400 font-bold uppercase tracking-wider">Note:</span>
                         <span className="text-[10px] text-zinc-400">Plays when this node is reached.</span>
@@ -2261,6 +2275,34 @@ export const MediaNode = memo(({ id, data, selected }) => {
                         value={data.text}
                         onChange={(e) => handleChange('text', e.target.value)}
                     />
+                    <div className="pt-2 border-t border-zinc-800/50 space-y-2">
+                        <div className="flex items-center gap-2">
+                            <Music className="w-3 h-3 text-orange-400" />
+                            <p className="text-[10px] font-bold text-zinc-500 uppercase tracking-wider">Background Music (Optional)</p>
+                        </div>
+                        <InputField
+                            placeholder="Music URL (mp3/wav)"
+                            value={data.bgMusicUrl}
+                            onChange={(e) => handleChange('bgMusicUrl', e.target.value)}
+                        />
+                        {data.bgMusicUrl && (
+                            <div className="space-y-1">
+                                <div className="flex justify-between items-center">
+                                    <p className="text-[10px] text-zinc-500">Music Volume</p>
+                                    <span className="text-[10px] text-orange-400 font-mono">{Math.round((data.bgMusicVolume ?? 0.5) * 100)}%</span>
+                                </div>
+                                <input
+                                    type="range"
+                                    min="0"
+                                    max="1"
+                                    step="0.01"
+                                    value={data.bgMusicVolume ?? 0.5}
+                                    onChange={(e) => handleChange('bgMusicVolume', parseFloat(e.target.value))}
+                                    className="w-full h-1 bg-zinc-800 rounded-lg appearance-none cursor-pointer accent-orange-500"
+                                />
+                            </div>
+                        )}
+                    </div>
                 </div>
             </NodeWrapper>
             {(!data.actions || data.actions.length === 0) && (
