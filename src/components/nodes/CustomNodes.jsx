@@ -2609,25 +2609,33 @@ export const QuestionNode = memo(({ id, data, selected }) => {
                             </button>
                         </div>
 
-                        <div className="space-y-1">
+                        <div className="space-y-2">
                             {(data.options || []).map((opt) => (
-                                <div key={opt.id} className="flex items-center gap-2">
-                                    <input
-                                        type="checkbox"
-                                        checked={opt.isCorrect}
-                                        onChange={(e) => updateOption(opt.id, { isCorrect: e.target.checked })}
-                                        className="rounded border-zinc-700 bg-zinc-900 text-indigo-500 focus:ring-0 w-3 h-3"
-                                        title="Mark as correct"
-                                    />
+                                <div key={opt.id} className="space-y-1 p-2 bg-black/20 border border-white/5 rounded-lg group/opt">
+                                    <div className="flex items-center gap-2">
+                                        <input
+                                            type="checkbox"
+                                            checked={opt.isCorrect}
+                                            onChange={(e) => updateOption(opt.id, { isCorrect: e.target.checked })}
+                                            className="rounded border-zinc-700 bg-zinc-900 text-indigo-500 focus:ring-0 w-3 h-3"
+                                            title="Mark as correct"
+                                        />
+                                        <InputField
+                                            placeholder="Option text"
+                                            value={opt.text}
+                                            onChange={(e) => updateOption(opt.id, { text: e.target.value })}
+                                            className="!py-0.5"
+                                        />
+                                        <button onClick={() => deleteOption(opt.id)} className="text-zinc-600 hover:text-red-500 opacity-0 group-hover/opt:opacity-100 transition-opacity">
+                                            <Trash2 className="w-3 h-3" />
+                                        </button>
+                                    </div>
                                     <InputField
-                                        placeholder="Option text"
-                                        value={opt.text}
-                                        onChange={(e) => updateOption(opt.id, { text: e.target.value })}
-                                        className="!py-0.5"
+                                        placeholder="Explanation (Why is this right/wrong?)"
+                                        value={opt.explanation}
+                                        onChange={(e) => updateOption(opt.id, { explanation: e.target.value })}
+                                        className="!bg-white/5 !border-zinc-800/50 !text-[9px] !py-0.5 placeholder:text-zinc-600 shadow-inner"
                                     />
-                                    <button onClick={() => deleteOption(opt.id)} className="text-zinc-600 hover:text-red-500">
-                                        <Trash2 className="w-3 h-3" />
-                                    </button>
                                 </div>
                             ))}
                         </div>
