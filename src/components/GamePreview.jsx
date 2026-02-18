@@ -988,50 +988,49 @@ const GamePreview = ({ nodes, edges, onClose, gameMetadata, onGameEnd, onNodeCha
                 addLog(`QUIZ REWARD: +${activeModalNode.data.score} Points`);
             }
 
-            // Collect explanations from selected correct options
+            // Collect explanations from correct options (use generic fallback if none provided)
             const explanations = options
-                .filter(o => o.isCorrect && o.explanation)
+                .filter(o => o.isCorrect && o.explanation && o.explanation.trim())
                 .map(o => o.explanation);
 
-            if (explanations.length > 0) {
-                setActiveExplanation({
-                    title: "Excellent Intuition",
-                    type: "correct",
-                    text: explanations.join("\n\n"),
-                    onClose: () => {
-                        setActiveExplanation(null);
-                        // Advance
-                        const nodeOptions = edges.filter(e => e.source === activeModalNode.id);
-                        setActiveModalNode(null);
-                        if (nodeOptions.length > 0) {
-                            handleOptionClick(nodeOptions[0].target);
-                        }
+            const explanationText = explanations.length > 0
+                ? explanations.join("\n\n")
+                : "You identified the correct answer. Well done, detective.";
+
+            // Capture node id before state is cleared to avoid stale closure
+            const sourceNodeId = activeModalNode.id;
+            setActiveExplanation({
+                title: "Excellent Intuition",
+                type: "correct",
+                text: explanationText,
+                onClose: () => {
+                    setActiveExplanation(null);
+                    // Advance to next node
+                    const nodeOptions = edges.filter(e => e.source === sourceNodeId);
+                    setActiveModalNode(null);
+                    if (nodeOptions.length > 0) {
+                        handleOptionClick(nodeOptions[0].target);
                     }
-                });
-            } else {
-                // Advance immediately if no explanation
-                const nodeOptions = edges.filter(e => e.source === activeModalNode.id);
-                setActiveModalNode(null);
-                if (nodeOptions.length > 0) {
-                    handleOptionClick(nodeOptions[0].target);
                 }
-            }
+            });
         } else {
             addLog(`QUESTION FAILED: Incorrect Answer.`);
 
-            // Check for explanations in the selected (incorrect) options
+            // Collect explanations from selected incorrect options (use generic fallback if none provided)
             const explanations = options
-                .filter(o => selectedIds.has(o.id) && o.explanation)
+                .filter(o => selectedIds.has(o.id) && o.explanation && o.explanation.trim())
                 .map(o => o.explanation);
 
-            if (explanations.length > 0) {
-                setActiveExplanation({
-                    title: "Logical Error Detected",
-                    type: "incorrect",
-                    text: explanations.join("\n\n"),
-                    onClose: () => setActiveExplanation(null)
-                });
-            }
+            const explanationText = explanations.length > 0
+                ? explanations.join("\n\n")
+                : "That's not the right answer. Review the evidence and try again.";
+
+            setActiveExplanation({
+                title: "Sorry! That was not the correct answer",
+                type: "incorrect",
+                text: explanationText,
+                onClose: () => setActiveExplanation(null)
+            });
 
             // Apply penalty if defined
             const penalty = activeModalNode.data.penalty || 0;
@@ -1041,17 +1040,6 @@ const GamePreview = ({ nodes, edges, onClose, gameMetadata, onGameEnd, onNodeCha
                 addLog(`QUIZ PROTECTION: -${penalty} Points`);
 
                 rewardObjectivePoints(activeModalNode, -penalty);
-            }
-            // Visual feedback could be added here
-            const btn = document.getElementById('quiz-submit-btn');
-            if (btn) {
-                const originalText = btn.innerText;
-                btn.innerText = "Incorrect - Try Again";
-                btn.classList.add("bg-red-600");
-                setTimeout(() => {
-                    btn.innerText = originalText;
-                    btn.classList.remove("bg-red-600");
-                }, 1500);
             }
         }
     };

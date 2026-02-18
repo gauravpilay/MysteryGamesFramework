@@ -2444,7 +2444,7 @@ export const QuestionNode = memo(({ id, data, selected }) => {
 
     const addOption = () => {
         const currentOptions = data.options || [];
-        handleChange('options', [...currentOptions, { id: crypto.randomUUID(), text: '', isCorrect: false }]);
+        handleChange('options', [...currentOptions, { id: crypto.randomUUID(), text: '', isCorrect: false, explanation: '' }]);
     };
 
     const updateOption = (optId, updates) => {
