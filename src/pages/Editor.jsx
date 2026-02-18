@@ -174,11 +174,10 @@ const PALETTE_ITEMS = [
     // { type: 'threed', label: '3D Holodeck', icon: Box, className: "hover:border-cyan-500/50", iconClass: "text-cyan-400" },
     // { type: 'deepweb', label: 'Deep Web OS', icon: Globe, className: "hover:border-emerald-500/50", iconClass: "text-emerald-400" },
 ];
-const dagreGraph = new dagre.graphlib.Graph();
-dagreGraph.setDefaultEdgeLabel(() => ({}));
-
 const getLayoutedElements = (nodes, edges, direction = 'TB') => {
-    const isHorizontal = direction === 'LR';
+    // Create a fresh graph each time to avoid stale accumulated state
+    const dagreGraph = new dagre.graphlib.Graph();
+    dagreGraph.setDefaultEdgeLabel(() => ({}));
     dagreGraph.setGraph({ rankdir: direction });
 
     nodes.forEach((node) => {
@@ -199,12 +198,13 @@ const getLayoutedElements = (nodes, edges, direction = 'TB') => {
             const width = node.width || (node.data?.collapsed ? 280 : 320);
             const height = node.height || (node.data?.collapsed ? 60 : 200);
 
-            node.position = {
-                x: nodeWithPosition.x - width / 2,
-                y: nodeWithPosition.y - height / 2,
+            return {
+                ...node,
+                position: {
+                    x: nodeWithPosition.x - width / 2,
+                    y: nodeWithPosition.y - height / 2,
+                }
             };
-
-            return node;
         }),
         edges
     };
@@ -596,9 +596,13 @@ const Editor = () => {
         });
     }, [onNodeUpdate, setNodes, isLocked]);
 
-    // Reattach handlers on load where they might be missing (deserialization)
+    // Reattach handlers ONCE after initial load from Firestore.
+    // Using a ref flag prevents this from re-running on every edit (which would
+    // overwrite node data with stale values and reset question options/text).
+    const hasInitializedHandlers = useRef(false);
     useEffect(() => {
-        if (nodes.length > 0) {
+        if (nodes.length > 0 && !hasInitializedHandlers.current) {
+            hasInitializedHandlers.current = true;
             setNodes((nds) => nds.map(node => ({
                 ...node,
                 data: {
@@ -606,7 +610,7 @@ const Editor = () => {
                     onChange: onNodeUpdate,
                     onDuplicate: onDuplicateNode,
                     onUngroup: onUngroup,
-                    learningObjectives, // Inject global objectives
+                    learningObjectives,
                     enableThreeD,
                     isExecuting: node.id === activeExecutingNodeId
                 }
