@@ -113,8 +113,13 @@ function addBreathCues(text) {
 const PACE_RATE = { slow: 0.82, normal: 0.90, fast: 1.05 };
 const TONE_PITCH = { low: 0.90, normal: 1.00, high: 1.08 };
 
-// Words per second at speech rate 1.0. Measured empirically on common voices.
-const WPS_AT_RATE_1 = 2.3;
+
+// Words per second at speech rate 1.0 for typical Chrome/system TTS voices.
+// Chrome Google voices speak at approx 185-200 wpm = 3.1-3.3 wps at rate=1.0.
+// We use 3.5 so the highlight leads the audio by ~half a word — this feels
+// more natural than trailing, since the eye reads ahead of the ear.
+const WPS_AT_RATE_1 = 3.5;
+
 
 // ── Main hook ─────────────────────────────────────────────────────────────────
 
