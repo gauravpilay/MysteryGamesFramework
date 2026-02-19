@@ -3,97 +3,50 @@
  *
  * Human-quality Text-to-Speech using Web Speech API.
  *
- * Key design decisions for naturalness:
+ * HIGHLIGHTING STRATEGY:
+ *   Chrome's Google voices do NOT fire word-boundary events.
+ *   We use a timer-based word advancement as the primary mechanism,
+ *   and onboundary events only as a sync/correction signal when they DO fire.
  *
- *  1. ONE UTTERANCE for the whole text.
- *     Speaking sentence-by-sentence resets the engine's prosody model each
- *     time, causing robotic pitch resets and unnatural gaps. A single
- *     utterance lets the engine maintain intonation memory across the passage.
+ *   Average speaking rate at rate=1.0 ≈ 2.3 words/second.
+ *   We calculate msPerWord from the rate setting and advance a counter.
  *
- *  2. TEXT PRE-PROCESSING for breath cues.
- *     We add subtle punctuation hints (commas, em-dashes) at natural pause
- *     points so the engine breathes where a human would.
- *
- *  3. MINIMAL PARAMETER OVERRIDES.
- *     Over-tuning pitch/rate fights the engine's built-in prosody and makes
- *     it sound mechanical. We set conservative values and let it do its job.
- *
- *  4. NEURAL VOICE PRIORITY.
- *     Google Neural/Natural voices (shipped in Chrome) and Microsoft Neural
- *     voices (Edge/Windows) sound dramatically better than basic TTS engines.
- *     We rank them first, before Apple premium, then system fallbacks.
- *
- *  5. CHROME 15-SECOND BUG WORKAROUND.
- *     Chrome's SpeechSynthesis silently cuts off utterances longer than ~15s.
- *     We run a keep-alive timer that pauses + resumes every 14 seconds to
- *     prevent the engine from stopping prematurely.
+ * OTHER FEATURES:
+ *   - Neural voice priority (Google → Microsoft → Apple → system)
+ *   - Single utterance for natural prosody
+ *   - Text pre-processing for breath cues
+ *   - Chrome 15-second keep-alive workaround
+ *   - Immediate cancel on text change (node navigation)
  */
 
 import { useEffect, useRef, useState, useCallback } from 'react';
 
 // ── Voice database ────────────────────────────────────────────────────────────
 
-/**
- * For each region × gender, list preferred voice name fragments in priority order.
- * Matching is case-insensitive substring check on voice.name.
- */
 const VOICE_PREFS = {
     us: {
-        female: [
-            // Chrome Neural (best)
-            'google us english', 'samantha', 'zira',
-            // Microsoft Neural (Edge/Windows)
-            'aria', 'jenny', 'michelle', 'monica',
-            // Apple (macOS/iOS)
-            'allison', 'ava', 'susan', 'victoria',
-            // Generic fallbacks
-            'female', 'woman',
-        ],
-        male: [
-            'google us english male', 'ryan', 'guy', 'davis',
-            'christopher', 'eric', 'roger', 'steffan',
-            'alex', 'fred', 'tom', 'david',
-            'male', 'man',
-        ],
+        female: ['google us english', 'samantha', 'zira', 'aria', 'jenny',
+            'michelle', 'monica', 'allison', 'ava', 'victoria', 'female', 'woman'],
+        male: ['google us english male', 'ryan', 'guy', 'davis', 'christopher',
+            'eric', 'roger', 'alex', 'fred', 'tom', 'david', 'male', 'man'],
     },
     uk: {
-        female: [
-            'google uk english female', 'hazel', 'libby', 'mia',
-            'sonia', 'susan', 'kate', 'emily',
-            'female', 'woman',
-        ],
-        male: [
-            'google uk english male', 'ryan', 'thomas', 'oliver',
-            'george', 'daniel', 'abbi',
-            'male', 'man',
-        ],
+        female: ['google uk english female', 'hazel', 'libby', 'mia', 'sonia',
+            'kate', 'emily', 'female', 'woman'],
+        male: ['google uk english male', 'ryan', 'thomas', 'oliver', 'george',
+            'daniel', 'male', 'man'],
     },
     in: {
-        female: [
-            'google हिन्दी', 'heera', 'swara', 'raveena',
-            'neerja', 'kajal', 'aditi', 'priya',
-            'google hindi', 'en-in', 'in-female',
-            'female', 'woman',
-        ],
-        male: [
-            'rishi', 'kalpana', 'sameer', 'hemant',
-            'udayan', 'kabir', 'en-in',
-            'male', 'man',
-        ],
+        female: ['google हिन्दी', 'heera', 'swara', 'raveena', 'neerja',
+            'aditi', 'priya', 'female', 'woman'],
+        male: ['rishi', 'sameer', 'hemant', 'udayan', 'kabir', 'male', 'man'],
     },
     au: {
-        female: [
-            'google australian english', 'karen', 'lee', 'natasha',
-            'catherine', 'female', 'woman',
-        ],
-        male: [
-            'google australian english male', 'lee', 'adam',
-            'male', 'man',
-        ],
+        female: ['google australian english', 'karen', 'natasha', 'catherine', 'female', 'woman'],
+        male: ['google australian english male', 'lee', 'adam', 'male', 'man'],
     },
 };
 
-/** Locale codes to try per region, in priority order. */
 const LOCALES = {
     us: ['en-US', 'en'],
     uk: ['en-GB', 'en-AU', 'en'],
@@ -101,9 +54,6 @@ const LOCALES = {
     au: ['en-AU', 'en-GB', 'en'],
 };
 
-/**
- * Score and rank all available voices, return the best match.
- */
 function pickVoice(region = 'us', gender = 'female') {
     if (typeof speechSynthesis === 'undefined') return null;
     const voices = speechSynthesis.getVoices();
@@ -117,40 +67,24 @@ function pickVoice(region = 'us', gender = 'female') {
         const name = v.name.toLowerCase();
         const lang = (v.lang || '').toLowerCase();
 
-        // Exact preferred-name match (weighted by position in prefs list)
         for (let i = 0; i < prefs.length; i++) {
-            if (name.includes(prefs[i].toLowerCase())) {
-                score += (prefs.length - i) * 10;
-                break;
-            }
+            if (name.includes(prefs[i].toLowerCase())) { score += (prefs.length - i) * 10; break; }
         }
-
-        // Locale match
         for (let i = 0; i < locales.length; i++) {
-            if (lang.startsWith(locales[i].toLowerCase())) {
-                score += (locales.length - i) * 6;
-                break;
-            }
+            if (lang.startsWith(locales[i].toLowerCase())) { score += (locales.length - i) * 6; break; }
         }
 
-        // Neural / high-quality voice bonus
         if (name.includes('neural') || name.includes('natural')) score += 25;
         if (name.includes('google')) score += 20;
         if (name.includes('microsoft')) score += 18;
-
-        // Apple premium voices (macOS)
         if (['samantha', 'allison', 'ava', 'daniel', 'karen', 'moira', 'tessa'].some(k => name.includes(k))) score += 15;
 
-        // Penalise clearly wrong gender
-        const isFemale = ['female', 'woman', 'girl', 'she', 'zira', 'samantha', 'heera',
-            'karen', 'aria', 'jenny', 'hazel', 'libby', 'tessa', 'moira',
-            'ava', 'swara', 'neerja'].some(k => name.includes(k));
-        const isMale = ['male', 'man', 'guy', 'david', 'rishi', 'daniel', 'george',
+        const isFemale = ['female', 'woman', 'zira', 'samantha', 'heera', 'karen', 'aria',
+            'jenny', 'hazel', 'libby', 'tessa', 'moira', 'ava', 'swara'].some(k => name.includes(k));
+        const isMale = ['male', 'man', 'david', 'rishi', 'daniel', 'george',
             'eric', 'roger', 'ryan', 'alex', 'tom', 'fred'].some(k => name.includes(k));
         if (gender === 'female' && isMale && !isFemale) score -= 15;
         if (gender === 'male' && isFemale && !isMale) score -= 15;
-
-        // Prefer network/online voices (usually higher quality)
         if (!v.localService) score += 5;
 
         return { voice: v, score };
@@ -162,27 +96,13 @@ function pickVoice(region = 'us', gender = 'female') {
 
 // ── Text pre-processing ───────────────────────────────────────────────────────
 
-/**
- * Add subtle punctuation cues so the engine breathes naturally.
- * We DON'T rewrite the text, just add commas/dashes where a human would pause.
- */
 function addBreathCues(text) {
     return text
-        // After conjunction that starts a new idea — add a micro-pause comma
-        .replace(/\s+(but|however|although|though|yet|while|whereas|meanwhile)\s+/gi,
-            (m, w) => `, ${w} `)
-        // Before long subordinate clauses
-        .replace(/\s+(because|since|if|unless|until|once|after|before|when|where|which|who)\s+/gi,
-            (m, w) => ` ${w} `)
-        // Ellipsis → natural long pause
+        .replace(/\s+(but|however|although|though|yet|while|whereas|meanwhile)\s+/gi, (m, w) => `, ${w} `)
         .replace(/\.\.\./g, '…')
-        // Em-dash → short breath pause (already good)
         .replace(/--/g, '—')
-        // Double newline → paragraph pause (replace with period + space)
         .replace(/\n\n+/g, '. ')
-        // Single newline → brief pause
         .replace(/\n/g, ', ')
-        // Remove rich-text markdown ** and []
         .replace(/\*\*(.*?)\*\*/g, '$1')
         .replace(/\[.*?\](.*?)\[\/.*?\]/g, '$1')
         .trim();
@@ -190,18 +110,11 @@ function addBreathCues(text) {
 
 // ── Rate / pitch mapping ──────────────────────────────────────────────────────
 
-// Kept deliberately conservative — small nudges, don't fight the engine
-const PACE_RATE = {
-    slow: 0.82,   // calm, deliberate — audiobook narrator pace
-    normal: 0.90,   // slightly under 1.0 → more thoughtful, less machine-like
-    fast: 1.05,   // slightly brisk but still natural
-};
+const PACE_RATE = { slow: 0.82, normal: 0.90, fast: 1.05 };
+const TONE_PITCH = { low: 0.90, normal: 1.00, high: 1.08 };
 
-const TONE_PITCH = {
-    low: 0.90,   // warm, deep
-    normal: 1.00,   // engine default — usually best
-    high: 1.08,   // slightly brighter
-};
+// Words per second at speech rate 1.0. Measured empirically on common voices.
+const WPS_AT_RATE_1 = 2.3;
 
 // ── Main hook ─────────────────────────────────────────────────────────────────
 
@@ -215,46 +128,60 @@ export function useTTS({
     onEnd,
 } = {}) {
     const [status, setStatus] = useState('idle');
+    const [wordIndex, setWordIndex] = useState(-1);
     const [voiceName, setVoiceName] = useState('');
     const [voicesReady, setVoicesReady] = useState(false);
 
-    const utterRef = useRef(null);
     const keepAliveRef = useRef(null);
+    const wordTimerRef = useRef(null);   // interval for timer-based word advance
+    const wordIdxRef = useRef(-1);     // mirrors wordIndex for use in closures
+    const totalWordsRef = useRef(0);      // total word count of current text
+    const msPerWordRef = useRef(435);    // ms between word advances
     const isMounted = useRef(true);
-    const hasAutoPlayed = useRef(false);
+    const speakRef = useRef(null);
 
     useEffect(() => {
         isMounted.current = true;
         return () => { isMounted.current = false; };
     }, []);
 
-    // ── Wait for voices (Chrome loads them asynchronously) ────────────────────
+    // ── Voices ────────────────────────────────────────────────────────────────
     useEffect(() => {
         if (typeof speechSynthesis === 'undefined') return;
         const onReady = () => setVoicesReady(true);
-        if (speechSynthesis.getVoices().length > 0) {
-            onReady();
-        } else {
+        if (speechSynthesis.getVoices().length > 0) onReady();
+        else {
             speechSynthesis.addEventListener('voiceschanged', onReady);
             return () => speechSynthesis.removeEventListener('voiceschanged', onReady);
         }
     }, []);
 
-    // ── Chrome 15-second keep-alive ───────────────────────────────────────────
-    const startKeepAlive = useCallback(() => {
-        stopKeepAlive();
-        // Chrome silently kills utterances after ~14–15 s.
-        // Pause + instant resume tricks it into resetting the timer.
-        keepAliveRef.current = setInterval(() => {
-            if (typeof speechSynthesis !== 'undefined' && speechSynthesis.speaking && !speechSynthesis.paused) {
-                speechSynthesis.pause();
-                setTimeout(() => {
-                    if (typeof speechSynthesis !== 'undefined') speechSynthesis.resume();
-                }, 50);
-            }
-        }, 12000);
+    // ── Word timer helpers ────────────────────────────────────────────────────
+    const stopWordTimer = useCallback(() => {
+        if (wordTimerRef.current) {
+            clearInterval(wordTimerRef.current);
+            wordTimerRef.current = null;
+        }
     }, []);
 
+    /** Start advancing wordIndex from `fromWord` every msPerWord ms. */
+    const startWordTimer = useCallback((fromWord) => {
+        stopWordTimer();
+        wordIdxRef.current = fromWord;
+        setWordIndex(fromWord);
+
+        wordTimerRef.current = setInterval(() => {
+            if (!isMounted.current) return;
+            wordIdxRef.current += 1;
+            if (wordIdxRef.current < totalWordsRef.current) {
+                setWordIndex(wordIdxRef.current);
+            } else {
+                stopWordTimer();
+            }
+        }, msPerWordRef.current);
+    }, [stopWordTimer]);
+
+    // ── Chrome keep-alive ─────────────────────────────────────────────────────
     const stopKeepAlive = useCallback(() => {
         if (keepAliveRef.current) {
             clearInterval(keepAliveRef.current);
@@ -262,17 +189,37 @@ export function useTTS({
         }
     }, []);
 
+    const startKeepAlive = useCallback(() => {
+        stopKeepAlive();
+        keepAliveRef.current = setInterval(() => {
+            if (typeof speechSynthesis !== 'undefined' &&
+                speechSynthesis.speaking && !speechSynthesis.paused) {
+                speechSynthesis.pause();
+                setTimeout(() => {
+                    if (typeof speechSynthesis !== 'undefined') speechSynthesis.resume();
+                }, 50);
+            }
+        }, 12000);
+    }, [stopKeepAlive]);
+
     // ── Core speak ────────────────────────────────────────────────────────────
     const speak = useCallback(() => {
         if (typeof speechSynthesis === 'undefined' || !text) return;
 
         speechSynthesis.cancel();
+        stopWordTimer();
 
         const processedText = addBreathCues(text);
-        const utter = new SpeechSynthesisUtterance(processedText);
+        const originalWords = text.trim().split(/\s+/).filter(Boolean);
 
-        // Conservative params — let the engine handle prosody
-        utter.rate = PACE_RATE[pace] ?? 0.90;
+        totalWordsRef.current = originalWords.length;
+
+        const rate = PACE_RATE[pace] ?? 0.90;
+        const wps = WPS_AT_RATE_1 * rate;
+        msPerWordRef.current = Math.round(1000 / wps); // e.g. ~435ms at rate=0.90
+
+        const utter = new SpeechSynthesisUtterance(processedText);
+        utter.rate = rate;
         utter.pitch = TONE_PITCH[pitch] ?? 1.00;
         utter.volume = 1.0;
 
@@ -282,101 +229,122 @@ export function useTTS({
             utter.lang = voice.lang;
             setVoiceName(voice.name);
         } else {
-            // Let browser pick — don't force a lang that might trigger a worse engine
             setVoiceName('System Voice');
         }
 
+        // onstart — begin timer-based word advancement
         utter.onstart = () => {
             if (!isMounted.current) return;
             setStatus('playing');
             startKeepAlive();
+            // Kick off the timer from word 0
+            startWordTimer(0);
+        };
+
+        // onboundary — sync timer when browser DOES provide boundary events
+        // (Safari, Edge and some Windows voices). Not fired by Google voices in Chrome,
+        // but we handle both cases gracefully.
+        utter.onboundary = (e) => {
+            if (!isMounted.current || e.name !== 'word') return;
+            // Compute how many space-delimited tokens appear before this charIndex
+            const spokenSoFar = processedText.slice(0, e.charIndex);
+            const processedWords = spokenSoFar.trim().split(/\s+/).filter(Boolean);
+            // Map processed word count → original word index (may differ slightly after breath-cue insertions)
+            // Clamp so we never exceed the original word count
+            const syncIdx = Math.min(processedWords.length, originalWords.length - 1);
+            // Restart the timer from the synced position
+            startWordTimer(syncIdx);
         };
 
         utter.onend = () => {
             if (!isMounted.current) return;
+            stopWordTimer();
             stopKeepAlive();
+            setWordIndex(-1);
             setStatus('done');
             if (onEnd) onEnd();
         };
 
         utter.onerror = (e) => {
+            stopWordTimer();
             stopKeepAlive();
             if (e.error === 'canceled' || e.error === 'interrupted') return;
             console.warn('[TTS] Speech error:', e.error);
             if (isMounted.current) setStatus('idle');
         };
 
-        utterRef.current = utter;
         speechSynthesis.speak(utter);
-        // Chrome sometimes needs speak() called after a tiny delay on first use
-    }, [text, gender, region, pace, pitch, onEnd, startKeepAlive, stopKeepAlive]);
+    }, [text, gender, region, pace, pitch, onEnd,
+        startKeepAlive, stopKeepAlive, startWordTimer, stopWordTimer]);
 
     // ── Public controls ───────────────────────────────────────────────────────
     const play = useCallback(() => {
         if (typeof speechSynthesis === 'undefined') return;
-
         if (status === 'paused') {
             speechSynthesis.resume();
             setStatus('playing');
             startKeepAlive();
+            // Resume word timer from where it paused
+            startWordTimer(wordIdxRef.current);
             return;
         }
-
-        // Fresh play (idle / done)
         setStatus('playing');
-        // Very small delay improves reliability in Chrome on first load
         setTimeout(() => speak(), 80);
-    }, [status, speak, startKeepAlive]);
+    }, [status, speak, startKeepAlive, startWordTimer]);
 
     const pause = useCallback(() => {
         if (typeof speechSynthesis === 'undefined') return;
+        stopWordTimer();
         stopKeepAlive();
         speechSynthesis.pause();
         setStatus('paused');
-    }, [stopKeepAlive]);
+    }, [stopWordTimer, stopKeepAlive]);
 
     const stop = useCallback(() => {
         if (typeof speechSynthesis === 'undefined') return;
+        stopWordTimer();
         stopKeepAlive();
         speechSynthesis.cancel();
+        setWordIndex(-1);
+        wordIdxRef.current = -1;
         setStatus('idle');
-    }, [stopKeepAlive]);
+    }, [stopWordTimer, stopKeepAlive]);
+
+    // Keep speakRef current on every render
+    useEffect(() => { speakRef.current = speak; });
+
+    // ── Stop immediately when text changes (node navigation) ─────────────────
+    // Declared BEFORE autoPlay effect so it runs first — cancels old utterance
+    // synchronously, then autoPlay schedules the new one after 800ms.
+    useEffect(() => {
+        if (typeof speechSynthesis !== 'undefined') speechSynthesis.cancel();
+        stopWordTimer();
+        stopKeepAlive();
+        setWordIndex(-1);
+        wordIdxRef.current = -1;
+        setStatus('idle');
+        // eslint-disable-next-line react-hooks/exhaustive-deps
+    }, [text]);
 
     // ── Auto-play ─────────────────────────────────────────────────────────────
     useEffect(() => {
-        if (!autoPlay || !voicesReady || !text || hasAutoPlayed.current) return;
-        hasAutoPlayed.current = true;
-        // Delay to let page settle (typewriter starts, etc.)
+        if (!autoPlay || !voicesReady || !text) return;
         const t = setTimeout(() => {
-            if (isMounted.current) speak();
+            if (isMounted.current && speakRef.current) speakRef.current();
         }, 800);
         return () => clearTimeout(t);
-    }, [autoPlay, voicesReady, text, speak]);
-
-    // ── Reset when text changes ───────────────────────────────────────────────
-    useEffect(() => {
-        hasAutoPlayed.current = false;
-        if (typeof speechSynthesis !== 'undefined') {
-            speechSynthesis.cancel();
-            stopKeepAlive();
-        }
-        setStatus('idle');
-    }, [text]); // eslint-disable-line react-hooks/exhaustive-deps
+        // eslint-disable-next-line react-hooks/exhaustive-deps
+    }, [autoPlay, voicesReady, text]);
 
     // ── Cleanup on unmount ────────────────────────────────────────────────────
     useEffect(() => {
         return () => {
+            stopWordTimer();
             stopKeepAlive();
             if (typeof speechSynthesis !== 'undefined') speechSynthesis.cancel();
         };
-    }, []); // eslint-disable-line react-hooks/exhaustive-deps
+        // eslint-disable-next-line react-hooks/exhaustive-deps
+    }, []);
 
-    return {
-        play,
-        pause,
-        stop,
-        status,       // 'idle' | 'playing' | 'paused' | 'done'
-        voiceName,    // actual system voice name for display
-        voicesReady,
-    };
+    return { play, pause, stop, status, wordIndex, voiceName, voicesReady };
 }

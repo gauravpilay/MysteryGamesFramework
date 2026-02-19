@@ -116,6 +116,62 @@ const TypewriterText = ({ text, onComplete }) => {
     );
 };
 
+/**
+ * WordHighlightText — renders the full text with the currently-spoken word
+ * highlighted in real time. Used when TTS is active (replaces TypewriterText).
+ */
+const WordHighlightText = ({ text, wordIndex, onComplete }) => {
+    // Signal content ready immediately (no typewriter delay during narration)
+    useEffect(() => { if (onComplete) onComplete(); }, []);
+
+    if (!text) return null;
+
+    // Split preserving whitespace so we can rejoin faithfully
+    // Tokens alternate: word, whitespace, word, whitespace ...
+    const tokens = text.split(/(\s+)/);
+    let wIdx = -1;
+
+    return (
+        <span>
+            {tokens.map((token, i) => {
+                const isWhitespace = /^\s+$/.test(token);
+                if (isWhitespace) return <span key={i}>{token}</span>;
+
+                wIdx++;
+                const isActive = wIdx === wordIndex;
+
+                return (
+                    <span
+                        key={i}
+                        className="relative transition-all duration-100"
+                        style={{ display: 'inline' }}
+                    >
+                        {isActive && (
+                            <span
+                                className="absolute -inset-x-0.5 -inset-y-0.5 rounded-sm pointer-events-none z-0"
+                                style={{
+                                    background: 'rgba(99, 179, 237, 0.28)',
+                                    boxShadow: '0 0 8px 2px rgba(59,130,246,0.35)',
+                                }}
+                            />
+                        )}
+                        <span
+                            className={`relative z-10 transition-colors duration-100 ${isActive
+                                    ? 'text-blue-200 font-semibold'
+                                    : wIdx < wordIndex
+                                        ? 'text-zinc-400'
+                                        : 'text-zinc-200'
+                                }`}
+                        >
+                            {token}
+                        </span>
+                    </span>
+                );
+            })}
+        </span>
+    );
+};
+
 // -- MINIGAME COMPONENTS --
 
 const LockpickMinigame = ({ node, onSuccess, onFail }) => {
@@ -573,14 +629,15 @@ const GamePreview = ({ nodes, edges, onClose, gameMetadata, onGameEnd, onNodeCha
     const ttsPitch = currentNode?.data?.ttsPitch || 'normal';
     const ttsAutoPlay = isStoryNode ? !!currentNode?.data?.ttsEnabled : false;
 
-    const { play: ttsPlay, pause: ttsPause, stop: ttsStop, status: ttsStatus, voiceName: ttsVoiceName, voicesReady: ttsVoicesReady } = useTTS({
-        text: ttsText,
-        gender: ttsGender,
-        region: ttsRegion,
-        pace: ttsPace,
-        pitch: ttsPitch,
-        autoPlay: ttsAutoPlay,
-    });
+    const { play: ttsPlay, pause: ttsPause, stop: ttsStop, status: ttsStatus,
+        wordIndex: ttsWordIndex, voiceName: ttsVoiceName, voicesReady: ttsVoicesReady } = useTTS({
+            text: ttsText,
+            gender: ttsGender,
+            region: ttsRegion,
+            pace: ttsPace,
+            pitch: ttsPitch,
+            autoPlay: ttsAutoPlay,
+        });
     const ttsPlaying = ttsStatus === 'playing';
     const ttsPaused = ttsStatus === 'paused';
     // ─────────────────────────────────────────────────────────────────────────
@@ -1273,7 +1330,18 @@ const GamePreview = ({ nodes, edges, onClose, gameMetadata, onGameEnd, onNodeCha
 
                 <Card className="bg-zinc-900/50 border-zinc-800 p-8 backdrop-blur-md border-t-4 border-t-red-600 shadow-[0_20px_50px_-12px_rgba(0,0,0,0.5)] hover:border-zinc-700 transition-colors duration-500">
                     <p className="text-zinc-200 leading-loose whitespace-pre-wrap text-lg md:text-xl font-light font-mono">
-                        <TypewriterText text={data.text || data.content || ""} onComplete={() => setIsContentReady(true)} />
+                        {(ttsPlaying || ttsPaused) ? (
+                            <WordHighlightText
+                                text={data.text || data.content || ''}
+                                wordIndex={ttsWordIndex}
+                                onComplete={() => setIsContentReady(true)}
+                            />
+                        ) : (
+                            <TypewriterText
+                                text={data.text || data.content || ''}
+                                onComplete={() => setIsContentReady(true)}
+                            />
+                        )}
                     </p>
                 </Card>
             </div>
