@@ -220,26 +220,26 @@ const UserManagement = () => {
         // Placeholder for EmailJS/SendGrid/etc.
         // If you have an EmailJS account, you can uncomment and configure this:
         /*
-        try {
-            await fetch('https://api.emailjs.com/api/v1.0/email/send', {
-                method: 'POST',
-                headers: { 'Content-Type': 'application/json' },
-                body: JSON.stringify({
-                    service_id: 'YOUR_SERVICE_ID',
-                    template_id: 'YOUR_TEMPLATE_ID',
-                    user_id: 'YOUR_PUBLIC_KEY',
-                    template_params: {
-                        to_email: targetUser.email,
-                        to_name: targetUser.displayName || targetUser.email,
-                        system_name: systemName,
-                        action_url: window.location.origin
-                    }
-                })
-            });
-        } catch (e) {
-            console.error("Failed to send activation email:", e);
-        }
-        */
+                try {
+                    await fetch('https://api.emailjs.com/api/v1.0/email/send', {
+                        method: 'POST',
+                        headers: { 'Content-Type': 'application/json' },
+                        body: JSON.stringify({
+                            service_id: 'service_jejvq5l',
+                            template_id: 'template_z8wpcv6',
+                            user_id: 'c1mKL02QU0W9pt54-',
+                            template_params: {
+                                to_email: targetUser.email,
+                                to_name: targetUser.displayName || targetUser.email,
+                                system_name: systemName,
+                                action_url: window.location.origin
+                            }
+                        })
+                    });
+                } catch (e) {
+                    console.error("Failed to send activation email:", e);
+                }*/
+
     };
 
     const handleReleaseLicense = (targetUser) => {
