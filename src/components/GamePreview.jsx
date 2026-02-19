@@ -1,6 +1,6 @@
 import React, { useState, useEffect, useMemo, useRef } from 'react';
 import { Button, Card } from './ui/shared';
-import { X, User, Search, Terminal, MessageSquare, FileText, ArrowRight, ShieldAlert, CheckCircle, AlertTriangle, Volume2, VolumeX, Image as ImageIcon, Briefcase, Star, MousePointerClick, Bell, HelpCircle, Clock, ZoomIn, LayoutGrid, ChevronRight, Fingerprint, Cpu, Activity, Shield, Hash, Box as BoxIcon, Radio, Lightbulb, Mail, Paperclip, Unlock, XCircle } from 'lucide-react';
+import { X, User, Search, Terminal, MessageSquare, FileText, ArrowRight, ShieldAlert, CheckCircle, AlertTriangle, Volume2, VolumeX, Image as ImageIcon, Briefcase, Star, MousePointerClick, Bell, HelpCircle, Clock, ZoomIn, LayoutGrid, ChevronRight, Fingerprint, Cpu, Activity, Shield, Hash, Box as BoxIcon, Radio, Lightbulb, Mail, Paperclip, Unlock, XCircle, Play, Pause, Square } from 'lucide-react';
 import { motion, AnimatePresence } from 'framer-motion';
 import EvidenceBoard from './EvidenceBoard';
 import AdvancedTerminal from './AdvancedTerminal';
@@ -11,6 +11,7 @@ import CinematicCutscene from './CinematicCutscene';
 import CaseClosedNewsReport from './CaseClosedNewsReport';
 import DeepWebOS from './DeepWebOS';
 import FeedbackModal from './FeedbackModal';
+import { useTTS } from '../lib/useTTS';
 import {
     checkLogicCondition as checkLogic,
     evaluateLogic as evalLogic,
@@ -514,6 +515,7 @@ const GamePreview = ({ nodes, edges, onClose, gameMetadata, onGameEnd, onNodeCha
     const [revealedHints, setRevealedHints] = useState(new Set()); // Set of hint IDs
     const lastNodeId = useRef(null);
 
+
     // Clear score delta after animation
     useEffect(() => {
         if (scoreDelta) {
@@ -561,6 +563,27 @@ const GamePreview = ({ nodes, edges, onClose, gameMetadata, onGameEnd, onNodeCha
         nodes.find(n => n.id === currentNodeId),
         [currentNodeId, nodes]
     );
+
+    // ── TTS: driven by the current story node's settings ──────────────────────
+    const isStoryNode = currentNode?.type === 'story';
+    const ttsText = isStoryNode ? (currentNode?.data?.text || currentNode?.data?.content || '') : '';
+    const ttsGender = currentNode?.data?.ttsGender || 'female';
+    const ttsRegion = currentNode?.data?.ttsRegion || 'us';
+    const ttsPace = currentNode?.data?.ttsPace || 'normal';
+    const ttsPitch = currentNode?.data?.ttsPitch || 'normal';
+    const ttsAutoPlay = isStoryNode ? !!currentNode?.data?.ttsEnabled : false;
+
+    const { play: ttsPlay, pause: ttsPause, stop: ttsStop, status: ttsStatus, voiceName: ttsVoiceName, voicesReady: ttsVoicesReady } = useTTS({
+        text: ttsText,
+        gender: ttsGender,
+        region: ttsRegion,
+        pace: ttsPace,
+        pitch: ttsPitch,
+        autoPlay: ttsAutoPlay,
+    });
+    const ttsPlaying = ttsStatus === 'playing';
+    const ttsPaused = ttsStatus === 'paused';
+    // ─────────────────────────────────────────────────────────────────────────
 
     const addLog = (msg) => {
         setLogs(prev => [`> ${msg}`, ...prev].slice(0, 50));
@@ -1393,6 +1416,77 @@ const GamePreview = ({ nodes, edges, onClose, gameMetadata, onGameEnd, onNodeCha
                     </div>
                 </div>
                 <div className="flex items-center gap-1.5 md:gap-3">
+                    {/* ── TTS Narrator Control (story nodes only) ── */}
+                    {isStoryNode && ttsText && (
+                        <motion.div
+                            key={currentNodeId + '-tts'}
+                            initial={{ opacity: 0, scale: 0.85, width: 0 }}
+                            animate={{ opacity: 1, scale: 1, width: 'auto' }}
+                            exit={{ opacity: 0, scale: 0.85, width: 0 }}
+                            transition={{ type: 'spring', stiffness: 320, damping: 24 }}
+                            className="flex items-center gap-1.5 bg-zinc-900/60 border border-blue-500/20 rounded-full px-2 py-1 overflow-hidden mr-1"
+                        >
+                            {/* Mini waveform */}
+                            <div className="flex items-center gap-[2px] h-4">
+                                {[0.4, 0.8, 0.5, 1.0, 0.6, 0.9, 0.4].map((h, i) => (
+                                    <motion.div
+                                        key={i}
+                                        className="w-[2px] rounded-full bg-blue-400"
+                                        animate={ttsPlaying ? {
+                                            scaleY: [h * 0.3, h, h * 0.5, h * 0.9, h * 0.3],
+                                        } : { scaleY: 0.2 }}
+                                        transition={{
+                                            duration: 0.7,
+                                            delay: i * 0.07,
+                                            repeat: Infinity,
+                                            ease: 'easeInOut',
+                                        }}
+                                        style={{ height: 14, transformOrigin: 'center' }}
+                                    />
+                                ))}
+                            </div>
+
+                            {/* Voice label — shown only on md+ screens */}
+                            <span className="hidden md:block text-[8px] font-black text-blue-400/70 uppercase tracking-widest whitespace-nowrap max-w-[80px] truncate">
+                                {ttsVoiceName ? ttsVoiceName.split(' ')[0] : 'Narrator'}
+                            </span>
+
+                            {/* Play / Pause button */}
+                            <motion.button
+                                whileHover={{ scale: 1.12 }}
+                                whileTap={{ scale: 0.9 }}
+                                onClick={ttsPlaying ? ttsPause : ttsPlay}
+                                disabled={!ttsVoicesReady && !ttsPlaying}
+                                title={ttsPlaying ? 'Pause narration' : ttsPaused ? 'Resume narration' : 'Play narration'}
+                                className={`w-7 h-7 rounded-full flex items-center justify-center transition-all shrink-0 border ${ttsPlaying
+                                    ? 'bg-blue-600 border-blue-500 text-white shadow-[0_0_10px_rgba(59,130,246,0.5)]'
+                                    : ttsPaused
+                                        ? 'bg-amber-600/90 border-amber-500 text-white'
+                                        : 'bg-zinc-800 border-zinc-700 text-blue-400 hover:bg-blue-900/40 hover:border-blue-600'
+                                    } disabled:opacity-40`}
+                            >
+                                {ttsPlaying
+                                    ? <Pause className="w-3 h-3 fill-current" />
+                                    : <Play className="w-3 h-3 fill-current translate-x-px" />}
+                            </motion.button>
+
+                            {/* Stop — only if active */}
+                            {(ttsPlaying || ttsPaused) && (
+                                <motion.button
+                                    initial={{ opacity: 0, width: 0 }}
+                                    animate={{ opacity: 1, width: 28 }}
+                                    exit={{ opacity: 0, width: 0 }}
+                                    whileTap={{ scale: 0.9 }}
+                                    onClick={ttsStop}
+                                    title="Stop narration"
+                                    className="w-7 h-7 rounded-full flex items-center justify-center bg-zinc-800 border border-zinc-700 text-zinc-400 hover:text-red-400 hover:border-red-800 transition-all shrink-0"
+                                >
+                                    <Square className="w-3 h-3 fill-current" />
+                                </motion.button>
+                            )}
+                        </motion.div>
+                    )}
+
                     {/* Audio Controls */}
                     {audioSource && (
                         <motion.div

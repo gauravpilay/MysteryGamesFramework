@@ -1,7 +1,7 @@
 import React, { memo, useState, useRef, useEffect } from 'react';
 import ReactDOM from 'react-dom';
 import { Handle, Position, NodeResizer } from 'reactflow';
-import { FileText, User, Search, GitMerge, Terminal, MessageSquare, Music, Image as ImageIcon, Star, MousePointerClick, Trash2, Plus, Copy, Fingerprint, Bell, HelpCircle, ToggleLeft, Unlock, Binary, Grid3x3, Folder, ChevronDown, ChevronUp, Maximize, X, Save, File, FolderOpen, AlertCircle, Brain, Cpu, Send, Loader2, Check, Filter, ShieldAlert, Box, CheckCircle, Activity, Shield, Hash, Film, Globe, Lightbulb, Mail, Bold, Italic, List, Type, Palette, Info } from 'lucide-react';
+import { FileText, User, Search, GitMerge, Terminal, MessageSquare, Music, Image as ImageIcon, Star, MousePointerClick, Trash2, Plus, Copy, Fingerprint, Bell, HelpCircle, ToggleLeft, Unlock, Binary, Grid3x3, Folder, ChevronDown, ChevronUp, Maximize, X, Save, File, FolderOpen, AlertCircle, Brain, Cpu, Send, Loader2, Check, Filter, ShieldAlert, Box, CheckCircle, Activity, Shield, Hash, Film, Globe, Lightbulb, Mail, Bold, Italic, List, Type, Palette, Info, Volume2 } from 'lucide-react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { storage } from '../../lib/firebase';
 import { ref, uploadBytes, getDownloadURL } from 'firebase/storage';
@@ -485,6 +485,7 @@ export const StoryNode = memo(({ id, data, selected }) => {
     const handleChange = (key, val) => {
         data.onChange && data.onChange(id, { ...data, [key]: val });
     };
+    const [ttsExpanded, setTtsExpanded] = useState(false);
 
     return (
         <>
@@ -496,6 +497,110 @@ export const StoryNode = memo(({ id, data, selected }) => {
                     value={data.text}
                     onChange={(e) => handleChange('text', e.target.value)}
                 />
+
+                {/* ── Voice Narration Settings ── */}
+                <div className="mt-2 border border-blue-900/30 rounded-lg overflow-hidden">
+                    <button
+                        onClick={() => setTtsExpanded(v => !v)}
+                        className="w-full flex items-center justify-between px-3 py-2 bg-blue-950/20 hover:bg-blue-950/40 transition-colors"
+                    >
+                        <span className="flex items-center gap-1.5 text-[10px] font-bold text-blue-300 uppercase tracking-wider">
+                            <Volume2 className="w-3 h-3" /> Voice Narration
+                        </span>
+                        <div className="flex items-center gap-2">
+                            {/* Auto-read toggle */}
+                            <span
+                                className={`text-[9px] font-black uppercase tracking-widest px-1.5 py-0.5 rounded ${data.ttsEnabled ? 'bg-blue-500/30 text-blue-300' : 'bg-zinc-800 text-zinc-500'
+                                    }`}
+                                onClick={(e) => { e.stopPropagation(); handleChange('ttsEnabled', !data.ttsEnabled); }}
+                            >
+                                {data.ttsEnabled ? 'ON' : 'OFF'}
+                            </span>
+                            {ttsExpanded ? <ChevronUp className="w-3 h-3 text-zinc-500" /> : <ChevronDown className="w-3 h-3 text-zinc-500" />}
+                        </div>
+                    </button>
+
+                    {ttsExpanded && (
+                        <div className="p-3 space-y-2 bg-black/20">
+                            {/* Gender */}
+                            <div className="flex items-center justify-between">
+                                <p className="text-[9px] text-zinc-500 uppercase font-bold tracking-wider">Voice</p>
+                                <div className="flex gap-1">
+                                    {['female', 'male'].map(g => (
+                                        <button
+                                            key={g}
+                                            onClick={() => handleChange('ttsGender', g)}
+                                            className={`px-2.5 py-1 text-[9px] font-black uppercase rounded transition-all ${(data.ttsGender || 'female') === g
+                                                ? 'bg-blue-600 text-white'
+                                                : 'bg-zinc-800 text-zinc-400 hover:bg-zinc-700'
+                                                }`}
+                                        >
+                                            {g === 'female' ? '♀ Female' : '♂ Male'}
+                                        </button>
+                                    ))}
+                                </div>
+                            </div>
+
+                            {/* Region */}
+                            <div className="flex items-center justify-between">
+                                <p className="text-[9px] text-zinc-500 uppercase font-bold tracking-wider">Accent</p>
+                                <select
+                                    value={data.ttsRegion || 'us'}
+                                    onChange={(e) => handleChange('ttsRegion', e.target.value)}
+                                    className="bg-black/60 border border-zinc-800 rounded px-2 py-0.5 text-[9px] text-zinc-300 focus:border-blue-500 outline-none"
+                                >
+                                    <option value="us">🇺🇸 American (US)</option>
+                                    <option value="uk">🇬🇧 British (UK)</option>
+                                    <option value="in">🇮🇳 Indian (IN)</option>
+                                    <option value="au">🇦🇺 Australian</option>
+                                </select>
+                            </div>
+
+                            {/* Pace */}
+                            <div>
+                                <div className="flex items-center justify-between mb-1">
+                                    <p className="text-[9px] text-zinc-500 uppercase font-bold tracking-wider">Pace</p>
+                                    <span className="text-[9px] text-blue-400 font-mono">
+                                        {data.ttsPace === 'slow' ? '0.75×' : data.ttsPace === 'fast' ? '1.3×' : '1×'}
+                                    </span>
+                                </div>
+                                <div className="flex gap-1">
+                                    {['slow', 'normal', 'fast'].map(p => (
+                                        <button
+                                            key={p}
+                                            onClick={() => handleChange('ttsPace', p)}
+                                            className={`flex-1 py-1 text-[9px] font-black uppercase rounded transition-all ${(data.ttsPace || 'normal') === p
+                                                ? 'bg-blue-600 text-white'
+                                                : 'bg-zinc-800 text-zinc-400 hover:bg-zinc-700'
+                                                }`}
+                                        >
+                                            {p}
+                                        </button>
+                                    ))}
+                                </div>
+                            </div>
+
+                            {/* Pitch */}
+                            <div className="flex items-center justify-between">
+                                <p className="text-[9px] text-zinc-500 uppercase font-bold tracking-wider">Tone</p>
+                                <select
+                                    value={data.ttsPitch || 'normal'}
+                                    onChange={(e) => handleChange('ttsPitch', e.target.value)}
+                                    className="bg-black/60 border border-zinc-800 rounded px-2 py-0.5 text-[9px] text-zinc-300 focus:border-blue-500 outline-none"
+                                >
+                                    <option value="low">Deep / Low</option>
+                                    <option value="normal">Natural</option>
+                                    <option value="high">Bright / High</option>
+                                </select>
+                            </div>
+
+                            <p className="text-[8px] text-zinc-600 italic leading-tight pt-1 border-t border-zinc-800">
+                                Voice auto-reads the narrative when player enters this node during gameplay.
+                            </p>
+                        </div>
+                    )}
+                </div>
+
                 <div className="mt-3 p-2 bg-black/40 border border-blue-900/20 rounded-lg space-y-2">
                     <div className="flex items-center justify-between">
                         <p className="text-[9px] font-bold text-blue-400 uppercase tracking-wider flex items-center gap-1">
