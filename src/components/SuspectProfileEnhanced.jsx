@@ -400,14 +400,14 @@ export default function SuspectProfile({
         return () => clearTimeout(timer);
     }, []);
 
-    // First-visit confrontation hint logic
+    // First-visit confrontation hint logic (global — shown once ever, not once per suspect)
     useEffect(() => {
         if (!suspect?.id) return;
-        const visitKey = `suspect_visited_${suspect.id}`;
-        const hasVisited = localStorage.getItem(visitKey);
+        const globalHintKey = 'confrontation_hint_shown';
+        const hintAlreadyShown = localStorage.getItem(globalHintKey);
 
-        if (!hasVisited) {
-            // Check if there are any collected evidence items for this suspect
+        if (!hintAlreadyShown) {
+            // Check if there are any collected evidence items in the inventory
             const hasEvidence = Array.from(inventory).some(id =>
                 nodes.find(n => n.id === id && (n.type === 'evidence' || n.type === 'email'))
             );
@@ -415,12 +415,9 @@ export default function SuspectProfile({
             if (hasEvidence) {
                 // Show the hint after a short delay (let the profile animate in first)
                 const hintTimer = setTimeout(() => setShowConfrontHint(true), 1200);
-                localStorage.setItem(visitKey, 'true');
+                localStorage.setItem(globalHintKey, 'true');
                 return () => clearTimeout(hintTimer);
             }
-
-            // Mark as visited even without evidence so we don't show stale hint later
-            localStorage.setItem(visitKey, 'true');
         }
     }, [suspect?.id, inventory, nodes]);
 
