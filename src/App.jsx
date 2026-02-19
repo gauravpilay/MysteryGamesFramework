@@ -34,27 +34,41 @@ const PrivateRoute = ({ children }) => {
   }
 
   if (user && user.status === 'deactivated') {
-    console.log("[PRIVATE_ROUTE] User deactivated. Status:", user.status);
     return (
-      <div className="flex h-screen w-screen items-center justify-center bg-black text-red-500 font-sans p-6">
-        <div className="max-w-md w-full bg-zinc-900/50 border border-red-500/30 p-8 rounded-2xl backdrop-blur-xl text-center shadow-2xl">
-          <div className="w-16 h-16 bg-red-500/10 rounded-full flex items-center justify-center mx-auto mb-6">
-            <ShieldAlert className="w-8 h-8 text-red-500" />
+      <div className="fixed inset-0 flex flex-col items-center justify-center bg-black text-white p-6 font-sans">
+        <div className="absolute inset-0 z-0 pointer-events-none opacity-20">
+          <div className="absolute inset-0 perspective-grid"></div>
+          <div className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-[600px] h-[600px] bg-amber-600/10 rounded-full blur-[120px]" />
+        </div>
+
+        <div className="relative z-10 max-w-md w-full p-12 text-center space-y-8 bg-zinc-950/50 backdrop-blur-xl border border-white/5 rounded-[40px] shadow-2xl">
+          <div className="flex justify-center">
+            <div className="p-5 bg-amber-500/10 rounded-3xl border border-amber-500/20 shadow-inner">
+              <ShieldAlert className="w-12 h-12 text-amber-500" />
+            </div>
           </div>
-          <h1 className="text-2xl font-bold text-white mb-2">Personnel Access Revoked</h1>
-          <p className="text-zinc-400 mb-8">
-            Your investigator credentials have been deactivated. Please contact the Chief Administrator if you believe this is an error.
-          </p>
-          <button
-            onClick={async () => {
-              await logout();
-              window.location.href = '/login';
-            }}
-            className="w-full py-3 bg-red-500/10 hover:bg-red-500/20 border border-red-500/50 rounded-xl text-red-500 font-bold transition-all flex items-center justify-center gap-2"
-          >
-            <LogOut className="w-4 h-4" />
-            Sign Out & Return
-          </button>
+          <div className="space-y-3">
+            <h1 className="text-3xl font-black uppercase tracking-tight text-white">
+              Account Under Review
+            </h1>
+            <p className="text-zinc-500 text-sm leading-relaxed font-medium">
+              Welcome, <span className="text-white font-bold">{user.displayName || user.email}</span>! Your credentials have been received and are currently being reviewed by our team.
+              <br /><br />
+              Your account will be <span className="text-indigo-400 font-bold">activated shortly</span>. You will receive an email notification once your security clearance is granted.
+            </p>
+          </div>
+          <div className="pt-4 space-y-4">
+            <button
+              onClick={async () => {
+                await logout();
+                window.location.href = '/login';
+              }}
+              className="w-full bg-zinc-900 hover:bg-zinc-800 text-white h-14 font-black uppercase tracking-widest text-xs rounded-2xl border border-white/5 transition-all active:scale-95 flex items-center justify-center gap-3"
+            >
+              <LogOut className="w-4 h-4" />
+              Sign Out & Return
+            </button>
+          </div>
         </div>
       </div>
     );

@@ -94,7 +94,7 @@ const Dashboard = () => {
                     <div className="pt-4 space-y-4">
                         <Button
                             onClick={() => setIsLicenseModalOpen(true)}
-                            className="w-full bg-indigo-600 hover:bg-indigo-600 text-white h-14 font-black uppercase tracking-widest text-xs rounded-2xl shadow-xl shadow-indigo-600/20 transition-all active:scale-95"
+                            className="w-full bg-indigo-600 hover:bg-indigo-500 text-white h-14 font-black uppercase tracking-widest text-xs rounded-2xl shadow-xl shadow-indigo-600/20 transition-all active:scale-95"
                         >
                             Activate Framework
                         </Button>
@@ -113,6 +113,8 @@ const Dashboard = () => {
             </div>
         );
     }
+
+
 
     // Fetch Projects
     useEffect(() => {
@@ -173,9 +175,8 @@ const Dashboard = () => {
         }
 
         // If user is a regular User but has NO assignedCaseIds field yet, 
-        // we show everything by default UNLESS we want to be strict.
-        // Let's stick with current default but log it clearly.
-        return true;
+        // we default to showing nothing to maintain strict mission control.
+        return false;
     });
 
 

@@ -1,5 +1,6 @@
 import React, { useEffect, useState } from "react";
 import { useAuth } from "../lib/auth";
+import { useConfig } from "../lib/config";
 import { db } from "../lib/firebase";
 import { collection, getDocs, doc, updateDoc, deleteField, deleteDoc, setDoc } from "firebase/firestore";
 import { Button, Card } from "../components/ui/shared";
@@ -16,6 +17,7 @@ import { useNavigate } from "react-router-dom";
 
 const UserManagement = () => {
     const { user } = useAuth();
+    const { settings } = useConfig();
     const navigate = useNavigate();
     const [users, setUsers] = useState([]);
     const [loading, setLoading] = useState(true);
@@ -178,7 +180,8 @@ const UserManagement = () => {
     };
 
     const handleToggleStatus = async (userId, currentStatus) => {
-        const newStatus = (currentStatus === 'deactivated' || currentStatus === 'Deactivated') ? 'active' : 'deactivated';
+        const isActivating = (currentStatus === 'deactivated' || currentStatus === 'Deactivated');
+        const newStatus = isActivating ? 'active' : 'deactivated';
 
         if (!db) {
             setUsers(users.map(u => u.id === userId ? { ...u, status: newStatus } : u));
@@ -187,17 +190,56 @@ const UserManagement = () => {
 
         try {
             const userRef = doc(db, "users", userId);
-            // Using setDoc with merge: true is safer than updateDoc it ensure the doc exists
             await setDoc(userRef, { status: newStatus }, { merge: true });
 
-            setUsers(users.map(u => u.id === userId ? { ...u, status: newStatus } : u));
+            const updatedUsers = users.map(u => u.id === userId ? { ...u, status: newStatus } : u);
+            setUsers(updatedUsers);
 
-            // If we deactivated someone, show a brief success indicator
+            // Notify user if account was activated
+            if (isActivating) {
+                const targetUser = updatedUsers.find(u => u.id === userId);
+                if (targetUser) {
+                    sendActivationEmail(targetUser, settings.systemName || 'Simplee5');
+                }
+            }
+
             console.log(`User ${userId} status updated to ${newStatus}`);
         } catch (err) {
             console.error("Error toggling status:", err);
             setError(`Failed to update user status: ${err.message}`);
         }
+    };
+
+    const sendActivationEmail = async (targetUser, systemName) => {
+        // This is a utility to trigger an activation email. 
+        // In a production environment, this should ideally be handled by a Firebase Cloud Function 
+        // to keep API keys secure, or via a service like EmailJS.
+
+        console.log(`%c[NOTIFICATION] Sending activation email to ${targetUser.email} for ${systemName}`, "color: #4f46e5; font-weight: bold;");
+
+        // Placeholder for EmailJS/SendGrid/etc.
+        // If you have an EmailJS account, you can uncomment and configure this:
+        /*
+        try {
+            await fetch('https://api.emailjs.com/api/v1.0/email/send', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({
+                    service_id: 'YOUR_SERVICE_ID',
+                    template_id: 'YOUR_TEMPLATE_ID',
+                    user_id: 'YOUR_PUBLIC_KEY',
+                    template_params: {
+                        to_email: targetUser.email,
+                        to_name: targetUser.displayName || targetUser.email,
+                        system_name: systemName,
+                        action_url: window.location.origin
+                    }
+                })
+            });
+        } catch (e) {
+            console.error("Failed to send activation email:", e);
+        }
+        */
     };
 
     const handleReleaseLicense = (targetUser) => {

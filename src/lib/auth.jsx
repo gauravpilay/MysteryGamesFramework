@@ -147,7 +147,7 @@ export const AuthProvider = ({ children }) => {
                 photoURL: user.photoURL || `https://ui-avatars.com/api/?name=${user.email}&background=random`,
                 email: user.email,
                 role: isFirstUser ? "Admin" : "User",
-                status: 'active',
+                status: isFirstUser ? 'active' : 'deactivated',
                 createdAt: new Date().toISOString()
             });
         } else {
