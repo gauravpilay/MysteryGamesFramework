@@ -414,27 +414,33 @@ export default function SuspectProfile({
         return () => clearTimeout(timer);
     }, []);
 
-    // First-visit confrontation hint — uses versioned key so it always fires fresh
+    // First-visit confrontation hint — global once-ever behavior
     useEffect(() => {
         if (!suspect?.id) return;
-        // 'v1' version prefix: changing this invalidates old localStorage entries
-        const visitKey = `suspect_hint_v1_${suspect.id}`;
-        if (localStorage.getItem(visitKey)) return;
+        const globalHintKey = 'confrontation_hint_shown';
+        if (localStorage.getItem(globalHintKey)) return;
 
-        // Check if inventory contains any evidence/email nodes
-        const hasEvidence = Array.from(inventory).some(id =>
-            nodes.find(n => n.id === id && (n.type === 'evidence' || n.type === 'email'))
+        // Check if inventory contains any evidence items (checking by ID, variableId, or condition)
+        const hasEvidence = Array.from(inventory).some(entry =>
+            nodes.find(n => (n.id === entry || n.data?.variableId === entry || n.data?.condition === entry) &&
+                (n.type === 'evidence' || n.type === 'email' || n.type === 'fact'))
         );
 
-        // Always mark visited so future opens don't re-trigger
-        localStorage.setItem(visitKey, 'true');
-
         if (hasEvidence) {
-            // Delay so the profile entrance animation finishes first
-            const t = setTimeout(() => setShowConfrontHint(true), 1100);
+            // Show the hint after a short delay (let the profile animate in first)
+            const t = setTimeout(() => {
+                setShowConfrontHint(true);
+            }, 1200);
             return () => clearTimeout(t);
         }
-    }, [suspect?.id]); // intentionally run only on mount / suspect change
+    }, [suspect?.id, inventory, nodes]);
+
+    // Mark hint as shown once it's triggered
+    useEffect(() => {
+        if (showConfrontHint) {
+            localStorage.setItem('confrontation_hint_shown', 'true');
+        }
+    }, [showConfrontHint]);
 
     return (
         <div className="flex flex-col h-full overflow-hidden relative">
@@ -773,7 +779,8 @@ export default function SuspectProfile({
 
                                 {(() => {
                                     const collectedEvidence = Array.from(inventory)
-                                        .map(id => nodes.find(n => n.id === id && (n.type === 'evidence' || n.type === 'email')))
+                                        .map(entry => nodes.find(n => (n.id === entry || n.data?.variableId === entry || n.data?.condition === entry) &&
+                                            (n.type === 'evidence' || n.type === 'email' || n.type === 'fact')))
                                         .filter(Boolean);
 
                                     if (collectedEvidence.length === 0) {
@@ -1031,19 +1038,17 @@ export default function SuspectProfile({
             </div>
             {/* ── First-Visit Confrontation Hint Overlay ── */}
             <AnimatePresence>
-                {showConfrontHint && (() => {
-                    const evidenceCount = Array.from(inventory)
-                        .filter(id => nodes.find(n => n.id === id && (n.type === 'evidence' || n.type === 'email')))
-                        .length;
-                    return (
-                        <ConfrontationHintOverlay
-                            key="confront-hint"
-                            evidenceCount={evidenceCount}
-                            isSimultaneous={isSimultaneous}
-                            onDismiss={() => setShowConfrontHint(false)}
-                        />
-                    );
-                })()}
+                {showConfrontHint && (
+                    <ConfrontationHintOverlay
+                        key="confront-hint"
+                        evidenceCount={Array.from(inventory).filter(entry =>
+                            nodes.find(n => (n.id === entry || n.data?.variableId === entry || n.data?.condition === entry) &&
+                                (n.type === 'evidence' || n.type === 'email' || n.type === 'fact'))
+                        ).length}
+                        isSimultaneous={isSimultaneous}
+                        onDismiss={() => setShowConfrontHint(false)}
+                    />
+                )}
             </AnimatePresence>
 
             {/* Evidence Preview Modal */}
