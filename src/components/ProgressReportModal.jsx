@@ -1,4 +1,5 @@
 import React, { useState, useEffect, useMemo } from 'react';
+import ReactDOM from 'react-dom';
 import { db } from '../lib/firebase';
 import { collection, query, where, getDocs, orderBy, deleteDoc, doc, writeBatch } from 'firebase/firestore';
 import { useAuth } from '../lib/auth';
@@ -39,6 +40,8 @@ const ProgressReportModal = ({ onClose }) => {
     const [showTimeline, setShowTimeline] = useState(false);
 
     const [objMap, setObjMap] = useState({});
+    const [objQuestionCount, setObjQuestionCount] = useState({}); // { objectiveName: numberOfQuestionsLinked }
+    const [radarZoom, setRadarZoom] = useState(false); // controls radar zoom popup
 
     useEffect(() => {
         const fetchData = async () => {
@@ -46,6 +49,7 @@ const ProgressReportModal = ({ onClose }) => {
             try {
                 let data = [];
                 let map = {};
+                let objQuestionCount = {}; // Tracks how many questions are tied to each objective
 
                 // 1. Try Firestore if available
                 if (db) {
@@ -60,8 +64,8 @@ const ProgressReportModal = ({ onClose }) => {
 
                         const casesSnap = await getDocs(query(collection(db, "cases"), where("status", "==", "published")));
 
-                        casesSnap.docs.forEach(doc => {
-                            const c = doc.data();
+                        casesSnap.docs.forEach(caseDoc => {
+                            const c = caseDoc.data();
                             if (c.meta?.learningObjectives) {
                                 c.meta.learningObjectives.forEach(cat => {
                                     if (cat.objectives) {
@@ -86,6 +90,26 @@ const ProgressReportModal = ({ onClose }) => {
                                     }
                                 });
                             }
+
+                            // Count question nodes tied to each learning objective
+                            const nodes = c.nodes || [];
+                            nodes.forEach(node => {
+                                if (!node.data) return;
+                                const objIds = node.data.learningObjectiveIds ||
+                                    (node.data.learningObjectiveId ? [node.data.learningObjectiveId] : []);
+                                objIds.forEach(id => {
+                                    // Resolve display name via map (same logic as score aggregation)
+                                    let name = map[id] || id;
+                                    if (!map[id] && id.includes(':')) {
+                                        const [prefix] = id.split(':');
+                                        if (map[prefix]) {
+                                            const idx = parseInt(id.split(':')[1]);
+                                            name = map[`${prefix}:${idx}`] || `${map[prefix]}: Objective ${idx + 1}`;
+                                        }
+                                    }
+                                    objQuestionCount[name] = (objQuestionCount[name] || 0) + 1;
+                                });
+                            });
                         });
 
                     } catch (err) {
@@ -96,6 +120,7 @@ const ProgressReportModal = ({ onClose }) => {
                 data.sort((a, b) => new Date(b.playedAt) - new Date(a.playedAt));
                 setRawData(data);
                 setObjMap(map);
+                setObjQuestionCount(objQuestionCount);
             } catch (err) {
                 console.error("Error fetching progress:", err);
             } finally {
@@ -926,403 +951,441 @@ const ProgressReportModal = ({ onClose }) => {
     };
 
     return (
-        <div className="fixed inset-0 z-[100] flex items-center justify-center p-4 bg-black/90 backdrop-blur-md">
-            <motion.div
-                initial={{ scale: 0.95, opacity: 0 }}
-                animate={{ scale: 1, opacity: 1 }}
-                exit={{ scale: 0.95, opacity: 0 }}
-                className="w-full max-w-6xl bg-zinc-950 border border-zinc-800 rounded-2xl overflow-hidden shadow-2xl flex flex-col h-[85vh]"
-            >
-                {/* Header */}
-                <div className="p-6 border-b border-zinc-900 flex items-center justify-between bg-zinc-900/50">
-                    <div className="flex items-center gap-4">
-                        <div className="p-3 bg-indigo-500/10 rounded-xl border border-indigo-500/20">
-                            <TrendingUp className="w-6 h-6 text-indigo-400" />
-                        </div>
-                        <div>
-                            <h2 className="text-2xl font-black text-white uppercase tracking-tight">Detective Performance Record</h2>
-                            <p className="text-zinc-400 text-xs font-mono tracking-widest uppercase">
-                                USER: {user?.email} {isAdmin ? '// ADMIN ACCESS' : '// CLASSIFIED'}
-                            </p>
-                        </div>
-                    </div>
-                    <div className="flex gap-2">
-                        <Button variant="outline" className="text-zinc-400 hover:text-indigo-400 border-zinc-800" onClick={handleExportPDF}>
-                            <Download className="w-5 h-5 mr-2" />
-                            Export PDF
-                        </Button>
-                        {isAdmin && (
-                            <Button variant="destructive" size="icon" onClick={handleClearHistory} title="Wipe All History (Admin Only)">
-                                <Trash2 className="w-5 h-5" />
-                            </Button>
-                        )}
-                        <Button variant="ghost" onClick={onClose}>
-                            <X className="w-6 h-6" />
-                        </Button>
-                    </div>
-                </div>
-
-                {/* Toolbar */}
-                <div className="p-4 border-b border-zinc-800 bg-black/40 flex flex-wrap gap-4 items-center">
-                    <div className="flex items-center gap-2 px-3 py-2 bg-zinc-900 rounded-lg border border-zinc-800">
-                        <Filter className="w-4 h-4 text-zinc-500" />
-                        <span className="text-xs font-bold text-zinc-400 uppercase mr-2">Case File:</span>
-                        <select
-                            className="bg-transparent border-none text-white text-sm focus:ring-0 cursor-pointer outline-none"
-                            value={selectedCaseId}
-                            onChange={e => setSelectedCaseId(e.target.value)}
-                        >
-                            <option value="all">All Cases</option>
-                            {stats.caseOptions.map(opt => (
-                                <option key={opt.id} value={opt.id}>{opt.title}</option>
-                            ))}
-                        </select>
-                    </div>
-
-                    <div className="flex items-center gap-2 px-3 py-2 bg-zinc-900 rounded-lg border border-zinc-800">
-                        <Calendar className="w-4 h-4 text-zinc-500" />
-                        <span className="text-xs font-bold text-zinc-400 uppercase mr-2">Range:</span>
-                        <select
-                            className="bg-transparent border-none text-white text-sm focus:ring-0 cursor-pointer outline-none"
-                            value={timeRange}
-                            onChange={e => setTimeRange(e.target.value)}
-                        >
-                            <option value="all">All Time</option>
-                            <option value="week">Past 7 Days</option>
-                            <option value="month">Past 30 Days</option>
-                        </select>
-                    </div>
-                </div>
-
-                <div className="flex-1 overflow-y-auto bg-zinc-950 p-6 md:p-8">
-                    {loading ? (
-                        <div className="flex flex-col items-center justify-center h-full text-zinc-500 animate-pulse">
-                            <TrendingUp className="w-12 h-12 mb-4 opacity-50" />
-                            <p>Analyzing Performance Data...</p>
-                        </div>
-                    ) : (
-                        <div className="space-y-12">
-                            {/* High Level Stats - Enhanced with Animations */}
-                            <div className="grid grid-cols-1 md:grid-cols-4 gap-6">
-                                <AnimatedStatCard
-                                    icon={Target}
-                                    title="Missions Attempted"
-                                    value={stats.totalGames}
-                                    color="text-blue-400"
-                                    bg="bg-blue-500/10"
-                                    border="border-blue-500/20"
-                                    delay={0}
-                                    sparkle={true}
-                                />
-                                <AnimatedStatCard
-                                    icon={Award}
-                                    title="Success Rate"
-                                    value={stats.winRate}
-                                    suffix="%"
-                                    color="text-emerald-400"
-                                    bg="bg-emerald-500/10"
-                                    border="border-emerald-500/20"
-                                    delay={0.1}
-                                    sparkle={stats.winRate >= 80}
-                                />
-                                <AnimatedStatCard
-                                    icon={Clock}
-                                    title="Field Time"
-                                    value={formatDuration(stats.totalTime)}
-                                    color="text-amber-400"
-                                    bg="bg-amber-500/10"
-                                    border="border-amber-500/20"
-                                    delay={0.2}
-                                />
-                                <AnimatedStatCard
-                                    icon={BarChart2}
-                                    title="Skills Tracked"
-                                    value={Object.keys(stats.objectiveStats).length}
-                                    color="text-fuchsia-400"
-                                    bg="bg-fuchsia-500/10"
-                                    border="border-fuchsia-500/20"
-                                    delay={0.3}
-                                />
+        <>
+            <RadarZoomPortalInner
+                open={radarZoom}
+                onClose={() => setRadarZoom(false)}
+                competencies={stats?.assessment?.competencies}
+            />
+            <div className="fixed inset-0 z-[100] flex items-center justify-center p-4 bg-black/90 backdrop-blur-md">
+                <motion.div
+                    initial={{ scale: 0.95, opacity: 0 }}
+                    animate={{ scale: 1, opacity: 1 }}
+                    exit={{ scale: 0.95, opacity: 0 }}
+                    className="w-full max-w-6xl bg-zinc-950 border border-zinc-800 rounded-2xl overflow-hidden shadow-2xl flex flex-col h-[85vh]"
+                >
+                    {/* Header */}
+                    <div className="p-6 border-b border-zinc-900 flex items-center justify-between bg-zinc-900/50">
+                        <div className="flex items-center gap-4">
+                            <div className="p-3 bg-indigo-500/10 rounded-xl border border-indigo-500/20">
+                                <TrendingUp className="w-6 h-6 text-indigo-400" />
                             </div>
+                            <div>
+                                <h2 className="text-2xl font-black text-white uppercase tracking-tight">Detective Performance Record</h2>
+                                <p className="text-zinc-400 text-xs font-mono tracking-widest uppercase">
+                                    USER: {user?.email} {isAdmin ? '// ADMIN ACCESS' : '// CLASSIFIED'}
+                                </p>
+                            </div>
+                        </div>
+                        <div className="flex gap-2">
+                            <Button variant="outline" className="text-zinc-400 hover:text-indigo-400 border-zinc-800" onClick={handleExportPDF}>
+                                <Download className="w-5 h-5 mr-2" />
+                                Export PDF
+                            </Button>
+                            {isAdmin && (
+                                <Button variant="destructive" size="icon" onClick={handleClearHistory} title="Wipe All History (Admin Only)">
+                                    <Trash2 className="w-5 h-5" />
+                                </Button>
+                            )}
+                            <Button variant="ghost" onClick={onClose}>
+                                <X className="w-6 h-6" />
+                            </Button>
+                        </div>
+                    </div>
 
-                            {/* NEW: Personal Growth Story Section */}
-                            <div className="bg-gradient-to-br from-indigo-950/40 via-zinc-900/40 to-black rounded-3xl border border-indigo-500/20 p-8 relative overflow-hidden shadow-2xl">
-                                <div className="absolute top-0 right-0 w-96 h-96 bg-indigo-500/5 blur-[120px] rounded-full"></div>
-                                <div className="relative z-10 grid grid-cols-1 lg:grid-cols-12 gap-10 items-center">
-                                    <div className="lg:col-span-12">
-                                        <div className="flex items-center gap-3 mb-6">
-                                            <div className="px-3 py-1 bg-indigo-500 text-white text-[10px] font-black uppercase tracking-[0.2em] rounded">Career Path</div>
-                                            <h3 className="text-2xl font-black text-white flex items-center gap-3 uppercase tracking-tight">
-                                                {stats.assessment?.archetype} Status
-                                                <Sparkles className="w-5 h-5 text-indigo-400" />
-                                            </h3>
-                                        </div>
-                                        <div className="flex flex-col lg:flex-row gap-10">
-                                            <div className="flex-1 space-y-6">
-                                                <p className="text-xl text-zinc-300 leading-relaxed font-medium italic border-l-4 border-indigo-500 pl-8 py-2">
-                                                    "{stats.assessment?.summary}"
-                                                </p>
-                                                <div className="flex flex-wrap gap-3 pt-4">
-                                                    {stats.assessment?.recommendations.map((rec, i) => (
-                                                        <div key={i} className="flex items-center gap-3 bg-zinc-800/80 border border-zinc-700/50 rounded-2xl px-5 py-3 text-sm text-zinc-300 group hover:border-indigo-500/50 transition-all cursor-default shadow-lg">
-                                                            <div className="w-6 h-6 rounded-full bg-indigo-500/20 flex items-center justify-center">
-                                                                <Zap className="w-3 h-3 text-indigo-400" />
-                                                            </div>
-                                                            {rec}
-                                                        </div>
-                                                    ))}
-                                                </div>
+                    {/* Toolbar */}
+                    <div className="p-4 border-b border-zinc-800 bg-black/40 flex flex-wrap gap-4 items-center">
+                        <div className="flex items-center gap-2 px-3 py-2 bg-zinc-900 rounded-lg border border-zinc-800">
+                            <Filter className="w-4 h-4 text-zinc-500" />
+                            <span className="text-xs font-bold text-zinc-400 uppercase mr-2">Case File:</span>
+                            <select
+                                className="bg-transparent border-none text-white text-sm focus:ring-0 cursor-pointer outline-none"
+                                value={selectedCaseId}
+                                onChange={e => setSelectedCaseId(e.target.value)}
+                            >
+                                <option value="all">All Cases</option>
+                                {stats.caseOptions.map(opt => (
+                                    <option key={opt.id} value={opt.id}>{opt.title}</option>
+                                ))}
+                            </select>
+                        </div>
+
+                        <div className="flex items-center gap-2 px-3 py-2 bg-zinc-900 rounded-lg border border-zinc-800">
+                            <Calendar className="w-4 h-4 text-zinc-500" />
+                            <span className="text-xs font-bold text-zinc-400 uppercase mr-2">Range:</span>
+                            <select
+                                className="bg-transparent border-none text-white text-sm focus:ring-0 cursor-pointer outline-none"
+                                value={timeRange}
+                                onChange={e => setTimeRange(e.target.value)}
+                            >
+                                <option value="all">All Time</option>
+                                <option value="week">Past 7 Days</option>
+                                <option value="month">Past 30 Days</option>
+                            </select>
+                        </div>
+                    </div>
+
+                    <div className="flex-1 overflow-y-auto bg-zinc-950 p-6 md:p-8">
+                        {loading ? (
+                            <div className="flex flex-col items-center justify-center h-full text-zinc-500 animate-pulse">
+                                <TrendingUp className="w-12 h-12 mb-4 opacity-50" />
+                                <p>Analyzing Performance Data...</p>
+                            </div>
+                        ) : (
+                            <div className="space-y-12">
+                                {/* High Level Stats - Enhanced with Animations */}
+                                <div className="grid grid-cols-1 md:grid-cols-4 gap-6">
+                                    <AnimatedStatCard
+                                        icon={Target}
+                                        title="Missions Attempted"
+                                        value={stats.totalGames}
+                                        color="text-blue-400"
+                                        bg="bg-blue-500/10"
+                                        border="border-blue-500/20"
+                                        delay={0}
+                                        sparkle={true}
+                                    />
+                                    <AnimatedStatCard
+                                        icon={Award}
+                                        title="Success Rate"
+                                        value={stats.winRate}
+                                        suffix="%"
+                                        color="text-emerald-400"
+                                        bg="bg-emerald-500/10"
+                                        border="border-emerald-500/20"
+                                        delay={0.1}
+                                        sparkle={stats.winRate >= 80}
+                                    />
+                                    <AnimatedStatCard
+                                        icon={Clock}
+                                        title="Field Time"
+                                        value={formatDuration(stats.totalTime)}
+                                        color="text-amber-400"
+                                        bg="bg-amber-500/10"
+                                        border="border-amber-500/20"
+                                        delay={0.2}
+                                    />
+                                    <AnimatedStatCard
+                                        icon={BarChart2}
+                                        title="Skills Tracked"
+                                        value={Object.keys(stats.objectiveStats).length}
+                                        color="text-fuchsia-400"
+                                        bg="bg-fuchsia-500/10"
+                                        border="border-fuchsia-500/20"
+                                        delay={0.3}
+                                    />
+                                </div>
+
+                                {/* NEW: Personal Growth Story Section */}
+                                <div className="bg-gradient-to-br from-indigo-950/40 via-zinc-900/40 to-black rounded-3xl border border-indigo-500/20 p-8 relative overflow-hidden shadow-2xl">
+                                    <div className="absolute top-0 right-0 w-96 h-96 bg-indigo-500/5 blur-[120px] rounded-full"></div>
+                                    <div className="relative z-10 grid grid-cols-1 lg:grid-cols-12 gap-10 items-center">
+                                        <div className="lg:col-span-12">
+                                            <div className="flex items-center gap-3 mb-6">
+                                                <div className="px-3 py-1 bg-indigo-500 text-white text-[10px] font-black uppercase tracking-[0.2em] rounded">Career Path</div>
+                                                <h3 className="text-2xl font-black text-white flex items-center gap-3 uppercase tracking-tight">
+                                                    {stats.assessment?.archetype} Status
+                                                    <Sparkles className="w-5 h-5 text-indigo-400" />
+                                                </h3>
                                             </div>
+                                            <div className="flex flex-col lg:flex-row gap-10">
+                                                <div className="flex-1 space-y-6">
+                                                    <p className="text-xl text-zinc-300 leading-relaxed font-medium italic border-l-4 border-indigo-500 pl-8 py-2">
+                                                        "{stats.assessment?.summary}"
+                                                    </p>
+                                                    <div className="flex flex-wrap gap-3 pt-4">
+                                                        {stats.assessment?.recommendations.map((rec, i) => (
+                                                            <div key={i} className="flex items-center gap-3 bg-zinc-800/80 border border-zinc-700/50 rounded-2xl px-5 py-3 text-sm text-zinc-300 group hover:border-indigo-500/50 transition-all cursor-default shadow-lg">
+                                                                <div className="w-6 h-6 rounded-full bg-indigo-500/20 flex items-center justify-center">
+                                                                    <Zap className="w-3 h-3 text-indigo-400" />
+                                                                </div>
+                                                                {rec}
+                                                            </div>
+                                                        ))}
+                                                    </div>
+                                                </div>
 
-                                            {/* Skills Radar integrated in story */}
-                                            <div className="lg:w-[320px] flex flex-col items-center justify-center bg-black/20 rounded-3xl p-6 border border-white/5">
-                                                <h4 className="text-[10px] font-black text-indigo-400 uppercase tracking-[0.2em] mb-4">Competency Radar</h4>
-                                                <RadarChart
-                                                    data={stats.assessment?.competencies}
-                                                    size={240}
-                                                    color="#6366f1"
-                                                />
+                                                {/* Skills Radar integrated in story */}
+                                                <div className="lg:w-[320px] flex flex-col items-center justify-center bg-black/20 rounded-3xl p-6 border border-white/5 relative">
+                                                    <div className="flex items-center justify-between w-full mb-4">
+                                                        <h4 className="text-[10px] font-black text-indigo-400 uppercase tracking-[0.2em]">Competency Radar</h4>
+                                                        <button
+                                                            onClick={() => setRadarZoom(true)}
+                                                            title="Expand radar chart"
+                                                            className="p-1 rounded-lg bg-indigo-500/10 hover:bg-indigo-500/20 border border-indigo-500/20 text-indigo-400 transition-all"
+                                                        >
+                                                            <svg xmlns="http://www.w3.org/2000/svg" className="w-3.5 h-3.5" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                                                                <polyline points="15 3 21 3 21 9" /><polyline points="9 21 3 21 3 15" />
+                                                                <line x1="21" y1="3" x2="14" y2="10" /><line x1="3" y1="21" x2="10" y2="14" />
+                                                            </svg>
+                                                        </button>
+                                                    </div>
+                                                    <RadarChart
+                                                        data={stats.assessment?.competencies}
+                                                        size={240}
+                                                        color="#6366f1"
+                                                    />
+                                                    <p className="text-[9px] text-zinc-600 mt-3 text-center uppercase tracking-widest">Click expand to view full labels</p>
+                                                </div>
                                             </div>
                                         </div>
                                     </div>
                                 </div>
-                            </div>
 
-                            {/* Achievements Showcase */}
-                            {stats.achievements && stats.achievements.length > 0 && (
-                                <motion.div
-                                    initial={{ opacity: 0, y: 50 }}
-                                    animate={{ opacity: 1, y: 0 }}
-                                    transition={{ duration: 0.6, delay: 0.4 }}
-                                    className="bg-gradient-to-br from-zinc-900/40 via-black/40 to-zinc-900/40 rounded-3xl border border-zinc-800/50 p-8 relative overflow-hidden"
-                                >
-                                    {/* Background Glow */}
-                                    <div className="absolute top-0 left-1/2 transform -translate-x-1/2 w-96 h-96 bg-amber-500/5 blur-[120px] rounded-full" />
+                                {/* Achievements Showcase */}
+                                {stats.achievements && stats.achievements.length > 0 && (
+                                    <motion.div
+                                        initial={{ opacity: 0, y: 50 }}
+                                        animate={{ opacity: 1, y: 0 }}
+                                        transition={{ duration: 0.6, delay: 0.4 }}
+                                        className="bg-gradient-to-br from-zinc-900/40 via-black/40 to-zinc-900/40 rounded-3xl border border-zinc-800/50 p-8 relative overflow-hidden"
+                                    >
+                                        {/* Background Glow */}
+                                        <div className="absolute top-0 left-1/2 transform -translate-x-1/2 w-96 h-96 bg-amber-500/5 blur-[120px] rounded-full" />
 
-                                    <div className="relative z-10">
-                                        <div className="flex items-center justify-between mb-6">
-                                            <div>
-                                                <div className="flex items-center gap-3 mb-2">
-                                                    <div className="px-3 py-1 bg-amber-500 text-white text-[10px] font-black uppercase tracking-[0.2em] rounded">
-                                                        Achievements
+                                        <div className="relative z-10">
+                                            <div className="flex items-center justify-between mb-6">
+                                                <div>
+                                                    <div className="flex items-center gap-3 mb-2">
+                                                        <div className="px-3 py-1 bg-amber-500 text-white text-[10px] font-black uppercase tracking-[0.2em] rounded">
+                                                            Achievements
+                                                        </div>
+                                                        <Sparkles className="w-5 h-5 text-amber-400" />
                                                     </div>
-                                                    <Sparkles className="w-5 h-5 text-amber-400" />
+                                                    <h3 className="text-2xl font-black text-white uppercase tracking-tight">
+                                                        Hall of Fame
+                                                    </h3>
+                                                    <p className="text-sm text-zinc-500 mt-1">
+                                                        {stats.achievements.filter(a => a.unlocked).length} of {stats.achievements.length} unlocked
+                                                    </p>
                                                 </div>
-                                                <h3 className="text-2xl font-black text-white uppercase tracking-tight">
-                                                    Hall of Fame
-                                                </h3>
-                                                <p className="text-sm text-zinc-500 mt-1">
-                                                    {stats.achievements.filter(a => a.unlocked).length} of {stats.achievements.length} unlocked
-                                                </p>
                                             </div>
-                                        </div>
 
-                                        {/* Achievement Badges Grid */}
-                                        <div className="grid grid-cols-3 md:grid-cols-6 gap-6 justify-items-center">
-                                            {stats.achievements.map((achievement, index) => (
-                                                <motion.div
-                                                    key={achievement.id}
-                                                    initial={{ opacity: 0, scale: 0.5, rotate: -180 }}
-                                                    animate={{ opacity: 1, scale: 1, rotate: 0 }}
-                                                    transition={{
-                                                        duration: 0.5,
-                                                        delay: 0.5 + (index * 0.1),
-                                                        type: 'spring',
-                                                        stiffness: 200
-                                                    }}
-                                                >
-                                                    <AchievementBadge
-                                                        {...achievement}
-                                                        size="lg"
-                                                        showTooltip={true}
+                                            {/* Achievement Badges Grid */}
+                                            <div className="grid grid-cols-3 md:grid-cols-6 gap-6 justify-items-center">
+                                                {stats.achievements.map((achievement, index) => (
+                                                    <motion.div
+                                                        key={achievement.id}
+                                                        initial={{ opacity: 0, scale: 0.5, rotate: -180 }}
+                                                        animate={{ opacity: 1, scale: 1, rotate: 0 }}
+                                                        transition={{
+                                                            duration: 0.5,
+                                                            delay: 0.5 + (index * 0.1),
+                                                            type: 'spring',
+                                                            stiffness: 200
+                                                        }}
+                                                    >
+                                                        <AchievementBadge
+                                                            {...achievement}
+                                                            size="lg"
+                                                            showTooltip={true}
+                                                        />
+                                                    </motion.div>
+                                                ))}
+                                            </div>
+
+                                            {/* Progress Bar */}
+                                            <div className="mt-8 pt-6 border-t border-zinc-800">
+                                                <div className="flex justify-between text-sm mb-2">
+                                                    <span className="text-zinc-400">Overall Progress</span>
+                                                    <div className="flex items-center gap-2 group relative">
+                                                        <span className="text-amber-400 font-bold">
+                                                            {Math.round((stats.achievements.filter(a => a.unlocked).length / stats.achievements.length) * 100)}%
+                                                        </span>
+                                                        <span className="text-zinc-600 text-xs cursor-help" title="Percentage of achievements unlocked out of the total available achievements">
+                                                            ⓘ
+                                                        </span>
+                                                        {/* Tooltip */}
+                                                        <div className="absolute bottom-full right-0 mb-2 w-64 p-3 bg-zinc-900 border border-zinc-700 rounded-xl shadow-2xl z-50 text-xs text-zinc-400 leading-relaxed opacity-0 group-hover:opacity-100 pointer-events-none transition-opacity">
+                                                            <p className="text-indigo-400 font-bold uppercase tracking-wider mb-1">How it's calculated</p>
+                                                            <p>
+                                                                <span className="text-white font-bold">{stats.achievements.filter(a => a.unlocked).length}</span> achievements unlocked out of <span className="text-white font-bold">{stats.achievements.length}</span> total.
+                                                                <br /><br />
+                                                                Each achievement is awarded for reaching specific milestones (e.g. completing missions, achieving high scores). The percentage shown is how many you've unlocked relative to all available badges.
+                                                            </p>
+                                                        </div>
+                                                    </div>
+                                                </div>
+                                                <div className="h-3 bg-zinc-800 rounded-full overflow-hidden">
+                                                    <motion.div
+                                                        className="h-full bg-gradient-to-r from-amber-500 to-orange-600 rounded-full"
+                                                        initial={{ width: 0 }}
+                                                        animate={{ width: `${(stats.achievements.filter(a => a.unlocked).length / stats.achievements.length) * 100}%` }}
+                                                        transition={{ duration: 1.5, delay: 1, ease: 'easeOut' }}
                                                     />
-                                                </motion.div>
-                                            ))}
+                                                </div>
+                                            </div>
+                                        </div>
+                                    </motion.div>
+                                )}
+
+                                {/* Objective Breakdown */}
+                                {Object.keys(stats.objectiveStats).length > 0 && (
+                                    <div className="bg-zinc-900/30 border border-zinc-800 rounded-xl p-6">
+                                        <div className="flex items-center justify-between mb-6">
+                                            <h3 className="text-lg font-bold text-white flex items-center gap-2">
+                                                <BarChart2 className="w-5 h-5 text-indigo-500" />
+                                                Learning Objectives Analysis
+                                            </h3>
+                                            <div className="relative">
+                                                <button
+                                                    onMouseEnter={() => setShowHelp(true)}
+                                                    onMouseLeave={() => setShowHelp(false)}
+                                                    onClick={() => setShowHelp(!showHelp)}
+                                                    className="p-1.5 rounded-full hover:bg-white/10 text-zinc-500 hover:text-indigo-400 transition-all cursor-help"
+                                                >
+                                                    <CircleHelp className="w-5 h-5" />
+                                                </button>
+
+                                                <AnimatePresence>
+                                                    {showHelp && (
+                                                        <motion.div
+                                                            initial={{ opacity: 0, y: 10, scale: 0.95 }}
+                                                            animate={{ opacity: 1, y: 0, scale: 1 }}
+                                                            exit={{ opacity: 0, y: 10, scale: 0.95 }}
+                                                            className="absolute right-0 bottom-full mb-2 w-72 p-4 bg-zinc-900 border border-zinc-700 rounded-xl shadow-2xl z-50 pointer-events-none"
+                                                        >
+                                                            <h4 className="text-xs font-bold text-indigo-400 uppercase tracking-wider mb-2">Methodology</h4>
+                                                            <p className="text-xs text-zinc-400 leading-relaxed">
+                                                                Analysis is calculated by averaging performance scores across all mission attempts.
+                                                                <br /><br />
+                                                                Each field action is mapped to specific objectives. Successes grant positive progression, while errors or excessive hint usage can reduce the impact on that specific skill node.
+                                                            </p>
+                                                        </motion.div>
+                                                    )}
+                                                </AnimatePresence>
+                                            </div>
                                         </div>
 
-                                        {/* Progress Bar */}
-                                        <div className="mt-8 pt-6 border-t border-zinc-800">
-                                            <div className="flex justify-between text-sm mb-2">
-                                                <span className="text-zinc-400">Overall Progress</span>
-                                                <span className="text-amber-400 font-bold">
-                                                    {Math.round((stats.achievements.filter(a => a.unlocked).length / stats.achievements.length) * 100)}%
-                                                </span>
-                                            </div>
-                                            <div className="h-3 bg-zinc-800 rounded-full overflow-hidden">
-                                                <motion.div
-                                                    className="h-full bg-gradient-to-r from-amber-500 to-orange-600 rounded-full"
-                                                    initial={{ width: 0 }}
-                                                    animate={{ width: `${(stats.achievements.filter(a => a.unlocked).length / stats.achievements.length) * 100}%` }}
-                                                    transition={{ duration: 1.5, delay: 1, ease: 'easeOut' }}
-                                                />
-                                            </div>
+                                        <div className="grid grid-cols-1 md:grid-cols-2 gap-8">
+                                            {Object.entries(stats.objectiveStats).map(([readableName, data]) => {
+                                                const avgScore = Math.round(data.total / data.count);
+                                                // Use actual question count from case graphs; fall back to session count
+                                                const questionCount = objQuestionCount[readableName] ?? data.count;
+
+                                                return (
+                                                    <div key={readableName} className="space-y-2">
+                                                        <div className="flex justify-between items-center text-sm mb-1">
+                                                            <span className="font-bold text-zinc-300">{readableName}</span>
+                                                            <span className={`${avgScore > 0 ? 'text-emerald-400' : 'text-red-400'} font-mono font-bold`}>
+                                                                Avg: {avgScore > 0 ? '+' : ''}{avgScore}
+                                                            </span>
+                                                        </div>
+                                                        <div className="h-3 bg-zinc-800 rounded-full overflow-hidden relative">
+                                                            <div
+                                                                className={`absolute top-0 bottom-0 left-0 transition-all duration-1000 ${avgScore >= 0 ? 'bg-indigo-500' : 'bg-red-500'}`}
+                                                                style={{ width: `${Math.min(100, Math.abs(avgScore))}%` }}
+                                                            ></div>
+                                                        </div>
+                                                        <div className="flex justify-between text-[10px] text-zinc-500 uppercase tracking-wider">
+                                                            <span>
+                                                                {questionCount} Question{questionCount !== 1 ? 's' : ''} tied to this objective
+                                                            </span>
+                                                            <span>{avgScore >= 75 ? 'Peak performance achieved.' : 'Further field experience recommended.'}</span>
+                                                        </div>
+                                                    </div>
+                                                );
+                                            })}
                                         </div>
                                     </div>
-                                </motion.div>
-                            )}
+                                )}
 
-                            {/* Objective Breakdown */}
-                            {Object.keys(stats.objectiveStats).length > 0 && (
+
+                                {/* Mission Journey Timeline */}
                                 <div className="bg-zinc-900/30 border border-zinc-800 rounded-xl p-6">
                                     <div className="flex items-center justify-between mb-6">
                                         <h3 className="text-lg font-bold text-white flex items-center gap-2">
-                                            <BarChart2 className="w-5 h-5 text-indigo-500" />
-                                            Learning Objectives Analysis
+                                            <TrendingUp className="w-5 h-5 text-indigo-500" />
+                                            Mission Journey
                                         </h3>
-                                        <div className="relative">
-                                            <button
-                                                onMouseEnter={() => setShowHelp(true)}
-                                                onMouseLeave={() => setShowHelp(false)}
-                                                onClick={() => setShowHelp(!showHelp)}
-                                                className="p-1.5 rounded-full hover:bg-white/10 text-zinc-500 hover:text-indigo-400 transition-all cursor-help"
-                                            >
-                                                <CircleHelp className="w-5 h-5" />
-                                            </button>
+                                        <button
+                                            onClick={() => setShowTimeline(!showTimeline)}
+                                            className="px-4 py-2 bg-indigo-500/10 hover:bg-indigo-500/20 border border-indigo-500/30 rounded-lg text-sm font-bold text-indigo-400 transition-colors"
+                                        >
+                                            {showTimeline ? 'Hide Timeline' : 'Show Timeline'}
+                                        </button>
+                                    </div>
 
-                                            <AnimatePresence>
-                                                {showHelp && (
-                                                    <motion.div
-                                                        initial={{ opacity: 0, y: 10, scale: 0.95 }}
-                                                        animate={{ opacity: 1, y: 0, scale: 1 }}
-                                                        exit={{ opacity: 0, y: 10, scale: 0.95 }}
-                                                        className="absolute right-0 bottom-full mb-2 w-72 p-4 bg-zinc-900 border border-zinc-700 rounded-xl shadow-2xl z-50 pointer-events-none"
-                                                    >
-                                                        <h4 className="text-xs font-bold text-indigo-400 uppercase tracking-wider mb-2">Methodology</h4>
-                                                        <p className="text-xs text-zinc-400 leading-relaxed">
-                                                            Analysis is calculated by averaging performance scores across all mission attempts.
-                                                            <br /><br />
-                                                            Each field action is mapped to specific objectives. Successes grant positive progression, while errors or excessive hint usage can reduce the impact on that specific skill node.
-                                                        </p>
-                                                    </motion.div>
-                                                )}
-                                            </AnimatePresence>
+                                    {showTimeline ? (
+                                        <JourneyTimeline
+                                            missions={filteredData}
+                                            onMissionClick={(mission) => {
+                                                console.log('Mission clicked:', mission);
+                                            }}
+                                        />
+                                    ) : (
+                                        <div className="text-center py-12 text-zinc-500">
+                                            <TrendingUp className="w-12 h-12 mx-auto mb-4 opacity-50" />
+                                            <p>Click "Show Timeline" to view your mission journey</p>
+                                        </div>
+                                    )}
+
+                                    {filteredData.length === 0 && (
+                                        <p className="text-zinc-500 text-center py-8 italic">No records found for this period.</p>
+                                    )}
+                                </div>
+                            </div>
+                        )}
+                    </div>
+
+                    {/* Celebration Component */}
+                    <ProgressCelebration
+                        show={celebration !== null}
+                        type={celebration?.type || 'achievement'}
+                        message={celebration?.message || ''}
+                        subtitle={celebration?.subtitle || ''}
+                        onComplete={() => setCelebration(null)}
+                        duration={3000}
+                        enableSound={false}
+                    />
+
+                    {/* Wipe Confirmation Modal */}
+                    <AnimatePresence>
+                        {showConfirmWipe && (
+                            <motion.div
+                                initial={{ opacity: 0 }}
+                                animate={{ opacity: 1 }}
+                                exit={{ opacity: 0 }}
+                                className="absolute inset-0 z-50 bg-black/80 backdrop-blur-sm flex items-center justify-center p-6"
+                            >
+                                <motion.div
+                                    initial={{ scale: 0.9, y: 20 }}
+                                    animate={{ scale: 1, y: 0 }}
+                                    exit={{ scale: 0.9, y: 20 }}
+                                    className="bg-zinc-900 border border-red-500/50 rounded-xl p-8 max-w-md w-full shadow-2xl relative overflow-hidden"
+                                >
+                                    <div className="absolute top-0 left-0 right-0 h-1 bg-gradient-to-r from-red-600 to-orange-600"></div>
+                                    <div className="flex flex-col items-center text-center space-y-4">
+                                        <div className="p-4 bg-red-500/10 rounded-full mb-2">
+                                            <AlertTriangle className="w-8 h-8 text-red-500" />
+                                        </div>
+                                        <h3 className="text-2xl font-black text-white uppercase tracking-tight">System Purge Warning</h3>
+                                        <p className="text-zinc-400">
+                                            You are about to <span className="text-red-400 font-bold">permanently delete all</span> game progress history, statistics, and objective tracking data.
+                                        </p>
+                                        <div className="bg-red-950/30 border border-red-900/50 rounded p-3 text-red-300 text-sm font-mono mt-2">
+                                            ACTION CANNOT BE UNDONE.
+                                        </div>
+                                        <div className="flex gap-4 w-full pt-4">
+                                            <Button variant="ghost" onClick={() => setShowConfirmWipe(false)} className="flex-1">
+                                                Cancel
+                                            </Button>
+                                            <Button
+                                                variant="destructive"
+                                                onClick={executeClearHistory}
+                                                className="flex-1 bg-red-600 hover:bg-red-700 text-white font-bold"
+                                            >
+                                                Confirm Wipe
+                                            </Button>
                                         </div>
                                     </div>
-
-                                    <div className="grid grid-cols-1 md:grid-cols-2 gap-8">
-                                        {Object.entries(stats.objectiveStats).map(([readableName, data]) => {
-                                            const avgScore = Math.round(data.total / data.count);
-
-                                            return (
-                                                <div key={readableName} className="space-y-2">
-                                                    <div className="flex justify-between items-center text-sm mb-1">
-                                                        <span className="font-bold text-zinc-300">{readableName}</span>
-                                                        <span className={`${avgScore > 0 ? 'text-emerald-400' : 'text-red-400'} font-mono font-bold`}>
-                                                            Avg: {avgScore > 0 ? '+' : ''}{avgScore}
-                                                        </span>
-                                                    </div>
-                                                    <div className="h-3 bg-zinc-800 rounded-full overflow-hidden relative">
-                                                        <div
-                                                            className={`absolute top-0 bottom-0 left-0 transition-all duration-1000 ${avgScore >= 0 ? 'bg-indigo-500' : 'bg-red-500'}`}
-                                                            style={{ width: `${Math.min(100, Math.abs(avgScore))}%` }}
-                                                        ></div>
-                                                    </div>
-                                                    <div className="flex justify-between text-[10px] text-zinc-500 uppercase tracking-wider">
-                                                        <span>{data.count} Data Points</span>
-                                                        <span>{avgScore >= 75 ? 'Peak performance achieved.' : 'Further field experience recommended.'}</span>
-                                                    </div>
-                                                </div>
-                                            );
-                                        })}
-                                    </div>
-                                </div>
-                            )}
-
-
-                            {/* Mission Journey Timeline */}
-                            <div className="bg-zinc-900/30 border border-zinc-800 rounded-xl p-6">
-                                <div className="flex items-center justify-between mb-6">
-                                    <h3 className="text-lg font-bold text-white flex items-center gap-2">
-                                        <TrendingUp className="w-5 h-5 text-indigo-500" />
-                                        Mission Journey
-                                    </h3>
-                                    <button
-                                        onClick={() => setShowTimeline(!showTimeline)}
-                                        className="px-4 py-2 bg-indigo-500/10 hover:bg-indigo-500/20 border border-indigo-500/30 rounded-lg text-sm font-bold text-indigo-400 transition-colors"
-                                    >
-                                        {showTimeline ? 'Hide Timeline' : 'Show Timeline'}
-                                    </button>
-                                </div>
-
-                                {showTimeline ? (
-                                    <JourneyTimeline
-                                        missions={filteredData}
-                                        onMissionClick={(mission) => {
-                                            console.log('Mission clicked:', mission);
-                                        }}
-                                    />
-                                ) : (
-                                    <div className="text-center py-12 text-zinc-500">
-                                        <TrendingUp className="w-12 h-12 mx-auto mb-4 opacity-50" />
-                                        <p>Click "Show Timeline" to view your mission journey</p>
-                                    </div>
-                                )}
-
-                                {filteredData.length === 0 && (
-                                    <p className="text-zinc-500 text-center py-8 italic">No records found for this period.</p>
-                                )}
-                            </div>
-                        </div>
-                    )}
-                </div>
-
-                {/* Celebration Component */}
-                <ProgressCelebration
-                    show={celebration !== null}
-                    type={celebration?.type || 'achievement'}
-                    message={celebration?.message || ''}
-                    subtitle={celebration?.subtitle || ''}
-                    onComplete={() => setCelebration(null)}
-                    duration={3000}
-                    enableSound={false}
-                />
-
-                {/* Wipe Confirmation Modal */}
-                <AnimatePresence>
-                    {showConfirmWipe && (
-                        <motion.div
-                            initial={{ opacity: 0 }}
-                            animate={{ opacity: 1 }}
-                            exit={{ opacity: 0 }}
-                            className="absolute inset-0 z-50 bg-black/80 backdrop-blur-sm flex items-center justify-center p-6"
-                        >
-                            <motion.div
-                                initial={{ scale: 0.9, y: 20 }}
-                                animate={{ scale: 1, y: 0 }}
-                                exit={{ scale: 0.9, y: 20 }}
-                                className="bg-zinc-900 border border-red-500/50 rounded-xl p-8 max-w-md w-full shadow-2xl relative overflow-hidden"
-                            >
-                                <div className="absolute top-0 left-0 right-0 h-1 bg-gradient-to-r from-red-600 to-orange-600"></div>
-                                <div className="flex flex-col items-center text-center space-y-4">
-                                    <div className="p-4 bg-red-500/10 rounded-full mb-2">
-                                        <AlertTriangle className="w-8 h-8 text-red-500" />
-                                    </div>
-                                    <h3 className="text-2xl font-black text-white uppercase tracking-tight">System Purge Warning</h3>
-                                    <p className="text-zinc-400">
-                                        You are about to <span className="text-red-400 font-bold">permanently delete all</span> game progress history, statistics, and objective tracking data.
-                                    </p>
-                                    <div className="bg-red-950/30 border border-red-900/50 rounded p-3 text-red-300 text-sm font-mono mt-2">
-                                        ACTION CANNOT BE UNDONE.
-                                    </div>
-                                    <div className="flex gap-4 w-full pt-4">
-                                        <Button variant="ghost" onClick={() => setShowConfirmWipe(false)} className="flex-1">
-                                            Cancel
-                                        </Button>
-                                        <Button
-                                            variant="destructive"
-                                            onClick={executeClearHistory}
-                                            className="flex-1 bg-red-600 hover:bg-red-700 text-white font-bold"
-                                        >
-                                            Confirm Wipe
-                                        </Button>
-                                    </div>
-                                </div>
+                                </motion.div>
                             </motion.div>
-                        </motion.div>
-                    )}
-                </AnimatePresence>
-            </motion.div>
-        </div>
+                        )}
+                    </AnimatePresence>
+                </motion.div>
+            </div>
+        </>
     );
 };
 
@@ -1339,3 +1402,104 @@ const StatCard = ({ icon, title, value, color, bg, border }) => (
 );
 
 export default ProgressReportModal;
+
+// Portal component rendered at document.body to escape overflow:hidden / framer-motion stacking contexts
+const RadarZoomPortalInner = ({ open, onClose, competencies }) => {
+    if (!open || typeof document === 'undefined') return null;
+    return ReactDOM.createPortal(
+        <AnimatePresence>
+            {open && (
+                <motion.div
+                    key="radar-zoom-overlay"
+                    initial={{ opacity: 0 }}
+                    animate={{ opacity: 1 }}
+                    exit={{ opacity: 0 }}
+                    style={{
+                        position: 'fixed', inset: 0, zIndex: 9999,
+                        display: 'flex', alignItems: 'center', justifyContent: 'center',
+                        padding: '24px',
+                        background: 'rgba(0,0,0,0.92)',
+                        backdropFilter: 'blur(12px)'
+                    }}
+                    onClick={onClose}
+                >
+                    <motion.div
+                        key="radar-zoom-card"
+                        initial={{ scale: 0.88, opacity: 0 }}
+                        animate={{ scale: 1, opacity: 1 }}
+                        exit={{ scale: 0.88, opacity: 0 }}
+                        transition={{ type: 'spring', stiffness: 280, damping: 22 }}
+                        onClick={e => e.stopPropagation()}
+                        style={{
+                            background: '#09090b',
+                            border: '1px solid rgba(99,102,241,0.35)',
+                            borderRadius: '24px',
+                            padding: '40px',
+                            boxShadow: '0 40px 80px -20px rgba(0,0,0,0.9)',
+                            width: '100%',
+                            maxWidth: '700px',
+                            position: 'relative',
+                            maxHeight: '90vh',
+                            overflowY: 'auto'
+                        }}
+                    >
+                        {/* Close button */}
+                        <button
+                            onClick={onClose}
+                            style={{
+                                position: 'absolute', top: 16, right: 16,
+                                padding: '8px', borderRadius: '12px',
+                                background: '#18181b', border: '1px solid #3f3f46',
+                                color: '#a1a1aa', cursor: 'pointer',
+                                display: 'flex', alignItems: 'center', justifyContent: 'center',
+                                lineHeight: 0
+                            }}
+                        >
+                            <X className="w-4 h-4" />
+                        </button>
+
+                        {/* Header */}
+                        <div style={{ display: 'flex', alignItems: 'center', gap: 12, marginBottom: 16 }}>
+                            <span style={{
+                                padding: '4px 12px', background: '#6366f1', color: 'white',
+                                fontSize: 10, fontWeight: 900, textTransform: 'uppercase',
+                                letterSpacing: '0.2em', borderRadius: 6
+                            }}>Competency Analysis</span>
+                            <h3 style={{ color: 'white', fontSize: 20, fontWeight: 900, textTransform: 'uppercase', letterSpacing: '-0.02em', margin: 0 }}>Skills Radar</h3>
+                        </div>
+
+                        <p style={{ fontSize: 12, color: '#71717a', lineHeight: 1.7, marginBottom: 28 }}>
+                            This radar shows your proficiency across each competency area. Each axis represents a learning objective category, plotted at your average score (0–100%). A wider polygon indicates stronger overall mastery.
+                        </p>
+
+                        {/* Chart */}
+                        <div style={{ display: 'flex', justifyContent: 'center' }}>
+                            <RadarChart data={competencies} size={480} color="#6366f1" />
+                        </div>
+
+                        {/* Legend grid */}
+                        <div style={{ marginTop: 28, display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 10 }}>
+                            {competencies?.map((c, i) => (
+                                <div key={i} style={{
+                                    display: 'flex', alignItems: 'center', gap: 10,
+                                    padding: '10px 14px', background: '#18181b',
+                                    borderRadius: 12, border: '1px solid #27272a'
+                                }}>
+                                    <div style={{
+                                        width: 10, height: 10, borderRadius: '50%', background: '#6366f1',
+                                        flexShrink: 0, opacity: 0.4 + (c.avg / 100) * 0.6
+                                    }} />
+                                    <div style={{ minWidth: 0 }}>
+                                        <p style={{ fontSize: 12, fontWeight: 700, color: '#d4d4d8', margin: 0 }}>{c.name}</p>
+                                        <p style={{ fontSize: 10, color: '#818cf8', fontFamily: 'monospace', margin: 0 }}>{Math.round(c.avg)}% proficiency</p>
+                                    </div>
+                                </div>
+                            ))}
+                        </div>
+                    </motion.div>
+                </motion.div>
+            )}
+        </AnimatePresence>,
+        document.body
+    );
+};
