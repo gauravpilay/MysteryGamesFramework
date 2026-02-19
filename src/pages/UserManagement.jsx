@@ -12,7 +12,7 @@ import {
     TableHeader,
     TableRow
 } from "../components/ui/table";
-import { Shield, ShieldAlert, User, ArrowLeft, MoreHorizontal, Check, X, FolderLock, Lock, Trash2, UserX, UserCheck, MessageSquare } from "lucide-react";
+import { Shield, ShieldAlert, User, ArrowLeft, MoreHorizontal, Check, X, FolderLock, Lock, Trash2, UserX, UserCheck, MessageSquare, Search } from "lucide-react";
 import { useNavigate } from "react-router-dom";
 
 const UserManagement = () => {
@@ -29,6 +29,7 @@ const UserManagement = () => {
     const [confirmReleaseLicense, setConfirmReleaseLicense] = useState(null);
     const [tempAssignedIds, setTempAssignedIds] = useState([]);
     const [isCustomAccess, setIsCustomAccess] = useState(false);
+    const [caseSearchQuery, setCaseSearchQuery] = useState('');
 
     // Only allow access if current user is Admin
     // Note: In a real app, you'd also enforce this with Firestore Rules.
@@ -114,6 +115,7 @@ const UserManagement = () => {
 
     const handleManageAccess = (targetUser) => {
         setManagingUser(targetUser);
+        setCaseSearchQuery('');
         if (targetUser.assignedCaseIds) {
             setIsCustomAccess(true);
             setTempAssignedIds(targetUser.assignedCaseIds);
@@ -479,27 +481,62 @@ const UserManagement = () => {
                             </div>
 
                             {isCustomAccess && (
-                                <div className="space-y-2">
-                                    <p className="text-xs text-zinc-500 uppercase tracking-wider font-bold mb-3">Select Visible Cases</p>
-                                    {cases.length === 0 ? (
-                                        <div className="text-center py-4 text-zinc-500 text-sm">No cases available.</div>
-                                    ) : (
-                                        cases.map(c => (
-                                            <div
-                                                key={c.id}
-                                                className={`flex items-center justify-between p-3 rounded-md border cursor-pointer transition-colors ${tempAssignedIds.includes(c.id)
-                                                    ? 'bg-indigo-500/10 border-indigo-500/50'
-                                                    : 'bg-zinc-900/30 border-zinc-800 hover:border-zinc-700'
-                                                    }`}
-                                                onClick={() => toggleCaseAssignment(c.id)}
-                                            >
-                                                <span className="text-sm font-medium text-zinc-300 truncate pr-4">{c.title || 'Untitled Case'}</span>
-                                                {tempAssignedIds.includes(c.id) && (
-                                                    <Check className="w-4 h-4 text-indigo-400" />
-                                                )}
-                                            </div>
-                                        ))
-                                    )}
+                                <div className="space-y-4">
+                                    <div className="flex flex-col gap-3">
+                                        <div className="flex items-center justify-between">
+                                            <p className="text-xs text-zinc-500 uppercase tracking-wider font-bold">Select Visible Cases</p>
+                                            {tempAssignedIds.length > 0 && (
+                                                <button
+                                                    onClick={() => setTempAssignedIds([])}
+                                                    className="text-[10px] font-black text-red-400 hover:text-red-300 uppercase tracking-widest transition-colors"
+                                                >
+                                                    Clear All
+                                                </button>
+                                            )}
+                                        </div>
+
+                                        <div className="relative group/search">
+                                            <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-zinc-500 group-focus-within/search:text-indigo-400 transition-colors" />
+                                            <input
+                                                type="text"
+                                                placeholder="Search cases..."
+                                                value={caseSearchQuery}
+                                                onChange={(e) => setCaseSearchQuery(e.target.value)}
+                                                className="w-full pl-10 pr-4 py-2 bg-zinc-900/50 border border-zinc-800 rounded-xl text-sm text-zinc-200 placeholder-zinc-600 focus:outline-none focus:border-indigo-500/50 transition-all font-medium"
+                                            />
+                                        </div>
+                                    </div>
+
+                                    <div className="space-y-2 max-h-[300px] overflow-y-auto pr-2 custom-scrollbar">
+                                        {(() => {
+                                            const filteredCases = cases.filter(c =>
+                                                (c.title || 'Untitled Case').toLowerCase().includes(caseSearchQuery.toLowerCase())
+                                            );
+
+                                            if (filteredCases.length === 0) {
+                                                return <div className="text-center py-8 text-zinc-600 text-sm">No matching cases found.</div>;
+                                            }
+
+                                            return filteredCases.map(c => (
+                                                <div
+                                                    key={c.id}
+                                                    className={`flex items-center justify-between p-3 rounded-xl border cursor-pointer transition-all duration-300 ${tempAssignedIds.includes(c.id)
+                                                        ? 'bg-indigo-500/10 border-indigo-500/50 shadow-[0_0_15px_rgba(99,102,241,0.1)]'
+                                                        : 'bg-zinc-900/30 border-zinc-800/50 hover:border-zinc-700 hover:bg-zinc-900/50'
+                                                        }`}
+                                                    onClick={() => toggleCaseAssignment(c.id)}
+                                                >
+                                                    <div className="flex items-center gap-3 truncate pr-4">
+                                                        <div className={`w-2 h-2 rounded-full ${tempAssignedIds.includes(c.id) ? 'bg-indigo-400 shadow-[0_0_8px_rgba(129,140,248,0.5)]' : 'bg-zinc-700'}`} />
+                                                        <span className="text-sm font-medium text-zinc-300 truncate">{c.title || 'Untitled Case'}</span>
+                                                    </div>
+                                                    {tempAssignedIds.includes(c.id) && (
+                                                        <Check className="w-4 h-4 text-indigo-400" />
+                                                    )}
+                                                </div>
+                                            ));
+                                        })()}
+                                    </div>
                                 </div>
                             )}
 
