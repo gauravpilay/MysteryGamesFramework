@@ -9,20 +9,25 @@ import Leaderboard from './pages/Leaderboard';
 import FeedbackReports from './pages/FeedbackReports';
 import { AuthProvider, useAuth } from './lib/auth';
 import { ConfigProvider, useConfig } from './lib/config';
+import { LicenseProvider, useLicense } from './lib/licensing';
 import { ShieldAlert, LogOut } from 'lucide-react';
 
 const PrivateRoute = ({ children }) => {
   const { user, logout, loading: authLoading } = useAuth();
   const { loading: configLoading } = useConfig();
-  const hasLoadedOnce = React.useRef(false);
+  const { loading: licenseLoading } = useLicense();
+  const [hasResolved, setHasResolved] = React.useState(false);
 
-  if (!authLoading && !configLoading) {
-    hasLoadedOnce.current = true;
-  }
+  const isLoading = authLoading || configLoading || licenseLoading;
 
-  const showLoader = (authLoading || configLoading) && !hasLoadedOnce.current;
+  React.useEffect(() => {
+    if (!isLoading) {
+      setHasResolved(true);
+    }
+  }, [isLoading]);
 
-  if (showLoader) {
+  // Show loader during initial synchronization
+  if (isLoading && !hasResolved) {
     return (
       <div className="flex h-screen w-screen items-center justify-center bg-black text-indigo-500 font-mono">
         <div className="flex flex-col items-center gap-4">
@@ -76,8 +81,6 @@ const PrivateRoute = ({ children }) => {
 
   return user ? children : <Navigate to="/login" />;
 };
-
-import { LicenseProvider } from './lib/licensing';
 
 function App() {
   return (

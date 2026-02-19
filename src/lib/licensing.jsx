@@ -5,6 +5,17 @@ import { useAuth } from './auth';
 
 const LicenseContext = createContext({});
 
+// Read cached license from localStorage once at module load time.
+// This way the initial `loading` state can be pre-resolved if cache exists,
+// preventing any blank-screen flash between navigation and first render.
+const _readInitialCache = () => {
+    try {
+        const raw = localStorage.getItem('mystery_framework_license_payload');
+        if (raw) return JSON.parse(raw);
+    } catch (_) { }
+    return null;
+};
+
 // Real Production Public Key from MysteryFrameworkLicenseManager-v2
 const M_FRAMEWORK_PUBLIC_KEY = `-----BEGIN PUBLIC KEY-----
 MIIBIjANBgkqhkiG9w0BAQEFAAOCAQ8AMIIBCgKCAQEAy3tjkl1LDHyWdqMhv3Ye
@@ -77,30 +88,21 @@ const verifySignature = async (dataString, signatureBase64, pemKey, isRawData = 
 
 export const LicenseProvider = ({ children }) => {
     const { user, loading: authLoading } = useAuth();
-    const [licenseData, setLicenseData] = useState(null);
-    const [licenseUrl, setLicenseUrl] = useState('');
-    const [licenseKey, setLicenseKey] = useState('');
     const [isConfiguring, setIsConfiguring] = useState(false);
-    const [loading, setLoading] = useState(true);
 
-    // Initial load & Sync
+    // Use a ref so the initial cache value is stable across re-renders
+    const initCacheRef = useRef(_readInitialCache());
+    const _initCache = initCacheRef.current;
+
+    const [licenseData, setLicenseData] = useState(_initCache?.data || _initCache || null);
+    const [licenseUrl, setLicenseUrl] = useState(_initCache?.url || '');
+    const [licenseKey, setLicenseKey] = useState(_initCache?.key || '');
+    // If we already have cached data, start with loading=false so Dashboard renders immediately.
+    // If no cache, start loading=true so we wait for Firestore check.
+    const [loading, setLoading] = useState(!_initCache);
+
+    // Firestore sync effect — runs when user logs in or changes
     useEffect(() => {
-        // Step 1: Try to load from cache immediately for fast initial render
-        const cached = localStorage.getItem('mystery_framework_license_payload');
-        if (cached) {
-            try {
-                const payload = JSON.parse(cached);
-                const extractedData = payload.data || payload;
-                setLicenseData(extractedData);
-                if (payload.url) setLicenseUrl(payload.url);
-                if (payload.key) setLicenseKey(payload.key);
-                // We still want to sync with cloud, so don't set loading=false yet
-                // unless we are offline or have no DB
-            } catch (e) {
-                console.error("[LICENSE_INIT] Failed to parse cached license:", e);
-            }
-        }
-
         if (!db || authLoading) {
             if (!authLoading && !db) setLoading(false);
             return;

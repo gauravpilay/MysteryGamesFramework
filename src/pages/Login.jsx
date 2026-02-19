@@ -1,12 +1,13 @@
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { useAuth } from '../lib/auth';
 import { useConfig } from '../lib/config';
-import { Navigate } from 'react-router-dom';
+import { useNavigate } from 'react-router-dom';
 import { motion, AnimatePresence } from 'framer-motion';
 import { Logo } from '../components/ui/Logo';
 import { Shield, Zap, Lock, Sparkles } from 'lucide-react';
 
 const Login = () => {
+    const navigate = useNavigate();
     const { user, login, loginWithEmail, signUpWithEmail, resetPassword, error, setError, isAuthenticating } = useAuth();
     const { settings } = useConfig();
     const [view, setView] = useState('login'); // login, signup, forgot
@@ -15,7 +16,14 @@ const Login = () => {
     const [displayName, setDisplayName] = useState('');
     const [resetSent, setResetSent] = useState(false);
 
-    if (user) return <Navigate to="/" />;
+    useEffect(() => {
+        if (user) {
+            navigate("/", { replace: true });
+        }
+    }, [user, navigate]);
+
+    // While navigation is in-flight, render nothing to avoid a form flash
+    if (user) return null;
 
     const handleSubmit = async (e) => {
         e.preventDefault();
