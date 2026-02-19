@@ -1,6 +1,6 @@
 import { motion, AnimatePresence } from 'framer-motion';
-import { User, Shield, Activity, MessageSquare, Search, Terminal, ChevronRight, Briefcase, ShieldAlert, Fingerprint, Dna, AlertTriangle, Eye, Zap, Target, Mail, X } from 'lucide-react';
-import { useState, useEffect } from 'react';
+import { User, Shield, Activity, MessageSquare, Search, Terminal, ChevronRight, Briefcase, ShieldAlert, Fingerprint, Dna, AlertTriangle, Eye, Zap, Target, Mail, X, Lightbulb, ArrowDown, Sparkles } from 'lucide-react';
+import { useState, useEffect, useRef } from 'react';
 
 const getAvatarColor = (name) => {
     const colors = [
@@ -104,6 +104,240 @@ const FingerprintScanner = ({ active }) => (
     </motion.div>
 );
 
+// ─── Confrontation Hint Overlay ────────────────────────────────────────────
+const ConfrontationHintOverlay = ({ evidenceCount, onDismiss }) => {
+    const [phase, setPhase] = useState(0); // 0=intro, 1=highlight, 2=done
+
+    useEffect(() => {
+        const t1 = setTimeout(() => setPhase(1), 800);
+        const t2 = setTimeout(() => setPhase(2), 6000);
+        const t3 = setTimeout(() => onDismiss(), 7000);
+        return () => { clearTimeout(t1); clearTimeout(t2); clearTimeout(t3); };
+    }, [onDismiss]);
+
+    return (
+        <motion.div
+            initial={{ opacity: 0 }}
+            animate={{ opacity: 1 }}
+            exit={{ opacity: 0, transition: { duration: 0.5 } }}
+            className="fixed inset-0 z-[200] flex items-center justify-center pointer-events-none"
+        >
+            {/* Dark vignette backdrop – keeps content visible below */}
+            <motion.div
+                className="absolute inset-0 bg-black/60 backdrop-blur-sm pointer-events-auto"
+                initial={{ opacity: 0 }}
+                animate={{ opacity: phase >= 1 ? 1 : 0 }}
+                exit={{ opacity: 0 }}
+                onClick={onDismiss}
+            />
+
+            {/* Scanline sweep across screen */}
+            <motion.div
+                className="absolute inset-x-0 h-[3px] bg-gradient-to-r from-transparent via-amber-400 to-transparent pointer-events-none"
+                initial={{ top: '-4px', opacity: 0 }}
+                animate={{ top: '100%', opacity: [0, 1, 1, 0] }}
+                transition={{ duration: 1.2, delay: 0.2, ease: 'easeInOut' }}
+            />
+
+            {/* Main hint card */}
+            <motion.div
+                initial={{ scale: 0.7, opacity: 0, y: 60, rotateX: -15 }}
+                animate={{ scale: 1, opacity: 1, y: 0, rotateX: 0 }}
+                exit={{ scale: 0.8, opacity: 0, y: -40 }}
+                transition={{ type: 'spring', stiffness: 260, damping: 22, delay: 0.3 }}
+                className="relative pointer-events-auto max-w-lg w-full mx-6"
+                style={{ perspective: '1000px' }}
+            >
+                {/* Outer glow halo */}
+                <motion.div
+                    className="absolute -inset-8 rounded-[3rem] blur-3xl"
+                    animate={{
+                        background: [
+                            'radial-gradient(ellipse, rgba(245,158,11,0.35) 0%, transparent 70%)',
+                            'radial-gradient(ellipse, rgba(251,191,36,0.5) 0%, transparent 70%)',
+                            'radial-gradient(ellipse, rgba(245,158,11,0.35) 0%, transparent 70%)'
+                        ]
+                    }}
+                    transition={{ duration: 2, repeat: Infinity }}
+                />
+
+                {/* Card body */}
+                <div className="relative bg-zinc-950 border-2 border-amber-500/60 rounded-[2.5rem] overflow-hidden shadow-2xl shadow-amber-950/50">
+
+                    {/* Top accent band */}
+                    <motion.div
+                        className="absolute top-0 inset-x-0 h-1"
+                        animate={{
+                            background: [
+                                'linear-gradient(90deg, transparent, #f59e0b, #fbbf24, #f59e0b, transparent)',
+                                'linear-gradient(90deg, transparent, #fbbf24, #f59e0b, #fbbf24, transparent)',
+                                'linear-gradient(90deg, transparent, #f59e0b, #fbbf24, #f59e0b, transparent)'
+                            ]
+                        }}
+                        transition={{ duration: 1.5, repeat: Infinity }}
+                    />
+
+                    {/* Subtle animated grid */}
+                    <div className="absolute inset-0 opacity-[0.04]" style={{
+                        backgroundImage: 'linear-gradient(rgba(245,158,11,0.5) 1px, transparent 1px), linear-gradient(90deg, rgba(245,158,11,0.5) 1px, transparent 1px)',
+                        backgroundSize: '28px 28px'
+                    }} />
+
+                    {/* Shimmer wave */}
+                    <motion.div
+                        className="absolute inset-0 bg-gradient-to-r from-transparent via-amber-400/5 to-transparent"
+                        animate={{ x: ['-100%', '200%'] }}
+                        transition={{ duration: 2.5, repeat: Infinity, repeatDelay: 1 }}
+                    />
+
+                    <div className="relative p-8 md:p-10">
+
+                        {/* Header row */}
+                        <div className="flex items-start gap-5 mb-7">
+                            {/* Icon with rings */}
+                            <div className="relative shrink-0">
+                                <motion.div
+                                    className="absolute -inset-3 rounded-full border-2 border-amber-500/30"
+                                    animate={{ scale: [1, 1.3, 1], opacity: [0.5, 0, 0.5] }}
+                                    transition={{ duration: 2, repeat: Infinity }}
+                                />
+                                <motion.div
+                                    className="absolute -inset-5 rounded-full border border-amber-500/20"
+                                    animate={{ scale: [1, 1.5, 1], opacity: [0.4, 0, 0.4] }}
+                                    transition={{ duration: 2, repeat: Infinity, delay: 0.3 }}
+                                />
+                                <motion.div
+                                    className="w-16 h-16 rounded-2xl bg-gradient-to-br from-amber-500 to-orange-600 flex items-center justify-center shadow-xl shadow-amber-900/40"
+                                    animate={{ rotate: [0, 5, -5, 0] }}
+                                    transition={{ duration: 3, repeat: Infinity }}
+                                >
+                                    <Lightbulb className="w-8 h-8 text-white" />
+                                </motion.div>
+                            </div>
+
+                            <div className="flex-1">
+                                {/* Typewriter label */}
+                                <motion.p
+                                    className="text-[10px] font-black text-amber-500 uppercase tracking-[0.35em] mb-2 flex items-center gap-2"
+                                    initial={{ opacity: 0, x: -10 }}
+                                    animate={{ opacity: 1, x: 0 }}
+                                    transition={{ delay: 0.5 }}
+                                >
+                                    <motion.span
+                                        className="inline-block w-1.5 h-1.5 rounded-full bg-amber-500"
+                                        animate={{ opacity: [1, 0, 1] }}
+                                        transition={{ duration: 0.8, repeat: Infinity }}
+                                    />
+                                    Investigator Tip
+                                </motion.p>
+                                <motion.h2
+                                    className="text-2xl md:text-3xl font-black text-white uppercase tracking-tight leading-tight"
+                                    initial={{ opacity: 0, y: 10 }}
+                                    animate={{ opacity: 1, y: 0 }}
+                                    transition={{ delay: 0.6 }}
+                                >
+                                    Evidence Found!
+                                </motion.h2>
+                                <motion.p
+                                    className="text-amber-400/80 text-[11px] font-bold uppercase tracking-widest mt-1"
+                                    initial={{ opacity: 0 }}
+                                    animate={{ opacity: 1 }}
+                                    transition={{ delay: 0.7 }}
+                                >
+                                    {evidenceCount} item{evidenceCount !== 1 ? 's' : ''} ready to deploy
+                                </motion.p>
+                            </div>
+
+                            {/* Dismiss button */}
+                            <motion.button
+                                onClick={onDismiss}
+                                whileHover={{ scale: 1.15, rotate: 90 }}
+                                whileTap={{ scale: 0.9 }}
+                                className="shrink-0 w-9 h-9 rounded-full bg-zinc-800/80 border border-white/10 flex items-center justify-center text-zinc-400 hover:text-white hover:bg-zinc-700 hover:border-white/20 transition-all"
+                            >
+                                <X className="w-4 h-4" />
+                            </motion.button>
+                        </div>
+
+                        {/* Main message */}
+                        <motion.div
+                            className="bg-zinc-900/70 border border-amber-500/20 rounded-2xl p-5 mb-6 relative overflow-hidden"
+                            initial={{ opacity: 0, y: 15 }}
+                            animate={{ opacity: 1, y: 0 }}
+                            transition={{ delay: 0.75 }}
+                        >
+                            <p className="text-zinc-200 text-sm md:text-base leading-relaxed font-medium">
+                                You have evidence in your case files that can be used to
+                                <span className="text-amber-400 font-black"> confront this suspect</span>.
+                                Challenge their testimony by selecting a piece of evidence below
+                                to reveal hidden truths!
+                            </p>
+
+                            {/* Decorative corner marks */}
+                            <div className="absolute top-0 left-0 w-4 h-4 border-t-2 border-l-2 border-amber-500/50 rounded-tl-lg" />
+                            <div className="absolute top-0 right-0 w-4 h-4 border-t-2 border-r-2 border-amber-500/50 rounded-tr-lg" />
+                            <div className="absolute bottom-0 left-0 w-4 h-4 border-b-2 border-l-2 border-amber-500/50 rounded-bl-lg" />
+                            <div className="absolute bottom-0 right-0 w-4 h-4 border-b-2 border-r-2 border-amber-500/50 rounded-br-lg" />
+                        </motion.div>
+
+                        {/* Arrow indicator pointing down (toward evidence section) */}
+                        <motion.div
+                            className="flex flex-col items-center gap-2"
+                            initial={{ opacity: 0 }}
+                            animate={{ opacity: 1 }}
+                            transition={{ delay: 1 }}
+                        >
+                            <p className="text-[9px] font-black text-zinc-500 uppercase tracking-[0.3em]">Scroll down to confront</p>
+                            <div className="flex gap-2 items-center">
+                                {Array.from({ length: 3 }).map((_, i) => (
+                                    <motion.div
+                                        key={i}
+                                        animate={{ y: [0, 6, 0], opacity: [0.3, 1, 0.3] }}
+                                        transition={{ duration: 1.2, repeat: Infinity, delay: i * 0.2 }}
+                                    >
+                                        <ArrowDown className="w-4 h-4 text-amber-500" />
+                                    </motion.div>
+                                ))}
+                            </div>
+
+                            {/* Tap to dismiss hint */}
+                            <motion.button
+                                onClick={onDismiss}
+                                whileHover={{ scale: 1.03 }}
+                                whileTap={{ scale: 0.97 }}
+                                className="mt-3 w-full py-3 bg-gradient-to-r from-amber-600 to-orange-600 hover:from-amber-500 hover:to-orange-500 text-white font-black uppercase tracking-widest text-[11px] rounded-2xl transition-all shadow-lg shadow-amber-900/40 flex items-center justify-center gap-3"
+                            >
+                                <Sparkles className="w-4 h-4" />
+                                Got it — Let me confront them!
+                                <Sparkles className="w-4 h-4" />
+                            </motion.button>
+                        </motion.div>
+                    </div>
+                </div>
+
+                {/* Floating corner particles */}
+                {[...Array(8)].map((_, i) => (
+                    <motion.div
+                        key={i}
+                        className="absolute w-1 h-1 rounded-full bg-amber-400"
+                        style={{ top: `${Math.random() * 100}%`, left: `${Math.random() * 100}%` }}
+                        animate={{
+                            y: [0, -40, 0],
+                            opacity: [0, 1, 0],
+                            scale: [0, 1.5, 0]
+                        }}
+                        transition={{
+                            duration: 2 + Math.random() * 2,
+                            repeat: Infinity,
+                            delay: i * 0.25
+                        }}
+                    />
+                ))}
+            </motion.div>
+        </motion.div>
+    );
+};
+
 // Threat Level Indicator
 const ThreatLevel = ({ level = 'medium' }) => {
     const levels = {
@@ -156,6 +390,8 @@ export default function SuspectProfile({
 }) {
     const [scanActive, setScanActive] = useState(false);
     const [showParticles, setShowParticles] = useState(true);
+    const [previewEvidence, setPreviewEvidence] = useState(null);
+    const [showConfrontHint, setShowConfrontHint] = useState(false);
 
     useEffect(() => {
         // Activate scan effect on mount
@@ -163,6 +399,30 @@ export default function SuspectProfile({
         const timer = setTimeout(() => setScanActive(false), 3000);
         return () => clearTimeout(timer);
     }, []);
+
+    // First-visit confrontation hint logic
+    useEffect(() => {
+        if (!suspect?.id) return;
+        const visitKey = `suspect_visited_${suspect.id}`;
+        const hasVisited = localStorage.getItem(visitKey);
+
+        if (!hasVisited) {
+            // Check if there are any collected evidence items for this suspect
+            const hasEvidence = Array.from(inventory).some(id =>
+                nodes.find(n => n.id === id && (n.type === 'evidence' || n.type === 'email'))
+            );
+
+            if (hasEvidence) {
+                // Show the hint after a short delay (let the profile animate in first)
+                const hintTimer = setTimeout(() => setShowConfrontHint(true), 1200);
+                localStorage.setItem(visitKey, 'true');
+                return () => clearTimeout(hintTimer);
+            }
+
+            // Mark as visited even without evidence so we don't show stale hint later
+            localStorage.setItem(visitKey, 'true');
+        }
+    }, [suspect?.id, inventory, nodes]);
 
     return (
         <div className="flex flex-col h-full overflow-hidden relative">
@@ -756,6 +1016,21 @@ export default function SuspectProfile({
                     </div>
                 </div>
             </div>
+            {/* ── First-Visit Confrontation Hint Overlay ── */}
+            <AnimatePresence>
+                {showConfrontHint && (() => {
+                    const evidenceCount = Array.from(inventory)
+                        .filter(id => nodes.find(n => n.id === id && (n.type === 'evidence' || n.type === 'email')))
+                        .length;
+                    return (
+                        <ConfrontationHintOverlay
+                            evidenceCount={evidenceCount}
+                            onDismiss={() => setShowConfrontHint(false)}
+                        />
+                    );
+                })()}
+            </AnimatePresence>
+
             {/* Evidence Preview Modal */}
             <AnimatePresence>
                 {previewEvidence && (
