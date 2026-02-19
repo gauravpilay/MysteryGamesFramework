@@ -757,9 +757,14 @@ export default function SuspectProfile({
                                 }}></div>
 
                                 {(() => {
-                                    const collectedEvidence = Array.from(inventory)
-                                        .map(id => nodes.find(n => n.id === id && (n.type === 'evidence' || n.type === 'email')))
-                                        .filter(Boolean);
+                                    // Deduplicate by node ID — inventory may hold multiple entries
+                                    // (node id, variableId, condition key) that all resolve to the same node
+                                    const seenIds = new Map();
+                                    Array.from(inventory).forEach(id => {
+                                        const node = nodes.find(n => n.id === id && (n.type === 'evidence' || n.type === 'email'));
+                                        if (node && !seenIds.has(node.id)) seenIds.set(node.id, node);
+                                    });
+                                    const collectedEvidence = Array.from(seenIds.values());
 
                                     if (collectedEvidence.length === 0) {
                                         return (
