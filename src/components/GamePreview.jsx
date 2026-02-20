@@ -1180,6 +1180,7 @@ const GamePreview = ({ nodes, edges, onClose, gameMetadata, onGameEnd, onNodeCha
 
         setPendingResultData(resultData);
         setShowFeedback(true);
+        ttsStop();
     };
 
     const handleFeedbackSubmit = (feedback) => {
@@ -1345,7 +1346,7 @@ const GamePreview = ({ nodes, edges, onClose, gameMetadata, onGameEnd, onNodeCha
 
                 <Card className="bg-zinc-900/50 border-zinc-800 p-8 backdrop-blur-md border-t-4 border-t-red-600 shadow-[0_20px_50px_-12px_rgba(0,0,0,0.5)] hover:border-zinc-700 transition-colors duration-500">
                     <p className="text-zinc-200 leading-loose whitespace-pre-wrap text-lg md:text-xl font-light font-mono">
-                        {(ttsPlaying || ttsPaused) ? (
+                        {(ttsAutoPlay || ttsPlaying || ttsPaused || ttsStatus === 'done') ? (
                             <WordHighlightText
                                 text={data.text || data.content || ''}
                                 wordIndex={ttsWordIndex}
@@ -1652,6 +1653,7 @@ const GamePreview = ({ nodes, edges, onClose, gameMetadata, onGameEnd, onNodeCha
                             });
                             setIsQuitting(true);
                             setShowFeedback(true);
+                            ttsStop();
                         }
                     }}>
                         <X className="w-4 h-4 md:w-5 md:h-5" />
