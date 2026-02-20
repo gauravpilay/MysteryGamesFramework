@@ -11,7 +11,9 @@ import CinematicCutscene from './CinematicCutscene';
 import CaseClosedNewsReport from './CaseClosedNewsReport';
 import DeepWebOS from './DeepWebOS';
 import FeedbackModal from './FeedbackModal';
-import { useTTS } from '../lib/useTTS';
+import { useChirpTTS, DEFAULT_CHIRP_VOICE } from '../lib/useChirpTTS';
+import { useConfig } from '../lib/config';
+import { useLicense } from '../lib/licensing';
 import {
     checkLogicCondition as checkLogic,
     evaluateLogic as evalLogic,
@@ -157,10 +159,10 @@ const WordHighlightText = ({ text, wordIndex, onComplete }) => {
                         )}
                         <span
                             className={`relative z-10 transition-colors duration-100 ${isActive
-                                    ? 'text-blue-200 font-semibold'
-                                    : wIdx < wordIndex
-                                        ? 'text-zinc-400'
-                                        : 'text-zinc-200'
+                                ? 'text-blue-200 font-semibold'
+                                : wIdx < wordIndex
+                                    ? 'text-zinc-400'
+                                    : 'text-zinc-200'
                                 }`}
                         >
                             {token}
@@ -620,23 +622,36 @@ const GamePreview = ({ nodes, edges, onClose, gameMetadata, onGameEnd, onNodeCha
         [currentNodeId, nodes]
     );
 
-    // ── TTS: driven by the current story node's settings ──────────────────────
+    // ── Chirp TTS: driven by current story node + system settings + license ──
+    const { settings } = useConfig();
+    const { hasFeature } = useLicense();
+    const audioEnabled = hasFeature('enable_audio_support');
+
     const isStoryNode = currentNode?.type === 'story';
-    const ttsText = isStoryNode ? (currentNode?.data?.text || currentNode?.data?.content || '') : '';
+    const ttsText = (isStoryNode && audioEnabled) ? (currentNode?.data?.text || currentNode?.data?.content || '') : '';
     const ttsGender = currentNode?.data?.ttsGender || 'female';
     const ttsRegion = currentNode?.data?.ttsRegion || 'us';
     const ttsPace = currentNode?.data?.ttsPace || 'normal';
     const ttsPitch = currentNode?.data?.ttsPitch || 'normal';
-    const ttsAutoPlay = isStoryNode ? !!currentNode?.data?.ttsEnabled : false;
+    const ttsAutoPlay = (isStoryNode && audioEnabled) ? !!currentNode?.data?.ttsEnabled : false;
+
+    // Chirp uses the Central AI API Key (Settings → AI Intelligence Engine).
+    // Enable Cloud Text-to-Speech API in the same GCP project as your Gemini key.
+    const chirpApiKey = settings.aiApiKey || import.meta.env.VITE_AI_API_KEY || '';
+    const chirpVoiceName = settings.chirpVoiceName || DEFAULT_CHIRP_VOICE;
+
 
     const { play: ttsPlay, pause: ttsPause, stop: ttsStop, status: ttsStatus,
-        wordIndex: ttsWordIndex, voiceName: ttsVoiceName, voicesReady: ttsVoicesReady } = useTTS({
+        wordIndex: ttsWordIndex, voiceName: ttsVoiceName, voicesReady: ttsVoicesReady,
+        isChirpMode } = useChirpTTS({
             text: ttsText,
             gender: ttsGender,
             region: ttsRegion,
             pace: ttsPace,
             pitch: ttsPitch,
             autoPlay: ttsAutoPlay,
+            apiKey: chirpApiKey,
+            voiceName: chirpVoiceName,
         });
     const ttsPlaying = ttsStatus === 'playing';
     const ttsPaused = ttsStatus === 'paused';
@@ -1484,8 +1499,8 @@ const GamePreview = ({ nodes, edges, onClose, gameMetadata, onGameEnd, onNodeCha
                     </div>
                 </div>
                 <div className="flex items-center gap-1.5 md:gap-3">
-                    {/* ── TTS Narrator Control (story nodes only) ── */}
-                    {isStoryNode && ttsText && (
+                    {/* ── TTS Narrator Control (story nodes only, requires enable_audio_support license) ── */}
+                    {isStoryNode && ttsText && audioEnabled && (
                         <motion.div
                             key={currentNodeId + '-tts'}
                             initial={{ opacity: 0, scale: 0.85, width: 0 }}
@@ -1514,16 +1529,19 @@ const GamePreview = ({ nodes, edges, onClose, gameMetadata, onGameEnd, onNodeCha
                                 ))}
                             </div>
 
-                            {/* Voice label — shown only on md+ screens */}
-                            <span className="hidden md:block text-[8px] font-black text-blue-400/70 uppercase tracking-widest whitespace-nowrap max-w-[80px] truncate">
-                                {ttsVoiceName ? ttsVoiceName.split(' ')[0] : 'Narrator'}
+                            {/* Voice label + Chirp badge — shown only on md+ screens */}
+                            <span className="hidden md:flex items-center gap-1 text-[8px] font-black text-blue-400/70 uppercase tracking-widest whitespace-nowrap max-w-[110px] truncate">
+                                {isChirpMode && (
+                                    <span className="text-[7px] px-1 py-0.5 rounded bg-blue-500/20 text-blue-300 border border-blue-500/30 font-black tracking-normal shrink-0">Chirp</span>
+                                )}
+                                {ttsVoiceName ? ttsVoiceName.split('-').pop() || ttsVoiceName.split(' ')[0] : 'Narrator'}
                             </span>
 
                             {/* Play / Pause button */}
                             <motion.button
                                 whileHover={{ scale: 1.12 }}
                                 whileTap={{ scale: 0.9 }}
-                                onClick={ttsPlaying ? ttsPause : ttsPlay}
+                                onClick={(e) => { e.stopPropagation(); ttsPlaying ? ttsPause() : ttsPlay(); }}
                                 disabled={!ttsVoicesReady && !ttsPlaying}
                                 title={ttsPlaying ? 'Pause narration' : ttsPaused ? 'Resume narration' : 'Play narration'}
                                 className={`w-7 h-7 rounded-full flex items-center justify-center transition-all shrink-0 border ${ttsPlaying
@@ -1545,7 +1563,7 @@ const GamePreview = ({ nodes, edges, onClose, gameMetadata, onGameEnd, onNodeCha
                                     animate={{ opacity: 1, width: 28 }}
                                     exit={{ opacity: 0, width: 0 }}
                                     whileTap={{ scale: 0.9 }}
-                                    onClick={ttsStop}
+                                    onClick={(e) => { e.stopPropagation(); ttsStop(); }}
                                     title="Stop narration"
                                     className="w-7 h-7 rounded-full flex items-center justify-center bg-zinc-800 border border-zinc-700 text-zinc-400 hover:text-red-400 hover:border-red-800 transition-all shrink-0"
                                 >

@@ -1,19 +1,40 @@
 import React, { useState, useEffect } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
-import { X, Settings, Shield, Key, Sliders, Save, AlertTriangle, Cpu, Globe, Box, Brain, ShieldCheck } from 'lucide-react';
+import { X, Settings, Shield, Key, Sliders, Save, AlertTriangle, Cpu, Globe, Box, Brain, ShieldCheck, Volume2, Mic2 } from 'lucide-react';
 import { useConfig } from '../lib/config';
+import { DEFAULT_CHIRP_VOICE } from '../lib/useChirpTTS';
 import { useLicense } from '../lib/licensing';
 import { Button, Input, Label } from './ui/shared';
 import LicenseConfigModal from './LicenseConfigModal';
 
+// All available Chirp 3 HD voices (Google Cloud TTS)
+const CHIRP_HD_VOICES = [
+    { name: 'en-US-Chirp3-HD-Aoede', label: 'Aoede — Warm Female (US)' },
+    { name: 'en-US-Chirp3-HD-Kore', label: 'Kore — Crisp Female (US)' },
+    { name: 'en-US-Chirp3-HD-Leda', label: 'Leda — Narrator Female (US)' },
+    { name: 'en-US-Chirp3-HD-Zephyr', label: 'Zephyr — Breathy Female (US)' },
+    { name: 'en-US-Chirp3-HD-Puck', label: 'Puck — Neutral Male (US)' },
+    { name: 'en-US-Chirp3-HD-Charon', label: 'Charon — Baritone Male (US)' },
+    { name: 'en-US-Chirp3-HD-Fenrir', label: 'Fenrir — Narrative Male (US)' },
+    { name: 'en-US-Chirp3-HD-Orus', label: 'Orus — Deep Male (US)' },
+    { name: 'en-GB-Chirp3-HD-Aoede', label: 'Aoede — Warm Female (UK)' },
+    { name: 'en-GB-Chirp3-HD-Charon', label: 'Charon — Baritone Male (UK)' },
+    { name: 'en-AU-Chirp3-HD-Aoede', label: 'Aoede — Warm Female (AU)' },
+    { name: 'en-AU-Chirp3-HD-Puck', label: 'Puck — Neutral Male (AU)' },
+    { name: 'en-IN-Chirp3-HD-Aoede', label: 'Aoede — Warm Female (IN)' },
+    { name: 'en-IN-Chirp3-HD-Puck', label: 'Puck — Neutral Male (IN)' },
+];
+
 const SystemSettingsModal = ({ onClose }) => {
     const { settings, updateSettings } = useConfig();
-    const { licenseData } = useLicense();
+    const { licenseData, hasFeature } = useLicense();
+    const hasAudioSupport = hasFeature('enable_audio_support');
     const [formData, setFormData] = useState({
         aiApiKey: settings.aiApiKey || '',
         maxAIRequests: settings.maxAIRequests || 10,
         systemName: settings.systemName || 'Mystery Architect Central',
         enableThreeD: settings.enableThreeD !== undefined ? settings.enableThreeD : true,
+        chirpVoiceName: settings.chirpVoiceName || DEFAULT_CHIRP_VOICE,
     });
     const [isSaving, setIsSaving] = useState(false);
     const [status, setStatus] = useState(null); // { type, message }
@@ -26,6 +47,7 @@ const SystemSettingsModal = ({ onClose }) => {
             maxAIRequests: settings.maxAIRequests || 10,
             systemName: settings.systemName || 'Mystery Architect Central',
             enableThreeD: settings.enableThreeD !== undefined ? settings.enableThreeD : true,
+            chirpVoiceName: settings.chirpVoiceName || DEFAULT_CHIRP_VOICE,
         });
     }, [settings]);
 
@@ -234,6 +256,49 @@ const SystemSettingsModal = ({ onClose }) => {
                                 />
                             </div>
                         </div>
+
+                        {/* ── Audio / Chirp TTS ── */}
+                        {hasAudioSupport && (
+                            <div className="space-y-6">
+                                <div className="flex items-center gap-2 border-l-2 border-blue-500 pl-4">
+                                    <Volume2 className="w-4 h-4 text-blue-500" />
+                                    <h3 className="text-sm font-black text-white uppercase tracking-[0.2em]">Audio Narration (Chirp HD)</h3>
+                                </div>
+
+                                {/* Chirp active badge */}
+                                <div className="flex items-center gap-3 px-4 py-2.5 bg-blue-500/10 border border-blue-500/20 rounded-xl">
+                                    <Mic2 className="w-4 h-4 text-blue-400 shrink-0" />
+                                    <p className="text-[10px] text-blue-300 font-bold uppercase tracking-wide">
+                                        Google Chirp 3 HD — Uses the Central AI API Key above
+                                    </p>
+                                </div>
+
+                                {/* Chirp voice picker */}
+                                <div>
+                                    <Label className="text-[10px] text-zinc-500 uppercase font-black mb-2 block">Narrator Voice</Label>
+                                    <div className="relative">
+                                        <Mic2 className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-zinc-600 pointer-events-none" />
+                                        <select
+                                            value={formData.chirpVoiceName}
+                                            onChange={(e) => setFormData({ ...formData, chirpVoiceName: e.target.value })}
+                                            className="w-full pl-10 pr-8 py-2.5 bg-black/50 border border-zinc-800 rounded-lg text-white text-sm focus:outline-none focus:border-blue-500/50 appearance-none cursor-pointer"
+                                        >
+                                            {CHIRP_HD_VOICES.map(v => (
+                                                <option key={v.name} value={v.name}>{v.label}</option>
+                                            ))}
+                                        </select>
+                                        <div className="absolute right-3 top-1/2 -translate-y-1/2 pointer-events-none">
+                                            <svg className="w-3.5 h-3.5 text-zinc-500" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 9l-7 7-7-7" /></svg>
+                                        </div>
+                                    </div>
+                                    <p className="mt-2 text-[10px] text-zinc-600 leading-relaxed">
+                                        Selected voice will be used for all story narration across all missions.
+                                        Pricing: first 1M characters/month free, then $30/1M characters.
+                                    </p>
+                                </div>
+                            </div>
+                        )}
+
                     </div>
 
                     {/* Footer */}
@@ -265,3 +330,4 @@ const SystemSettingsModal = ({ onClose }) => {
 };
 
 export default SystemSettingsModal;
+

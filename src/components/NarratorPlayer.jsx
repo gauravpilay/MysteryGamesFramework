@@ -24,7 +24,7 @@ import React, { useEffect } from 'react';
 import ReactDOM from 'react-dom';
 import { motion, AnimatePresence } from 'framer-motion';
 import { Play, Pause, Square, Volume2, VolumeX, Mic, Mic2 } from 'lucide-react';
-import { useTTS } from '../lib/useTTS';
+import { useChirpTTS as useChirpTTSHook } from '../lib/useChirpTTS';
 
 // ── Waveform bars ─────────────────────────────────────────────────────────────
 
@@ -71,8 +71,10 @@ export default function NarratorPlayer({
     pitch = 'normal',
     autoPlay = false,
     nodeKey,          // used to reset when node changes
+    apiKey = '',      // Google Cloud TTS API key (optional, enables Chirp)
+    voiceName: configuredVoice = '',  // Chirp HD voice name
 }) {
-    const { play, pause, stop, status, voiceName, voicesReady } = useTTS({
+    const { play, pause, stop, status, voiceName, voicesReady, isChirpMode } = useChirpTTSHook({
         text,
         gender,
         region,
@@ -80,6 +82,8 @@ export default function NarratorPlayer({
         pitch,
         autoPlay,
         onEnd: () => { },
+        apiKey,
+        voiceName: configuredVoice,
     });
 
     const isPlaying = status === 'playing';
@@ -148,8 +152,8 @@ export default function NarratorPlayer({
                                     />
                                 )}
                                 <div className={`w-9 h-9 rounded-xl flex items-center justify-center border transition-all ${isPlaying
-                                        ? 'bg-blue-600 border-blue-500 shadow-lg shadow-blue-900/40'
-                                        : 'bg-zinc-900 border-zinc-700'
+                                    ? 'bg-blue-600 border-blue-500 shadow-lg shadow-blue-900/40'
+                                    : 'bg-zinc-900 border-zinc-700'
                                     }`}>
                                     <Mic2 className={`w-4 h-4 ${isPlaying ? 'text-white' : 'text-zinc-500'}`} />
                                 </div>
@@ -157,8 +161,11 @@ export default function NarratorPlayer({
 
                             {/* Label column */}
                             <div className="flex-1 min-w-0">
-                                <p className="text-[9px] font-black text-blue-400 uppercase tracking-[0.3em] mb-0.5">
+                                <p className="text-[9px] font-black text-blue-400 uppercase tracking-[0.3em] mb-0.5 flex items-center gap-1.5">
                                     AI Narrator
+                                    {isChirpMode && (
+                                        <span className="text-[7px] px-1.5 py-0.5 rounded-md bg-blue-500/20 text-blue-300 border border-blue-500/30 font-black tracking-normal">Chirp HD</span>
+                                    )}
                                 </p>
                                 <p className="text-xs font-bold text-white truncate leading-none">
                                     {voiceName || 'Loading voices…'}
@@ -216,10 +223,10 @@ export default function NarratorPlayer({
                                 onClick={isPlaying ? pause : play}
                                 disabled={!voicesReady && !isPlaying}
                                 className={`w-14 h-14 rounded-2xl flex items-center justify-center shadow-lg transition-all border font-black ${isPlaying
-                                        ? 'bg-blue-600 border-blue-500 text-white shadow-blue-900/40 hover:bg-blue-500'
-                                        : isPaused
-                                            ? 'bg-amber-600 border-amber-500 text-white shadow-amber-900/40 hover:bg-amber-500'
-                                            : 'bg-gradient-to-br from-blue-600 to-indigo-700 border-blue-500 text-white shadow-blue-900/40 hover:from-blue-500 hover:to-indigo-600'
+                                    ? 'bg-blue-600 border-blue-500 text-white shadow-blue-900/40 hover:bg-blue-500'
+                                    : isPaused
+                                        ? 'bg-amber-600 border-amber-500 text-white shadow-amber-900/40 hover:bg-amber-500'
+                                        : 'bg-gradient-to-br from-blue-600 to-indigo-700 border-blue-500 text-white shadow-blue-900/40 hover:from-blue-500 hover:to-indigo-600'
                                     } disabled:opacity-40 disabled:cursor-not-allowed`}
                                 title={isPlaying ? 'Pause' : isPaused ? 'Resume' : 'Play Narration'}
                             >
