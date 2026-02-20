@@ -638,7 +638,7 @@ const GamePreview = ({ nodes, edges, onClose, gameMetadata, onGameEnd, onNodeCha
     // Chirp uses the Central AI API Key (Settings → AI Intelligence Engine).
     // Enable Cloud Text-to-Speech API in the same GCP project as your Gemini key.
     const chirpApiKey = settings.aiApiKey || import.meta.env.VITE_AI_API_KEY || '';
-    const chirpVoiceName = settings.chirpVoiceName || DEFAULT_CHIRP_VOICE;
+    const chirpVoiceName = currentNode?.data?.chirpVoiceName || settings.chirpVoiceName || DEFAULT_CHIRP_VOICE;
 
 
     const { play: ttsPlay, pause: ttsPause, stop: ttsStop, status: ttsStatus,

@@ -32,6 +32,24 @@
 
 import { useEffect, useRef, useState, useCallback } from 'react';
 
+// All available Chirp 3 HD voices (Google Cloud TTS)
+export const CHIRP_HD_VOICES = [
+    { name: 'en-US-Chirp3-HD-Aoede', label: 'Aoede — Warm Female (US)' },
+    { name: 'en-US-Chirp3-HD-Kore', label: 'Kore — Crisp Female (US)' },
+    { name: 'en-US-Chirp3-HD-Leda', label: 'Leda — Narrator Female (US)' },
+    { name: 'en-US-Chirp3-HD-Zephyr', label: 'Zephyr — Breathy Female (US)' },
+    { name: 'en-US-Chirp3-HD-Puck', label: 'Puck — Neutral Male (US)' },
+    { name: 'en-US-Chirp3-HD-Charon', label: 'Charon — Baritone Male (US)' },
+    { name: 'en-US-Chirp3-HD-Fenrir', label: 'Fenrir — Narrative Male (US)' },
+    { name: 'en-US-Chirp3-HD-Orus', label: 'Orus — Deep Male (US)' },
+    { name: 'en-GB-Chirp3-HD-Aoede', label: 'Aoede — Warm Female (UK)' },
+    { name: 'en-GB-Chirp3-HD-Charon', label: 'Charon — Baritone Male (UK)' },
+    { name: 'en-AU-Chirp3-HD-Aoede', label: 'Aoede — Warm Female (AU)' },
+    { name: 'en-AU-Chirp3-HD-Puck', label: 'Puck — Neutral Male (AU)' },
+    { name: 'en-IN-Chirp3-HD-Aoede', label: 'Aoede — Warm Female (IN)' },
+    { name: 'en-IN-Chirp3-HD-Puck', label: 'Puck — Neutral Male (IN)' },
+];
+
 // ── Constants ─────────────────────────────────────────────────────────────────
 
 const GOOGLE_TTS_ENDPOINT =

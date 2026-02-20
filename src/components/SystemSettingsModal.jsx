@@ -2,28 +2,10 @@ import React, { useState, useEffect } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { X, Settings, Shield, Key, Sliders, Save, AlertTriangle, Cpu, Globe, Box, Brain, ShieldCheck, Volume2, Mic2 } from 'lucide-react';
 import { useConfig } from '../lib/config';
-import { DEFAULT_CHIRP_VOICE } from '../lib/useChirpTTS';
+import { DEFAULT_CHIRP_VOICE, CHIRP_HD_VOICES } from '../lib/useChirpTTS';
 import { useLicense } from '../lib/licensing';
 import { Button, Input, Label } from './ui/shared';
 import LicenseConfigModal from './LicenseConfigModal';
-
-// All available Chirp 3 HD voices (Google Cloud TTS)
-const CHIRP_HD_VOICES = [
-    { name: 'en-US-Chirp3-HD-Aoede', label: 'Aoede — Warm Female (US)' },
-    { name: 'en-US-Chirp3-HD-Kore', label: 'Kore — Crisp Female (US)' },
-    { name: 'en-US-Chirp3-HD-Leda', label: 'Leda — Narrator Female (US)' },
-    { name: 'en-US-Chirp3-HD-Zephyr', label: 'Zephyr — Breathy Female (US)' },
-    { name: 'en-US-Chirp3-HD-Puck', label: 'Puck — Neutral Male (US)' },
-    { name: 'en-US-Chirp3-HD-Charon', label: 'Charon — Baritone Male (US)' },
-    { name: 'en-US-Chirp3-HD-Fenrir', label: 'Fenrir — Narrative Male (US)' },
-    { name: 'en-US-Chirp3-HD-Orus', label: 'Orus — Deep Male (US)' },
-    { name: 'en-GB-Chirp3-HD-Aoede', label: 'Aoede — Warm Female (UK)' },
-    { name: 'en-GB-Chirp3-HD-Charon', label: 'Charon — Baritone Male (UK)' },
-    { name: 'en-AU-Chirp3-HD-Aoede', label: 'Aoede — Warm Female (AU)' },
-    { name: 'en-AU-Chirp3-HD-Puck', label: 'Puck — Neutral Male (AU)' },
-    { name: 'en-IN-Chirp3-HD-Aoede', label: 'Aoede — Warm Female (IN)' },
-    { name: 'en-IN-Chirp3-HD-Puck', label: 'Puck — Neutral Male (IN)' },
-];
 
 const SystemSettingsModal = ({ onClose }) => {
     const { settings, updateSettings } = useConfig();

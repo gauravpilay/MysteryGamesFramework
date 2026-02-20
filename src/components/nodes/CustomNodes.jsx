@@ -8,6 +8,7 @@ import { ref, uploadBytes, getDownloadURL } from 'firebase/storage';
 import { callAI } from '../../lib/ai';
 import { useConfig } from '../../lib/config';
 import { useLicense } from '../../lib/licensing';
+import { CHIRP_HD_VOICES, DEFAULT_CHIRP_VOICE } from '../../lib/useChirpTTS';
 
 // ... (existing code for SetterNode) ...
 
@@ -591,6 +592,24 @@ export const StoryNode = memo(({ id, data, selected }) => {
                                     <option value="low">Deep / Low</option>
                                     <option value="normal">Natural</option>
                                     <option value="high">Bright / High</option>
+                                </select>
+                            </div>
+
+                            {/* Chirp Voice Selection (Visible only if user wants specific Chirp voice override) */}
+                            <div className="pt-2 border-t border-blue-900/10">
+                                <div className="flex items-center justify-between mb-1">
+                                    <p className="text-[9px] text-zinc-500 uppercase font-bold tracking-wider">Chirp HD Override</p>
+                                    <span className="text-[7px] text-blue-400 font-mono font-bold">PREMIUM</span>
+                                </div>
+                                <select
+                                    value={data.chirpVoiceName || ''}
+                                    onChange={(e) => handleChange('chirpVoiceName', e.target.value)}
+                                    className="w-full bg-black/60 border border-zinc-800 rounded px-2 py-1 text-[9px] text-zinc-300 focus:border-blue-500 outline-none"
+                                >
+                                    <option value="">System Default</option>
+                                    {CHIRP_HD_VOICES.map(v => (
+                                        <option key={v.name} value={v.name}>{v.label}</option>
+                                    ))}
                                 </select>
                             </div>
 
