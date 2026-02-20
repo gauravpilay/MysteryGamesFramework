@@ -625,7 +625,9 @@ const GamePreview = ({ nodes, edges, onClose, gameMetadata, onGameEnd, onNodeCha
     // ── Chirp TTS: driven by current story node + system settings + license ──
     const { settings } = useConfig();
     const { hasFeature } = useLicense();
-    const audioEnabled = hasFeature('enable_audio_support');
+    // Logic check for audio features
+    const caseTtsEnabled = gameMetadata?.enableTTS !== false; // Default to true if not specified
+    const audioEnabled = hasFeature('enable_audio_support') && caseTtsEnabled;
 
     const isStoryNode = currentNode?.type === 'story';
     const ttsText = (isStoryNode && audioEnabled) ? (currentNode?.data?.text || currentNode?.data?.content || '') : '';

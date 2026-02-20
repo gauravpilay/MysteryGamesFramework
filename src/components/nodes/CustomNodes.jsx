@@ -1,7 +1,7 @@
 import React, { memo, useState, useRef, useEffect } from 'react';
 import ReactDOM from 'react-dom';
 import { Handle, Position, NodeResizer } from 'reactflow';
-import { FileText, User, Search, GitMerge, Terminal, MessageSquare, Music, Image as ImageIcon, Star, MousePointerClick, Trash2, Plus, Copy, Fingerprint, Bell, HelpCircle, ToggleLeft, Unlock, Binary, Grid3x3, Folder, ChevronDown, ChevronUp, Maximize, X, Save, File, FolderOpen, AlertCircle, Brain, Cpu, Send, Loader2, Check, Filter, ShieldAlert, Box, CheckCircle, Activity, Shield, Hash, Film, Globe, Lightbulb, Mail, Bold, Italic, List, Type, Palette, Info, Volume2 } from 'lucide-react';
+import { FileText, User, Search, GitMerge, Terminal, MessageSquare, Music, Image as ImageIcon, Star, MousePointerClick, Trash2, Plus, Copy, Fingerprint, Bell, HelpCircle, ToggleLeft, Unlock, Binary, Grid3x3, Folder, ChevronDown, ChevronUp, Maximize, X, Save, File, FolderOpen, AlertCircle, Brain, Cpu, Send, Loader2, Check, Filter, ShieldAlert, Box, CheckCircle, Activity, Shield, Hash, Film, Globe, Lightbulb, Mail, Bold, Italic, List, Type, Palette, Info, Volume2, VolumeX } from 'lucide-react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { storage } from '../../lib/firebase';
 import { ref, uploadBytes, getDownloadURL } from 'firebase/storage';
@@ -523,6 +523,12 @@ export const StoryNode = memo(({ id, data, selected }) => {
 
                     {ttsExpanded && (
                         <div className="p-3 space-y-2 bg-black/20">
+                            {data.enableTTS === false && (
+                                <div className="p-2 mb-2 bg-red-950/30 border border-red-500/30 rounded text-[8px] text-red-400 font-bold flex items-center gap-2">
+                                    <VolumeX className="w-3 h-3" />
+                                    <span>TTS IS DISABLED AT CASE LEVEL</span>
+                                </div>
+                            )}
                             {/* Gender */}
                             <div className="flex items-center justify-between">
                                 <p className="text-[9px] text-zinc-500 uppercase font-bold tracking-wider">Voice</p>

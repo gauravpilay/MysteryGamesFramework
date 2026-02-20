@@ -14,7 +14,7 @@ import 'reactflow/dist/style.css';
 import { useParams, useNavigate } from 'react-router-dom';
 import { Button } from '../components/ui/shared';
 import { Logo } from '../components/ui/Logo';
-import { Save, ArrowLeft, X, FileText, User, Search, GitMerge, Terminal, MessageSquare, CircleHelp, Play, Settings, Music, Image as ImageIcon, MousePointerClick, Fingerprint, Bell, HelpCircle, ChevronLeft, ChevronRight, ToggleLeft, Lock, Sun, Moon, Stethoscope, Unlock, Binary, Grid3x3, CheckCircle, AlertTriangle, Plus, Trash2, Target, Box, FolderOpen, Brain, Pencil, Film, Menu, Globe, ShieldAlert, Mail, LayoutGrid, Activity, Lightbulb } from 'lucide-react';
+import { Save, ArrowLeft, X, FileText, User, Search, GitMerge, Terminal, MessageSquare, CircleHelp, Play, Settings, Music, Image as ImageIcon, MousePointerClick, Fingerprint, Bell, HelpCircle, ChevronLeft, ChevronRight, ToggleLeft, Lock, Sun, Moon, Stethoscope, Unlock, Binary, Grid3x3, CheckCircle, AlertTriangle, Plus, Trash2, Target, Box, FolderOpen, Brain, Pencil, Film, Menu, Globe, ShieldAlert, Mail, LayoutGrid, Activity, Lightbulb, Volume2, VolumeX } from 'lucide-react';
 import { StoryNode, SuspectNode, EvidenceNode, LogicNode, TerminalNode, MessageNode, MusicNode, MediaNode, ActionNode, IdentifyNode, NotificationNode, QuestionNode, SetterNode, LockpickNode, DecryptionNode, KeypadNode, GroupNode, InputField, InterrogationNode, ThreeDSceneNode, CutsceneNode, DeepWebOSNode, EmailNode, FactNode } from '../components/nodes/CustomNodes';
 import dagre from 'dagre';
 import AICaseGeneratorModal from '../components/AICaseGeneratorModalAdvanced';
@@ -276,6 +276,7 @@ const Editor = () => {
 
     const [isDarkMode, setIsDarkMode] = useState(true);
     const [enableThreeD, setEnableThreeD] = useState(true);
+    const [enableTTS, setEnableTTS] = useState(true);
     const [caseTitle, setCaseTitle] = useState("");
     const [caseDescription, setCaseDescription] = useState("");
     const [showMetadataModal, setShowMetadataModal] = useState(false);
@@ -596,32 +597,44 @@ const Editor = () => {
         });
     }, [onNodeUpdate, setNodes, isLocked]);
 
-    // Reattach handlers ONCE after initial load from Firestore.
-    // Using a ref flag prevents this from re-running on every edit (which would
-    // overwrite node data with stale values and reset question options/text).
-    const hasInitializedHandlers = useRef(false);
-
     // Guard flag: prevents loadCaseData from re-running when the user object
     // reference changes (e.g. every minute when totalTimeLogged is incremented,
     // which triggers the auth onSnapshot and creates a new user object).
     const hasLoadedData = useRef(false);
     useEffect(() => {
-        if (nodes.length > 0 && !hasInitializedHandlers.current) {
-            hasInitializedHandlers.current = true;
-            setNodes((nds) => nds.map(node => ({
-                ...node,
-                data: {
-                    ...node.data,
-                    onChange: onNodeUpdate,
-                    onDuplicate: onDuplicateNode,
-                    onUngroup: onUngroup,
-                    learningObjectives,
-                    enableThreeD,
-                    isExecuting: node.id === activeExecutingNodeId
+        // Reset the guard when the project changes so we load the new project.
+        hasLoadedData.current = false;
+    }, [projectId]);
+
+    useEffect(() => {
+        if (nodes.length > 0) {
+            setNodes((nds) => nds.map(node => {
+                // If data already matches, no need to update the reference
+                if (
+                    node.data.enableTTS === enableTTS &&
+                    node.data.enableThreeD === enableThreeD &&
+                    node.data.isExecuting === (node.id === activeExecutingNodeId) &&
+                    node.data.onChange === onNodeUpdate
+                ) {
+                    return node;
                 }
-            })));
+
+                return {
+                    ...node,
+                    data: {
+                        ...node.data,
+                        onChange: onNodeUpdate,
+                        onDuplicate: onDuplicateNode,
+                        onUngroup: onUngroup,
+                        learningObjectives,
+                        enableThreeD,
+                        enableTTS,
+                        isExecuting: node.id === activeExecutingNodeId
+                    }
+                };
+            }));
         }
-    }, [nodes.length, onNodeUpdate, onDuplicateNode, onUngroup, setNodes, learningObjectives, enableThreeD]);
+    }, [nodes.length === 0, onNodeUpdate, onDuplicateNode, onUngroup, setNodes, learningObjectives, enableThreeD, enableTTS, activeExecutingNodeId]);
 
     const onDrop = useCallback((event) => {
         event.preventDefault();
@@ -697,6 +710,7 @@ const Editor = () => {
                         if (data.meta.timeLimit) setTimeLimit(data.meta.timeLimit);
                         if (data.meta.learningObjectives) setLearningObjectives(data.meta.learningObjectives);
                         if (data.meta.enableThreeD !== undefined) setEnableThreeD(data.meta.enableThreeD);
+                        if (data.meta.enableTTS !== undefined) setEnableTTS(data.meta.enableTTS);
                     }
                     if (data.isLocked !== undefined) setIsLocked(data.isLocked);
                     if (data.title) setCaseTitle(data.title);
@@ -911,7 +925,7 @@ const Editor = () => {
         const cleanEdges = edges.map(e => cleanForFirestore(e));
 
         try {
-            const flow = { nodes: cleanNodes, edges: cleanEdges, meta: { timeLimit, learningObjectives, enableThreeD } };
+            const flow = { nodes: cleanNodes, edges: cleanEdges, meta: { timeLimit, learningObjectives, enableThreeD, enableTTS } };
             const docRef = doc(db, "cases", projectId);
 
             // Log for debugging if it fails again
@@ -1090,7 +1104,7 @@ const Editor = () => {
 
         // Clean nodes data of functions
         const cleanNodes = nodes.map(n => ({ ...n, data: { ...n.data, onChange: undefined, onDuplicate: undefined } }));
-        const gameData = { nodes: cleanNodes, edges, meta: { generatedAt: new Date(), timeLimit, learningObjectives } };
+        const gameData = { nodes: cleanNodes, edges, meta: { generatedAt: new Date(), timeLimit, learningObjectives, enableTTS } };
 
         const folder = zip.folder("mystery-game-build");
         folder.file("game-data.json", JSON.stringify(gameData, null, 2));
@@ -2575,6 +2589,15 @@ Please provide a concise plot summary and narrative overview based on these elem
                             >
                                 <Activity className="w-4 h-4" />
                             </Button>
+                            <Button
+                                variant="ghost"
+                                size="icon"
+                                onClick={() => setEnableTTS(!enableTTS)}
+                                title={enableTTS ? "Disable Case-Level TTS" : "Enable Case-Level TTS"}
+                                className={`h-8 w-8 ${!enableTTS ? 'bg-red-500/20 text-red-400 border border-red-500/50' : 'text-emerald-400'}`}
+                            >
+                                {enableTTS ? <Volume2 className="w-4 h-4" /> : <VolumeX className="w-4 h-4" />}
+                            </Button>
                             {hasFeature('enable_ai_build_feature') && (
                                 <div className="flex items-center">
                                     <div className="w-px h-4 bg-white/10"></div>
@@ -2903,7 +2926,7 @@ Please provide a concise plot summary and narrative overview based on these elem
                                     nodes={nodes}
                                     edges={edges}
                                     onClose={() => setShowPreview(false)}
-                                    gameMetadata={{ timeLimit, learningObjectives }}
+                                    gameMetadata={{ timeLimit, learningObjectives, enableTTS }}
                                     onGameEnd={handlePreviewGameEnd}
                                     onNodeChange={onGameNodeChange}
                                     isSimultaneous={true}
@@ -2967,7 +2990,7 @@ Please provide a concise plot summary and narrative overview based on these elem
                     <TutorialOverlay steps={tutorialSteps} onClose={() => setShowTutorial(false)} />
                 )}
                 {showPreview && !isSimultaneousMode && (
-                    <GamePreview nodes={nodes} edges={edges} onClose={() => setShowPreview(false)} gameMetadata={{ timeLimit, learningObjectives }} onGameEnd={handlePreviewGameEnd} onNodeChange={onGameNodeChange} />
+                    <GamePreview nodes={nodes} edges={edges} onClose={() => setShowPreview(false)} gameMetadata={{ timeLimit, learningObjectives, enableTTS }} onGameEnd={handlePreviewGameEnd} onNodeChange={onGameNodeChange} />
                 )}
                 {/* Settings Modal */}
                 {showSettings && (
@@ -3015,6 +3038,22 @@ Please provide a concise plot summary and narrative overview based on these elem
                                                 className="bg-black border border-zinc-700 rounded-xl px-4 py-2 md:py-3 text-white w-20 md:w-24 text-center text-lg md:text-xl font-black focus:border-indigo-500 outline-none transition-all"
                                             />
                                             <span className="text-zinc-500 text-[10px] font-black uppercase">Minutes</span>
+                                        </div>
+                                    </div>
+
+                                    <div className="p-4 md:p-6 bg-zinc-900/30 border border-zinc-800 rounded-2xl flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4">
+                                        <div className="space-y-1">
+                                            <p className="text-sm font-bold text-white uppercase tracking-tight">Audio Narration (TTS)</p>
+                                            <p className="text-[10px] text-zinc-500 font-medium uppercase tracking-widest">Enable or disable voice for this entire case</p>
+                                        </div>
+                                        <div className="flex items-center gap-4">
+                                            <button
+                                                onClick={() => setEnableTTS(!enableTTS)}
+                                                className={`flex items-center gap-2 px-4 py-2 rounded-xl border transition-all ${enableTTS ? 'bg-emerald-500/20 border-emerald-500/50 text-emerald-400' : 'bg-red-500/20 border-red-500/50 text-red-400'}`}
+                                            >
+                                                {enableTTS ? <Volume2 className="w-4 h-4" /> : <VolumeX className="w-4 h-4" />}
+                                                <span className="text-[10px] font-black uppercase tracking-widest">{enableTTS ? 'Enabled' : 'Disabled'}</span>
+                                            </button>
                                         </div>
                                     </div>
                                 </section>
