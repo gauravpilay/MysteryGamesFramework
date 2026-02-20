@@ -196,7 +196,7 @@ const AIInterrogation = ({ node, onComplete, onFail, requestCount, onAIRequest, 
                         <div className="flex flex-col">
                             <span className="text-[9px] font-black text-zinc-600 uppercase tracking-widest">AI Engine</span>
                             <span className="text-[10px] font-bold text-indigo-400 uppercase tracking-tight">
-                                {apiKey ? (provider === 'gemini' ? 'Gemini 2.0 FLASH' : 'GPT-4 TURBO') : 'PROXIED_SIMULATION'}
+                                {apiKey ? (provider === 'gemini' ? 'Gemini 3.0 FLASH' : 'GPT-4 TURBO') : 'PROXIED_SIMULATION'}
                             </span>
                         </div>
                     </div>

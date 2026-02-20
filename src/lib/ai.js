@@ -10,7 +10,7 @@ export const callAI = async (provider, systemPrompt, userMessage, apiKey, imageD
     }
 
     if (provider === 'gemini') {
-        const url = `/api/google/v1beta/models/gemini-2.0-flash:generateContent?key=${apiKey}`;
+        const url = `/api/google/v1beta/models/gemini-3-flash-preview:generateContent?key=${apiKey}`;
 
         const parts = [
             { text: `SYSTEM CONTEXT: ${systemPrompt}\n\nUSER QUESTION: ${userMessage}` }
