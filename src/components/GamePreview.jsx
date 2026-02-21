@@ -11,6 +11,7 @@ import CinematicCutscene from './CinematicCutscene';
 import CaseClosedNewsReport from './CaseClosedNewsReport';
 import DeepWebOS from './DeepWebOS';
 import FeedbackModal from './FeedbackModal';
+import FactDisplay from './FactDisplay';
 import { useChirpTTS, DEFAULT_CHIRP_VOICE } from '../lib/useChirpTTS';
 import { useConfig } from '../lib/config';
 import { useLicense } from '../lib/licensing';
@@ -2515,83 +2516,25 @@ const GamePreview = ({ nodes, edges, onClose, gameMetadata, onGameEnd, onNodeCha
                                 />
                             )}
 
-                            {/* Fact / Info Layout */}
+                            {/* Enhanced Fact / Info Layout */}
                             {activeModalNode.type === 'fact' && (
-                                <div className="p-0 bg-zinc-950 flex flex-col w-full h-full min-h-0 text-white font-sans overflow-hidden">
-                                    <div className="bg-amber-900/20 p-6 border-b border-amber-500/30 flex items-center justify-between shrink-0">
-                                        <div className="flex items-center gap-4">
-                                            <div className="w-12 h-12 rounded-xl bg-amber-500/10 flex items-center justify-center border border-amber-500/20 shadow-[0_0_15px_rgba(245,158,11,0.1)]">
-                                                <Lightbulb className="w-6 h-6 text-amber-500" />
-                                            </div>
-                                            <div>
-                                                <div className="flex items-center gap-2 mb-1">
-                                                    <span className="text-[10px] font-bold tracking-[0.2em] text-amber-500 uppercase">Case Intelligence</span>
-                                                </div>
-                                                <h2 className="text-xl md:text-2xl font-black text-white uppercase tracking-tight">
-                                                    {activeModalNode.data.factTitle || activeModalNode.data.label || 'Information Found'}
-                                                </h2>
-                                            </div>
-                                        </div>
-                                    </div>
-
-                                    <div className="flex-1 overflow-y-auto p-6 md:p-10 no-scrollbar">
-                                        <div className="max-w-4xl mx-auto space-y-8">
-                                            {/* Images Gallery */}
-                                            {activeModalNode.data.images && activeModalNode.data.images.length > 0 && (
-                                                <div className={`grid gap-4 ${activeModalNode.data.images.length === 1 ? 'grid-cols-1' : 'grid-cols-1 md:grid-cols-2'}`}>
-                                                    {activeModalNode.data.images.map((url, i) => (
-                                                        <motion.div
-                                                            key={i}
-                                                            initial={{ opacity: 0, y: 20 }}
-                                                            animate={{ opacity: 1, y: 0 }}
-                                                            transition={{ delay: i * 0.1 }}
-                                                            className="group relative aspect-video bg-zinc-900 rounded-2xl overflow-hidden border border-zinc-800 shadow-2xl cursor-pointer"
-                                                            onClick={() => setZoomedImage(url)}
-                                                        >
-                                                            <img src={url} className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-700" alt={`Fact Media ${i + 1}`} />
-                                                            <div className="absolute inset-0 bg-gradient-to-t from-black/60 via-transparent to-transparent opacity-0 group-hover:opacity-100 transition-opacity flex items-end p-4">
-                                                                <div className="flex items-center gap-2 text-white text-[10px] font-bold uppercase tracking-widest">
-                                                                    <ZoomIn className="w-4 h-4" /> Click to enlarge
-                                                                </div>
-                                                            </div>
-                                                        </motion.div>
-                                                    ))}
-                                                </div>
-                                            )}
-
-                                            {/* Content Area */}
-                                            <div className="relative">
-                                                <div className="absolute -left-4 md:-left-6 top-0 bottom-0 w-1 bg-amber-500/20 rounded-full" />
-                                                <div className="prose prose-invert max-w-none">
-                                                    <div
-                                                        className="whitespace-pre-wrap font-sans text-zinc-200 text-lg md:text-xl leading-relaxed font-medium md:tracking-wide"
-                                                        dangerouslySetInnerHTML={{ __html: parseRichText(activeModalNode.data.text) || 'No content provided.' }}
-                                                    />
-                                                </div>
-                                            </div>
-                                        </div>
-                                    </div>
-
-                                    <div className="p-6 border-t border-zinc-800 bg-zinc-900/50 flex justify-end shrink-0">
-                                        <Button
-                                            className="bg-amber-600 hover:bg-amber-500 text-white font-black uppercase tracking-[0.15em] text-[11px] h-12 px-10 shadow-[0_8px_20px_rgba(245,158,11,0.2)] transition-all rounded-xl flex items-center gap-2"
-                                            onClick={() => {
-                                                if (activeModalNode.data.score && !scoredNodes.has(activeModalNode.id)) {
-                                                    setScore(s => s + activeModalNode.data.score);
-                                                    setScoreDelta(activeModalNode.data.score);
-                                                    rewardObjectivePoints(activeModalNode, activeModalNode.data.score);
-                                                    setScoredNodes(prev => new Set([...prev, activeModalNode.id]));
-                                                    addLog(`FACT DISCOVERED: +${activeModalNode.data.score} Points`);
-                                                }
-                                                const rawEdges = edges.filter(e => e.source === activeModalNode.id);
-                                                setActiveModalNode(null);
-                                                if (rawEdges.length > 0) handleOptionClick(rawEdges[0].target);
-                                            }}
-                                        >
-                                            Confirm Intelligence <ArrowRight className="w-4 h-4 md:ml-2" />
-                                        </Button>
-                                    </div>
-                                </div>
+                                <FactDisplay
+                                    fact={activeModalNode}
+                                    parseRichText={parseRichText}
+                                    onZoomImage={setZoomedImage}
+                                    onConfirm={() => {
+                                        if (activeModalNode.data.score && !scoredNodes.has(activeModalNode.id)) {
+                                            setScore(s => s + activeModalNode.data.score);
+                                            setScoreDelta(activeModalNode.data.score);
+                                            rewardObjectivePoints(activeModalNode, activeModalNode.data.score);
+                                            setScoredNodes(prev => new Set([...prev, activeModalNode.id]));
+                                            addLog(`FACT DISCOVERED: +${activeModalNode.data.score} Points`);
+                                        }
+                                        const rawEdges = edges.filter(e => e.source === activeModalNode.id);
+                                        setActiveModalNode(null);
+                                        if (rawEdges.length > 0) handleOptionClick(rawEdges[0].target);
+                                    }}
+                                />
                             )}
 
                             {/* 3D Holodeck Experience */}

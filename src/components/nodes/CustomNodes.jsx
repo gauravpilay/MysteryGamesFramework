@@ -1210,7 +1210,48 @@ export const FactNode = memo(({ id, data, selected }) => {
                             placeholder="e.g. The Hidden Compartment"
                             value={data.factTitle}
                             onChange={(e) => handleChange('factTitle', e.target.value)}
-                            className="!bg-amber-500/10 !border-amber-500/20 text-amber-200"
+                            className="!bg-amber-500/20 !border-amber-500/40 text-amber-100 font-bold"
+                        />
+                    </div>
+
+                    <div className="grid grid-cols-2 gap-2">
+                        <div>
+                            <p className="text-[10px] text-white/40 mb-1 uppercase font-bold tracking-tight">Category</p>
+                            <select
+                                value={data.category || 'general'}
+                                onChange={(e) => handleChange('category', e.target.value)}
+                                className="w-full bg-black/40 border border-amber-500/20 rounded px-2 py-1.5 text-[10px] text-amber-200 focus:outline-none focus:border-amber-500/50 transition-colors"
+                            >
+                                <option value="general">General</option>
+                                <option value="historical">Historical</option>
+                                <option value="scientific">Scientific</option>
+                                <option value="secret">Top Secret</option>
+                                <option value="biographical">Biographical</option>
+                                <option value="technical">Technical</option>
+                            </select>
+                        </div>
+                        <div>
+                            <p className="text-[10px] text-white/40 mb-1 uppercase font-bold tracking-tight">Importance</p>
+                            <select
+                                value={data.importance || 'normal'}
+                                onChange={(e) => handleChange('importance', e.target.value)}
+                                className="w-full bg-black/40 border border-amber-500/20 rounded px-2 py-1.5 text-[10px] text-amber-200 focus:outline-none focus:border-amber-500/50 transition-colors"
+                            >
+                                <option value="trivial">Trivial</option>
+                                <option value="normal">Normal</option>
+                                <option value="important">Important</option>
+                                <option value="critical">Critical</option>
+                            </select>
+                        </div>
+                    </div>
+
+                    <div>
+                        <p className="text-[10px] text-white/40 mb-1 uppercase font-bold tracking-tight">Source / Reference (Optional)</p>
+                        <InputField
+                            placeholder="e.g. National Archives"
+                            value={data.source}
+                            onChange={(e) => handleChange('source', e.target.value)}
+                            className="!bg-black/40 !border-amber-500/20 text-amber-200/70 italic"
                         />
                     </div>
 
