@@ -3,7 +3,7 @@ import { db } from '../lib/firebase';
 import { collection, query, where, getDocs, orderBy, documentId, deleteDoc, doc, writeBatch } from 'firebase/firestore';
 import { useAuth } from '../lib/auth';
 import { useConfig } from '../lib/config';
-import { Users, FileText, CheckCircle, AlertTriangle, Clock, X, BarChart2, Filter, Download, Trash2, Shield, Target, Award, Brain, TrendingUp, Zap } from 'lucide-react';
+import { Users, FileText, CheckCircle, AlertTriangle, Clock, X, BarChart2, Filter, Download, Trash2, Shield, Target, Award, Brain, TrendingUp, Zap, Search } from 'lucide-react';
 import { motion } from 'framer-motion';
 import { jsPDF } from 'jspdf';
 import autoTable from 'jspdf-autotable';
@@ -26,6 +26,8 @@ const AdminProgressModal = ({ onClose }) => {
     const [confirmWipe, setConfirmWipe] = useState(false);
     const [isWiping, setIsWiping] = useState(false);
     const [statusModal, setStatusModal] = useState(null); // { type, title, message }
+    const [searchTerm, setSearchTerm] = useState('');
+
 
     // Fetch Users
     useEffect(() => {
@@ -627,6 +629,12 @@ const AdminProgressModal = ({ onClose }) => {
         setSelectedUserIds(newSet);
     };
 
+    const filteredUsers = users.filter(u => {
+        const term = searchTerm.toLowerCase();
+        return (u.displayName?.toLowerCase().includes(term) || u.email?.toLowerCase().includes(term));
+    });
+
+
     return (
         <div className="fixed inset-0 z-[100] flex items-center justify-center p-4 bg-black/90 backdrop-blur-md">
             <motion.div
@@ -662,11 +670,35 @@ const AdminProgressModal = ({ onClose }) => {
                 <div className="flex-1 overflow-hidden flex flex-col">
                     {step === 1 && (
                         <div className="flex-1 overflow-y-auto p-8">
-                            <div className="mb-6 flex justify-between items-center">
-                                <h3 className="text-lg font-bold text-white">Select Users to Analyze</h3>
-                                <div className="flex gap-2">
-                                    <Button variant="outline" size="sm" onClick={() => setSelectedUserIds(new Set(users.map(u => u.id)))}>Select All</Button>
-                                    <Button variant="outline" size="sm" onClick={() => setSelectedUserIds(new Set())}>Clear</Button>
+                            <div className="mb-6 space-y-4">
+                                <div className="flex justify-between items-center">
+                                    <h3 className="text-lg font-bold text-white uppercase tracking-tight">Select Personnel ({filteredUsers.length})</h3>
+                                    <div className="flex gap-2">
+                                        <Button variant="outline" size="sm" className="text-xs border-zinc-800" onClick={() => {
+                                            const newSet = new Set(selectedUserIds);
+                                            filteredUsers.forEach(u => newSet.add(u.id));
+                                            setSelectedUserIds(newSet);
+                                        }}>Select All</Button>
+                                        <Button variant="outline" size="sm" className="text-xs border-zinc-800" onClick={() => setSelectedUserIds(new Set())}>Clear</Button>
+                                    </div>
+                                </div>
+                                <div className="relative group">
+                                    <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-zinc-500 group-focus-within:text-purple-400 transition-colors" />
+                                    <input
+                                        type="text"
+                                        placeholder="Search by name or email..."
+                                        className="w-full bg-zinc-900/50 border border-zinc-800 rounded-xl py-2.5 pl-10 pr-4 text-sm text-white focus:outline-none focus:border-purple-500/50 focus:ring-1 focus:ring-purple-500/50 transition-all"
+                                        value={searchTerm}
+                                        onChange={(e) => setSearchTerm(e.target.value)}
+                                    />
+                                    {searchTerm && (
+                                        <button
+                                            onClick={() => setSearchTerm('')}
+                                            className="absolute right-3 top-1/2 -translate-y-1/2 text-zinc-500 hover:text-white"
+                                        >
+                                            <X className="w-4 h-4" />
+                                        </button>
+                                    )}
                                 </div>
                             </div>
 
@@ -674,7 +706,7 @@ const AdminProgressModal = ({ onClose }) => {
                                 <div className="text-center py-20 text-zinc-500 animate-pulse">Loading Users Directory...</div>
                             ) : (
                                 <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
-                                    {users.map(u => (
+                                    {filteredUsers.map(u => (
                                         <div
                                             key={u.id}
                                             onClick={() => toggleUser(u.id)}
@@ -693,9 +725,15 @@ const AdminProgressModal = ({ onClose }) => {
                                             {selectedUserIds.has(u.id) && <CheckCircle className="w-5 h-5 ml-auto text-purple-400" />}
                                         </div>
                                     ))}
-                                    {users.length === 0 && !loading && (
-                                        <div className="col-span-full text-center text-zinc-500">No users found in directory.</div>
+                                    {filteredUsers.length === 0 && !loading && (
+                                        <div className="col-span-full py-12 text-center">
+                                            <div className="inline-flex p-4 rounded-full bg-zinc-900 border border-zinc-800 mb-4">
+                                                <Search className="w-8 h-8 text-zinc-700" />
+                                            </div>
+                                            <p className="text-zinc-500 font-medium">No personnel found matching "{searchTerm}"</p>
+                                        </div>
                                     )}
+
                                 </div>
                             )}
 
