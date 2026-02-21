@@ -12,6 +12,7 @@ import CaseClosedNewsReport from './CaseClosedNewsReport';
 import DeepWebOS from './DeepWebOS';
 import FeedbackModal from './FeedbackModal';
 import FactDisplay from './FactDisplay';
+import ExplanationHUD from './ExplanationHUD';
 import { useChirpTTS, DEFAULT_CHIRP_VOICE } from '../lib/useChirpTTS';
 import { useConfig } from '../lib/config';
 import { useLicense } from '../lib/licensing';
@@ -2859,40 +2860,16 @@ const GamePreview = ({ nodes, edges, onClose, gameMetadata, onGameEnd, onNodeCha
                 isSimultaneous={isSimultaneous}
             />
 
-            {/* Explanation Modal */}
+            {/* Enhanced Explanation HUD */}
             <AnimatePresence>
                 {activeExplanation && (
-                    <div className={`${isSimultaneous ? 'absolute' : 'fixed'} inset-0 z-[200] flex items-center justify-center p-4 bg-black/95 backdrop-blur-xl`}>
-                        <motion.div
-                            initial={{ scale: 0.9, opacity: 0, y: 20 }}
-                            animate={{ scale: 1, opacity: 1, y: 0 }}
-                            exit={{ scale: 0.9, opacity: 0, y: 20 }}
-                            className={`w-full max-w-lg bg-zinc-950 border ${activeExplanation.type === 'correct' ? 'border-green-500/50 shadow-green-500/10' : 'border-red-500/50 shadow-red-500/10'} rounded-2xl overflow-hidden shadow-2xl relative flex flex-col`}
-                        >
-                            <div className={`h-2 w-full ${activeExplanation.type === 'correct' ? 'bg-green-500' : 'bg-red-500'}`} />
-                            <div className="p-8 flex flex-col items-center text-center">
-                                <div className={`w-16 h-16 rounded-2xl flex items-center justify-center mb-6 border-2 ${activeExplanation.type === 'correct' ? 'bg-green-500/10 border-green-500/30' : 'bg-red-500/10 border-red-500/30'}`}>
-                                    {activeExplanation.type === 'correct' ? (
-                                        <CheckCircle className="w-8 h-8 text-green-500 animate-pulse" />
-                                    ) : (
-                                        <XCircle className="w-8 h-8 text-red-500 animate-pulse" />
-                                    )}
-                                </div>
-                                <h3 className={`text-2xl font-black uppercase tracking-tighter mb-4 ${activeExplanation.type === 'correct' ? 'text-green-500' : 'text-red-500'}`}>
-                                    {activeExplanation.title}
-                                </h3>
-                                <div className="text-zinc-300 text-sm leading-relaxed mb-8 max-h-[40vh] overflow-y-auto px-2 custom-scrollbar whitespace-pre-wrap">
-                                    {activeExplanation.text}
-                                </div>
-                                <Button
-                                    onClick={activeExplanation.onClose}
-                                    className={`w-full h-12 uppercase font-black tracking-widest text-xs rounded-xl shadow-lg transform transition-all active:scale-95 ${activeExplanation.type === 'correct' ? 'bg-green-600 hover:bg-green-500 text-white' : 'bg-zinc-800 hover:bg-zinc-700 text-zinc-300'}`}
-                                >
-                                    {activeExplanation.type === 'correct' ? 'Continue Investigation' : 'Re-analyze Evidence'}
-                                </Button>
-                            </div>
-                        </motion.div>
-                    </div>
+                    <ExplanationHUD
+                        type={activeExplanation.type}
+                        title={activeExplanation.title}
+                        text={activeExplanation.text}
+                        onClose={activeExplanation.onClose}
+                        isSimultaneous={isSimultaneous}
+                    />
                 )}
             </AnimatePresence>
         </div >
