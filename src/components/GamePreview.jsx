@@ -910,6 +910,7 @@ const GamePreview = ({ nodes, edges, onClose, gameMetadata, onGameEnd, onNodeCha
 
 
     const handleOptionClick = (targetId) => {
+        ttsStop();
         const result = resolveNext(targetId, { nodes, edges, inventory, nodeOutputs, history });
         const { nodeId, node, intermediateIds, localInventory, localOutputs, stateChanged, audioToPlay } = result;
 

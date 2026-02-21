@@ -154,6 +154,11 @@ export function useChirpTTS({
     const keepAliveRef = useRef(null);
     const useChirpPath = !!(apiKey && configuredVoiceName);
 
+    const activeTextRef = useRef(text);
+    useEffect(() => {
+        activeTextRef.current = text;
+    }, [text]);
+
     useEffect(() => {
         isMounted.current = true;
         return () => { isMounted.current = false; };
@@ -236,6 +241,7 @@ export function useChirpTTS({
     const speakChirp = useCallback(async () => {
         const trimmedKey = apiKey.trim();
         if (!text || !trimmedKey) return;
+        const textAtStart = text;
 
         if (isMounted.current) setStatus('loading');
 
@@ -281,6 +287,9 @@ export function useChirpTTS({
                 throw new Error(`Google TTS API error ${response.status}: ${errText}`);
             }
 
+            // Guard against text change during fetch
+            if (!isMounted.current || activeTextRef.current !== textAtStart) return;
+
             const { audioContent } = await response.json();
             if (!audioContent) throw new Error('Empty audio response');
 
@@ -294,7 +303,11 @@ export function useChirpTTS({
             const blobUrl = URL.createObjectURL(blob);
             audioBlobUrl.current = blobUrl;
 
-            if (!isMounted.current) { URL.revokeObjectURL(blobUrl); return; }
+            // Final guard before starting playback
+            if (!isMounted.current || activeTextRef.current !== textAtStart) {
+                URL.revokeObjectURL(blobUrl);
+                return;
+            }
 
             // Create or reuse audio element
             if (!audioRef.current) audioRef.current = new Audio();
