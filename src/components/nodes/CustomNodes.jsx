@@ -2223,12 +2223,12 @@ Keep responses concise but immersive.
                                             value={data.name || ''}
                                             onChange={(e) => {
                                                 const node = suspectNodes.find(n => (n.data?.name || n.data?.label || n.id) === e.target.value);
-                                                handleChange('name', e.target.value);
+                                                const updates = { name: e.target.value };
                                                 if (node?.data) {
-                                                    // Auto-fill other fields if possible
-                                                    handleChange('role', node.data.role || '');
-                                                    handleChange('image', (node.data.images && node.data.images[0]) || node.data.image || '');
+                                                    updates.role = node.data.role || '';
+                                                    updates.image = (node.data.images && node.data.images[0]) || node.data.image || '';
                                                 }
+                                                data.onChange && data.onChange(id, { ...data, ...updates });
                                             }}
                                         >
                                             <option value="">— Pick a Suspect —</option>
@@ -2985,16 +2985,20 @@ export const SetterNode = memo(({ id, data, selected }) => {
 const ObjectiveModal = ({ isOpen, onClose, values, onChange, objectives }) => {
     const [searchQuery, setSearchQuery] = useState('');
     const [selectedCategory, setSelectedCategory] = useState('All');
+    const [localValues, setLocalValues] = useState(Array.isArray(values) ? values : (values ? [values] : []));
 
     if (!isOpen) return null;
 
-    const selectedIds = Array.isArray(values) ? values : (values ? [values] : []);
-
     const toggleObjective = (id) => {
-        const newValues = selectedIds.includes(id)
-            ? selectedIds.filter(v => v !== id)
-            : [...selectedIds, id];
-        onChange(newValues);
+        setLocalValues(prev => prev.includes(id)
+            ? prev.filter(v => v !== id)
+            : [...prev, id]
+        );
+    };
+
+    const handleFinalize = () => {
+        onChange(localValues);
+        onClose();
     };
 
     const categoriesList = ['All', ...objectives.map(cat => cat.category)];
@@ -3034,7 +3038,7 @@ const ObjectiveModal = ({ isOpen, onClose, values, onChange, objectives }) => {
                             <h3 className="text-lg md:text-2xl font-black text-white uppercase tracking-tighter flex items-center gap-2 md:gap-3 truncate">
                                 Objective Lock
                                 <span className="bg-indigo-500/20 text-indigo-400 text-[10px] md:text-xs px-2 py-0.5 md:px-2.5 md:py-1 rounded-full border border-indigo-500/30 font-bold">
-                                    {selectedIds.length}
+                                    {localValues.length}
                                 </span>
                             </h3>
                             <p className="text-[10px] md:text-sm text-zinc-500 font-medium truncate">Connect node to learning outcomes</p>
@@ -3108,7 +3112,7 @@ const ObjectiveModal = ({ isOpen, onClose, values, onChange, objectives }) => {
                                         </div>
                                         <div className="grid grid-cols-1 xl:grid-cols-2 gap-3">
                                             {cat.objectives.map((obj) => {
-                                                const isSelected = selectedIds.includes(obj.id);
+                                                const isSelected = localValues.includes(obj.id);
                                                 return (
                                                     <motion.div
                                                         key={obj.id}
@@ -3161,7 +3165,7 @@ const ObjectiveModal = ({ isOpen, onClose, values, onChange, objectives }) => {
                         Showing <span className="text-zinc-300 font-bold">{filteredObjectives.reduce((acc, cat) => acc + cat.objectives.length, 0)}</span> educational targets
                     </p>
                     <button
-                        onClick={onClose}
+                        onClick={handleFinalize}
                         className="px-10 py-3.5 bg-gradient-to-r from-indigo-500 to-indigo-600 hover:from-indigo-600 hover:to-indigo-700 text-white text-xs font-black uppercase tracking-[0.2em] rounded-2xl transition-all shadow-lg shadow-indigo-500/25 active:scale-95 border border-indigo-400/30 flex items-center gap-2"
                     >
                         <Check className="w-4 h-4" />
@@ -3402,8 +3406,8 @@ export const CrazyWallNode = memo(({ id, data, selected }) => {
         ]);
     };
 
-    const updateConnection = (index, field, value) => {
-        const next = connections.map((c, i) => i === index ? { ...c, [field]: value } : c);
+    const updateConnection = (index, updates) => {
+        const next = connections.map((c, i) => i === index ? { ...c, ...updates } : c);
         handleChange('connections', next);
     };
 
@@ -3491,9 +3495,11 @@ export const CrazyWallNode = memo(({ id, data, selected }) => {
                                                 value={conn.suspectId || ''}
                                                 onChange={(e) => {
                                                     const node = suspectNodes.find(n => n.id === e.target.value);
-                                                    updateConnection(idx, 'suspectId', e.target.value);
-                                                    updateConnection(idx, 'suspectName', node?.data?.name || node?.data?.label || '');
-                                                    updateConnection(idx, 'suspectImage', node?.data?.images?.[0] || '');
+                                                    updateConnection(idx, {
+                                                        suspectId: e.target.value,
+                                                        suspectName: node?.data?.name || node?.data?.label || '',
+                                                        suspectImage: node?.data?.images?.[0] || ''
+                                                    });
                                                 }}
                                             >
                                                 <option value="">— Pick a Suspect —</option>
@@ -3505,7 +3511,7 @@ export const CrazyWallNode = memo(({ id, data, selected }) => {
                                             <InputField
                                                 placeholder="Suspect name (add Suspect nodes to canvas for picker)"
                                                 value={conn.suspectName || ''}
-                                                onChange={(e) => updateConnection(idx, 'suspectName', e.target.value)}
+                                                onChange={(e) => updateConnection(idx, { suspectName: e.target.value })}
                                                 className="text-red-300/80"
                                             />
                                         )}
@@ -3517,7 +3523,7 @@ export const CrazyWallNode = memo(({ id, data, selected }) => {
                                         <InputField
                                             placeholder="e.g. stole the encryption keys"
                                             value={conn.action || ''}
-                                            onChange={(e) => updateConnection(idx, 'action', e.target.value)}
+                                            onChange={(e) => updateConnection(idx, { action: e.target.value })}
                                             className="text-indigo-300/80"
                                         />
                                     </div>
@@ -3531,9 +3537,11 @@ export const CrazyWallNode = memo(({ id, data, selected }) => {
                                                 value={conn.evidenceId || ''}
                                                 onChange={(e) => {
                                                     const node = evidenceNodes.find(n => n.id === e.target.value);
-                                                    updateConnection(idx, 'evidenceId', e.target.value);
-                                                    updateConnection(idx, 'evidenceName', node?.data?.displayName || node?.data?.label || '');
-                                                    updateConnection(idx, 'evidenceImage', node?.data?.image || '');
+                                                    updateConnection(idx, {
+                                                        evidenceId: e.target.value,
+                                                        evidenceName: node?.data?.displayName || node?.data?.label || '',
+                                                        evidenceImage: node?.data?.image || ''
+                                                    });
                                                 }}
                                             >
                                                 <option value="">— Pick Evidence —</option>
@@ -3545,7 +3553,7 @@ export const CrazyWallNode = memo(({ id, data, selected }) => {
                                             <InputField
                                                 placeholder="Evidence name (add Evidence nodes to canvas for picker)"
                                                 value={conn.evidenceName || ''}
-                                                onChange={(e) => updateConnection(idx, 'evidenceName', e.target.value)}
+                                                onChange={(e) => updateConnection(idx, { evidenceName: e.target.value })}
                                                 className="text-yellow-300/80"
                                             />
                                         )}
@@ -3557,7 +3565,7 @@ export const CrazyWallNode = memo(({ id, data, selected }) => {
                                         </p>
                                         <ObjectiveSelector
                                             values={conn.learningObjectiveIds || []}
-                                            onChange={(v) => updateConnection(idx, 'learningObjectiveIds', v)}
+                                            onChange={(v) => updateConnection(idx, { learningObjectiveIds: v })}
                                             objectives={data.learningObjectives}
                                         />
                                     </div>
