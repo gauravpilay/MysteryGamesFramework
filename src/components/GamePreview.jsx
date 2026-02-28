@@ -1,6 +1,6 @@
 import React, { useState, useEffect, useMemo, useRef } from 'react';
 import { Button, Card } from './ui/shared';
-import { X, User, Search, Terminal, MessageSquare, FileText, ArrowRight, ShieldAlert, CheckCircle, AlertTriangle, Volume2, VolumeX, Image as ImageIcon, Briefcase, Star, MousePointerClick, Bell, HelpCircle, Clock, ZoomIn, LayoutGrid, ChevronRight, Fingerprint, Cpu, Activity, Shield, Hash, Box as BoxIcon, Radio, Lightbulb, Mail, Paperclip, Unlock, XCircle, Play, Pause, Square } from 'lucide-react';
+import { X, User, Search, Terminal, MessageSquare, FileText, ArrowRight, ShieldAlert, CheckCircle, AlertTriangle, Volume2, VolumeX, Image as ImageIcon, Briefcase, Star, MousePointerClick, Bell, HelpCircle, Clock, ZoomIn, LayoutGrid, ChevronRight, Fingerprint, Cpu, Activity, Shield, Hash, Box as BoxIcon, Radio, Lightbulb, Mail, Paperclip, Unlock, XCircle, Play, Pause, Square, Info } from 'lucide-react';
 import { motion, AnimatePresence } from 'framer-motion';
 import EvidenceBoard from './EvidenceBoard';
 import AdvancedTerminal from './AdvancedTerminal';
@@ -552,6 +552,7 @@ const GamePreview = ({ nodes, edges, onClose, gameMetadata, onGameEnd, onNodeCha
     const [showDeepWeb, setShowDeepWeb] = useState(false);
     const [accusedName, setAccusedName] = useState('');
     const [activeExplanation, setActiveExplanation] = useState(null); // { title: string, type: 'correct'|'incorrect', text: string, onClose: function }
+    const [showQuestionHelp, setShowQuestionHelp] = useState(false);
 
     // Logic/Outputs State
     const [nodeOutputs, setNodeOutputs] = useState({});
@@ -2346,6 +2347,17 @@ const GamePreview = ({ nodes, edges, onClose, gameMetadata, onGameEnd, onNodeCha
                                             <h2 className="text-2xl font-bold text-white uppercase tracking-tight">Challenge / Quiz</h2>
                                         </div>
 
+                                        {/* Protocol intelligence (Help) button */}
+                                        {activeModalNode.data.helpContent && (
+                                            <button
+                                                onClick={() => setShowQuestionHelp(true)}
+                                                className="group flex items-center gap-2 px-3 py-1.5 rounded-lg bg-indigo-500/10 border border-indigo-500/20 hover:bg-indigo-500/30 hover:border-indigo-500/40 transition-all shadow-[0_0_15px_rgba(99,102,241,0.1)] hover:shadow-[0_0_20px_rgba(99,102,241,0.2)]"
+                                                title="Help"
+                                            >
+                                                <Info className="w-4 h-4 text-indigo-400 group-hover:scale-110 transition-transform" />
+                                                <span className="text-[10px] font-black uppercase text-indigo-300 tracking-widest hidden sm:inline">Help</span>
+                                            </button>
+                                        )}
                                     </div>
 
                                     <div className="flex-1 overflow-y-auto">
@@ -2859,6 +2871,55 @@ const GamePreview = ({ nodes, edges, onClose, gameMetadata, onGameEnd, onNodeCha
                 caseTitle={gameMetadata?.title || "Unknown Mission"}
                 isSimultaneous={isSimultaneous}
             />
+
+            {/* Question Intelligence Protocol (Help) Popup */}
+            <AnimatePresence>
+                {showQuestionHelp && activeModalNode?.data.helpContent && (
+                    <div className="fixed inset-0 z-[300] flex items-center justify-center p-4 bg-black/60 backdrop-blur-md" onClick={() => setShowQuestionHelp(false)}>
+                        <motion.div
+                            initial={{ opacity: 0, scale: 0.9, y: 20 }}
+                            animate={{ opacity: 1, scale: 1, y: 0 }}
+                            exit={{ opacity: 0, scale: 0.9, y: 20 }}
+                            className="bg-zinc-950 border border-indigo-500/30 p-8 rounded-3xl max-w-lg w-full shadow-[0_0_50px_rgba(99,102,241,0.2)] relative overflow-hidden"
+                            onClick={(e) => e.stopPropagation()}
+                        >
+                            {/* Decorative Background Items */}
+                            <div className="absolute top-0 right-0 w-32 h-32 bg-indigo-600/10 blur-3xl rounded-full -mr-16 -mt-16"></div>
+                            <div className="absolute bottom-0 left-0 w-24 h-24 bg-fuchsia-600/10 blur-3xl rounded-full -ml-12 -mb-12"></div>
+
+                            <div className="relative z-10">
+                                <div className="flex items-center gap-4 mb-6">
+                                    <div className="p-3 bg-indigo-500/20 rounded-2xl border border-indigo-500/30">
+                                        <Info className="w-6 h-6 text-indigo-400" />
+                                    </div>
+                                    <div>
+                                        <h3 className="text-xl font-black text-white uppercase tracking-tight leading-none mb-1">Additional Information</h3>
+                                    </div>
+                                </div>
+
+                                <div className="bg-black/40 border border-white/5 p-6 rounded-2xl mb-8">
+                                    <p className="text-zinc-300 leading-relaxed whitespace-pre-wrap italic font-serif text-lg">
+                                        "{activeModalNode.data.helpContent}"
+                                    </p>
+                                </div>
+
+                                <Button
+                                    onClick={() => setShowQuestionHelp(false)}
+                                    className="w-full bg-indigo-600 hover:bg-indigo-500 text-white font-black uppercase tracking-[0.2em] h-12 rounded-xl border-t border-white/20 shadow-xl"
+                                >
+                                    Okay
+                                </Button>
+                            </div>
+
+                            {/* Technical Corners */}
+                            <div className="absolute top-0 left-0 w-8 h-8 border-t-2 border-l-2 border-indigo-500/20 rounded-tl-3xl"></div>
+                            <div className="absolute top-0 right-0 w-8 h-8 border-t-2 border-r-2 border-indigo-500/20 rounded-tr-3xl"></div>
+                            <div className="absolute bottom-0 left-0 w-8 h-8 border-b-2 border-l-2 border-indigo-500/20 rounded-bl-3xl"></div>
+                            <div className="absolute bottom-0 right-0 w-8 h-8 border-b-2 border-r-2 border-indigo-500/20 rounded-br-3xl"></div>
+                        </motion.div>
+                    </div>
+                )}
+            </AnimatePresence>
 
             {/* Enhanced Explanation HUD */}
             <AnimatePresence>

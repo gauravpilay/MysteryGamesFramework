@@ -14,7 +14,7 @@ import 'reactflow/dist/style.css';
 import { useParams, useNavigate } from 'react-router-dom';
 import { Button } from '../components/ui/shared';
 import { Logo } from '../components/ui/Logo';
-import { Save, ArrowLeft, X, FileText, User, Search, GitMerge, Terminal, MessageSquare, CircleHelp, Play, Settings, Music, Image as ImageIcon, MousePointerClick, Fingerprint, Bell, HelpCircle, ChevronLeft, ChevronRight, ToggleLeft, Lock, Sun, Moon, Stethoscope, Unlock, Binary, Grid3x3, CheckCircle, AlertTriangle, Plus, Trash2, Target, Box, FolderOpen, Brain, Pencil, Film, Menu, Globe, ShieldAlert, Mail, LayoutGrid, Activity, Lightbulb, Volume2, VolumeX } from 'lucide-react';
+import { Save, ArrowLeft, X, FileText, User, Search, GitMerge, Terminal, MessageSquare, Play, Settings, Music, Image as ImageIcon, MousePointerClick, Fingerprint, Bell, HelpCircle, Info, ChevronLeft, ChevronRight, ToggleLeft, Lock, Sun, Moon, Stethoscope, Unlock, Binary, Grid3x3, CheckCircle, AlertTriangle, Plus, Trash2, Target, Box, FolderOpen, Brain, Pencil, Film, Menu, Globe, ShieldAlert, Mail, LayoutGrid, Activity, Lightbulb, Volume2, VolumeX } from 'lucide-react';
 import { StoryNode, SuspectNode, EvidenceNode, LogicNode, TerminalNode, MessageNode, MusicNode, MediaNode, ActionNode, IdentifyNode, NotificationNode, QuestionNode, SetterNode, LockpickNode, DecryptionNode, KeypadNode, GroupNode, InputField, InterrogationNode, ThreeDSceneNode, CutsceneNode, DeepWebOSNode, EmailNode, FactNode } from '../components/nodes/CustomNodes';
 import dagre from 'dagre';
 import AICaseGeneratorModal from '../components/AICaseGeneratorModalAdvanced';
@@ -109,14 +109,21 @@ const NODE_HELP = {
         examples: ["Achievement Unlocked", "System Alert", "Tutorial Tip"]
     },
     question: {
-        title: "Question / Quiz",
-        desc: "Ask the player a question with single or multiple correct answers. Rewarding points for correct answers.",
-        examples: ["Riddle", "Knowledge Check", "Code Decryption"]
+        title: "Interrogative Protocol",
+        desc: "Deployment of structured inquiries to validate player intelligence. This node supports high-stakes decision points, rhythmic knowledge checks, and branched narrative outcomes based on accuracy.",
+        examples: ["Cipher Verification", "Suspect Alibi Cross-Examination", "Logic Extraction Quiz"],
+        details: [
+            "Support for single and multi-selection modes.",
+            "Dynamic point awarding and penalty systems.",
+            "Custom feedback/explanations for individual answer choices.",
+            "Logic ID trigger on correct submission to bridge narrative paths.",
+            "Integrated hint system with progressive point costs."
+        ]
     },
     setter: {
-        title: "Set Variable",
-        desc: "Updates a hidden variable or logic ID in the game state. Use to manually trigger flags or track progress.",
-        examples: ["Unlock Door Flag", "Set Score", "Mark Chapter Complete"]
+        title: "Variable Modification",
+        desc: "State-level intervention. Updates persistent game variables to track mission flags, character relationships, or environmental states.",
+        examples: ["Unlock High-Security Perimeter", "Initialize 'Red Protocol'", "Escalate Suspect Tension"]
     },
     lockpick: {
         title: "Lockpick Minigame",
@@ -629,7 +636,8 @@ const Editor = () => {
                         learningObjectives,
                         enableThreeD,
                         enableTTS,
-                        isExecuting: node.id === activeExecutingNodeId
+                        isExecuting: node.id === activeExecutingNodeId,
+                        onShowHelp: () => setHelpModalData(NODE_HELP[node.type])
                     }
                 };
             }));
@@ -2572,7 +2580,7 @@ Please provide a concise plot summary and narrative overview based on these elem
                             </Button>
                             <div className="w-px h-4 bg-white/10"></div>
                             <Button variant="ghost" size="icon" onClick={() => setShowTutorial(true)} title="How to use" className="h-8 w-8">
-                                <CircleHelp className={`w-4 h-4 ${isDarkMode ? 'text-indigo-400' : 'text-indigo-600'}`} />
+                                <Info className={`w-4 h-4 ${isDarkMode ? 'text-indigo-400' : 'text-indigo-600'}`} />
                             </Button>
                             <Button variant="ghost" size="icon" onClick={validateGraph} title="Validate Graph Health" className="h-8 w-8">
                                 <Stethoscope className={`w-4 h-4 ${isDarkMode ? 'text-emerald-400' : 'text-emerald-600'}`} />
@@ -2832,10 +2840,10 @@ Please provide a concise plot summary and narrative overview based on these elem
                                 {!isPaletteCollapsed && (
                                     <button
                                         onClick={(e) => { e.stopPropagation(); setHelpModalData(NODE_HELP[item.type]); }}
-                                        className={`ml-2 opacity-0 group-hover:opacity-100 transition-all p-1.5 rounded-md hover:bg-indigo-500 hover:text-white text-zinc-500`}
-                                        title="Info"
+                                        className={`ml-2 transition-all p-1.5 rounded-md hover:bg-indigo-500 hover:text-white ${item.type === 'question' ? 'opacity-100 bg-indigo-500/10 text-indigo-400' : 'opacity-0 group-hover:opacity-100 text-zinc-500'}`}
+                                        title={`${item.label} Info`}
                                     >
-                                        <CircleHelp className="w-3.5 h-3.5" />
+                                        <Info className="w-3.5 h-3.5" />
                                     </button>
                                 )}
                             </div>
@@ -3216,28 +3224,68 @@ Please provide a concise plot summary and narrative overview based on these elem
                 }
                 {
                     helpModalData && (
-                        <div className="fixed inset-0 z-[60] flex items-center justify-center p-4 bg-black/80 backdrop-blur-sm" onClick={() => setHelpModalData(null)}>
-                            <div className="bg-zinc-950 border border-zinc-800 p-6 rounded-xl max-w-md w-full shadow-2xl relative" onClick={(e) => e.stopPropagation()}>
-                                <button onClick={() => setHelpModalData(null)} className="absolute top-4 right-4 text-zinc-500 hover:text-white transition-colors">
+                        <div className="fixed inset-0 z-[100] flex items-center justify-center p-4 bg-black/80 backdrop-blur-xl" onClick={() => setHelpModalData(null)}>
+                            <motion.div
+                                initial={{ opacity: 0, scale: 0.9, y: 20 }}
+                                animate={{ opacity: 1, scale: 1, y: 0 }}
+                                exit={{ opacity: 0, scale: 0.9, y: 20 }}
+                                className="bg-zinc-950 border border-white/10 p-8 rounded-3xl max-w-lg w-full shadow-[0_0_50px_rgba(99,102,241,0.2)] relative overflow-hidden"
+                                onClick={(e) => e.stopPropagation()}
+                            >
+                                {/* Decorative background elements */}
+                                <div className="absolute top-0 right-0 w-32 h-32 bg-indigo-500/10 blur-[60px]"></div>
+                                <div className="absolute bottom-0 left-0 w-32 h-32 bg-fuchsia-500/10 blur-[60px]"></div>
+
+                                <button onClick={() => setHelpModalData(null)} className="absolute top-6 right-6 text-zinc-500 hover:text-white transition-all hover:rotate-90">
                                     <X className="w-5 h-5" />
                                 </button>
-                                <h2 className="text-xl font-bold text-white mb-4 flex items-center gap-2">
-                                    <CircleHelp className="w-6 h-6 text-indigo-500" />
-                                    {helpModalData.title}
-                                </h2>
-                                <p className="text-zinc-300 leading-relaxed mb-6"> {helpModalData.desc} </p>
-                                <div className="bg-zinc-900/50 rounded-lg p-4 border border-zinc-800">
-                                    <h3 className="text-xs font-bold text-zinc-500 uppercase tracking-wider mb-3">Example Usage</h3>
-                                    <ul className="space-y-2">
-                                        {helpModalData.examples.map((ex, i) => (
-                                            <li key={i} className="flex items-start gap-2 text-sm text-zinc-400">
-                                                <span className="text-indigo-500 mt-1">•</span>
-                                                {ex}
-                                            </li>
-                                        ))}
-                                    </ul>
+
+                                <div className="flex items-center gap-4 mb-6">
+                                    <div className="p-3 rounded-2xl bg-indigo-500/20 border border-indigo-500/30">
+                                        <Info className="w-6 h-6 text-indigo-400" />
+                                    </div>
+                                    <div>
+                                        <h2 className="text-2xl font-black text-white tracking-tight uppercase">
+                                            {helpModalData.title}
+                                        </h2>
+                                        <p className="text-[10px] font-bold text-indigo-400 uppercase tracking-widest mt-1">Intelligence Protocol</p>
+                                    </div>
                                 </div>
-                            </div>
+
+                                <p className="text-zinc-400 leading-relaxed mb-8 text-sm font-medium italic">
+                                    "{helpModalData.desc}"
+                                </p>
+
+                                {helpModalData.details && (
+                                    <div className="space-y-3 mb-8">
+                                        {helpModalData.details.map((detail, i) => (
+                                            <div key={i} className="flex items-center gap-3 text-xs text-zinc-300 font-medium">
+                                                <div className="w-1.5 h-1.5 rounded-full bg-indigo-500 shadow-[0_0_10px_rgba(99,102,241,0.8)]"></div>
+                                                {detail}
+                                            </div>
+                                        ))}
+                                    </div>
+                                )}
+
+                                <div className="bg-white/5 rounded-2xl p-6 border border-white/10 backdrop-blur-md">
+                                    <h3 className="text-[10px] font-black text-white/40 uppercase tracking-[0.2em] mb-4">Tactical Examples</h3>
+                                    <div className="grid grid-cols-1 gap-3">
+                                        {helpModalData.examples.map((ex, i) => (
+                                            <div key={i} className="px-4 py-2.5 bg-black/40 border border-white/5 rounded-xl text-xs text-zinc-400 font-mono flex items-center gap-3 group hover:border-indigo-500/50 transition-all">
+                                                <span className="text-indigo-600 font-bold">0{i + 1}</span>
+                                                {ex}
+                                            </div>
+                                        ))}
+                                    </div>
+                                </div>
+
+                                <button
+                                    onClick={() => setHelpModalData(null)}
+                                    className="w-full mt-8 py-4 bg-indigo-600 hover:bg-indigo-500 text-white font-bold rounded-2xl transition-all shadow-lg shadow-indigo-500/20 active:scale-[0.98]"
+                                >
+                                    ACKNOWLEDGE
+                                </button>
+                            </motion.div>
                         </div>
                     )
                 }

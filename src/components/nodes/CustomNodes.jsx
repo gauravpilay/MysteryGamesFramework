@@ -360,6 +360,15 @@ const NodeWrapper = ({ children, title, icon: Icon, colorClass = "border-zinc-70
                 </div>
                 <span className="text-xs font-extrabold uppercase tracking-widest flex-1 relative z-10 drop-shadow-sm truncate">{title}</span>
                 <div className="flex items-center gap-1.5 relative z-10">
+                    {data.onShowHelp && (
+                        <button
+                            className="p-1.5 hover:bg-white/10 rounded-md text-zinc-500 hover:text-indigo-400 transition-all"
+                            onClick={(e) => { e.stopPropagation(); data.onShowHelp(); }}
+                            title="Intelligence Protocol"
+                        >
+                            <Info className="w-3.5 h-3.5" />
+                        </button>
+                    )}
                     <button
                         className={`p-1.5 hover:bg-white/10 rounded-md transition-all ${data.collapsed ? 'text-indigo-400' : 'text-zinc-500 hover:text-white'}`}
                         onClick={(e) => {
@@ -2684,6 +2693,22 @@ export const QuestionNode = memo(({ id, data, selected }) => {
                         value={data.question}
                         onChange={(e) => handleChange('question', e.target.value)}
                     />
+
+                    {/* Additional Help/Info Configuration */}
+                    <div className="pt-1 mt-1 border-t border-fuchsia-900/10">
+                        <div className="flex items-center gap-1.5 mb-1 ml-1 text-fuchsia-400/80">
+                            <Info className="w-3 h-3" />
+                            <span className="text-[9px] font-black uppercase tracking-wider">Additional Help</span>
+                        </div>
+                        <TextArea
+                            placeholder="Enter additional background info or help text for the player..."
+                            rows={3}
+                            value={data.helpContent}
+                            onChange={(e) => handleChange('helpContent', e.target.value)}
+                            className="text-[11px] !bg-fuchsia-950/5 border-fuchsia-900/10 focus:border-fuchsia-500/30"
+                        />
+                        <p className="text-[8px] text-zinc-500 mt-1 italic ml-1 leading-tight">Displayed to players via the 'Intelligence Protocol' (i) icon during the challenge.</p>
+                    </div>
 
                     {/* Question Image */}
                     <div className="space-y-2">
