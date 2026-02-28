@@ -1,7 +1,7 @@
 import React, { memo, useState, useRef, useEffect } from 'react';
 import ReactDOM from 'react-dom';
 import { Handle, Position, NodeResizer } from 'reactflow';
-import { FileText, User, Search, GitMerge, Terminal, MessageSquare, Music, Image as ImageIcon, Star, MousePointerClick, Trash2, Plus, Copy, Fingerprint, Bell, HelpCircle, ToggleLeft, Unlock, Binary, Grid3x3, Folder, ChevronDown, ChevronUp, Maximize, X, Save, File, FolderOpen, AlertCircle, Brain, Cpu, Send, Loader2, Check, Filter, ShieldAlert, Box, CheckCircle, Activity, Shield, Hash, Film, Globe, Lightbulb, Mail, Bold, Italic, List, Type, Palette, Info, Volume2, VolumeX } from 'lucide-react';
+import { FileText, User, Search, GitMerge, Terminal, MessageSquare, Music, Image as ImageIcon, Star, MousePointerClick, Trash2, Plus, Copy, Fingerprint, Bell, HelpCircle, ToggleLeft, Unlock, Binary, Grid3x3, Folder, ChevronDown, ChevronUp, Maximize, X, Save, File, FolderOpen, AlertCircle, Brain, Cpu, Send, Loader2, Check, Filter, ShieldAlert, Box, CheckCircle, Activity, Shield, Hash, Film, Globe, Lightbulb, Mail, Bold, Italic, List, Type, Palette, Info, Volume2, VolumeX, Eye, Link } from 'lucide-react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { storage } from '../../lib/firebase';
 import { ref, uploadBytes, getDownloadURL } from 'firebase/storage';
@@ -3328,3 +3328,210 @@ export const DeepWebOSNode = memo(({ id, data, selected }) => {
         </>
     );
 });
+
+// ─────────────────────────────────────────────────────────────────────────────
+// CRAZY WALL / PLOT REVEAL NODE
+// ─────────────────────────────────────────────────────────────────────────────
+export const CrazyWallNode = memo(({ id, data, selected }) => {
+    const handleChange = (key, val) => {
+        data.onChange && data.onChange(id, { ...data, [key]: val });
+    };
+
+    const connections = data.connections || [];
+
+    const addConnection = () => {
+        handleChange('connections', [
+            ...connections,
+            { suspectId: '', suspectName: '', suspectImage: '', evidenceId: '', evidenceName: '', evidenceImage: '', action: '', objectiveLabel: '' }
+        ]);
+    };
+
+    const updateConnection = (index, field, value) => {
+        const next = connections.map((c, i) => i === index ? { ...c, [field]: value } : c);
+        handleChange('connections', next);
+    };
+
+    const removeConnection = (index) => {
+        handleChange('connections', connections.filter((_, i) => i !== index));
+    };
+
+    // Pull suspect & evidence nodes from siblings via learningObjectives channel
+    const suspectNodes = (data.allNodes || []).filter(n => n.type === 'suspect');
+    const evidenceNodes = (data.allNodes || []).filter(n => n.type === 'evidence');
+
+    return (
+        <>
+            <Handle type="target" position={Position.Top} className="!bg-zinc-500 !w-3 !h-3 !border-2 !border-black" />
+            <NodeWrapper
+                id={id}
+                title="Plot Reveal — Crazy Wall"
+                icon={Eye}
+                selected={selected}
+                headerClass="bg-red-950/40 text-red-200"
+                colorClass="border-red-900/40"
+                data={data}
+                onLabelChange={(v) => handleChange('label', v)}
+            >
+                <div className="space-y-3">
+                    {/* Info banner */}
+                    <div className="p-2 bg-red-950/20 border border-red-500/20 rounded-lg text-center">
+                        <p className="text-[10px] text-red-300 font-bold uppercase tracking-wider mb-0.5">🕵️ Interactive Crazy Wall</p>
+                        <p className="text-[9px] text-zinc-500 italic leading-tight">Player drags tiles to connect suspects, actions & evidence to reveal the plot.</p>
+                    </div>
+
+                    {/* Intro text */}
+                    <div>
+                        <p className="text-[10px] text-zinc-500 mb-1 uppercase font-bold tracking-tight">Intro Text (shown before the board)</p>
+                        <TextArea
+                            placeholder="e.g. You have all the pieces. Now expose the truth..."
+                            rows={2}
+                            value={data.introText || ''}
+                            onChange={(e) => handleChange('introText', e.target.value)}
+                        />
+                    </div>
+
+                    {/* Connections list */}
+                    <div>
+                        <div className="flex items-center justify-between mb-2">
+                            <p className="text-[10px] text-zinc-400 uppercase font-bold tracking-tight flex items-center gap-1">
+                                <Link className="w-3 h-3" /> Plot Connections
+                            </p>
+                            <button
+                                onClick={addConnection}
+                                className="flex items-center gap-1 text-[9px] font-black uppercase tracking-widest text-red-400 hover:text-red-300 px-2 py-1 rounded-lg bg-red-900/20 hover:bg-red-900/30 border border-red-900/30 transition-all"
+                            >
+                                <Plus className="w-3 h-3" /> Add
+                            </button>
+                        </div>
+
+                        {connections.length === 0 && (
+                            <div className="p-3 border border-dashed border-zinc-800 rounded-lg text-center">
+                                <p className="text-[9px] text-zinc-600 uppercase tracking-wider">No connections yet.<br />Click Add to build the plot.</p>
+                            </div>
+                        )}
+
+                        <div className="space-y-3 max-h-[400px] overflow-y-auto pr-1 custom-scrollbar">
+                            {connections.map((conn, idx) => (
+                                <div key={idx} className="p-3 bg-black/30 border border-zinc-800 rounded-xl space-y-2 relative">
+                                    {/* Row number */}
+                                    <div className="absolute -top-2 -left-2 w-5 h-5 rounded-full bg-red-600 flex items-center justify-center text-[8px] font-black text-white">
+                                        {idx + 1}
+                                    </div>
+                                    <button
+                                        onClick={() => removeConnection(idx)}
+                                        className="absolute top-2 right-2 p-1 rounded-full hover:bg-red-900/30 text-zinc-600 hover:text-red-400 transition-all"
+                                    >
+                                        <Trash2 className="w-3 h-3" />
+                                    </button>
+
+                                    {/* Suspect picker */}
+                                    <div>
+                                        <p className="text-[9px] text-red-400 uppercase font-bold mb-1 flex items-center gap-1"><User className="w-2.5 h-2.5" /> Suspect</p>
+                                        {suspectNodes.length > 0 ? (
+                                            <select
+                                                className="w-full bg-black border border-zinc-800 rounded px-2 py-1 text-[10px] text-zinc-300 focus:border-red-500 outline-none"
+                                                value={conn.suspectId || ''}
+                                                onChange={(e) => {
+                                                    const node = suspectNodes.find(n => n.id === e.target.value);
+                                                    updateConnection(idx, 'suspectId', e.target.value);
+                                                    updateConnection(idx, 'suspectName', node?.data?.name || node?.data?.label || '');
+                                                    updateConnection(idx, 'suspectImage', node?.data?.images?.[0] || '');
+                                                }}
+                                            >
+                                                <option value="">— Pick a Suspect —</option>
+                                                {suspectNodes.map(n => (
+                                                    <option key={n.id} value={n.id}>{n.data?.name || n.data?.label || n.id}</option>
+                                                ))}
+                                            </select>
+                                        ) : (
+                                            <InputField
+                                                placeholder="Suspect name (add Suspect nodes to canvas for picker)"
+                                                value={conn.suspectName || ''}
+                                                onChange={(e) => updateConnection(idx, 'suspectName', e.target.value)}
+                                                className="text-red-300/80"
+                                            />
+                                        )}
+                                    </div>
+
+                                    {/* Action text */}
+                                    <div>
+                                        <p className="text-[9px] text-indigo-400 uppercase font-bold mb-1 flex items-center gap-1"><FileText className="w-2.5 h-2.5" /> What Did They Do?</p>
+                                        <InputField
+                                            placeholder="e.g. stole the encryption keys"
+                                            value={conn.action || ''}
+                                            onChange={(e) => updateConnection(idx, 'action', e.target.value)}
+                                            className="text-indigo-300/80"
+                                        />
+                                    </div>
+
+                                    {/* Evidence picker */}
+                                    <div>
+                                        <p className="text-[9px] text-yellow-400 uppercase font-bold mb-1 flex items-center gap-1"><Search className="w-2.5 h-2.5" /> Using Evidence</p>
+                                        {evidenceNodes.length > 0 ? (
+                                            <select
+                                                className="w-full bg-black border border-zinc-800 rounded px-2 py-1 text-[10px] text-zinc-300 focus:border-yellow-500 outline-none"
+                                                value={conn.evidenceId || ''}
+                                                onChange={(e) => {
+                                                    const node = evidenceNodes.find(n => n.id === e.target.value);
+                                                    updateConnection(idx, 'evidenceId', e.target.value);
+                                                    updateConnection(idx, 'evidenceName', node?.data?.displayName || node?.data?.label || '');
+                                                    updateConnection(idx, 'evidenceImage', node?.data?.image || '');
+                                                }}
+                                            >
+                                                <option value="">— Pick Evidence —</option>
+                                                {evidenceNodes.map(n => (
+                                                    <option key={n.id} value={n.id}>{n.data?.displayName || n.data?.label || n.id}</option>
+                                                ))}
+                                            </select>
+                                        ) : (
+                                            <InputField
+                                                placeholder="Evidence name (add Evidence nodes to canvas for picker)"
+                                                value={conn.evidenceName || ''}
+                                                onChange={(e) => updateConnection(idx, 'evidenceName', e.target.value)}
+                                                className="text-yellow-300/80"
+                                            />
+                                        )}
+                                    </div>
+
+                                    {/* Learning objective tag */}
+                                    <div>
+                                        <p className="text-[9px] text-emerald-400 uppercase font-bold mb-1 flex items-center gap-1"><CheckCircle className="w-2.5 h-2.5" /> Learning Objective Tag</p>
+                                        <InputField
+                                            placeholder="e.g. Understand data breach vectors"
+                                            value={conn.objectiveLabel || ''}
+                                            onChange={(e) => updateConnection(idx, 'objectiveLabel', e.target.value)}
+                                            className="text-emerald-300/80"
+                                        />
+                                    </div>
+                                </div>
+                            ))}
+                        </div>
+                    </div>
+
+                    {/* Score & objectives */}
+                    <div className="mt-2 p-2 bg-black/40 border border-red-900/20 rounded-lg space-y-2">
+                        <div className="flex items-center justify-between">
+                            <p className="text-[9px] font-bold text-red-400 uppercase tracking-wider flex items-center gap-1">
+                                <Star className="w-3 h-3" /> Score Per Correct Match
+                            </p>
+                            <InputField
+                                type="number"
+                                placeholder="100"
+                                value={data.score || 100}
+                                onChange={(e) => handleChange('score', parseInt(e.target.value) || 100)}
+                                className="w-20 text-right bg-red-950/30 border-red-900/30 text-red-200"
+                            />
+                        </div>
+                        <ObjectiveSelector
+                            values={data.learningObjectiveIds}
+                            onChange={(v) => handleChange('learningObjectiveIds', v)}
+                            objectives={data.learningObjectives}
+                        />
+                    </div>
+                </div>
+            </NodeWrapper>
+            <Handle type="source" position={Position.Bottom} className="!bg-red-500 !w-3 !h-3 !border-2 !border-black" />
+        </>
+    );
+});
+

@@ -5,7 +5,7 @@ import { collection, query, where, getDocs, orderBy, deleteDoc, doc, writeBatch 
 import { useAuth } from '../lib/auth';
 import { useConfig } from '../lib/config';
 import { motion, AnimatePresence } from 'framer-motion';
-import { X, Brain, Zap, Sparkles, TrendingUp, Calendar, Target, Award, Clock, BarChart2, Filter, ChevronDown, CheckCircle, AlertTriangle, Trash2, Download, CircleHelp, Shield } from 'lucide-react';
+import { X, Brain, Zap, Sparkles, TrendingUp, Calendar, Target, Award, Clock, BarChart2, Filter, ChevronDown, CheckCircle, AlertTriangle, Trash2, Download, HelpCircle, Shield } from 'lucide-react';
 import { jsPDF } from 'jspdf';
 import autoTable from 'jspdf-autotable';
 import { Button, Card } from './ui/shared';
@@ -1234,7 +1234,7 @@ const ProgressReportModal = ({ onClose }) => {
                                                     onClick={() => setShowHelp(!showHelp)}
                                                     className="p-1.5 rounded-full hover:bg-white/10 text-zinc-500 hover:text-indigo-400 transition-all cursor-help"
                                                 >
-                                                    <CircleHelp className="w-5 h-5" />
+                                                    <HelpCircle className="w-5 h-5" />
                                                 </button>
 
                                                 <AnimatePresence>

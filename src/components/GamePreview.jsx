@@ -12,6 +12,7 @@ import CaseClosedNewsReport from './CaseClosedNewsReport';
 import DeepWebOS from './DeepWebOS';
 import FeedbackModal from './FeedbackModal';
 import FactDisplay from './FactDisplay';
+import { CrazyWallGame } from './CrazyWallGame';
 import ExplanationHUD from './ExplanationHUD';
 import { useChirpTTS, DEFAULT_CHIRP_VOICE } from '../lib/useChirpTTS';
 import { useConfig } from '../lib/config';
@@ -550,6 +551,8 @@ const GamePreview = ({ nodes, edges, onClose, gameMetadata, onGameEnd, onNodeCha
     const [showCutscene, setShowCutscene] = useState(false);
     const [showNewsReport, setShowNewsReport] = useState(false);
     const [showDeepWeb, setShowDeepWeb] = useState(false);
+    const [showCrazyWall, setShowCrazyWall] = useState(false);
+    const [activeCrazyWallNode, setActiveCrazyWallNode] = useState(null);
     const [accusedName, setAccusedName] = useState('');
     const [activeExplanation, setActiveExplanation] = useState(null); // { title: string, type: 'correct'|'incorrect', text: string, onClose: function }
     const [showQuestionHelp, setShowQuestionHelp] = useState(false);
@@ -965,6 +968,9 @@ const GamePreview = ({ nodes, edges, onClose, gameMetadata, onGameEnd, onNodeCha
             setShowCutscene(true);
         } else if (node && node.type === 'deepweb') {
             setShowDeepWeb(true);
+        } else if (node && node.type === 'crazywall') {
+            setActiveCrazyWallNode(node);
+            setShowCrazyWall(true);
         } else if (node && node.type === 'identify') {
             setActiveAccusationNode(node);
             setShowAccuseModal(true);
@@ -2822,6 +2828,31 @@ const GamePreview = ({ nodes, edges, onClose, gameMetadata, onGameEnd, onNodeCha
                             }
                         }}
                         isSimultaneous={isSimultaneous}
+                    />
+                )}
+            </AnimatePresence>
+
+            {/* ── Plot Reveal Crazy Wall ─────────────────────────────────────── */}
+            <AnimatePresence>
+                {showCrazyWall && activeCrazyWallNode && (
+                    <CrazyWallGame
+                        node={activeCrazyWallNode}
+                        nodes={nodes}
+                        onComplete={(awardedScore) => {
+                            setShowCrazyWall(false);
+                            // Award points
+                            if (awardedScore > 0) {
+                                setScore(s => s + awardedScore);
+                                setScoreDelta(awardedScore);
+                                rewardObjectivePoints(activeCrazyWallNode, awardedScore);
+                                addLog(`PLOT REVEALED: +${awardedScore} Points`);
+                            }
+                            setActiveCrazyWallNode(null);
+                            // Advance to next node
+                            if (options.length > 0) {
+                                setTimeout(() => handleOptionClick(options[0].target), 600);
+                            }
+                        }}
                     />
                 )}
             </AnimatePresence>

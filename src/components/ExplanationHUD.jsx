@@ -147,7 +147,7 @@ const ExplanationHUD = ({ type, title, text, onClose, isSimultaneous }) => {
                             <div className="flex items-center justify-center gap-4 mb-8">
                                 <div className="h-px w-8 bg-zinc-800" />
                                 <div className="flex items-center gap-2 px-3 py-1 rounded-full bg-black/40 border border-white/5 text-[9px] font-bold text-zinc-500 uppercase tracking-widest">
-                                    <Database className="w-3 h-3" /> System Evidence Log
+                                    {/* <Database className="w-3 h-3" /> System Evidence Log */}
                                 </div>
                                 <div className="h-px w-8 bg-zinc-800" />
                             </div>
@@ -185,7 +185,7 @@ const ExplanationHUD = ({ type, title, text, onClose, isSimultaneous }) => {
                             >
                                 <span className="relative z-10 flex items-center justify-center gap-3">
                                     {isCorrect ? (
-                                        <>Advance Protocol <ShieldCheck className="w-5 h-5" /></>
+                                        <>Continue <ShieldCheck className="w-5 h-5" /></>
                                     ) : (
                                         <>Re-evaluate Findings <Search className="w-5 h-5" /></>
                                     )}
