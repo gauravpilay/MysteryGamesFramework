@@ -1195,12 +1195,16 @@ const Editor = () => {
                         command: n.data?.command || "",
                         answer: n.data?.answer || "",
                         url: n.data?.url || "",
+                        // Single image (evidence, question)
                         image: n.data?.image || "",
+                        // Array of images (suspect, email, fact, media with gallery)
+                        images: n.data?.images || [],
                         mediaType: n.data?.mediaType || "",
                         blocking: n.data?.blocking || false,
                         correctAnswers: n.data?.correctAnswers || [],
                         options: n.data?.options || [],
                         hints: n.data?.hints || [],
+                        helpContent: n.data?.helpContent || '',
                         variableId: n.data?.variableId || "",
                         variableValue: n.data?.variableValue || "",
                         condition: n.data?.condition || "",
@@ -1276,151 +1280,289 @@ Please provide a concise plot summary and narrative overview based on these elem
 
     // Helper function to generate designer-friendly canvas review
     const generateDesignerReview = (storyData) => {
-        const divider = '\n\n' + '='.repeat(80) + '\n\n';
-        let review = divider;
-        review += '# DESIGNER\'S CANVAS REVIEW\n\n';
-        review += '*This section provides a clear overview of your story canvas structure for easy review and flow optimization.*\n\n';
-        review += divider;
+        const divider = '\n\n' + '─'.repeat(80) + '\n\n';
 
-        // 1. Story Overview
-        review += '## 📊 STORY STRUCTURE OVERVIEW\n\n';
-        review += `**Title:** ${storyData.title}\n`;
-        review += `**Description:** ${storyData.description}\n`;
-        review += `**Total Nodes:** ${storyData.nodes.length}\n`;
-        review += `**Total Connections:** ${storyData.edges.length}\n\n`;
+        // ── Topology: BFS from root node(s) ──────────────────────────────────────────
+        // Root nodes = nodes with no incoming edges
+        const incomingSet = new Set(storyData.edges.map(e => e.target));
+        let roots = storyData.nodes.filter(n => !incomingSet.has(n.id));
 
-        // Node type breakdown
-        const nodeTypes = {};
+        // Fallback: if everything has incoming edges (cycle), pick the node with most outgoing
+        if (roots.length === 0 && storyData.nodes.length > 0) {
+            const outDegree = {};
+            storyData.edges.forEach(e => { outDegree[e.source] = (outDegree[e.source] || 0) + 1; });
+            const sorted = [...storyData.nodes].sort((a, b) => (outDegree[b.id] || 0) - (outDegree[a.id] || 0));
+            roots = [sorted[0]];
+        }
+
+        // BFS traversal to determine display order
+        const visited = new Set();
+        const orderedNodes = [];
+        const queue = [...roots];
+        roots.forEach(r => visited.add(r.id));
+
+        while (queue.length > 0) {
+            const current = queue.shift();
+            orderedNodes.push(current);
+
+            // Get children in edge order
+            const childEdges = storyData.edges.filter(e => e.source === current.id);
+            childEdges.forEach(edge => {
+                if (!visited.has(edge.target)) {
+                    visited.add(edge.target);
+                    const childNode = storyData.nodes.find(n => n.id === edge.target);
+                    if (childNode) queue.push(childNode);
+                }
+            });
+        }
+
+        // Append any disconnected nodes not reached via BFS
         storyData.nodes.forEach(n => {
-            nodeTypes[n.type] = (nodeTypes[n.type] || 0) + 1;
+            if (!visited.has(n.id)) orderedNodes.push(n);
         });
-        review += '**Node Breakdown:**\n';
-        Object.entries(nodeTypes).forEach(([type, count]) => {
-            review += `  - ${type}: ${count}\n`;
+
+        // Helper: get node label by ID
+        const nodeLabel = (id) => storyData.nodes.find(n => n.id === id)?.label || id;
+
+        // ── TYPE EMOJI MAP ────────────────────────────────────────────────────────────
+        const typeEmoji = {
+            story: '📖', suspect: '🕵️', evidence: '🔍', question: '❓',
+            terminal: '💻', logic: '🔀', setter: '⚙️', media: '🎬',
+            message: '💬', email: '📧', fact: '💡', notification: '🔔',
+            action: '🖱️', lockpick: '🔓', keypad: '🔢', decryption: '🔐',
+            interrogation: '🗣️', threed: '🌐', cutscene: '🎥', deepweb: '🌑',
+            identify: '⚖️', music: '🎵'
+        };
+
+        const emoji = (type) => typeEmoji[type] || '📌';
+
+        // ── HEADER ────────────────────────────────────────────────────────────────────
+        let review = '';
+        review += '# 🕵️ DESIGNER\'S STORY REVIEW\n\n';
+        review += `**Mission:** ${storyData.title}\n`;
+        review += `**Description:** ${storyData.description}\n\n`;
+        review += `> *This document presents your story flow in player order — from the first node players encounter to the last. Use it to spot issues, review dialogue and questions, and validate the complete player experience.*\n`;
+
+        // ── STATS BOX ─────────────────────────────────────────────────────────────────
+        review += divider;
+        review += '## 📊 CANVAS AT A GLANCE\n\n';
+        review += `| Metric | Value |\n|--------|-------|\n`;
+        review += `| Total Nodes | ${storyData.nodes.length} |\n`;
+        review += `| Total Connections | ${storyData.edges.length} |\n`;
+
+        const nodeTypes = {};
+        storyData.nodes.forEach(n => { nodeTypes[n.type] = (nodeTypes[n.type] || 0) + 1; });
+        Object.entries(nodeTypes).sort((a, b) => b[1] - a[1]).forEach(([type, count]) => {
+            review += `| ${emoji(type)} ${type.charAt(0).toUpperCase() + type.slice(1)} nodes | ${count} |\n`;
         });
         review += '\n';
 
-        // 2. Story Flow Walkthrough
-        review += divider;
-        review += '## 🎬 STORY FLOW WALKTHROUGH\n\n';
-        review += '*Follow the journey through your canvas, node by node, to understand the player experience.*\n\n';
-
-        // Find starting nodes (nodes with no incoming edges)
-        const incomingEdges = new Set(storyData.edges.map(e => e.target));
-        const startNodes = storyData.nodes.filter(n => !incomingEdges.has(n.id));
-
-        if (startNodes.length > 0) {
-            review += `**Starting Point(s):** ${startNodes.map(n => n.label).join(', ')}\n\n`;
+        if (roots.length > 0) {
+            review += `**🟢 Start node(s):** ${roots.map(n => `"${n.label}"`).join(', ')}\n\n`;
         }
 
-        // Walk through each node with its connections
-        storyData.nodes.forEach((node, index) => {
-            review += `### ${index + 1}. ${node.label} [${node.type.toUpperCase()}]\n\n`;
+        // Dead ends
+        const deadEnds = storyData.nodes.filter(n => {
+            return !storyData.edges.some(e => e.source === n.id) && n.type !== 'identify';
+        });
+        if (deadEnds.length > 0) {
+            review += `**🔴 Terminal / End node(s):** ${deadEnds.map(n => `"${n.label}" [${n.type}]`).join(', ')}\n\n`;
+        }
 
-            // Node content
-            if (node.text) {
-                review += `**Content:** ${node.text}\n\n`;
+        // Disconnected / orphan nodes
+        const orphans = storyData.nodes.filter(n =>
+            !storyData.edges.some(e => e.source === n.id) &&
+            !storyData.edges.some(e => e.target === n.id)
+        );
+        if (orphans.length > 0) {
+            review += `**⚠️ Orphaned (unconnected) nodes:** ${orphans.map(n => `"${n.label}" [${n.type}]`).join(', ')}\n\n`;
+        }
+
+        // ── STORY FLOW WALKTHROUGH ────────────────────────────────────────────────────
+        review += divider;
+        review += '## 🎬 STORY FLOW — NODE BY NODE\n\n';
+        review += '*Nodes are listed in the order a player would encounter them, starting from the root and following each connection.*\n\n';
+
+        orderedNodes.forEach((node, index) => {
+            const isStart = roots.some(r => r.id === node.id);
+            const isEnd = !storyData.edges.some(e => e.source === node.id);
+
+            review += `### ${index + 1}. ${emoji(node.type)} ${node.label}`;
+            if (isStart) review += `  ← **[START]**`;
+            if (isEnd && node.type !== 'identify') review += `  ← **[END]**`;
+            review += `\n`;
+            review += `> **Type:** \`${node.type}\`\n\n`;
+
+            // ── Content / dialogue text ────────────────────────────────────────────
+            if (node.text && node.text.trim()) {
+                review += `**Content / Dialogue:**\n`;
+                review += `> ${node.text.replace(/\n/g, '\n> ')}\n\n`;
             }
 
-            // Type-specific details
+            // ── Type-specific sections ─────────────────────────────────────────────
             switch (node.type) {
-                case 'suspect':
-                    if (node.metadata.name) review += `**Character Name:** ${node.metadata.name}\n`;
-                    if (node.metadata.role) review += `**Role:** ${node.metadata.role}\n`;
-                    if (node.metadata.alibi) review += `**Alibi:** ${node.metadata.alibi}\n`;
-                    if (node.metadata.description) review += `**Description:** ${node.metadata.description}\n`;
-                    if (node.metadata.culprit) review += `**⚠️ CULPRIT STATUS:** This character is designated as the culprit (${node.metadata.culprit}).\n`;
-                    review += '\n';
-                    break;
-                case 'evidence':
-                    if (node.metadata.description) review += `**Evidence Details:** ${node.metadata.description}\n`;
-                    if (node.metadata.image) review += `**Evidence Image:** ![Evidence](${node.metadata.image})\n`;
-                    review += '\n';
-                    break;
-                case 'terminal':
-                    if (node.metadata.command) review += `**Required Command:** ${node.metadata.command}\n`;
-                    if (node.metadata.answer) review += `**Expected Answer:** ${node.metadata.answer}\n`;
-                    review += '\n';
-                    break;
-                case 'logic':
-                    if (node.metadata.condition) review += `**Condition:** ${node.metadata.condition}\n`;
-                    if (node.metadata.logicIds && node.metadata.logicIds.length > 0) {
-                        review += `**Logic IDs Required:** ${node.metadata.logicIds.join(', ')}\n`;
+                case 'story':
+                case 'notification':
+                    if (node.metadata.variableId) {
+                        review += `- **Logic ID set on visit:** \`${node.metadata.variableId}\`\n`;
                     }
-                    review += '\n';
+                    if (node.metadata.blocking) review += `- **Blocking:** Player must explicitly continue\n`;
                     break;
+
+                case 'suspect':
+                    if (node.metadata.name) review += `- **Name:** ${node.metadata.name}\n`;
+                    if (node.metadata.role) review += `- **Role / Occupation:** ${node.metadata.role}\n`;
+                    if (node.metadata.alibi) review += `- **Alibi:** ${node.metadata.alibi}\n`;
+                    if (node.metadata.description) review += `- **Description / Backstory:** ${node.metadata.description}\n`;
+                    if (node.metadata.culprit) review += `\n> CULPRIT: This suspect is the culprit (${node.metadata.culprit}).\n`;
+                    // Suspect profile images
+                    if (node.metadata.images && node.metadata.images.length > 0) {
+                        review += `\n**Profile Image(s):**\n`;
+                        node.metadata.images.forEach((imgUrl, i) => {
+                            if (imgUrl) review += `![Suspect Image ${i + 1}](${imgUrl})\n`;
+                        });
+                    }
+                    break;
+
+                case 'evidence':
+                    if (node.metadata.description) review += `- **Evidence Details:** ${node.metadata.description}\n`;
+                    if (node.metadata.variableId) review += `- **Logic ID:** \`${node.metadata.variableId}\`\n`;
+                    if (node.metadata.image) {
+                        review += `\n**Evidence Image:**\n`;
+                        review += `![Evidence](${node.metadata.image})\n`;
+                    }
+                    break;
+
                 case 'question':
-                    review += `**Question:** ${node.text || 'Untitled Question'}\n`;
+                    // Question text (already shown as 'Content' above)
+                    if (node.metadata.helpContent) {
+                        review += `\n**ℹ️ Additional Help/Context shown to player:**\n`;
+                        review += `> *"${node.metadata.helpContent}"*\n\n`;
+                    }
                     if (node.metadata.options && Array.isArray(node.metadata.options) && node.metadata.options.length > 0) {
-                        review += `**Options:**\n`;
-                        node.metadata.options.forEach(opt => {
-                            if (opt) {
-                                review += `  - ${opt.text || 'Untitled Option'} ${opt.isCorrect ? '(CORRECT ✅)' : ''}\n`;
+                        review += `\n**Answer Choices:**\n\n`;
+                        node.metadata.options.forEach((opt, optIdx) => {
+                            if (!opt) return;
+                            const status = opt.isCorrect ? '✅ CORRECT' : '❌ INCORRECT';
+                            review += `  ${optIdx + 1}. **${opt.text || 'Untitled Option'}** — ${status}\n`;
+                            if (opt.explanation && opt.explanation.trim()) {
+                                review += `     > *Explanation:* ${opt.explanation.trim()}\n`;
                             }
                         });
                     }
                     if (node.metadata.hints && Array.isArray(node.metadata.hints) && node.metadata.hints.length > 0) {
-                        review += `**Applied Hints:**\n`;
-                        node.metadata.hints.forEach(hint => {
-                            if (hint) {
-                                review += `  - ${hint.text || 'Untitled Hint'} (Penalty: ${hint.penalty || 0} pts)\n`;
-                            }
+                        review += `\n**Hints available to player:**\n`;
+                        node.metadata.hints.forEach((hint, hi) => {
+                            if (!hint) return;
+                            review += `  - Hint ${hi + 1}: "${hint.text || 'Untitled'}" — costs **-${hint.penalty || 0} pts**\n`;
                         });
                     }
                     review += '\n';
+                    if (node.metadata.variableId) review += `- **Logic ID:** \`${node.metadata.variableId}\`\n`;
                     break;
-                case 'story':
-                case 'email':
-                    if (node.metadata.variableId) review += `**Logic ID (Set on Visit):** ${node.metadata.variableId}\n`;
-                    review += '\n';
+
+                case 'terminal':
+                    if (node.text) review += `- **Task Description:** ${node.text}\n`;
+                    if (node.metadata.command) review += `- **Required Command/Answer:** \`${node.metadata.command}\`\n`;
+                    if (node.metadata.answer) review += `- **Expected Answer:** ${node.metadata.answer}\n`;
+                    if (node.metadata.variableId) review += `- **Logic ID on success:** \`${node.metadata.variableId}\`\n`;
                     break;
+
+                case 'logic':
+                    if (node.metadata.condition) review += `- **Condition type:** ${node.metadata.condition}\n`;
+                    if (node.metadata.logicIds && node.metadata.logicIds.length > 0) {
+                        review += `- **Required Logic IDs:** ${node.metadata.logicIds.map(id => `\`${id}\``).join(', ')}\n`;
+                    }
+                    break;
+
                 case 'setter':
-                    if (node.metadata.variableId) review += `**Variable ID:** ${node.metadata.variableId}\n`;
-                    if (node.metadata.variableValue) review += `**Value:** ${node.metadata.variableValue}\n`;
-                    review += '\n';
+                    if (node.metadata.variableId) review += `- **Sets variable:** \`${node.metadata.variableId}\`\n`;
+                    if (node.metadata.variableValue !== undefined && node.metadata.variableValue !== '')
+                        review += `- **Value:** \`${node.metadata.variableValue}\`\n`;
                     break;
+
+                case 'email':
+                    if (node.metadata.variableId) review += `- **Logic ID set on read:** \`${node.metadata.variableId}\`\n`;
+                    // Email attachments (images)
+                    if (node.metadata.images && node.metadata.images.length > 0) {
+                        review += `\n**Email Attachments:**\n`;
+                        node.metadata.images.forEach((imgUrl, i) => {
+                            if (imgUrl) review += `![Attachment ${i + 1}](${imgUrl})\n`;
+                        });
+                    }
+                    break;
+
                 case 'media':
-                    if (node.metadata.mediaType) review += `**Media Type:** ${node.metadata.mediaType}\n`;
-                    if (node.metadata.url) review += `**URL:** ${node.metadata.url}\n`;
-                    review += '\n';
+                    if (node.metadata.mediaType) review += `- **Media Type:** ${node.metadata.mediaType}\n`;
+                    if (node.metadata.url) review += `- **URL:** ${node.metadata.url}\n`;
+                    if (node.metadata.description) review += `- **Caption:** ${node.metadata.description}\n`;
+                    // Embed image if it's an image type media node
+                    if (node.metadata.url && (!node.metadata.mediaType || node.metadata.mediaType === 'image')) {
+                        review += `\n**Media Image:**\n`;
+                        review += `![Media Image](${node.metadata.url})\n`;
+                    }
                     break;
-                case 'notification':
-                    if (node.metadata.blocking) review += `**Blocking:** Yes (player must acknowledge)\n\n`;
+
+                case 'lockpick':
+                case 'keypad':
+                case 'decryption':
+                    if (node.metadata.command) review += `- **Passcode / Target:** \`${node.metadata.command}\`\n`;
+                    break;
+
+                case 'identify':
+                    if (node.metadata.culprit) review += `- **Correct Culprit:** ${node.metadata.culprit}\n`;
+                    break;
+
+                case 'fact':
+                    if (node.metadata.description) review += `- **Fact Details:** ${node.metadata.description}\n`;
+                    if (node.metadata.variableId) review += `- **Logic ID:** \`${node.metadata.variableId}\`\n`;
+                    // Fact images (array)
+                    if (node.metadata.images && node.metadata.images.length > 0) {
+                        review += `\n**Fact Image(s):**\n`;
+                        node.metadata.images.forEach((imgUrl, i) => {
+                            if (imgUrl) review += `![Fact Image ${i + 1}](${imgUrl})\n`;
+                        });
+                    }
                     break;
             }
 
-            // Outgoing connections
+            // ── Scoring / Penalty ──────────────────────────────────────────────────
+            const rawNode = nodes.find(n => n.id === node.id);
+            if (rawNode) {
+                if (rawNode.data?.score) review += `\n- **Score reward:** +${rawNode.data.score} pts\n`;
+                if (rawNode.data?.penalty) review += `- **Penalty:** -${rawNode.data.penalty} pts\n`;
+            }
+
+            // ── Connections ────────────────────────────────────────────────────────
             const outgoing = storyData.edges.filter(e => e.source === node.id);
-            if (outgoing.length > 0) {
-                review += `**Leads to:**\n`;
-                outgoing.forEach(edge => {
-                    const targetNode = storyData.nodes.find(n => n.id === edge.target);
-                    const targetLabel = targetNode ? targetNode.label : 'Unknown';
-                    const edgeLabel = edge.label ? ` (via "${edge.label}")` : '';
-                    review += `  → ${targetLabel}${edgeLabel}\n`;
-                });
-                review += '\n';
-            } else {
-                review += `**Leads to:** *End point (no outgoing connections)*\n\n`;
-            }
-
-            // Incoming connections
             const incoming = storyData.edges.filter(e => e.target === node.id);
+
+            review += '\n';
+
             if (incoming.length > 0) {
-                review += `**Reached from:**\n`;
-                incoming.forEach(edge => {
-                    const sourceNode = storyData.nodes.find(n => n.id === edge.source);
-                    const sourceLabel = sourceNode ? sourceNode.label : 'Unknown';
-                    const edgeLabel = edge.label ? ` (via "${edge.label}")` : '';
-                    review += `  ← ${sourceLabel}${edgeLabel}\n`;
-                });
-                review += '\n';
+                review += `**↑ Reached from:** ${incoming.map(e => {
+                    const lbl = nodeLabel(e.source);
+                    return e.label ? `"${lbl}" _(${e.label})_` : `"${lbl}"`;
+                }).join(' · ')}\n`;
             }
 
-            review += '---\n\n';
+            if (outgoing.length > 0) {
+                if (outgoing.length === 1) {
+                    review += `**↓ Leads to:** "${nodeLabel(outgoing[0].target)}"${outgoing[0].label ? ` _(${outgoing[0].label})_` : ''}\n`;
+                } else {
+                    review += `**↓ Branches to:**\n`;
+                    outgoing.forEach(e => {
+                        review += `  → "${nodeLabel(e.target)}"${e.label ? ` _(${e.label})_` : ''}\n`;
+                    });
+                }
+            } else {
+                review += `**↓ End of path** _(no further connections)_\n`;
+            }
+
+            review += '\n' + '─'.repeat(60) + '\n\n';
         });
 
-        // 3. Character Profiles
+        // ── CHARACTER PROFILES ────────────────────────────────────────────────────────
         const suspects = storyData.nodes.filter(n => n.type === 'suspect');
         if (suspects.length > 0) {
             review += divider;
@@ -1429,140 +1571,134 @@ Please provide a concise plot summary and narrative overview based on these elem
                 review += `### ${index + 1}. ${suspect.metadata.name || suspect.label}\n\n`;
                 if (suspect.metadata.role) review += `**Role:** ${suspect.metadata.role}\n`;
                 if (suspect.metadata.alibi) review += `**Alibi:** ${suspect.metadata.alibi}\n`;
-                if (suspect.metadata.description) review += `**Description:** ${suspect.metadata.description}\n`;
-                if (suspect.text) review += `**Additional Info:** ${suspect.text}\n`;
+                if (suspect.metadata.description) review += `**Background:** ${suspect.metadata.description}\n`;
+                if (suspect.text) review += `**Profile Text:** ${suspect.text}\n`;
+                if (suspect.metadata.culprit) review += `\n> ⚠️ **CULPRIT** — designated answer: \`${suspect.metadata.culprit}\`\n`;
                 review += '\n';
             });
         }
 
-        // 4. Evidence Tracker
+        // -- EVIDENCE TRACKER --
         const evidence = storyData.nodes.filter(n => n.type === 'evidence');
         if (evidence.length > 0) {
             review += divider;
-            review += '## 🔍 EVIDENCE TRACKER\n\n';
+            review += '## EVIDENCE TRACKER\n\n';
             evidence.forEach((item, index) => {
-                review += `${index + 1}. **${item.label}**\n`;
-                if (item.metadata.description) review += `   - ${item.metadata.description}\n`;
-                if (item.text) review += `   - ${item.text}\n`;
+                review += `### ${index + 1}. ${item.label}\n\n`;
+                if (item.metadata.variableId) review += `- **Logic ID:** \`${item.metadata.variableId}\`\n`;
+                if (item.metadata.description) review += `- **Description:** ${item.metadata.description}\n`;
+                if (item.text) review += `- **Details:** ${item.text}\n`;
+                if (item.metadata.image) {
+                    review += `\n**Evidence Image:**\n`;
+                    review += `![Evidence](${item.metadata.image})\n`;
+                }
                 review += '\n';
             });
         }
 
-        // 5. Logic Flow Analysis
-        const logicNodes = storyData.nodes.filter(n => n.type === 'logic');
-        if (logicNodes.length > 0) {
+        // ── QUESTION BANK ─────────────────────────────────────────────────────────────
+        const questions = storyData.nodes.filter(n => n.type === 'question');
+        if (questions.length > 0) {
             review += divider;
-            review += '## 🔀 LOGIC FLOW ANALYSIS\n\n';
-            review += '*These nodes control branching and conditional progression.*\n\n';
-            logicNodes.forEach((logic, index) => {
-                review += `${index + 1}. **${logic.label}**\n`;
-                if (logic.metadata.condition) review += `   - Condition: ${logic.metadata.condition}\n`;
-                if (logic.metadata.logicIds && logic.metadata.logicIds.length > 0) {
-                    review += `   - Required Logic IDs: ${logic.metadata.logicIds.join(', ')}\n`;
+            review += '## QUESTION BANK\n\n';
+            review += '*Full answer key for every question — for designer review only.*\n\n';
+            questions.forEach((qNode, qi) => {
+                review += `### Q${qi + 1}. ${qNode.label}\n\n`;
+                review += `**Question:** ${qNode.text || '(no question text set)'}\n\n`;
+
+                if (qNode.metadata.helpContent) {
+                    review += `**Additional Help shown to player:**\n`;
+                    review += `> ${qNode.metadata.helpContent}\n\n`;
                 }
-                const branches = storyData.edges.filter(e => e.source === logic.id);
-                if (branches.length > 0) {
-                    review += `   - Branches:\n`;
-                    branches.forEach(branch => {
-                        const target = storyData.nodes.find(n => n.id === branch.target);
-                        review += `     → ${target?.label || 'Unknown'}${branch.label ? ` (${branch.label})` : ''}\n`;
+
+                if (qNode.metadata.options && qNode.metadata.options.length > 0) {
+                    review += `**Answer Choices:**\n\n`;
+                    qNode.metadata.options.forEach((opt, oi) => {
+                        if (!opt) return;
+                        const status = opt.isCorrect ? '[CORRECT]' : '[INCORRECT]';
+                        review += `  ${oi + 1}. ${status} ${opt.text || '—'}\n`;
+                        if (opt.explanation && opt.explanation.trim()) {
+                            review += `     Explanation: ${opt.explanation.trim()}\n`;
+                        }
+                        review += '\n';
                     });
                 }
-                review += '\n';
-            });
-        }
 
-        // 6. Interactive Elements
-        const interactive = storyData.nodes.filter(n =>
-            ['action', 'question', 'terminal', 'lockpick', 'decryption', 'keypad', 'interrogation'].includes(n.type)
-        );
-        if (interactive.length > 0) {
-            review += divider;
-            review += '## 🎮 INTERACTIVE ELEMENTS\n\n';
-            review += '*These nodes require player interaction and engagement.*\n\n';
-            interactive.forEach((node, index) => {
-                review += `${index + 1}. **${node.label}** [${node.type}]\n`;
-                if (node.text) review += `   - Prompt: ${node.text}\n`;
-
-                switch (node.type) {
-                    case 'terminal':
-                        if (node.metadata.command) review += `   - Required Input: ${node.metadata.command}\n`;
-                        break;
-                    case 'question':
-                        if (node.metadata.options && node.metadata.options.length > 0) {
-                            review += `   - Options: ${node.metadata.options.join(', ')}\n`;
-                        }
-                        if (node.metadata.correctAnswers && node.metadata.correctAnswers.length > 0) {
-                            review += `   - Correct: ${node.metadata.correctAnswers.join(', ')}\n`;
-                        }
-                        break;
+                if (qNode.metadata.hints && qNode.metadata.hints.length > 0) {
+                    review += `**Hints:**\n`;
+                    qNode.metadata.hints.forEach((hint, hi) => {
+                        if (!hint) return;
+                        review += `  - Hint ${hi + 1}: "${hint.text || '—'}" (Penalty: -${hint.penalty || 0} pts)\n`;
+                    });
+                    review += '\n';
                 }
-                review += '\n';
+
+                review += '---\n\n';
             });
         }
 
-        // 7. Flow Recommendations
+        // ── FLOW HEALTH CHECK ─────────────────────────────────────────────────────────
         review += divider;
-        review += '## 💡 FLOW RECOMMENDATIONS\n\n';
-
-        // Find dead ends
-        const deadEnds = storyData.nodes.filter(n => {
-            const hasOutgoing = storyData.edges.some(e => e.source === n.id);
-            return !hasOutgoing && n.type !== 'identify';
-        });
-
-        if (deadEnds.length > 0) {
-            review += '**⚠️ Potential Dead Ends:**\n';
-            review += 'These nodes have no outgoing connections. Consider if this is intentional:\n';
-            deadEnds.forEach(node => {
-                review += `  - ${node.label} [${node.type}]\n`;
-            });
-            review += '\n';
-        }
-
-        // Find orphaned nodes
-        const orphans = storyData.nodes.filter(n => {
-            const hasIncoming = storyData.edges.some(e => e.target === n.id);
-            const hasOutgoing = storyData.edges.some(e => e.source === n.id);
-            return !hasIncoming && !hasOutgoing;
-        });
+        review += '## 💡 FLOW HEALTH CHECK\n\n';
+        let healthOk = true;
 
         if (orphans.length > 0) {
-            review += '**⚠️ Orphaned Nodes:**\n';
-            review += 'These nodes are not connected to the story flow:\n';
-            orphans.forEach(node => {
-                review += `  - ${node.label} [${node.type}]\n`;
-            });
+            healthOk = false;
+            review += `**⚠️ Orphaned nodes (no connections at all):**\n`;
+            orphans.forEach(n => review += `  - "${n.label}" [${n.type}]\n`);
             review += '\n';
         }
 
-        // Check for identify node
+        if (deadEnds.length > 0) {
+            review += `**ℹ️ End nodes (intentional dead-ends / finales):**\n`;
+            deadEnds.forEach(n => review += `  - "${n.label}" [${n.type}]\n`);
+            review += '\n';
+        }
+
         const hasIdentify = storyData.nodes.some(n => n.type === 'identify');
         if (!hasIdentify) {
-            review += '**💭 Suggestion:** Consider adding an "Identify Culprit" node to provide a clear ending to your mystery.\n\n';
+            healthOk = false;
+            review += '**⚠️ No "Identify Culprit" node found.** Consider adding one to give the mystery a clear finale.\n\n';
         }
 
-        // Check for suspects
         if (suspects.length === 0) {
-            review += '**💭 Suggestion:** Add suspect nodes to create characters for your mystery.\n\n';
+            review += '**💭 Suggestion:** Add suspect nodes to create characters for the mystery.\n\n';
         }
 
-        // Check for evidence
         if (evidence.length === 0) {
-            review += '**💭 Suggestion:** Add evidence nodes to give players clues to collect.\n\n';
+            review += '**💭 Suggestion:** Add evidence nodes to give players clues to find.\n\n';
+        }
+
+        if (healthOk && orphans.length === 0) {
+            review += '**✅ Story flow looks healthy** — all nodes are connected and reachable.\n\n';
         }
 
         review += divider;
-        review += '\n*End of Designer\'s Canvas Review*\n';
-        review += '\n*Use this review to identify areas for improvement in your story flow, ensure all nodes are properly connected, and verify that the player experience is smooth and engaging.*\n';
+        review += '\n*End of Designer\'s Story Review*\n';
+        review += `*Generated: ${new Date().toLocaleString()}*\n`;
 
         return review;
     };
 
+
+
+
     // Helper to clean text from problematic characters for PDF
     const cleanTextForPDF = (text) => {
-        // Remove emojis and special unicode characters that cause encoding issues
-        return text.replace(/[\u{1F300}-\u{1F9FF}]/gu, '').trim();
+        if (!text) return '';
+        return text
+            // Remove all emoji / symbol Unicode blocks
+            .replace(/[\u{1F000}-\u{1FFFF}]/gu, '')   // Emoji & supplemental symbols
+            .replace(/[\u{2600}-\u{27BF}]/gu, '')      // Misc symbols, dingbats, arrows
+            .replace(/[\u{2B00}-\u{2BFF}]/gu, '')      // Misc symbols and arrows
+            .replace(/[\u{FE00}-\u{FEFF}]/gu, '')      // Variation selectors / BOM
+            // Replace smart / curly arrows used in the review
+            .replace(/[↑↓←→⇒⇐]/g, (c) => ({ '↑': '^', '↓': 'v', '←': '<-', '→': '->', '⇒': '=>', '⇐': '<=' }[c] || c))
+            // Replace Unicode box/dash characters
+            .replace(/[─━─—–]/g, '-')
+            // Remove any remaining non-printable / non-ASCII control chars except newline
+            .replace(/[^\x09\x0A\x0D\x20-\x7E\xA0-\xFF]/g, '')
+            .trim();
     };
 
     // Helper to fetch and convert image URL to Base64 for PDF/DOCX
@@ -1823,13 +1959,14 @@ Please provide a concise plot summary and narrative overview based on these elem
 
                 // Color code different sections based on original text with emojis
                 let bgColor = [79, 70, 229];
-                if (rawText.includes('📊') || rawText.includes('STORY STRUCTURE')) { bgColor = [59, 130, 246]; currentSection = 'overview'; }
-                else if (rawText.includes('🎬') || rawText.includes('STORY FLOW')) { bgColor = [139, 92, 246]; currentSection = 'flow'; }
-                else if (rawText.includes('👥') || rawText.includes('CHARACTER')) { bgColor = [236, 72, 153]; currentSection = 'characters'; }
-                else if (rawText.includes('🔍') || rawText.includes('EVIDENCE')) { bgColor = [234, 179, 8]; currentSection = 'evidence'; }
-                else if (rawText.includes('🔀') || rawText.includes('LOGIC')) { bgColor = [34, 197, 94]; currentSection = 'logic'; }
-                else if (rawText.includes('🎮') || rawText.includes('INTERACTIVE')) { bgColor = [249, 115, 22]; currentSection = 'interactive'; }
-                else if (rawText.includes('💡') || rawText.includes('RECOMMENDATIONS')) { bgColor = [168, 85, 247]; currentSection = 'recommendations'; }
+                if (rawText.includes('CANVAS AT A GLANCE') || rawText.includes('STORY STRUCTURE')) { bgColor = [59, 130, 246]; currentSection = 'overview'; }
+                else if (rawText.includes('STORY FLOW')) { bgColor = [139, 92, 246]; currentSection = 'flow'; }
+                else if (rawText.includes('CHARACTER')) { bgColor = [236, 72, 153]; currentSection = 'characters'; }
+                else if (rawText.includes('EVIDENCE TRACKER')) { bgColor = [234, 179, 8]; currentSection = 'evidence'; }
+                else if (rawText.includes('QUESTION BANK')) { bgColor = [168, 85, 247]; currentSection = 'questions'; }
+                else if (rawText.includes('LOGIC')) { bgColor = [34, 197, 94]; currentSection = 'logic'; }
+                else if (rawText.includes('INTERACTIVE')) { bgColor = [249, 115, 22]; currentSection = 'interactive'; }
+                else if (rawText.includes('FLOW HEALTH') || rawText.includes('RECOMMENDATIONS')) { bgColor = [16, 185, 129]; currentSection = 'recommendations'; }
 
                 doc.setFillColor(...bgColor);
                 doc.rect(margin - 3, yPos - 3, contentWidth + 6, 12, 'F');
@@ -1844,7 +1981,7 @@ Please provide a concise plot summary and narrative overview based on these elem
             // Subsection headings (### )
             if (trimmed.startsWith('### ')) {
                 checkPageBreak(12);
-                const text = trimmed.substring(4);
+                const text = cleanTextForPDF(trimmed.substring(4));
                 doc.setFontSize(12);
                 doc.setTextColor(79, 70, 229);
                 doc.setFont('helvetica', 'bold');
@@ -1861,8 +1998,51 @@ Please provide a concise plot summary and narrative overview based on these elem
             //     return;
             // }
 
-            // Warning/Alert boxes (⚠️)
-            if (trimmed.includes('⚠️')) {
+            // Blockquote lines (> ...)
+            if (trimmed.startsWith('> ') || trimmed.startsWith('>*')) {
+                checkPageBreak(8);
+                const text = cleanTextForPDF(trimmed.replace(/^>\s?/, ''));
+                doc.setFontSize(10);
+                doc.setDrawColor(180, 180, 180);
+                doc.setLineWidth(1.5);
+                doc.line(margin + 2, yPos - 3, margin + 2, yPos + 4);
+                doc.setTextColor(100, 100, 100);
+                doc.setFont('helvetica', 'italic');
+                const bqLines = doc.splitTextToSize(text, contentWidth - 15);
+                bqLines.forEach(l => {
+                    doc.text(l, margin + 8, yPos);
+                    yPos += 5;
+                    checkPageBreak();
+                });
+                yPos += 2;
+                continue;
+            }
+
+            // Markdown table rows (| col | col |)
+            if (trimmed.startsWith('|') && trimmed.endsWith('|')) {
+                // Skip separator rows (|---|---|
+                if (/^[\|\- :]+$/.test(trimmed)) { continue; }
+                checkPageBreak(7);
+                const cols = trimmed.split('|').map(c => cleanTextForPDF(c.trim())).filter(c => c.length > 0);
+                if (cols.length > 0) {
+                    const colWidth = contentWidth / cols.length;
+                    doc.setFontSize(9);
+                    doc.setFont('helvetica', 'normal');
+                    doc.setTextColor(60, 60, 60);
+                    cols.forEach((col, ci) => {
+                        const cellText = doc.splitTextToSize(col, colWidth - 4);
+                        doc.text(cellText, margin + ci * colWidth + 2, yPos);
+                    });
+                    yPos += 7;
+                    doc.setDrawColor(220, 220, 220);
+                    doc.setLineWidth(0.1);
+                    doc.line(margin, yPos - 1, pageWidth - margin, yPos - 1);
+                }
+                continue;
+            }
+
+            // Warning/Alert boxes (WARNING: or contains warning-like prefix after cleaning)
+            if (trimmed.includes('\u26A0') || trimmed.match(/\*\*⚠/)) {
                 checkPageBreak(15);
                 doc.setFillColor(254, 243, 199);
                 doc.setDrawColor(251, 191, 36);
@@ -1878,22 +2058,20 @@ Please provide a concise plot summary and narrative overview based on these elem
 
                 doc.rect(margin, yPos - 2, contentWidth, boxHeight, 'FD');
 
-                // Render formatted text inside box
                 const savedYPos = yPos;
                 yPos += 2;
-                renderFormattedText(labeledText, 10, [146, 64, 14], 3);
+                lines.forEach(l => { doc.setFont('helvetica', 'normal'); doc.setTextColor(146, 64, 14); doc.text(l, margin + 3, yPos); yPos += 5; });
                 yPos = savedYPos + boxHeight + 3;
                 continue;
             }
 
-            // Suggestion boxes (💭)
-            if (trimmed.includes('💭')) {
+            // Suggestion boxes (SUGGESTION keyword)
+            if (trimmed.match(/Suggestion/i) && trimmed.includes('**')) {
                 checkPageBreak(15);
                 doc.setFillColor(219, 234, 254);
                 doc.setDrawColor(59, 130, 246);
                 doc.setLineWidth(1);
 
-                // Clean text and add label
                 const cleanText = cleanTextForPDF(trimmed).replace(/\*\*/g, '');
                 const labeledText = 'SUGGESTION: ' + cleanText;
 
@@ -1903,105 +2081,142 @@ Please provide a concise plot summary and narrative overview based on these elem
 
                 doc.rect(margin, yPos - 2, contentWidth, boxHeight, 'FD');
 
-                // Render formatted text inside box
                 const savedYPos = yPos;
                 yPos += 2;
-                renderFormattedText(labeledText, 10, [30, 64, 175], 3);
+                lines.forEach(l => { doc.setFont('helvetica', 'normal'); doc.setTextColor(30, 64, 175); doc.text(l, margin + 3, yPos); yPos += 5; });
                 yPos = savedYPos + boxHeight + 3;
                 continue;
             }
 
-            // List items (  - or  →  or  ←)
-            if (trimmed.startsWith('- ') || trimmed.startsWith('→') || trimmed.startsWith('←')) {
-                // Use proper arrow symbols that render well in PDF
-                let bullet = '•';
-                let text = '';
+            // List items (  - or  → or  ← or numbered N.)
+            if (trimmed.startsWith('- ') || trimmed.startsWith('->') || trimmed.startsWith('<-') ||
+                trimmed.startsWith('v ') || trimmed.startsWith('^ ') || /^\d+\.\s/.test(trimmed)) {
+                let bullet = '-';
+                let text = trimmed;
 
                 if (trimmed.startsWith('- ')) {
-                    bullet = '•';
+                    bullet = '\u2022'; // bullet
                     text = trimmed.substring(2);
-                } else if (trimmed.startsWith('→')) {
-                    bullet = '>';
-                    text = trimmed.substring(1).trim();
-                } else if (trimmed.startsWith('←')) {
-                    bullet = '<';
-                    text = trimmed.substring(1).trim();
+                } else if (trimmed.startsWith('->')) {
+                    bullet = '->';
+                    text = trimmed.substring(2).trim();
+                } else if (trimmed.startsWith('<-')) {
+                    bullet = '<-';
+                    text = trimmed.substring(2).trim();
+                } else if (/^\d+\.\s/.test(trimmed)) {
+                    const m = trimmed.match(/^(\d+\.\s)/);
+                    bullet = m[1].trim();
+                    text = trimmed.substring(m[1].length);
                 }
 
+                const cleanItem = cleanTextForPDF(text).replace(/\*\*/g, '');
                 checkPageBreak();
 
-                // Render bullet at proper vertical alignment
                 doc.setFontSize(10);
                 doc.setTextColor(80, 80, 80);
                 doc.setFont('helvetica', 'bold');
                 doc.text(bullet, margin + 5, yPos);
 
-                // Render formatted text with indent, aligned with bullet
                 doc.setFont('helvetica', 'normal');
-                const savedYPos = yPos;
-                renderFormattedText(text, 10, [80, 80, 80], 12);
+                const itemLines = doc.splitTextToSize(cleanItem, contentWidth - 16);
+                itemLines.forEach((il, idx) => {
+                    if (idx > 0) checkPageBreak();
+                    doc.setTextColor(80, 80, 80);
+                    doc.text(il, margin + 14, yPos);
+                    yPos += 5;
+                });
+                yPos += 1;
                 continue;
             }
 
-            // Evidence Images detector
-            if (trimmed.includes('![Evidence](') || (trimmed.startsWith('![') && trimmed.includes(']('))) {
-                const urlMatch = trimmed.match(/\((.*?)\)/);
+            // Image lines — any ![alt](url) pattern
+            if (trimmed.startsWith('![') && trimmed.includes('](')) {
+                const urlMatch = trimmed.match(/\(([^)]+)\)/);
                 if (urlMatch && urlMatch[1]) {
-                    const url = urlMatch[1];
-                    try {
-                        checkPageBreak(70); // Reserve space for image
-                        const imgData = await fetchImageAsBase64(url);
+                    const url = urlMatch[1].trim();
+                    // Only try to embed if it looks like an image URL
+                    const looksLikeImage = /\.(png|jpe?g|gif|webp|svg)(\?.*)?$/i.test(url) ||
+                        url.startsWith('data:image') ||
+                        url.includes('firebasestorage') ||
+                        url.includes('googleapis.com') ||
+                        url.includes('storage.googleapis');
 
-                        // Calculate dimensions to fit content width
-                        const maxWidth = contentWidth - 20;
-                        const ratio = imgData.width / imgData.height;
-                        const displayWidth = Math.min(maxWidth, 80); // Cap width
-                        const displayHeight = displayWidth / ratio;
+                    if (looksLikeImage) {
+                        try {
+                            checkPageBreak(80);
+                            const imgData = await fetchImageAsBase64(url);
 
-                        doc.setDrawColor(200, 200, 200);
-                        doc.rect(margin + 10, yPos, displayWidth + 4, displayHeight + 4);
-                        doc.addImage(imgData.dataURL, 'JPEG', margin + 12, yPos + 2, displayWidth, displayHeight);
+                            // Use up to 80% of the content width, preserve aspect ratio
+                            const maxW = contentWidth * 0.85;
+                            const ratio = imgData.width / Math.max(imgData.height, 1);
+                            const displayWidth = Math.min(maxW, imgData.width > 0 ? maxW : 100);
+                            const displayHeight = Math.min(displayWidth / ratio, 160); // cap height at 160pt
+                            const finalWidth = displayHeight * ratio; // recalculate width if height was capped
 
-                        yPos += displayHeight + 10;
-                    } catch (err) {
-                        console.error("Failed to load image for PDF", err);
-                        doc.setFontSize(8);
-                        doc.setTextColor(150, 0, 0);
-                        doc.text(`[Image could not be loaded: ${url.substring(0, 30)}...]`, margin + 12, yPos);
-                        yPos += 8;
+                            // Centre the image
+                            const xOffset = (contentWidth - finalWidth) / 2;
+
+                            // Light border around image
+                            doc.setDrawColor(200, 200, 200);
+                            doc.setLineWidth(0.3);
+                            doc.rect(margin + xOffset - 1, yPos - 1, finalWidth + 2, displayHeight + 2);
+                            doc.addImage(imgData.dataURL, 'JPEG', margin + xOffset, yPos, finalWidth, displayHeight);
+
+                            yPos += displayHeight + 8;
+                            checkPageBreak();
+                        } catch (err) {
+                            console.warn('PDF: image failed to load:', url, err);
+                            doc.setFontSize(8);
+                            doc.setTextColor(150, 100, 0);
+                            const shortUrl = url.length > 50 ? url.substring(0, 47) + '...' : url;
+                            doc.text(`[Image: ${shortUrl}]`, margin + 5, yPos);
+                            yPos += 8;
+                        }
+                    } else {
+                        // Non-image URL — just print as text
+                        const altText = (trimmed.match(/!\[([^\]]*)]/) || [])[1] || 'Image';
+                        doc.setFontSize(9);
+                        doc.setTextColor(80, 80, 200);
+                        doc.setFont('helvetica', 'italic');
+                        const shortUrl = url.length > 60 ? url.substring(0, 57) + '...' : url;
+                        doc.text(`${altText}: ${shortUrl}`, margin + 5, yPos);
+                        yPos += 7;
                     }
                     continue;
                 }
             }
 
-            // Divider lines (===)
-            if (trimmed.startsWith('===')) {
+            // Divider lines (=== or --- or ─── )
+            if (trimmed.startsWith('===') || trimmed.startsWith('---') || trimmed.startsWith('\u2500\u2500\u2500')) {
                 checkPageBreak(5);
                 doc.setDrawColor(200, 200, 200);
-                doc.setLineWidth(0.3);
+                doc.setLineWidth(trimmed.startsWith('===') ? 0.5 : 0.2);
                 doc.line(margin, yPos, pageWidth - margin, yPos);
-                yPos += 8;
-                continue;
-            }
-
-            // Horizontal rule (---)
-            if (trimmed.startsWith('---')) {
-                checkPageBreak(5);
-                doc.setDrawColor(220, 220, 220);
-                doc.setLineWidth(0.2);
-                doc.line(margin + 20, yPos, pageWidth - margin - 20, yPos);
                 yPos += 6;
                 continue;
             }
 
-            // Italic text (*text*) - use formatted renderer
+            // Italic text (*text*)
             if (trimmed.startsWith('*') && trimmed.endsWith('*') && !trimmed.startsWith('**')) {
-                renderFormattedText(trimmed, 9, [120, 120, 120], 0);
+                const cleanItalic = cleanTextForPDF(trimmed.replace(/^\*|\*$/g, ''));
+                doc.setFontSize(9);
+                doc.setFont('helvetica', 'italic');
+                doc.setTextColor(120, 120, 120);
+                const italicLines = doc.splitTextToSize(cleanItalic, contentWidth);
+                italicLines.forEach(l => { doc.text(l, margin, yPos); yPos += 5; checkPageBreak(); });
                 continue;
             }
 
-            // Regular paragraph
-            addText(trimmed, 10, [60, 60, 60], false, 0);
+            // Regular paragraph — always clean before rendering
+            const cleanPara = cleanTextForPDF(trimmed).replace(/\*\*/g, '');
+            if (cleanPara) {
+                doc.setFontSize(10);
+                doc.setFont('helvetica', 'normal');
+                doc.setTextColor(60, 60, 60);
+                const paraLines = doc.splitTextToSize(cleanPara, contentWidth);
+                paraLines.forEach(l => { checkPageBreak(); doc.text(l, margin, yPos); yPos += 5.5; });
+                yPos += 1;
+            }
         }
 
         // Save the PDF
