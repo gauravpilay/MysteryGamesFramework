@@ -234,6 +234,7 @@ const Editor = () => {
     const [showPreview, setShowPreview] = useState(false);
     const [showSettings, setShowSettings] = useState(false);
     const [timeLimit, setTimeLimit] = useState(15); // Default 15 minutes
+    const [enableTimeLimit, setEnableTimeLimit] = useState(true); // Whether to show/enforce time limit
     const [searchQuery, setSearchQuery] = useState("");
     const [isSearchOpen, setIsSearchOpen] = useState(false);
     const [isPaletteCollapsed, setIsPaletteCollapsed] = useState(window.innerWidth < 768);
@@ -716,6 +717,7 @@ const Editor = () => {
                     if (data.edges) setEdges(data.edges);
                     if (data.meta) {
                         if (data.meta.timeLimit) setTimeLimit(data.meta.timeLimit);
+                        if (data.meta.enableTimeLimit !== undefined) setEnableTimeLimit(data.meta.enableTimeLimit);
                         if (data.meta.learningObjectives) setLearningObjectives(data.meta.learningObjectives);
                         if (data.meta.enableThreeD !== undefined) setEnableThreeD(data.meta.enableThreeD);
                         if (data.meta.enableTTS !== undefined) setEnableTTS(data.meta.enableTTS);
@@ -933,7 +935,7 @@ const Editor = () => {
         const cleanEdges = edges.map(e => cleanForFirestore(e));
 
         try {
-            const flow = { nodes: cleanNodes, edges: cleanEdges, meta: { timeLimit, learningObjectives, enableThreeD, enableTTS } };
+            const flow = { nodes: cleanNodes, edges: cleanEdges, meta: { timeLimit, enableTimeLimit, learningObjectives, enableThreeD, enableTTS } };
             const docRef = doc(db, "cases", projectId);
 
             // Log for debugging if it fails again
@@ -1112,7 +1114,7 @@ const Editor = () => {
 
         // Clean nodes data of functions
         const cleanNodes = nodes.map(n => ({ ...n, data: { ...n.data, onChange: undefined, onDuplicate: undefined } }));
-        const gameData = { nodes: cleanNodes, edges, meta: { generatedAt: new Date(), timeLimit, learningObjectives, enableTTS } };
+        const gameData = { nodes: cleanNodes, edges, meta: { generatedAt: new Date(), timeLimit, enableTimeLimit, learningObjectives, enableTTS } };
 
         const folder = zip.folder("mystery-game-build");
         folder.file("game-data.json", JSON.stringify(gameData, null, 2));
@@ -3149,7 +3151,7 @@ Please provide a concise plot summary and narrative overview based on these elem
                                     nodes={nodes}
                                     edges={edges}
                                     onClose={() => setShowPreview(false)}
-                                    gameMetadata={{ timeLimit, learningObjectives, enableTTS }}
+                                    gameMetadata={{ timeLimit, enableTimeLimit, learningObjectives, enableTTS }}
                                     onGameEnd={handlePreviewGameEnd}
                                     onNodeChange={onGameNodeChange}
                                     isSimultaneous={true}
@@ -3213,7 +3215,7 @@ Please provide a concise plot summary and narrative overview based on these elem
                     <TutorialOverlay steps={tutorialSteps} onClose={() => setShowTutorial(false)} />
                 )}
                 {showPreview && !isSimultaneousMode && (
-                    <GamePreview nodes={nodes} edges={edges} onClose={() => setShowPreview(false)} gameMetadata={{ timeLimit, learningObjectives, enableTTS }} onGameEnd={handlePreviewGameEnd} onNodeChange={onGameNodeChange} />
+                    <GamePreview nodes={nodes} edges={edges} onClose={() => setShowPreview(false)} gameMetadata={{ timeLimit, enableTimeLimit, learningObjectives, enableTTS }} onGameEnd={handlePreviewGameEnd} onNodeChange={onGameNodeChange} />
                 )}
                 {/* Settings Modal */}
                 {showSettings && (
@@ -3252,15 +3254,24 @@ Please provide a concise plot summary and narrative overview based on these elem
                                             <p className="text-[10px] text-zinc-500 font-medium uppercase tracking-widest">Time limit to solve the case</p>
                                         </div>
                                         <div className="flex items-center gap-4 w-full sm:w-auto justify-between sm:justify-end">
-                                            <input
-                                                type="number"
-                                                min="1"
-                                                max="120"
-                                                value={timeLimit}
-                                                onChange={(e) => setTimeLimit(parseInt(e.target.value) || 15)}
-                                                className="bg-black border border-zinc-700 rounded-xl px-4 py-2 md:py-3 text-white w-20 md:w-24 text-center text-lg md:text-xl font-black focus:border-indigo-500 outline-none transition-all"
-                                            />
-                                            <span className="text-zinc-500 text-[10px] font-black uppercase">Minutes</span>
+                                            <button
+                                                onClick={() => setEnableTimeLimit(!enableTimeLimit)}
+                                                className={`flex items-center gap-2 px-3 py-1.5 rounded-lg border transition-all ${enableTimeLimit ? 'bg-emerald-500/10 border-emerald-500/30 text-emerald-400' : 'bg-red-500/10 border-red-500/30 text-red-400'}`}
+                                            >
+                                                <span className="text-[10px] font-black uppercase tracking-widest">{enableTimeLimit ? 'Enabled' : 'Disabled'}</span>
+                                            </button>
+                                            <div className={`flex items-center gap-3 transition-all ${enableTimeLimit ? 'opacity-100 scale-100' : 'opacity-30 scale-95 pointer-events-none'}`}>
+                                                <input
+                                                    type="number"
+                                                    min="1"
+                                                    max="120"
+                                                    disabled={!enableTimeLimit}
+                                                    value={timeLimit}
+                                                    onChange={(e) => setTimeLimit(parseInt(e.target.value) || 15)}
+                                                    className="bg-black border border-zinc-700 rounded-xl px-4 py-2 md:py-3 text-white w-20 md:w-24 text-center text-lg md:text-xl font-black focus:border-indigo-500 outline-none transition-all"
+                                                />
+                                                <span className="text-zinc-500 text-[10px] font-black uppercase">Minutes</span>
+                                            </div>
                                         </div>
                                     </div>
 

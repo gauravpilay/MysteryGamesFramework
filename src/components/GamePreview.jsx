@@ -565,6 +565,7 @@ const GamePreview = ({ nodes, edges, onClose, gameMetadata, onGameEnd, onNodeCha
     // Timer State
     const initialTime = (gameMetadata?.timeLimit || 15) * 60; // Convert minutes to seconds
     const [timeLeft, setTimeLeft] = useState(initialTime);
+    const [timeElapsed, setTimeElapsed] = useState(0); // Track total time even if no limit
 
     // Scoring State
     const [score, setScore] = useState(0);
@@ -590,19 +591,25 @@ const GamePreview = ({ nodes, edges, onClose, gameMetadata, onGameEnd, onNodeCha
         if (!missionStarted || accusationResult) return;
 
         const timer = setInterval(() => {
-            setTimeLeft(prev => {
-                if (prev <= 1) {
-                    setAccusationResult('timeout');
-                    setShowAccuseModal(true);
-                    clearInterval(timer);
-                    return 0;
-                }
-                return prev - 1;
-            });
+            // Always track elapsed time
+            setTimeElapsed(prev => prev + 1);
+
+            // only countdown and check timeout if time limit is enabled
+            if (gameMetadata?.enableTimeLimit !== false) {
+                setTimeLeft(prev => {
+                    if (prev <= 1) {
+                        setAccusationResult('timeout');
+                        setShowAccuseModal(true);
+                        clearInterval(timer);
+                        return 0;
+                    }
+                    return prev - 1;
+                });
+            }
         }, 1000);
 
         return () => clearInterval(timer);
-    }, [missionStarted, accusationResult]);
+    }, [missionStarted, accusationResult, gameMetadata?.enableTimeLimit]);
 
     const formatTime = (seconds) => {
         const mins = Math.floor(seconds / 60);
@@ -1176,7 +1183,7 @@ const GamePreview = ({ nodes, edges, onClose, gameMetadata, onGameEnd, onNodeCha
 
     // Finalize Game and Report
     const handleFinish = () => {
-        const timeSpent = initialTime - timeLeft;
+        const timeSpent = timeElapsed;
         const resultData = {
             score,
             objectiveScores: playerObjectiveScores,
@@ -1492,18 +1499,19 @@ const GamePreview = ({ nodes, edges, onClose, gameMetadata, onGameEnd, onNodeCha
                         </motion.div>
                     </div>
 
-                    {/* Timer Logic - Always Visible & Prominent */}
-                    <div className={`${isSimultaneous ? 'relative mx-auto mt-2' : 'fixed top-2 left-1/2 -translate-x-1/2'} px-4 py-1.5 md:px-8 md:py-3 rounded-xl border-2 shadow-[0_0_20px_rgba(0,0,0,0.5)] z-[120] flex items-center gap-2 md:gap-3 backdrop-blur-xl transition-all duration-300 ${timeLeft < 60 || !missionStarted ? 'bg-red-950/90 border-red-500 text-red-500' : 'bg-black/90 border-indigo-500 text-indigo-400'}`}>
-                        <Clock className={`w-4 h-4 md:w-6 md:h-6 ${timeLeft < 60 ? 'animate-pulse' : ''}`} />
-                        <div className="flex flex-col items-center leading-none">
-                            <span className="text-[7px] md:text-xs font-black uppercase tracking-[0.1em] md:tracking-[0.2em] opacity-80 mb-0.5 md:mb-1">
-                                {missionStarted ? "Time" : "Timer"}
-                            </span>
-                            <span className="font-mono text-xl md:text-3xl font-black tracking-widest drop-shadow-lg">
-                                {formatTime(timeLeft)}
-                            </span>
+                    {gameMetadata?.enableTimeLimit !== false && (
+                        <div className={`${isSimultaneous ? 'relative mx-auto mt-2' : 'fixed top-2 left-1/2 -translate-x-1/2'} px-4 py-1.5 md:px-8 md:py-3 rounded-xl border-2 shadow-[0_0_20px_rgba(0,0,0,0.5)] z-[120] flex items-center gap-2 md:gap-3 backdrop-blur-xl transition-all duration-300 ${timeLeft < 60 || !missionStarted ? 'bg-red-950/90 border-red-500 text-red-500' : 'bg-black/90 border-indigo-500 text-indigo-400'}`}>
+                            <Clock className={`w-4 h-4 md:w-6 md:h-6 ${timeLeft < 60 ? 'animate-pulse' : ''}`} />
+                            <div className="flex flex-col items-center leading-none">
+                                <span className="text-[7px] md:text-xs font-black uppercase tracking-[0.1em] md:tracking-[0.2em] opacity-80 mb-0.5 md:mb-1">
+                                    {missionStarted ? "Time" : "Timer"}
+                                </span>
+                                <span className="font-mono text-xl md:text-3xl font-black tracking-widest drop-shadow-lg">
+                                    {formatTime(timeLeft)}
+                                </span>
+                            </div>
                         </div>
-                    </div>
+                    )}
                 </div>
                 <div className="flex items-center gap-1.5 md:gap-3">
                     {/* ── TTS Narrator Control (story nodes only, requires enable_audio_support license) ── */}
@@ -1650,7 +1658,7 @@ const GamePreview = ({ nodes, edges, onClose, gameMetadata, onGameEnd, onNodeCha
                         else if (showAccuseModal) setShowAccuseModal(false);
                         else if (zoomedImage) setZoomedImage(null);
                         else {
-                            const timeSpent = initialTime - timeLeft;
+                            const timeSpent = timeElapsed;
                             setPendingResultData({
                                 score,
                                 objectiveScores: playerObjectiveScores,
