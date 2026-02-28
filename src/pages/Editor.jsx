@@ -19,6 +19,7 @@ import { StoryNode, SuspectNode, EvidenceNode, LogicNode, TerminalNode, MessageN
 import dagre from 'dagre';
 import AICaseGeneratorModal from '../components/AICaseGeneratorModalAdvanced';
 import CaseMetadataModal from '../components/CaseMetadataModal';
+import { EditorContext } from '../lib/editorContext';
 import LicenseConfigModal from '../components/LicenseConfigModal';
 function FolderNode(props) {
     return <GroupNode {...props} />;
@@ -629,7 +630,9 @@ const Editor = () => {
                     node.data.enableTTS === enableTTS &&
                     node.data.enableThreeD === enableThreeD &&
                     node.data.isExecuting === (node.id === activeExecutingNodeId) &&
-                    node.data.onChange === onNodeUpdate
+                    node.data.onChange === onNodeUpdate &&
+                    node.data.allNodes === nds &&
+                    node.data.learningObjectives === learningObjectives
                 ) {
                     return node;
                 }
@@ -652,7 +655,7 @@ const Editor = () => {
                 };
             }));
         }
-    }, [nodes.length === 0, onNodeUpdate, onDuplicateNode, onUngroup, setNodes, learningObjectives, enableThreeD, enableTTS, activeExecutingNodeId]);
+    }, [nodes.length, onNodeUpdate, onDuplicateNode, onUngroup, setNodes, learningObjectives, enableThreeD, enableTTS, activeExecutingNodeId]);
 
     const onDrop = useCallback((event) => {
         event.preventDefault();
@@ -907,34 +910,42 @@ const Editor = () => {
             return;
         }
 
-        // Strip functions before saving
-        // Note: react-flow nodes might contain circular refs or functions in data, usually pure data is fine.
-        // function to recursively clean object for Firestore
-        const cleanForFirestore = (obj) => {
+        // Keys that are injected at runtime by Editor and must NEVER be persisted.
+        // allNodes is the main culprit — it embeds every canvas node recursively.
+        const TRANSIENT_KEYS = new Set([
+            'onChange', 'onDuplicate', 'onUngroup', 'onShowHelp',
+            'allNodes',           // full node list injected for CrazyWallNode pickers
+            'isExecuting',        // execution highlight flag
+            'learningObjectives', // injected from Editor meta, already stored in meta field
+            'enableTTS',          // injected from Editor meta
+            'enableThreeD',       // injected from Editor meta
+        ]);
+
+        const cleanForFirestore = (obj, depth = 0) => {
+            // Hard depth cap — nothing in our schema should exceed 10 levels deep
+            if (depth > 10) return null;
             if (obj === null || obj === undefined) return null;
             if (typeof obj !== 'object') return obj;
 
             // Handle Arrays
             if (Array.isArray(obj)) {
-                // Firestore does not support arrays of arrays. Flatten or filter.
-                // It also doesn't like undefined in arrays (JSON turns them to null, which is fine, but let's be safe)
-                return obj.map(item => cleanForFirestore(item)).filter(i => i !== undefined);
+                return obj
+                    .map(item => cleanForFirestore(item, depth + 1))
+                    .filter(i => i !== undefined && i !== null);
             }
 
             // Handle Objects
             const newObj = {};
             for (const key in obj) {
-                if (Object.prototype.hasOwnProperty.call(obj, key)) {
-                    // Skip functions/callbacks explicitly
-                    if (typeof obj[key] === 'function') continue;
-                    // Skip internal react flow properties if strictly needed, but usually they are fine
-                    // Skip specific problematic keys logic
-                    if (key === 'onChange' || key === 'onDuplicate') continue;
+                if (!Object.prototype.hasOwnProperty.call(obj, key)) continue;
+                // Skip all transient runtime props
+                if (TRANSIENT_KEYS.has(key)) continue;
+                // Skip functions
+                if (typeof obj[key] === 'function') continue;
 
-                    const cleaned = cleanForFirestore(obj[key]);
-                    if (cleaned !== undefined) {
-                        newObj[key] = cleaned;
-                    }
+                const cleaned = cleanForFirestore(obj[key], depth + 1);
+                if (cleaned !== undefined && cleaned !== null) {
+                    newObj[key] = cleaned;
                 }
             }
             return newObj;
@@ -945,9 +956,16 @@ const Editor = () => {
 
         try {
             const flow = { nodes: cleanNodes, edges: cleanEdges, meta: { timeLimit, enableTimeLimit, learningObjectives, enableThreeD, enableTTS } };
-            const docRef = doc(db, "cases", projectId);
 
-            // Log for debugging if it fails again
+            // Pre-flight size check — Firestore document limit is ~1MB
+            const payloadStr = JSON.stringify(flow);
+            const payloadBytes = new TextEncoder().encode(payloadStr).length;
+            console.debug(`[Save] Payload size: ${(payloadBytes / 1024).toFixed(1)} KB`);
+            if (payload > 900_000) {
+                console.warn(`[Save] Payload is ${(payloadBytes / 1024).toFixed(0)} KB — approaching Firestore 1 MB limit.`);
+            }
+
+            const docRef = doc(db, "cases", projectId);
             await setDoc(docRef, {
                 ...flow,
                 title: caseTitle,
@@ -965,7 +983,12 @@ const Editor = () => {
             }
         } catch (error) {
             console.error("Error saving project:", error);
-            alert("Failed to save.");
+            const msg = error?.message || '';
+            if (msg.includes('payload size') || msg.includes('exceeds')) {
+                alert(`Save failed: project is too large for Firestore (${(new TextEncoder().encode(JSON.stringify({ nodes: cleanNodes, edges: cleanEdges })).length / 1024).toFixed(0)} KB). Try removing large image URLs from node data or splitting into smaller cases.`);
+            } else {
+                alert("Failed to save: " + msg);
+            }
         }
     };
 
@@ -1742,7 +1765,7 @@ Please provide a concise plot summary and narrative overview based on these elem
 
         // Helper function to check if we need a new page
         const checkPageBreak = (requiredSpace = 10) => {
-            if (yPos + requiredSpace > pageHeight - margin) {
+            if (yPos + required > pageHeight - margin) {
                 doc.addPage();
                 yPos = margin;
                 return true;
@@ -1812,14 +1835,14 @@ Please provide a concise plot summary and narrative overview based on these elem
                 const words = segment.text.split(' ');
 
                 words.forEach((word, wordIndex) => {
-                    if (wordIndex > 0 || segIndex > 0) {
+                    if (word > 0 || seg > 0) {
                         word = ' ' + word;
                     }
 
                     doc.setFont('helvetica', segment.bold ? 'bold' : (segment.italic ? 'italic' : 'normal'));
                     const wordWidth = doc.getTextWidth(word);
 
-                    if (currentLineWidth + wordWidth > maxWidth && currentLine.length > 0) {
+                    if (currentLineWidth + word > maxWidth && currentLine.length > 0) {
                         // Render current line
                         renderLine(currentLine, currentX, yPos, baseColor);
                         yPos += fontSize * 0.5;
@@ -2635,13 +2658,13 @@ Please provide a concise plot summary and narrative overview based on these elem
                         </h1>
                         <p className="text-zinc-500 text-sm leading-relaxed font-medium">
                             {isExpired ? (
-                                <>
+                                <AnimatePresence>
                                     Your Mystery Games Framework license expired on{' '}
                                     <span className="text-amber-400 font-bold">
                                         {new Date(expiredAt).toLocaleString()}
                                     </span>
                                     . Please reactivate to access the mission architect.
-                                </>
+                                </AnimatePresence>
                             ) : (
                                 'Your Mystery Framework v2.0 license is currently inactive or has expired. Please activate your framework to access the mission architect.'
                             )}
@@ -3096,820 +3119,823 @@ Please provide a concise plot summary and narrative overview based on these elem
                 {/* Main View Area */}
                 <div className="flex-1 flex flex-row overflow-hidden relative">
                     {/* Canvas Container */}
-                    <div id="editor-canvas" className={`h-full relative transition-all duration-500 shrink-0 min-w-0 ${isSimultaneousMode && showPreview ? 'w-1/2 border-r border-white/10' : 'flex-1'}`} ref={reactFlowWrapper}>
-                        <ReactFlow
-                            nodes={nodes}
-                            edges={edges}
-                            onNodesChange={isLocked ? undefined : onNodesChange}
-                            onEdgesChange={isLocked ? undefined : onEdgesChange}
-                            onConnect={isLocked ? undefined : onConnect}
-                            onInit={setReactFlowInstance}
-                            nodesDraggable={!isLocked}
-                            nodeTypes={nodeTypes}
-                            fitView
-                            onDrop={onDrop}
-                            onDragOver={onDragOver}
-                            onNodeDragStop={onNodeDragStop}
-                            onEdgeClick={onEdgeClick}
-                            deleteKeyCode={isLocked ? null : 'Backspace'}
-                            selectionKeyCode={isLocked ? null : 'Shift'}
-                            multiSelectionKeyCode={isLocked ? null : 'Meta'}
-                            minZoom={0.1}
-                            maxZoom={4}
-                            snapToGrid
-                            snapGrid={[20, 20]}
-                        >
-                            <Background color={isDarkMode ? "#333" : "#ccc"} gap={20} />
-                            <Controls className={`${isDarkMode ? 'fill-white stroke-white !bg-zinc-900 !border-white/10' : ''}`} />
-                            <MiniMap
-                                nodeStrokeColor={(n) => {
-                                    if (n.type === 'story') return '#4f46e5';
-                                    if (n.type === 'suspect') return '#ef4444';
-                                    if (n.type === 'evidence') return '#eab308';
-                                    if (n.type === 'logic') return '#10b981';
-                                    return '#333';
-                                }}
-                                nodeColor={(n) => {
-                                    if (n.id === activeExecutingNodeId) return '#10b981';
-                                    return isDarkMode ? '#111' : '#fff';
-                                }}
-                                className={`!rounded-xl border shadow-2xl !bg-black/50 backdrop-blur-md ${isDarkMode ? 'border-white/10' : 'border-zinc-200'}`}
-                            />
-                        </ReactFlow>
-
-                        {/* Simultaneous Highlight Legend */}
-                        {isSimultaneousMode && showPreview && (
-                            <div className="absolute top-4 left-4 z-[100] px-3 py-1.5 rounded-full bg-emerald-500/20 border border-emerald-500/50 backdrop-blur-md flex items-center gap-2 animate-pulse shadow-[0_0_15px_rgba(16,185,129,0.3)]">
-                                <div className="w-2 h-2 rounded-full bg-emerald-500"></div>
-                                <span className="text-[10px] font-black text-emerald-400 uppercase tracking-widest">Simultaneous Mode Active</span>
-                            </div>
-                        )}
-                    </div>
-
-                    {/* Right Pane: Concurrent Game UI */}
-                    <AnimatePresence>
-                        {isSimultaneousMode && showPreview && (
-                            <motion.div
-                                initial={{ x: '100%', opacity: 0 }}
-                                animate={{ x: 0, opacity: 1 }}
-                                exit={{ x: '100%', opacity: 0 }}
-                                transition={{ type: 'spring', damping: 25, stiffness: 200 }}
-                                className="w-1/2 h-full bg-black relative z-20 border-l border-white/5 shadow-[-20px_0_50px_rgba(0,0,0,0.5)] shrink-0 overflow-hidden"
+                    <EditorContext.Provider value={{ learningObjectives }}>
+                        <div id="editor-canvas" className={`h-full relative transition-all duration-500 shrink-0 min-w-0 ${isSimultaneousMode && showPreview ? 'w-1/2 border-r border-white/10' : 'flex-1'}`} ref={reactFlowWrapper}>
+                            <ReactFlow
+                                nodes={nodes}
+                                edges={edges}
+                                onNodesChange={isLocked ? undefined : onNodesChange}
+                                onEdgesChange={isLocked ? undefined : onEdgesChange}
+                                onConnect={isLocked ? undefined : onConnect}
+                                onInit={setReactFlowInstance}
+                                nodesDraggable={!isLocked}
+                                nodeTypes={nodeTypes}
+                                fitView
+                                onDrop={onDrop}
+                                onDragOver={onDragOver}
+                                onNodeDragStop={onNodeDragStop}
+                                onEdgeClick={onEdgeClick}
+                                deleteKeyCode={isLocked ? null : 'Backspace'}
+                                selectionKeyCode={isLocked ? null : 'Shift'}
+                                multiSelectionKeyCode={isLocked ? null : 'Meta'}
+                                minZoom={0.1}
+                                maxZoom={4}
+                                snapToGrid
+                                snapGrid={[20, 20]}
                             >
-                                <GamePreview
-                                    nodes={nodes}
-                                    edges={edges}
-                                    onClose={() => setShowPreview(false)}
-                                    gameMetadata={{ timeLimit, enableTimeLimit, learningObjectives, enableTTS }}
-                                    onGameEnd={handlePreviewGameEnd}
-                                    onNodeChange={onGameNodeChange}
-                                    isSimultaneous={true}
+                                <Background color={isDarkMode ? "#333" : "#ccc"} gap={20} />
+                                <Controls className={`${isDarkMode ? 'fill-white stroke-white !bg-zinc-900 !border-white/10' : ''}`} />
+                                <MiniMap
+                                    nodeStrokeColor={(n) => {
+                                        if (n.type === 'story') return '#4f46e5';
+                                        if (n.type === 'suspect') return '#ef4444';
+                                        if (n.type === 'evidence') return '#eab308';
+                                        if (n.type === 'logic') return '#10b981';
+                                        return '#333';
+                                    }}
+                                    nodeColor={(n) => {
+                                        if (n.id === activeExecutingNodeId) return '#10b981';
+                                        return isDarkMode ? '#111' : '#fff';
+                                    }}
+                                    className={`!rounded-xl border shadow-2xl !bg-black/50 backdrop-blur-md ${isDarkMode ? 'border-white/10' : 'border-zinc-200'}`}
                                 />
+                            </ReactFlow>
 
+                            {/* Simultaneous Highlight Legend */}
+                            {isSimultaneousMode && showPreview && (
+                                <div className="absolute top-4 left-4 z-[100] px-3 py-1.5 rounded-full bg-emerald-500/20 border border-emerald-500/50 backdrop-blur-md flex items-center gap-2 animate-pulse shadow-[0_0_15px_rgba(16,185,129,0.3)]">
+                                    <div className="w-2 h-2 rounded-full bg-emerald-500"></div>
+                                    <span className="text-[10px] font-black text-emerald-400 uppercase tracking-widest">Simultaneous Mode Active</span>
+                                </div>
+                            )}
+                        </div>
+
+                        {/* Right Pane: Concurrent Game UI */}
+                        <AnimatePresence>
+                            {isSimultaneousMode && showPreview && (
+                                <motion.div
+                                    initial={{ x: '100%', opacity: 0 }}
+                                    animate={{ x: 0, opacity: 1 }}
+                                    exit={{ x: '100%', opacity: 0 }}
+                                    transition={{ type: 'spring', damping: 25, stiffness: 200 }}
+                                    className="w-1/2 h-full bg-black relative z-20 border-l border-white/5 shadow-[-20px_0_50px_rgba(0,0,0,0.5)] shrink-0 overflow-hidden"
+                                >
+                                    <GamePreview
+                                        nodes={nodes}
+                                        edges={edges}
+                                        onClose={() => setShowPreview(false)}
+                                        gameMetadata={{ timeLimit, enableTimeLimit, learningObjectives, enableTTS }}
+                                        onGameEnd={handlePreviewGameEnd}
+                                        onNodeChange={onGameNodeChange}
+                                        isSimultaneous={true}
+                                    />
+
+                                    <button
+                                        onClick={() => setShowPreview(false)}
+                                        className="absolute top-4 right-4 z-[101] p-2 rounded-full bg-white/5 hover:bg-white/10 text-white/50 hover:text-white transition-all backdrop-blur-md border border-white/5"
+                                        title="Close Preview"
+                                    >
+                                        <X className="w-5 h-5" />
+                                    </button>
+                                </motion.div>
+                            )}
+                        </AnimatePresence>
+                    </EditorContext.Provider>
+                </div>
+                {/* end Main View Area */}
+
+                <AICaseGeneratorModal
+                    isOpen={showAIGenerator}
+                    onClose={() => setShowAIGenerator(false)}
+                    projectId={projectId}
+                    onGenerate={(newNodes, newEdges, meta) => {
+                        const preparedNodes = newNodes.map(node => ({
+                            ...node,
+                            data: {
+                                ...node.data,
+                                onChange: onNodeUpdate,
+                                onDuplicate: onDuplicateNode,
+                                onUngroup: onUngroup,
+                                learningObjectives,
+                                enableThreeD
+                            }
+                        }));
+                        setNodes(preparedNodes);
+                        setEdges(newEdges);
+
+                        // Update metadata if provided by AI
+                        if (meta) {
+                            if (meta.caseTitle) setCaseTitle(meta.caseTitle);
+                            if (meta.caseDescription) setCaseDescription(meta.caseDescription);
+                        }
+
+                        // Force fit view after generation
+                        setTimeout(() => {
+                            if (reactFlowInstance) reactFlowInstance.fitView({ duration: 800 });
+                        }, 100);
+                    }}
+                />
+
+                <CaseMetadataModal
+                    isOpen={showMetadataModal}
+                    onClose={() => setShowMetadataModal(false)}
+                    initialTitle={caseTitle}
+                    initialDescription={caseDescription}
+                    onSave={handleSaveMetadata}
+                />
+
+                <AnimatePresence>
+                    {showTutorial && (
+                        <TutorialOverlay steps={tutorialSteps} onClose={() => setShowTutorial(false)} />
+                    )}
+                    {showPreview && !isSimultaneousMode && (
+                        <GamePreview nodes={nodes} edges={edges} onClose={() => setShowPreview(false)} gameMetadata={{ timeLimit, enableTimeLimit, learningObjectives, enableTTS }} onGameEnd={handlePreviewGameEnd} onNodeChange={onGameNodeChange} />
+                    )}
+                    {/* Settings Modal */}
+                    {showSettings && (
+                        <div className="fixed inset-0 z-50 flex items-center justify-center p-2 md:p-4 bg-black/80 backdrop-blur-sm">
+                            <div className="bg-zinc-950 border border-zinc-800 p-4 md:p-8 rounded-2xl md:rounded-3xl max-w-2xl w-full shadow-2xl max-h-[95vh] overflow-y-auto relative custom-scrollbar">
+                                {/* Close Button */}
                                 <button
-                                    onClick={() => setShowPreview(false)}
-                                    className="absolute top-4 right-4 z-[101] p-2 rounded-full bg-white/5 hover:bg-white/10 text-white/50 hover:text-white transition-all backdrop-blur-md border border-white/5"
-                                    title="Close Preview"
+                                    onClick={() => setShowSettings(false)}
+                                    className="absolute top-4 right-4 md:top-6 md:right-6 p-2 rounded-full bg-white/5 hover:bg-white/10 text-zinc-500 hover:text-white transition-all z-20"
                                 >
                                     <X className="w-5 h-5" />
                                 </button>
-                            </motion.div>
-                        )}
-                    </AnimatePresence>
-                </div>
-            </div>
 
-            <AICaseGeneratorModal
-                isOpen={showAIGenerator}
-                onClose={() => setShowAIGenerator(false)}
-                projectId={projectId}
-                onGenerate={(newNodes, newEdges, meta) => {
-                    const preparedNodes = newNodes.map(node => ({
-                        ...node,
-                        data: {
-                            ...node.data,
-                            onChange: onNodeUpdate,
-                            onDuplicate: onDuplicateNode,
-                            onUngroup: onUngroup,
-                            learningObjectives,
-                            enableThreeD
-                        }
-                    }));
-                    setNodes(preparedNodes);
-                    setEdges(newEdges);
-
-                    // Update metadata if provided by AI
-                    if (meta) {
-                        if (meta.caseTitle) setCaseTitle(meta.caseTitle);
-                        if (meta.caseDescription) setCaseDescription(meta.caseDescription);
-                    }
-
-                    // Force fit view after generation
-                    setTimeout(() => {
-                        if (reactFlowInstance) reactFlowInstance.fitView({ duration: 800 });
-                    }, 100);
-                }}
-            />
-
-            <CaseMetadataModal
-                isOpen={showMetadataModal}
-                onClose={() => setShowMetadataModal(false)}
-                initialTitle={caseTitle}
-                initialDescription={caseDescription}
-                onSave={handleSaveMetadata}
-            />
-
-            <AnimatePresence>
-                {showTutorial && (
-                    <TutorialOverlay steps={tutorialSteps} onClose={() => setShowTutorial(false)} />
-                )}
-                {showPreview && !isSimultaneousMode && (
-                    <GamePreview nodes={nodes} edges={edges} onClose={() => setShowPreview(false)} gameMetadata={{ timeLimit, enableTimeLimit, learningObjectives, enableTTS }} onGameEnd={handlePreviewGameEnd} onNodeChange={onGameNodeChange} />
-                )}
-                {/* Settings Modal */}
-                {showSettings && (
-                    <div className="fixed inset-0 z-50 flex items-center justify-center p-2 md:p-4 bg-black/80 backdrop-blur-sm">
-                        <div className="bg-zinc-950 border border-zinc-800 p-4 md:p-8 rounded-2xl md:rounded-3xl max-w-2xl w-full shadow-2xl max-h-[95vh] overflow-y-auto relative custom-scrollbar">
-                            {/* Close Button */}
-                            <button
-                                onClick={() => setShowSettings(false)}
-                                className="absolute top-4 right-4 md:top-6 md:right-6 p-2 rounded-full bg-white/5 hover:bg-white/10 text-zinc-500 hover:text-white transition-all z-20"
-                            >
-                                <X className="w-5 h-5" />
-                            </button>
-
-                            {/* High-Visibility Header */}
-                            <div className="mb-6 md:mb-10 flex items-start justify-between">
-                                <div className="space-y-1">
-                                    <h2 className="text-xl md:text-3xl font-black text-white uppercase tracking-tighter flex items-center gap-2 md:gap-3">
-                                        <Settings className="w-6 h-6 md:w-8 md:h-8 text-indigo-500" />
-                                        Session Architect
-                                    </h2>
-                                    <p className="text-zinc-500 text-[8px] md:text-[10px] font-bold uppercase tracking-[0.2em] md:tracking-[0.3em] pl-1">Configuration & Neural Parameters</p>
+                                {/* High-Visibility Header */}
+                                <div className="mb-6 md:mb-10 flex items-start justify-between">
+                                    <div className="space-y-1">
+                                        <h2 className="text-xl md:text-3xl font-black text-white uppercase tracking-tighter flex items-center gap-2 md:gap-3">
+                                            <Settings className="w-6 h-6 md:w-8 md:h-8 text-indigo-500" />
+                                            Session Architect
+                                        </h2>
+                                        <p className="text-zinc-500 text-[8px] md:text-[10px] font-bold uppercase tracking-[0.2em] md:tracking-[0.3em] pl-1">Configuration & Neural Parameters</p>
+                                    </div>
                                 </div>
-                            </div>
-                            <div className="space-y-10">
-                                {/* CORE PARAMETERS SECTION */}
-                                <section className="space-y-6">
-                                    <div className="flex items-center gap-2 mb-4">
-                                        <div className="h-px flex-1 bg-gradient-to-r from-transparent via-indigo-500/30 to-transparent"></div>
-                                        <span className="text-[10px] font-black text-indigo-400 uppercase tracking-[0.2em] whitespace-nowrap px-4">Core Parameters</span>
-                                        <div className="h-px flex-1 bg-gradient-to-r from-transparent via-indigo-500/30 to-transparent"></div>
-                                    </div>
-
-                                    <div className="p-4 md:p-6 bg-zinc-900/30 border border-zinc-800 rounded-2xl flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4">
-                                        <div className="space-y-1">
-                                            <p className="text-sm font-bold text-white uppercase tracking-tight">Mission Duration</p>
-                                            <p className="text-[10px] text-zinc-500 font-medium uppercase tracking-widest">Time limit to solve the case</p>
+                                <div className="space-y-10">
+                                    {/* CORE PARAMETERS SECTION */}
+                                    <section className="space-y-6">
+                                        <div className="flex items-center gap-2 mb-4">
+                                            <div className="h-px flex-1 bg-gradient-to-r from-transparent via-indigo-500/30 to-transparent"></div>
+                                            <span className="text-[10px] font-black text-indigo-400 uppercase tracking-[0.2em] whitespace-nowrap px-4">Core Parameters</span>
+                                            <div className="h-px flex-1 bg-gradient-to-r from-transparent via-indigo-500/30 to-transparent"></div>
                                         </div>
-                                        <div className="flex items-center gap-4 w-full sm:w-auto justify-between sm:justify-end">
-                                            <button
-                                                onClick={() => setEnableTimeLimit(!enableTimeLimit)}
-                                                className={`flex items-center gap-2 px-3 py-1.5 rounded-lg border transition-all ${enableTimeLimit ? 'bg-emerald-500/10 border-emerald-500/30 text-emerald-400' : 'bg-red-500/10 border-red-500/30 text-red-400'}`}
-                                            >
-                                                <span className="text-[10px] font-black uppercase tracking-widest">{enableTimeLimit ? 'Enabled' : 'Disabled'}</span>
-                                            </button>
-                                            <div className={`flex items-center gap-3 transition-all ${enableTimeLimit ? 'opacity-100 scale-100' : 'opacity-30 scale-95 pointer-events-none'}`}>
-                                                <input
-                                                    type="number"
-                                                    min="1"
-                                                    max="120"
-                                                    disabled={!enableTimeLimit}
-                                                    value={timeLimit}
-                                                    onChange={(e) => setTimeLimit(parseInt(e.target.value) || 15)}
-                                                    className="bg-black border border-zinc-700 rounded-xl px-4 py-2 md:py-3 text-white w-20 md:w-24 text-center text-lg md:text-xl font-black focus:border-indigo-500 outline-none transition-all"
-                                                />
-                                                <span className="text-zinc-500 text-[10px] font-black uppercase">Minutes</span>
+
+                                        <div className="p-4 md:p-6 bg-zinc-900/30 border border-zinc-800 rounded-2xl flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4">
+                                            <div className="space-y-1">
+                                                <p className="text-sm font-bold text-white uppercase tracking-tight">Mission Duration</p>
+                                                <p className="text-[10px] text-zinc-500 font-medium uppercase tracking-widest">Time limit to solve the case</p>
                                             </div>
-                                        </div>
-                                    </div>
-
-                                    <div className="p-4 md:p-6 bg-zinc-900/30 border border-zinc-800 rounded-2xl flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4">
-                                        <div className="space-y-1">
-                                            <p className="text-sm font-bold text-white uppercase tracking-tight">Audio Narration (TTS)</p>
-                                            <p className="text-[10px] text-zinc-500 font-medium uppercase tracking-widest">Enable or disable voice for this entire case</p>
-                                        </div>
-                                        <div className="flex items-center gap-4">
-                                            <button
-                                                onClick={() => setEnableTTS(!enableTTS)}
-                                                className={`flex items-center gap-2 px-4 py-2 rounded-xl border transition-all ${enableTTS ? 'bg-emerald-500/20 border-emerald-500/50 text-emerald-400' : 'bg-red-500/20 border-red-500/50 text-red-400'}`}
-                                            >
-                                                {enableTTS ? <Volume2 className="w-4 h-4" /> : <VolumeX className="w-4 h-4" />}
-                                                <span className="text-[10px] font-black uppercase tracking-widest">{enableTTS ? 'Enabled' : 'Disabled'}</span>
-                                            </button>
-                                        </div>
-                                    </div>
-                                </section>
-
-                                {/* ANALYTICAL FRAMEWORK SECTION */}
-                                <section className="space-y-6 border-t border-zinc-800 pt-10">
-                                    <h3 className="text-xs font-black text-indigo-400 uppercase tracking-[0.2em] mb-6">Analytical Framework (Learning Objectives)</h3>
-
-                                    <div className="bg-zinc-900/30 border border-zinc-800 rounded-xl p-4 md:p-5 mb-8">
-                                        <div className="flex flex-col md:flex-row gap-4">
-                                            <div className="flex-1 space-y-1.5">
-                                                <label className="text-[10px] font-bold text-zinc-500 uppercase tracking-wider ml-1">New Category Title</label>
-                                                <input
-                                                    type="text"
-                                                    placeholder="e.g. Cyber Security Fundamentals"
-                                                    value={newCategory.name}
-                                                    onChange={(e) => setNewCategory({ name: e.target.value })}
-                                                    onKeyDown={(e) => e.key === 'Enter' && addCategory()}
-                                                    className="w-full bg-black border border-zinc-700 rounded px-3 py-2 text-sm text-white focus:border-indigo-500 outline-none"
-                                                />
-                                            </div>
-                                            <div className="flex items-end">
-                                                <Button size="sm" onClick={addCategory} disabled={!newCategory.name.trim()} className="w-full md:w-auto h-10 px-6 font-bold shadow-lg shadow-indigo-600/20">
-                                                    <Plus className="w-4 h-4 mr-2" /> Add Category
-                                                </Button>
-                                            </div>
-                                        </div>
-                                    </div>
-
-                                    <div className="space-y-4">
-                                        {learningObjectives.map((cat) => (
-                                            <div key={cat.id} className="bg-zinc-900/50 rounded-lg p-4 border border-zinc-800">
-                                                <div className="flex items-center justify-between mb-4 border-b border-zinc-800/50 pb-3">
-                                                    <span className="font-extrabold text-indigo-400 text-lg uppercase tracking-tight">{cat.category}</span>
-                                                    <button onClick={() => deleteCategory(cat.id)} className="text-zinc-500 hover:text-red-400 transition-colors p-2 bg-black/40 rounded-lg border border-transparent hover:border-red-900/30" title="Delete Category">
-                                                        <Trash2 className="w-4 h-4" />
-                                                    </button>
+                                            <div className="flex items-center gap-4 w-full sm:w-auto justify-between sm:justify-end">
+                                                <button
+                                                    onClick={() => setEnableTimeLimit(!enableTimeLimit)}
+                                                    className={`flex items-center gap-2 px-3 py-1.5 rounded-lg border transition-all ${enableTimeLimit ? 'bg-emerald-500/10 border-emerald-500/30 text-emerald-400' : 'bg-red-500/10 border-red-500/30 text-red-400'}`}
+                                                >
+                                                    <span className="text-[10px] font-black uppercase tracking-widest">{enableTimeLimit ? 'Enabled' : 'Disabled'}</span>
+                                                </button>
+                                                <div className={`flex items-center gap-3 transition-all ${enableTimeLimit ? 'opacity-100 scale-100' : 'opacity-30 scale-95 pointer-events-none'}`}>
+                                                    <input
+                                                        type="number"
+                                                        min="1"
+                                                        max="120"
+                                                        disabled={!enableTimeLimit}
+                                                        value={timeLimit}
+                                                        onChange={(e) => setTimeLimit(parseInt(e.target.value) || 15)}
+                                                        className="bg-black border border-zinc-700 rounded-xl px-4 py-2 md:py-3 text-white w-20 md:w-24 text-center text-lg md:text-xl font-black focus:border-indigo-500 outline-none transition-all"
+                                                    />
+                                                    <span className="text-zinc-500 text-[10px] font-black uppercase">Minutes</span>
                                                 </div>
+                                            </div>
+                                        </div>
 
-                                                <div className="space-y-3 mb-6">
-                                                    {cat.objectives.length === 0 && (
-                                                        <div className="text-xs text-zinc-600 italic px-2">No specific learning objectives added yet.</div>
-                                                    )}
-                                                    {cat.objectives.map((obj, idx) => (
-                                                        <div key={idx} className="bg-black/40 border border-zinc-800/50 rounded-xl p-4 group relative">
-                                                            <div className="flex items-start justify-between gap-4">
-                                                                <div className="flex-1 space-y-2">
-                                                                    <div className="flex items-center gap-2">
-                                                                        <div className="w-1.5 h-1.5 rounded-full bg-indigo-500"></div>
-                                                                        <span className="font-bold text-sm text-zinc-200">{typeof obj === 'string' ? obj : obj.learningObjective}</span>
-                                                                    </div>
-                                                                    {typeof obj !== 'string' && (
-                                                                        <div className="pl-3 space-y-1.5">
-                                                                            {obj.objective && <p className="text-[11px] text-zinc-400 leading-relaxed italic border-l border-zinc-800 pl-3">{obj.objective}</p>}
-                                                                            {obj.keyTakeaway && (
-                                                                                <div className="flex items-center gap-2 text-[10px] text-emerald-400 font-bold uppercase tracking-wider bg-emerald-500/5 w-fit px-2 py-0.5 rounded border border-emerald-500/10">
-                                                                                    <CheckCircle className="w-3 h-3" /> {obj.keyTakeaway}
-                                                                                </div>
-                                                                            )}
+                                        <div className="p-4 md:p-6 bg-zinc-900/30 border border-zinc-800 rounded-2xl flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4">
+                                            <div className="space-y-1">
+                                                <p className="text-sm font-bold text-white uppercase tracking-tight">Audio Narration (TTS)</p>
+                                                <p className="text-[10px] text-zinc-500 font-medium uppercase tracking-widest">Enable or disable voice for this entire case</p>
+                                            </div>
+                                            <div className="flex items-center gap-4">
+                                                <button
+                                                    onClick={() => setEnableTTS(!enableTTS)}
+                                                    className={`flex items-center gap-2 px-4 py-2 rounded-xl border transition-all ${enableTTS ? 'bg-emerald-500/20 border-emerald-500/50 text-emerald-400' : 'bg-red-500/20 border-red-500/50 text-red-400'}`}
+                                                >
+                                                    {enableTTS ? <Volume2 className="w-4 h-4" /> : <VolumeX className="w-4 h-4" />}
+                                                    <span className="text-[10px] font-black uppercase tracking-widest">{enableTTS ? 'Enabled' : 'Disabled'}</span>
+                                                </button>
+                                            </div>
+                                        </div>
+                                    </section>
+
+                                    {/* ANALYTICAL FRAMEWORK SECTION */}
+                                    <section className="space-y-6 border-t border-zinc-800 pt-10">
+                                        <h3 className="text-xs font-black text-indigo-400 uppercase tracking-[0.2em] mb-6">Analytical Framework (Learning Objectives)</h3>
+
+                                        <div className="bg-zinc-900/30 border border-zinc-800 rounded-xl p-4 md:p-5 mb-8">
+                                            <div className="flex flex-col md:flex-row gap-4">
+                                                <div className="flex-1 space-y-1.5">
+                                                    <label className="text-[10px] font-bold text-zinc-500 uppercase tracking-wider ml-1">New Category Title</label>
+                                                    <input
+                                                        type="text"
+                                                        placeholder="e.g. Cyber Security Fundamentals"
+                                                        value={newCategory.name}
+                                                        onChange={(e) => setNewCategory({ name: e.target.value })}
+                                                        onKeyDown={(e) => e.key === 'Enter' && addCategory()}
+                                                        className="w-full bg-black border border-zinc-700 rounded px-3 py-2 text-sm text-white focus:border-indigo-500 outline-none"
+                                                    />
+                                                </div>
+                                                <div className="flex items-end">
+                                                    <Button size="sm" onClick={addCategory} disabled={!newCategory.name.trim()} className="w-full md:w-auto h-10 px-6 font-bold shadow-lg shadow-indigo-600/20">
+                                                        <Plus className="w-4 h-4 mr-2" /> Add Category
+                                                    </Button>
+                                                </div>
+                                            </div>
+                                        </div>
+
+                                        <div className="space-y-4">
+                                            {learningObjectives.map((cat) => (
+                                                <div key={cat.id} className="bg-zinc-900/50 rounded-lg p-4 border border-zinc-800">
+                                                    <div className="flex items-center justify-between mb-4 border-b border-zinc-800/50 pb-3">
+                                                        <span className="font-extrabold text-indigo-400 text-lg uppercase tracking-tight">{cat.category}</span>
+                                                        <button onClick={() => deleteCategory(cat.id)} className="text-zinc-500 hover:text-red-400 transition-colors p-2 bg-black/40 rounded-lg border border-transparent hover:border-red-900/30" title="Delete Category">
+                                                            <Trash2 className="w-4 h-4" />
+                                                        </button>
+                                                    </div>
+
+                                                    <div className="space-y-3 mb-6">
+                                                        {cat.objectives.length === 0 && (
+                                                            <div className="text-xs text-zinc-600 italic px-2">No specific learning objectives added yet.</div>
+                                                        )}
+                                                        {cat.objectives.map((obj, idx) => (
+                                                            <div key={idx} className="bg-black/40 border border-zinc-800/50 rounded-xl p-4 group relative">
+                                                                <div className="flex items-start justify-between gap-4">
+                                                                    <div className="flex-1 space-y-2">
+                                                                        <div className="flex items-center gap-2">
+                                                                            <div className="w-1.5 h-1.5 rounded-full bg-indigo-500"></div>
+                                                                            <span className="font-bold text-sm text-zinc-200">{typeof obj === 'string' ? obj : obj.learningObjective}</span>
                                                                         </div>
-                                                                    )}
+                                                                        {typeof obj !== 'string' && (
+                                                                            <div className="pl-3 space-y-1.5">
+                                                                                {obj.objective && <p className="text-[11px] text-zinc-400 leading-relaxed italic border-l border-zinc-800 pl-3">{obj.objective}</p>}
+                                                                                {obj.keyTakeaway && (
+                                                                                    <div className="flex items-center gap-2 text-[10px] text-emerald-400 font-bold uppercase tracking-wider bg-emerald-500/5 w-fit px-2 py-0.5 rounded border border-emerald-500/10">
+                                                                                        <CheckCircle className="w-3 h-3" /> {obj.keyTakeaway}
+                                                                                    </div>
+                                                                                )}
+                                                                            </div>
+                                                                        )}
+                                                                    </div>
+                                                                    <button onClick={() => deleteObjective(cat.id, idx)} className="text-zinc-600 hover:text-red-400 transition-all p-2 bg-black/80 rounded-lg border border-zinc-800 hover:border-red-900/30">
+                                                                        <Trash2 className="w-3.5 h-3.5" />
+                                                                    </button>
                                                                 </div>
-                                                                <button onClick={() => deleteObjective(cat.id, idx)} className="text-zinc-600 hover:text-red-400 transition-all p-2 bg-black/80 rounded-lg border border-zinc-800 hover:border-red-900/30">
-                                                                    <Trash2 className="w-3.5 h-3.5" />
-                                                                </button>
+                                                            </div>
+                                                        ))}
+                                                    </div>
+
+                                                    <div className="bg-zinc-900/80 border border-zinc-800 rounded-xl p-4 space-y-3">
+                                                        <p className="text-[10px] font-black text-indigo-400 uppercase tracking-widest px-1 mb-1">Add New Objective</p>
+                                                        <div className="space-y-3">
+                                                            <InputField
+                                                                placeholder="Learning Objective (e.g. Identify Phishing emails)"
+                                                                value={newObjective.categoryId === cat.id ? newObjective.title : ""}
+                                                                onChange={(e) => setNewObjective({ ...newObjective, categoryId: cat.id, title: e.target.value })}
+                                                                className="!bg-black !border-zinc-800 focus:!border-indigo-500"
+                                                            />
+                                                            <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
+                                                                <InputField
+                                                                    placeholder="Detail / Description"
+                                                                    value={newObjective.categoryId === cat.id ? newObjective.detail : ""}
+                                                                    onChange={(e) => setNewObjective({ ...newObjective, categoryId: cat.id, detail: e.target.value })}
+                                                                    className="!bg-black !border-zinc-800 focus:!border-indigo-500"
+                                                                />
+                                                                <InputField
+                                                                    placeholder="Key Takeaway"
+                                                                    value={newObjective.categoryId === cat.id ? newObjective.takeaway : ""}
+                                                                    onChange={(e) => setNewObjective({ ...newObjective, categoryId: cat.id, takeaway: e.target.value })}
+                                                                    className="!bg-black !border-zinc-800 focus:!border-indigo-500"
+                                                                />
                                                             </div>
                                                         </div>
-                                                    ))}
-                                                </div>
-
-                                                <div className="bg-zinc-900/80 border border-zinc-800 rounded-xl p-4 space-y-3">
-                                                    <p className="text-[10px] font-black text-indigo-400 uppercase tracking-widest px-1 mb-1">Add New Objective</p>
-                                                    <div className="space-y-3">
-                                                        <InputField
-                                                            placeholder="Learning Objective (e.g. Identify Phishing emails)"
-                                                            value={newObjective.categoryId === cat.id ? newObjective.title : ""}
-                                                            onChange={(e) => setNewObjective({ ...newObjective, categoryId: cat.id, title: e.target.value })}
-                                                            className="!bg-black !border-zinc-800 focus:!border-indigo-500"
-                                                        />
-                                                        <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
-                                                            <InputField
-                                                                placeholder="Detail / Description"
-                                                                value={newObjective.categoryId === cat.id ? newObjective.detail : ""}
-                                                                onChange={(e) => setNewObjective({ ...newObjective, categoryId: cat.id, detail: e.target.value })}
-                                                                className="!bg-black !border-zinc-800 focus:!border-indigo-500"
-                                                            />
-                                                            <InputField
-                                                                placeholder="Key Takeaway"
-                                                                value={newObjective.categoryId === cat.id ? newObjective.takeaway : ""}
-                                                                onChange={(e) => setNewObjective({ ...newObjective, categoryId: cat.id, takeaway: e.target.value })}
-                                                                className="!bg-black !border-zinc-800 focus:!border-indigo-500"
-                                                            />
+                                                        <div className="flex justify-end">
+                                                            <Button
+                                                                size="sm"
+                                                                onClick={() => addObjective(cat.id)}
+                                                                disabled={newObjective.categoryId !== cat.id || !newObjective.title.trim()}
+                                                                className="h-9 px-4 text-xs"
+                                                            >
+                                                                <Plus className="w-3.5 h-3.5 mr-2" /> Save Objective
+                                                            </Button>
                                                         </div>
                                                     </div>
-                                                    <div className="flex justify-end">
-                                                        <Button
-                                                            size="sm"
-                                                            onClick={() => addObjective(cat.id)}
-                                                            disabled={newObjective.categoryId !== cat.id || !newObjective.title.trim()}
-                                                            className="h-9 px-4 text-xs"
-                                                        >
-                                                            <Plus className="w-3.5 h-3.5 mr-2" /> Save Objective
-                                                        </Button>
-                                                    </div>
                                                 </div>
-                                            </div>
-                                        ))}
-                                    </div>
-                                </section>
-                            </div>
-                            <div className="mt-8 flex justify-end gap-2">
-                                <Button onClick={() => setShowSettings(false)}>
-                                    Save & Close
-                                </Button>
-                            </div>
-                        </div >
-                    </div >
-                )
-                }
-
-                {/* Edge Editor Modal */}
-                {
-                    editingEdge && (
-                        <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/80 backdrop-blur-sm">
-                            <div className="bg-zinc-950 border border-zinc-800 p-6 rounded-xl max-w-sm w-full shadow-2xl">
-                                <h2 className="text-xl font-bold text-white mb-4 flex items-center gap-2">
-                                    <GitMerge className="w-6 h-6 text-indigo-500" />
-                                    Edit Connection
-                                </h2>
-                                <div className="space-y-4">
-                                    <div>
-                                        <label className="block text-xs font-bold text-zinc-500 uppercase tracking-wider mb-2">Action Label</label>
-                                        <input
-                                            type="text"
-                                            placeholder="e.g. Interrogate, Unlock"
-                                            value={tempLabel}
-                                            onChange={(e) => setTempLabel(e.target.value)}
-                                            className="w-full bg-black border border-zinc-700 rounded px-3 py-2 text-white outline-none focus:border-indigo-500"
-                                            autoFocus
-                                        />
-                                        <span className="text-zinc-500 text-xs mt-1 block">Text shown on the line connecting nodes.</span>
-                                    </div>
+                                            ))}
+                                        </div>
+                                    </section>
                                 </div>
-                                <div className="mt-8 flex justify-between">
-                                    <Button variant="destructive" onClick={deleteEdge}>
-                                        Delete Link
+                                <div className="mt-8 flex justify-end gap-2">
+                                    <Button onClick={() => setShowSettings(false)}>
+                                        Save & Close
                                     </Button>
-                                    <div className="flex gap-2">
-                                        <Button variant="ghost" onClick={() => setEditingEdge(null)}>
-                                            Cancel
-                                        </Button>
-                                        <Button onClick={saveEdgeLabel}>
-                                            Save Label
-                                        </Button>
-                                    </div>
                                 </div>
                             </div>
                         </div>
                     )
-                }
-                {
-                    helpModalData && (
-                        <div className="fixed inset-0 z-[100] flex items-center justify-center p-4 bg-black/80 backdrop-blur-xl" onClick={() => setHelpModalData(null)}>
+                    }
+
+                    {/* Edge Editor Modal */}
+                    {
+                        editingEdge && (
+                            <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/80 backdrop-blur-sm">
+                                <div className="bg-zinc-950 border border-zinc-800 p-6 rounded-xl max-w-sm w-full shadow-2xl">
+                                    <h2 className="text-xl font-bold text-white mb-4 flex items-center gap-2">
+                                        <GitMerge className="w-6 h-6 text-indigo-500" />
+                                        Edit Connection
+                                    </h2>
+                                    <div className="space-y-4">
+                                        <div>
+                                            <label className="block text-xs font-bold text-zinc-500 uppercase tracking-wider mb-2">Action Label</label>
+                                            <input
+                                                type="text"
+                                                placeholder="e.g. Interrogate, Unlock"
+                                                value={tempLabel}
+                                                onChange={(e) => setTempLabel(e.target.value)}
+                                                className="w-full bg-black border border-zinc-700 rounded px-3 py-2 text-white outline-none focus:border-indigo-500"
+                                                autoFocus
+                                            />
+                                            <span className="text-zinc-500 text-xs mt-1 block">Text shown on the line connecting nodes.</span>
+                                        </div>
+                                    </div>
+                                    <div className="mt-8 flex justify-between">
+                                        <Button variant="destructive" onClick={deleteEdge}>
+                                            Delete Link
+                                        </Button>
+                                        <div className="flex gap-2">
+                                            <Button variant="ghost" onClick={() => setEditingEdge(null)}>
+                                                Cancel
+                                            </Button>
+                                            <Button onClick={saveEdgeLabel}>
+                                                Save Label
+                                            </Button>
+                                        </div>
+                                    </div>
+                                </div>
+                            </div>
+                        )
+                    }
+                    {
+                        helpModalData && (
+                            <div className="fixed inset-0 z-[100] flex items-center justify-center p-4 bg-black/80 backdrop-blur-xl" onClick={() => setHelpModalData(null)}>
+                                <motion.div
+                                    initial={{ opacity: 0, scale: 0.9, y: 20 }}
+                                    animate={{ opacity: 1, scale: 1, y: 0 }}
+                                    exit={{ opacity: 0, scale: 0.9, y: 20 }}
+                                    className="bg-zinc-950 border border-white/10 p-8 rounded-3xl max-w-lg w-full shadow-[0_0_50px_rgba(99,102,241,0.2)] relative overflow-hidden"
+                                    onClick={(e) => e.stopPropagation()}
+                                >
+                                    {/* Decorative background elements */}
+                                    <div className="absolute top-0 right-0 w-32 h-32 bg-indigo-500/10 blur-[60px]"></div>
+                                    <div className="absolute bottom-0 left-0 w-32 h-32 bg-fuchsia-500/10 blur-[60px]"></div>
+
+                                    <button onClick={() => setHelpModalData(null)} className="absolute top-6 right-6 text-zinc-500 hover:text-white transition-all hover:rotate-90">
+                                        <X className="w-5 h-5" />
+                                    </button>
+
+                                    <div className="flex items-center gap-4 mb-6">
+                                        <div className="p-3 rounded-2xl bg-indigo-500/20 border border-indigo-500/30">
+                                            <Info className="w-6 h-6 text-indigo-400" />
+                                        </div>
+                                        <div>
+                                            <h2 className="text-2xl font-black text-white tracking-tight uppercase">
+                                                {helpModalData.title}
+                                            </h2>
+                                            <p className="text-[10px] font-bold text-indigo-400 uppercase tracking-widest mt-1">Intelligence Protocol</p>
+                                        </div>
+                                    </div>
+
+                                    <p className="text-zinc-400 leading-relaxed mb-8 text-sm font-medium italic">
+                                        "{helpModalData.desc}"
+                                    </p>
+
+                                    {helpModalData.details && (
+                                        <div className="space-y-3 mb-8">
+                                            {helpModalData.details.map((detail, i) => (
+                                                <div key={i} className="flex items-center gap-3 text-xs text-zinc-300 font-medium">
+                                                    <div className="w-1.5 h-1.5 rounded-full bg-indigo-500 shadow-[0_0_10px_rgba(99,102,241,0.8)]"></div>
+                                                    {detail}
+                                                </div>
+                                            ))}
+                                        </div>
+                                    )}
+
+                                    <div className="bg-white/5 rounded-2xl p-6 border border-white/10 backdrop-blur-md">
+                                        <h3 className="text-[10px] font-black text-white/40 uppercase tracking-[0.2em] mb-4">Tactical Examples</h3>
+                                        <div className="grid grid-cols-1 gap-3">
+                                            {helpModalData.examples.map((ex, i) => (
+                                                <div key={i} className="px-4 py-2.5 bg-black/40 border border-white/5 rounded-xl text-xs text-zinc-400 font-mono flex items-center gap-3 group hover:border-indigo-500/50 transition-all">
+                                                    <span className="text-indigo-600 font-bold">0{i + 1}</span>
+                                                    {ex}
+                                                </div>
+                                            ))}
+                                        </div>
+                                    </div>
+
+                                    <button
+                                        onClick={() => setHelpModalData(null)}
+                                        className="w-full mt-8 py-4 bg-indigo-600 hover:bg-indigo-500 text-white font-bold rounded-2xl transition-all shadow-lg shadow-indigo-500/20 active:scale-[0.98]"
+                                    >
+                                        ACKNOWLEDGE
+                                    </button>
+                                </motion.div>
+                            </div>
+                        )
+                    }
+                </AnimatePresence>
+
+                {/* Validation Report Modal */}
+                <AnimatePresence>
+                    {validationReport && (
+                        <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/50 backdrop-blur-sm" onClick={() => setValidationReport(null)}>
+                            <motion.div
+                                initial={{ opacity: 0, scale: 0.95 }}
+                                animate={{ opacity: 1, scale: 1 }}
+                                exit={{ opacity: 0, scale: 0.95 }}
+                                onClick={(e) => e.stopPropagation()}
+                                className="bg-zinc-950 border border-zinc-800 rounded-xl max-w-2xl w-full max-h-[80vh] flex flex-col shadow-2xl relative overflow-hidden"
+                            >
+                                <div className="p-4 border-b border-zinc-800 flex items-center justify-between bg-zinc-900/50">
+                                    <div className="flex items-center gap-3">
+                                        <Stethoscope className="w-5 h-5 text-emerald-500" />
+                                        <h2 className="text-lg font-bold text-white">Graph Health Report</h2>
+                                    </div>
+                                    <Button variant="ghost" size="icon" onClick={() => setValidationReport(null)}>
+                                        <X className="w-5 h-5" />
+                                    </Button>
+                                </div>
+
+                                <div className="flex-1 overflow-y-auto p-4 space-y-6">
+                                    {validationReport.errors.length === 0 && validationReport.warnings.length === 0 && (
+                                        <div className="text-center py-12 text-zinc-500">
+                                            <CheckCircle className="w-12 h-12 mx-auto mb-4 text-emerald-500 opacity-50" />
+                                            <p>No issues found.</p>
+                                        </div>
+                                    )}
+
+                                    {validationReport.errors.length > 0 && (
+                                        <div>
+                                            <h3 className="text-red-400 text-xs font-bold uppercase tracking-wider mb-3 flex items-center gap-2">
+                                                <AlertTriangle className="w-4 h-4" /> Errors ({validationReport.errors.length})
+                                            </h3>
+                                            <div className="space-y-2">
+                                                {validationReport.errors.map(err => (
+                                                    <div
+                                                        key={err.id}
+                                                        onClick={() => {
+                                                            if (err.nodeId && reactFlowInstance) {
+                                                                const node = nodes.find(n => n.id === err.nodeId);
+                                                                if (node) {
+                                                                    reactFlowInstance.setCenter(node.position.x, node.position.y, { zoom: 1.5, duration: 800 });
+                                                                    setValidationReport(null);
+                                                                }
+                                                            }
+                                                        }}
+                                                        className="bg-red-950/20 border border-red-900/30 p-3 rounded-lg flex items-start justify-between cursor-pointer hover:bg-red-950/40 transition-colors group"
+                                                    >
+                                                        <span className="text-red-200 text-sm">{err.message}</span>
+                                                        {err.nodeId && <Search className="w-4 h-4 text-red-500 opacity-0 group-hover:opacity-100 transition-opacity" />}
+                                                    </div>
+                                                ))}
+                                            </div>
+                                        </div>
+                                    )}
+
+                                    {validationReport.warnings.length > 0 && (
+                                        <div>
+                                            <h3 className="text-amber-400 text-xs font-bold uppercase tracking-wider mb-3 flex items-center gap-2">
+                                                <AlertTriangle className="w-4 h-4" /> Warnings ({validationReport.warnings.length})
+                                            </h3>
+                                            <div className="space-y-2">
+                                                {validationReport.warnings.map(warn => (
+                                                    <div
+                                                        key={warn.id}
+                                                        onClick={() => {
+                                                            if (warn.nodeId && reactFlowInstance) {
+                                                                const node = nodes.find(n => n.id === warn.nodeId);
+                                                                if (node) {
+                                                                    reactFlowInstance.setCenter(node.position.x, node.position.y, { zoom: 1.5, duration: 800 });
+                                                                    setValidationReport(null);
+                                                                }
+                                                            }
+                                                        }}
+                                                        className="bg-amber-950/20 border border-amber-900/30 p-3 rounded-lg flex items-start justify-between cursor-pointer hover:bg-amber-950/40 transition-colors group"
+                                                    >
+                                                        <span className="text-amber-200 text-sm">{warn.message}</span>
+                                                        {warn.nodeId && <Search className="w-4 h-4 text-amber-500 opacity-0 group-hover:opacity-100 transition-opacity" />}
+                                                    </div>
+                                                ))}
+                                            </div>
+                                        </div>
+                                    )}
+                                </div>
+                            </motion.div>
+                        </div>
+                    )}
+                    {/* Delete Category Confirmation Modal */}
+                    {
+                        confirmDeleteCat && (
+                            <div className="fixed inset-0 z-[100] flex items-center justify-center p-4 bg-black/60 backdrop-blur-sm">
+                                <motion.div
+                                    initial={{ scale: 0.95, opacity: 0 }}
+                                    animate={{ scale: 1, opacity: 1 }}
+                                    className="bg-zinc-950 border border-zinc-900 p-8 rounded-2xl max-w-sm w-full shadow-2xl space-y-6"
+                                >
+                                    <div className="flex flex-col items-center text-center space-y-4">
+                                        <div className="p-3 bg-red-500/10 rounded-full border border-red-500/20">
+                                            <AlertTriangle className="w-8 h-8 text-red-500" />
+                                        </div>
+                                        <div>
+                                            <h3 className="text-xl font-bold text-white uppercase tracking-tight">Destructive Action</h3>
+                                            <p className="text-zinc-500 text-sm mt-2">
+                                                Are you sure you want to delete <span className="text-zinc-200 font-bold">{learningObjectives.find(c => c.id === confirmDeleteCat)?.category}</span> and all its associated objectives?
+                                            </p>
+                                        </div>
+                                    </div>
+                                    <div className="flex gap-3">
+                                        <Button
+                                            variant="ghost"
+                                            className="flex-1 border border-zinc-800 hover:bg-zinc-900"
+                                            onClick={() => setConfirmDeleteCat(null)}
+                                        >
+                                            Cancel
+                                        </Button>
+                                        <Button
+                                            className="flex-1 bg-red-600 hover:bg-red-700 text-white border-0 shadow-lg shadow-red-900/20"
+                                            onClick={confirmDeleteCategory}
+                                        >
+                                            Delete All
+                                        </Button>
+                                    </div>
+                                </motion.div>
+                            </div>
+                        )
+                    }
+                    {/* Case Locked Modal */}
+                    {
+                        showLockedModal && (
+                            <div className="fixed inset-0 z-[200] flex items-center justify-center p-4 bg-black/90 backdrop-blur-md">
+                                <motion.div
+                                    initial={{ scale: 0.9, opacity: 0 }}
+                                    animate={{ scale: 1, opacity: 1 }}
+                                    className="bg-zinc-950 border border-indigo-500/30 p-8 rounded-3xl max-w-md w-full shadow-[0_0_50px_rgba(79,70,229,0.2)] text-center relative overflow-hidden"
+                                >
+                                    <div className="absolute top-0 left-0 w-full h-1 bg-gradient-to-r from-transparent via-indigo-500 to-transparent"></div>
+                                    <div className="flex flex-col items-center gap-6">
+                                        <div className="relative">
+                                            <div className="absolute inset-0 bg-indigo-500/20 blur-2xl rounded-full"></div>
+                                            <div className="relative w-20 h-20 bg-zinc-900 rounded-2xl border border-white/10 flex items-center justify-center">
+                                                <Lock className="w-10 h-10 text-indigo-400" />
+                                            </div>
+                                            <div className="absolute -bottom-2 -right-2 w-8 h-8 bg-amber-500 rounded-full border-4 border-zinc-950 flex items-center justify-center">
+                                                <AlertTriangle className="w-4 h-4 text-black" />
+                                            </div>
+                                        </div>
+
+                                        <div className="space-y-2">
+                                            <h2 className="text-2xl font-black text-white tracking-tight">Case is Occupied</h2>
+                                            <p className="text-zinc-400 text-sm leading-relaxed">
+                                                <span className="text-indigo-400 font-bold">{editingBy?.displayName || 'Another detective'}</span> is currently working on this case file. To prevent data corruption, simultaneous editing is prohibited.
+                                            </p>
+                                        </div>
+
+                                        <div className="w-full h-px bg-zinc-800"></div>
+
+                                        <div className="flex flex-col gap-3 w-full">
+                                            <div className="flex items-center justify-center gap-2 text-[10px] font-bold text-emerald-500 bg-emerald-500/10 py-2 rounded-lg border border-emerald-500/20 uppercase tracking-widest">
+                                                <span className="w-1.5 h-1.5 rounded-full bg-emerald-500 animate-pulse"></span>
+                                                Live Status: Currently Editing
+                                            </div>
+
+                                            <div className="flex flex-col gap-2 w-full mt-2">
+                                                {requestFeedback === 'declined' ? (
+                                                    <div className="p-3 bg-red-500/10 border border-red-500/20 rounded-xl text-red-400 text-xs font-bold animate-shake">
+                                                        Access Request Declined
+                                                    </div>
+                                                ) : requestFeedback === 'accepted' ? (
+                                                    <div className="p-3 bg-emerald-500/10 border border-emerald-500/20 rounded-xl text-emerald-400 text-xs font-bold">
+                                                        Access Granted! Releasing Lock...
+                                                    </div>
+                                                ) : isRequesting ? (
+                                                    <div className="flex items-center justify-center gap-3 w-full h-12 bg-white/5 rounded-xl border border-white/10 text-zinc-400 text-sm font-bold animate-pulse">
+                                                        <div className="w-4 h-4 border-2 border-indigo-500 border-t-transparent rounded-full animate-spin"></div>
+                                                        Waiting for Response...
+                                                    </div>
+                                                ) : (
+                                                    <AnimatePresence>
+                                                        <Button
+                                                            onClick={handleOverrideLock}
+                                                            variant="destructive"
+                                                            className="w-full bg-red-600/20 hover:bg-red-600/40 text-red-200 border-red-500/30 font-bold h-12 rounded-xl"
+                                                        >
+                                                            Override (Force Access)
+                                                        </Button>
+                                                        <Button
+                                                            onClick={handleRequestAccess}
+                                                            variant="primary"
+                                                            className="w-full font-bold h-12 rounded-xl"
+                                                        >
+                                                            Request Access
+                                                        </Button>
+                                                    </AnimatePresence>
+                                                )}
+                                            </div>
+
+                                            <Button
+                                                onClick={() => navigate('/')}
+                                                variant="ghost"
+                                                className="w-full text-zinc-500 hover:text-white hover:bg-white/5 font-medium h-10 rounded-xl"
+                                            >
+                                                Return to Dashboard
+                                            </Button>
+                                        </div>
+                                    </div>
+                                </motion.div>
+                            </div>
+                        )
+                    }
+                    {/* Incoming Access Request Modal */}
+                    {
+                        incomingRequest && (
+                            <div className="fixed inset-0 z-[300] flex items-end justify-center p-6 md:items-center pointer-events-none">
+                                <motion.div
+                                    initial={{ y: 100, opacity: 0 }}
+                                    animate={{ y: 0, opacity: 1 }}
+                                    exit={{ y: 100, opacity: 0 }}
+                                    className="bg-zinc-950 border border-indigo-500/50 p-6 rounded-2xl max-w-sm w-full shadow-[0_20px_60px_rgba(0,0,0,0.8)] pointer-events-auto"
+                                >
+                                    <div className="flex items-start gap-4 mb-6">
+                                        <div className="p-3 bg-indigo-500/20 rounded-xl border border-indigo-500/30">
+                                            <User className="w-6 h-6 text-indigo-400" />
+                                        </div>
+                                        <div>
+                                            <h3 className="text-lg font-bold text-white tracking-tight">Access Requested</h3>
+                                            <p className="text-zinc-400 text-xs leading-relaxed mt-1">
+                                                <span className="text-indigo-400 font-bold">{incomingRequest.displayName}</span> is requesting permission to edit this case file.
+                                            </p>
+                                        </div>
+                                    </div>
+
+                                    <div className="flex gap-3">
+                                        <Button
+                                            onClick={handleDeclineRequest}
+                                            variant="ghost"
+                                            className="flex-1 text-zinc-500 hover:text-white hover:bg-white/5 font-bold rounded-xl"
+                                        >
+                                            Decline
+                                        </Button>
+                                        <Button
+                                            onClick={handleAcceptRequest}
+                                            className="flex-1 bg-indigo-600 hover:bg-indigo-500 text-white font-bold rounded-xl shadow-[0_0_20px_rgba(79,70,229,0.3)]"
+                                        >
+                                            Accept & Release
+                                        </Button>
+                                    </div>
+                                </motion.div>
+                            </div>
+                        )
+                    }
+                </AnimatePresence>
+
+                {/* Story Format Selection Modal */}
+                <AnimatePresence>
+                    {showStoryFormatModal && (
+                        <div className="fixed inset-0 z-[200] flex items-center justify-center p-4">
+                            <motion.div
+                                initial={{ opacity: 0 }}
+                                animate={{ opacity: 1 }}
+                                exit={{ opacity: 0 }}
+                                className="absolute inset-0 bg-black/80 backdrop-blur-sm"
+                                onClick={() => setShowStoryFormatModal(false)}
+                            />
                             <motion.div
                                 initial={{ opacity: 0, scale: 0.9, y: 20 }}
                                 animate={{ opacity: 1, scale: 1, y: 0 }}
                                 exit={{ opacity: 0, scale: 0.9, y: 20 }}
-                                className="bg-zinc-950 border border-white/10 p-8 rounded-3xl max-w-lg w-full shadow-[0_0_50px_rgba(99,102,241,0.2)] relative overflow-hidden"
-                                onClick={(e) => e.stopPropagation()}
+                                className={`relative w-full max-w-md rounded-3xl border shadow-[0_20px_80px_rgba(0,0,0,0.5)] overflow-hidden ${isDarkMode ? 'bg-zinc-900 border-white/10' : 'bg-white border-zinc-200'}`}
                             >
-                                {/* Decorative background elements */}
-                                <div className="absolute top-0 right-0 w-32 h-32 bg-indigo-500/10 blur-[60px]"></div>
-                                <div className="absolute bottom-0 left-0 w-32 h-32 bg-fuchsia-500/10 blur-[60px]"></div>
-
-                                <button onClick={() => setHelpModalData(null)} className="absolute top-6 right-6 text-zinc-500 hover:text-white transition-all hover:rotate-90">
-                                    <X className="w-5 h-5" />
-                                </button>
-
-                                <div className="flex items-center gap-4 mb-6">
-                                    <div className="p-3 rounded-2xl bg-indigo-500/20 border border-indigo-500/30">
-                                        <Info className="w-6 h-6 text-indigo-400" />
-                                    </div>
-                                    <div>
-                                        <h2 className="text-2xl font-black text-white tracking-tight uppercase">
-                                            {helpModalData.title}
-                                        </h2>
-                                        <p className="text-[10px] font-bold text-indigo-400 uppercase tracking-widest mt-1">Intelligence Protocol</p>
-                                    </div>
-                                </div>
-
-                                <p className="text-zinc-400 leading-relaxed mb-8 text-sm font-medium italic">
-                                    "{helpModalData.desc}"
-                                </p>
-
-                                {helpModalData.details && (
-                                    <div className="space-y-3 mb-8">
-                                        {helpModalData.details.map((detail, i) => (
-                                            <div key={i} className="flex items-center gap-3 text-xs text-zinc-300 font-medium">
-                                                <div className="w-1.5 h-1.5 rounded-full bg-indigo-500 shadow-[0_0_10px_rgba(99,102,241,0.8)]"></div>
-                                                {detail}
+                                {/* Header */}
+                                <div className={`p-6 border-b ${isDarkMode ? 'border-white/10' : 'border-zinc-200'}`}>
+                                    <div className="flex items-center justify-between">
+                                        <div className="flex items-center gap-3">
+                                            <div className={`p-3 rounded-2xl ${isDarkMode ? 'bg-amber-500/10' : 'bg-amber-50'}`}>
+                                                <FileText className={`w-6 h-6 ${isDarkMode ? 'text-amber-400' : 'text-amber-600'}`} />
                                             </div>
-                                        ))}
-                                    </div>
-                                )}
-
-                                <div className="bg-white/5 rounded-2xl p-6 border border-white/10 backdrop-blur-md">
-                                    <h3 className="text-[10px] font-black text-white/40 uppercase tracking-[0.2em] mb-4">Tactical Examples</h3>
-                                    <div className="grid grid-cols-1 gap-3">
-                                        {helpModalData.examples.map((ex, i) => (
-                                            <div key={i} className="px-4 py-2.5 bg-black/40 border border-white/5 rounded-xl text-xs text-zinc-400 font-mono flex items-center gap-3 group hover:border-indigo-500/50 transition-all">
-                                                <span className="text-indigo-600 font-bold">0{i + 1}</span>
-                                                {ex}
+                                            <div>
+                                                <h3 className={`text-lg font-black uppercase tracking-tight ${isDarkMode ? 'text-white' : 'text-zinc-900'}`}>
+                                                    Download Story
+                                                </h3>
+                                                <p className="text-xs text-zinc-500 font-medium mt-0.5">
+                                                    Choose your preferred format
+                                                </p>
                                             </div>
-                                        ))}
-                                    </div>
-                                </div>
-
-                                <button
-                                    onClick={() => setHelpModalData(null)}
-                                    className="w-full mt-8 py-4 bg-indigo-600 hover:bg-indigo-500 text-white font-bold rounded-2xl transition-all shadow-lg shadow-indigo-500/20 active:scale-[0.98]"
-                                >
-                                    ACKNOWLEDGE
-                                </button>
-                            </motion.div>
-                        </div>
-                    )
-                }
-            </AnimatePresence >
-
-            {/* Validation Report Modal */}
-            < AnimatePresence >
-                {validationReport && (
-                    <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/50 backdrop-blur-sm" onClick={() => setValidationReport(null)}>
-                        <motion.div
-                            initial={{ opacity: 0, scale: 0.95 }}
-                            animate={{ opacity: 1, scale: 1 }}
-                            exit={{ opacity: 0, scale: 0.95 }}
-                            onClick={(e) => e.stopPropagation()}
-                            className="bg-zinc-950 border border-zinc-800 rounded-xl max-w-2xl w-full max-h-[80vh] flex flex-col shadow-2xl relative overflow-hidden"
-                        >
-                            <div className="p-4 border-b border-zinc-800 flex items-center justify-between bg-zinc-900/50">
-                                <div className="flex items-center gap-3">
-                                    <Stethoscope className="w-5 h-5 text-emerald-500" />
-                                    <h2 className="text-lg font-bold text-white">Graph Health Report</h2>
-                                </div>
-                                <Button variant="ghost" size="icon" onClick={() => setValidationReport(null)}>
-                                    <X className="w-5 h-5" />
-                                </Button>
-                            </div>
-
-                            <div className="flex-1 overflow-y-auto p-4 space-y-6">
-                                {validationReport.errors.length === 0 && validationReport.warnings.length === 0 && (
-                                    <div className="text-center py-12 text-zinc-500">
-                                        <CheckCircle className="w-12 h-12 mx-auto mb-4 text-emerald-500 opacity-50" />
-                                        <p>No issues found.</p>
-                                    </div>
-                                )}
-
-                                {validationReport.errors.length > 0 && (
-                                    <div>
-                                        <h3 className="text-red-400 text-xs font-bold uppercase tracking-wider mb-3 flex items-center gap-2">
-                                            <AlertTriangle className="w-4 h-4" /> Errors ({validationReport.errors.length})
-                                        </h3>
-                                        <div className="space-y-2">
-                                            {validationReport.errors.map(err => (
-                                                <div
-                                                    key={err.id}
-                                                    onClick={() => {
-                                                        if (err.nodeId && reactFlowInstance) {
-                                                            const node = nodes.find(n => n.id === err.nodeId);
-                                                            if (node) {
-                                                                reactFlowInstance.setCenter(node.position.x, node.position.y, { zoom: 1.5, duration: 800 });
-                                                                setValidationReport(null);
-                                                            }
-                                                        }
-                                                    }}
-                                                    className="bg-red-950/20 border border-red-900/30 p-3 rounded-lg flex items-start justify-between cursor-pointer hover:bg-red-950/40 transition-colors group"
-                                                >
-                                                    <span className="text-red-200 text-sm">{err.message}</span>
-                                                    {err.nodeId && <Search className="w-4 h-4 text-red-500 opacity-0 group-hover:opacity-100 transition-opacity" />}
-                                                </div>
-                                            ))}
                                         </div>
-                                    </div>
-                                )}
-
-                                {validationReport.warnings.length > 0 && (
-                                    <div>
-                                        <h3 className="text-amber-400 text-xs font-bold uppercase tracking-wider mb-3 flex items-center gap-2">
-                                            <AlertTriangle className="w-4 h-4" /> Warnings ({validationReport.warnings.length})
-                                        </h3>
-                                        <div className="space-y-2">
-                                            {validationReport.warnings.map(warn => (
-                                                <div
-                                                    key={warn.id}
-                                                    onClick={() => {
-                                                        if (warn.nodeId && reactFlowInstance) {
-                                                            const node = nodes.find(n => n.id === warn.nodeId);
-                                                            if (node) {
-                                                                reactFlowInstance.setCenter(node.position.x, node.position.y, { zoom: 1.5, duration: 800 });
-                                                                setValidationReport(null);
-                                                            }
-                                                        }
-                                                    }}
-                                                    className="bg-amber-950/20 border border-amber-900/30 p-3 rounded-lg flex items-start justify-between cursor-pointer hover:bg-amber-950/40 transition-colors group"
-                                                >
-                                                    <span className="text-amber-200 text-sm">{warn.message}</span>
-                                                    {warn.nodeId && <Search className="w-4 h-4 text-amber-500 opacity-0 group-hover:opacity-100 transition-opacity" />}
-                                                </div>
-                                            ))}
-                                        </div>
-                                    </div>
-                                )}
-                            </div>
-                        </motion.div>
-                    </div>
-                )}
-                {/* Delete Category Confirmation Modal */}
-                {
-                    confirmDeleteCat && (
-                        <div className="fixed inset-0 z-[100] flex items-center justify-center p-4 bg-black/60 backdrop-blur-sm">
-                            <motion.div
-                                initial={{ scale: 0.95, opacity: 0 }}
-                                animate={{ scale: 1, opacity: 1 }}
-                                className="bg-zinc-950 border border-zinc-900 p-8 rounded-2xl max-w-sm w-full shadow-2xl space-y-6"
-                            >
-                                <div className="flex flex-col items-center text-center space-y-4">
-                                    <div className="p-3 bg-red-500/10 rounded-full border border-red-500/20">
-                                        <AlertTriangle className="w-8 h-8 text-red-500" />
-                                    </div>
-                                    <div>
-                                        <h3 className="text-xl font-bold text-white uppercase tracking-tight">Destructive Action</h3>
-                                        <p className="text-zinc-500 text-sm mt-2">
-                                            Are you sure you want to delete <span className="text-zinc-200 font-bold">{learningObjectives.find(c => c.id === confirmDeleteCat)?.category}</span> and all its associated objectives?
-                                        </p>
-                                    </div>
-                                </div>
-                                <div className="flex gap-3">
-                                    <Button
-                                        variant="ghost"
-                                        className="flex-1 border border-zinc-800 hover:bg-zinc-900"
-                                        onClick={() => setConfirmDeleteCat(null)}
-                                    >
-                                        Cancel
-                                    </Button>
-                                    <Button
-                                        className="flex-1 bg-red-600 hover:bg-red-700 text-white border-0 shadow-lg shadow-red-900/20"
-                                        onClick={confirmDeleteCategory}
-                                    >
-                                        Delete All
-                                    </Button>
-                                </div>
-                            </motion.div>
-                        </div>
-                    )
-                }
-                {/* Case Locked Modal */}
-                {
-                    showLockedModal && (
-                        <div className="fixed inset-0 z-[200] flex items-center justify-center p-4 bg-black/90 backdrop-blur-md">
-                            <motion.div
-                                initial={{ scale: 0.9, opacity: 0 }}
-                                animate={{ scale: 1, opacity: 1 }}
-                                className="bg-zinc-950 border border-indigo-500/30 p-8 rounded-3xl max-w-md w-full shadow-[0_0_50px_rgba(79,70,229,0.2)] text-center relative overflow-hidden"
-                            >
-                                <div className="absolute top-0 left-0 w-full h-1 bg-gradient-to-r from-transparent via-indigo-500 to-transparent"></div>
-                                <div className="flex flex-col items-center gap-6">
-                                    <div className="relative">
-                                        <div className="absolute inset-0 bg-indigo-500/20 blur-2xl rounded-full"></div>
-                                        <div className="relative w-20 h-20 bg-zinc-900 rounded-2xl border border-white/10 flex items-center justify-center">
-                                            <Lock className="w-10 h-10 text-indigo-400" />
-                                        </div>
-                                        <div className="absolute -bottom-2 -right-2 w-8 h-8 bg-amber-500 rounded-full border-4 border-zinc-950 flex items-center justify-center">
-                                            <AlertTriangle className="w-4 h-4 text-black" />
-                                        </div>
-                                    </div>
-
-                                    <div className="space-y-2">
-                                        <h2 className="text-2xl font-black text-white tracking-tight">Case is Occupied</h2>
-                                        <p className="text-zinc-400 text-sm leading-relaxed">
-                                            <span className="text-indigo-400 font-bold">{editingBy?.displayName || 'Another detective'}</span> is currently working on this case file. To prevent data corruption, simultaneous editing is prohibited.
-                                        </p>
-                                    </div>
-
-                                    <div className="w-full h-px bg-zinc-800"></div>
-
-                                    <div className="flex flex-col gap-3 w-full">
-                                        <div className="flex items-center justify-center gap-2 text-[10px] font-bold text-emerald-500 bg-emerald-500/10 py-2 rounded-lg border border-emerald-500/20 uppercase tracking-widest">
-                                            <span className="w-1.5 h-1.5 rounded-full bg-emerald-500 animate-pulse"></span>
-                                            Live Status: Currently Editing
-                                        </div>
-
-                                        <div className="flex flex-col gap-2 w-full mt-2">
-                                            {requestFeedback === 'declined' ? (
-                                                <div className="p-3 bg-red-500/10 border border-red-500/20 rounded-xl text-red-400 text-xs font-bold animate-shake">
-                                                    Access Request Declined
-                                                </div>
-                                            ) : requestFeedback === 'accepted' ? (
-                                                <div className="p-3 bg-emerald-500/10 border border-emerald-500/20 rounded-xl text-emerald-400 text-xs font-bold">
-                                                    Access Granted! Releasing Lock...
-                                                </div>
-                                            ) : isRequesting ? (
-                                                <div className="flex items-center justify-center gap-3 w-full h-12 bg-white/5 rounded-xl border border-white/10 text-zinc-400 text-sm font-bold animate-pulse">
-                                                    <div className="w-4 h-4 border-2 border-indigo-500 border-t-transparent rounded-full animate-spin"></div>
-                                                    Waiting for Response...
-                                                </div>
-                                            ) : (
-                                                <>
-                                                    <Button
-                                                        onClick={handleOverrideLock}
-                                                        variant="destructive"
-                                                        className="w-full bg-red-600/20 hover:bg-red-600/40 text-red-200 border-red-500/30 font-bold h-12 rounded-xl"
-                                                    >
-                                                        Override (Force Access)
-                                                    </Button>
-                                                    <Button
-                                                        onClick={handleRequestAccess}
-                                                        variant="primary"
-                                                        className="w-full font-bold h-12 rounded-xl"
-                                                    >
-                                                        Request Access
-                                                    </Button>
-                                                </>
-                                            )}
-                                        </div>
-
                                         <Button
-                                            onClick={() => navigate('/')}
                                             variant="ghost"
-                                            className="w-full text-zinc-500 hover:text-white hover:bg-white/5 font-medium h-10 rounded-xl"
+                                            size="icon"
+                                            onClick={() => setShowStoryFormatModal(false)}
+                                            className="h-8 w-8"
                                         >
-                                            Return to Dashboard
+                                            <X className="w-4 h-4" />
                                         </Button>
                                     </div>
                                 </div>
+
+                                {/* Format Options */}
+                                <div className="p-6 space-y-3">
+                                    <button
+                                        onClick={() => downloadNovelStory('markdown')}
+                                        className={`w-full p-4 rounded-2xl border-2 transition-all text-left group ${isDarkMode
+                                            ? 'bg-white/5 border-white/10 hover:border-amber-500/50 hover:bg-amber-500/5'
+                                            : 'bg-zinc-50 border-zinc-200 hover:border-amber-500 hover:bg-amber-50'
+                                            }`}
+                                    >
+                                        <div className="flex items-center gap-3">
+                                            <div className={`p-2 rounded-xl ${isDarkMode ? 'bg-zinc-800' : 'bg-white'}`}>
+                                                <FileText className={`w-5 h-5 ${isDarkMode ? 'text-amber-400' : 'text-amber-600'}`} />
+                                            </div>
+                                            <div className="flex-1">
+                                                <div className={`text-sm font-black uppercase tracking-tight ${isDarkMode ? 'text-white' : 'text-zinc-900'}`}>
+                                                    Markdown (.md)
+                                                </div>
+                                                <div className="text-xs text-zinc-500 font-medium mt-0.5">
+                                                    Plain text with formatting
+                                                </div>
+                                            </div>
+                                            <ChevronRight className={`w-5 h-5 transition-transform group-hover:translate-x-1 ${isDarkMode ? 'text-zinc-600' : 'text-zinc-400'}`} />
+                                        </div>
+                                    </button>
+
+                                    <button
+                                        onClick={() => downloadNovelStory('pdf')}
+                                        className={`w-full p-4 rounded-2xl border-2 transition-all text-left group ${isDarkMode
+                                            ? 'bg-white/5 border-white/10 hover:border-red-500/50 hover:bg-red-500/5'
+                                            : 'bg-zinc-50 border-zinc-200 hover:border-red-500 hover:bg-red-50'
+                                            }`}
+                                    >
+                                        <div className="flex items-center gap-3">
+                                            <div className={`p-2 rounded-xl ${isDarkMode ? 'bg-zinc-800' : 'bg-white'}`}>
+                                                <FileText className={`w-5 h-5 ${isDarkMode ? 'text-red-400' : 'text-red-600'}`} />
+                                            </div>
+                                            <div className="flex-1">
+                                                <div className={`text-sm font-black uppercase tracking-tight ${isDarkMode ? 'text-white' : 'text-zinc-900'}`}>
+                                                    PDF Document
+                                                </div>
+                                                <div className="text-xs text-zinc-500 font-medium mt-0.5">
+                                                    Universal document format
+                                                </div>
+                                            </div>
+                                            <ChevronRight className={`w-5 h-5 transition-transform group-hover:translate-x-1 ${isDarkMode ? 'text-zinc-600' : 'text-zinc-400'}`} />
+                                        </div>
+                                    </button>
+
+                                    <button
+                                        onClick={() => downloadNovelStory('google-docs')}
+                                        className={`w-full p-4 rounded-2xl border-2 transition-all text-left group ${isDarkMode
+                                            ? 'bg-white/5 border-white/10 hover:border-blue-500/50 hover:bg-blue-500/5'
+                                            : 'bg-zinc-50 border-zinc-200 hover:border-blue-500 hover:bg-blue-50'
+                                            }`}
+                                    >
+                                        <div className="flex items-center gap-3">
+                                            <div className={`p-2 rounded-xl ${isDarkMode ? 'bg-zinc-800' : 'bg-white'}`}>
+                                                <FileText className={`w-5 h-5 ${isDarkMode ? 'text-blue-400' : 'text-blue-600'}`} />
+                                            </div>
+                                            <div className="flex-1">
+                                                <div className={`text-sm font-black uppercase tracking-tight ${isDarkMode ? 'text-white' : 'text-zinc-900'}`}>
+                                                    Google Docs (.docx)
+                                                </div>
+                                                <div className="text-xs text-zinc-500 font-medium mt-0.5">
+                                                    Editable Word document
+                                                </div>
+                                            </div>
+                                            <ChevronRight className={`w-5 h-5 transition-transform group-hover:translate-x-1 ${isDarkMode ? 'text-zinc-600' : 'text-zinc-400'}`} />
+                                        </div>
+                                    </button>
+                                </div>
+
+                                {/* Footer */}
+                                <div className={`p-4 border-t ${isDarkMode ? 'bg-black/20 border-white/5' : 'bg-zinc-50 border-zinc-200'}`}>
+                                    <p className="text-xs text-zinc-500 text-center font-medium">
+                                        AI will generate a seamless novel from your canvas
+                                    </p>
+                                </div>
                             </motion.div>
                         </div>
-                    )
-                }
-                {/* Incoming Access Request Modal */}
-                {
-                    incomingRequest && (
-                        <div className="fixed inset-0 z-[300] flex items-end justify-center p-6 md:items-center pointer-events-none">
-                            <motion.div
-                                initial={{ y: 100, opacity: 0 }}
-                                animate={{ y: 0, opacity: 1 }}
-                                exit={{ y: 100, opacity: 0 }}
-                                className="bg-zinc-950 border border-indigo-500/50 p-6 rounded-2xl max-w-sm w-full shadow-[0_20px_60px_rgba(0,0,0,0.8)] pointer-events-auto"
-                            >
-                                <div className="flex items-start gap-4 mb-6">
-                                    <div className="p-3 bg-indigo-500/20 rounded-xl border border-indigo-500/30">
-                                        <User className="w-6 h-6 text-indigo-400" />
-                                    </div>
-                                    <div>
-                                        <h3 className="text-lg font-bold text-white tracking-tight">Access Requested</h3>
-                                        <p className="text-zinc-400 text-xs leading-relaxed mt-1">
-                                            <span className="text-indigo-400 font-bold">{incomingRequest.displayName}</span> is requesting permission to edit this case file.
-                                        </p>
-                                    </div>
-                                </div>
-
-                                <div className="flex gap-3">
-                                    <Button
-                                        onClick={handleDeclineRequest}
-                                        variant="ghost"
-                                        className="flex-1 text-zinc-500 hover:text-white hover:bg-white/5 font-bold rounded-xl"
-                                    >
-                                        Decline
-                                    </Button>
-                                    <Button
-                                        onClick={handleAcceptRequest}
-                                        className="flex-1 bg-indigo-600 hover:bg-indigo-500 text-white font-bold rounded-xl shadow-[0_0_20px_rgba(79,70,229,0.3)]"
-                                    >
-                                        Accept & Release
-                                    </Button>
-                                </div>
-                            </motion.div>
-                        </div>
-                    )
-                }
-            </AnimatePresence >
-
-            {/* Story Format Selection Modal */}
-            <AnimatePresence>
-                {showStoryFormatModal && (
-                    <div className="fixed inset-0 z-[200] flex items-center justify-center p-4">
-                        <motion.div
-                            initial={{ opacity: 0 }}
-                            animate={{ opacity: 1 }}
-                            exit={{ opacity: 0 }}
-                            className="absolute inset-0 bg-black/80 backdrop-blur-sm"
-                            onClick={() => setShowStoryFormatModal(false)}
-                        />
-                        <motion.div
-                            initial={{ opacity: 0, scale: 0.9, y: 20 }}
-                            animate={{ opacity: 1, scale: 1, y: 0 }}
-                            exit={{ opacity: 0, scale: 0.9, y: 20 }}
-                            className={`relative w-full max-w-md rounded-3xl border shadow-[0_20px_80px_rgba(0,0,0,0.5)] overflow-hidden ${isDarkMode ? 'bg-zinc-900 border-white/10' : 'bg-white border-zinc-200'}`}
-                        >
-                            {/* Header */}
-                            <div className={`p-6 border-b ${isDarkMode ? 'border-white/10' : 'border-zinc-200'}`}>
-                                <div className="flex items-center justify-between">
-                                    <div className="flex items-center gap-3">
-                                        <div className={`p-3 rounded-2xl ${isDarkMode ? 'bg-amber-500/10' : 'bg-amber-50'}`}>
-                                            <FileText className={`w-6 h-6 ${isDarkMode ? 'text-amber-400' : 'text-amber-600'}`} />
-                                        </div>
-                                        <div>
-                                            <h3 className={`text-lg font-black uppercase tracking-tight ${isDarkMode ? 'text-white' : 'text-zinc-900'}`}>
-                                                Download Story
-                                            </h3>
-                                            <p className="text-xs text-zinc-500 font-medium mt-0.5">
-                                                Choose your preferred format
-                                            </p>
-                                        </div>
-                                    </div>
-                                    <Button
-                                        variant="ghost"
-                                        size="icon"
-                                        onClick={() => setShowStoryFormatModal(false)}
-                                        className="h-8 w-8"
-                                    >
-                                        <X className="w-4 h-4" />
-                                    </Button>
-                                </div>
-                            </div>
-
-                            {/* Format Options */}
-                            <div className="p-6 space-y-3">
-                                <button
-                                    onClick={() => downloadNovelStory('markdown')}
-                                    className={`w-full p-4 rounded-2xl border-2 transition-all text-left group ${isDarkMode
-                                        ? 'bg-white/5 border-white/10 hover:border-amber-500/50 hover:bg-amber-500/5'
-                                        : 'bg-zinc-50 border-zinc-200 hover:border-amber-500 hover:bg-amber-50'
-                                        }`}
-                                >
-                                    <div className="flex items-center gap-3">
-                                        <div className={`p-2 rounded-xl ${isDarkMode ? 'bg-zinc-800' : 'bg-white'}`}>
-                                            <FileText className={`w-5 h-5 ${isDarkMode ? 'text-amber-400' : 'text-amber-600'}`} />
-                                        </div>
-                                        <div className="flex-1">
-                                            <div className={`text-sm font-black uppercase tracking-tight ${isDarkMode ? 'text-white' : 'text-zinc-900'}`}>
-                                                Markdown (.md)
-                                            </div>
-                                            <div className="text-xs text-zinc-500 font-medium mt-0.5">
-                                                Plain text with formatting
-                                            </div>
-                                        </div>
-                                        <ChevronRight className={`w-5 h-5 transition-transform group-hover:translate-x-1 ${isDarkMode ? 'text-zinc-600' : 'text-zinc-400'}`} />
-                                    </div>
-                                </button>
-
-                                <button
-                                    onClick={() => downloadNovelStory('pdf')}
-                                    className={`w-full p-4 rounded-2xl border-2 transition-all text-left group ${isDarkMode
-                                        ? 'bg-white/5 border-white/10 hover:border-red-500/50 hover:bg-red-500/5'
-                                        : 'bg-zinc-50 border-zinc-200 hover:border-red-500 hover:bg-red-50'
-                                        }`}
-                                >
-                                    <div className="flex items-center gap-3">
-                                        <div className={`p-2 rounded-xl ${isDarkMode ? 'bg-zinc-800' : 'bg-white'}`}>
-                                            <FileText className={`w-5 h-5 ${isDarkMode ? 'text-red-400' : 'text-red-600'}`} />
-                                        </div>
-                                        <div className="flex-1">
-                                            <div className={`text-sm font-black uppercase tracking-tight ${isDarkMode ? 'text-white' : 'text-zinc-900'}`}>
-                                                PDF Document
-                                            </div>
-                                            <div className="text-xs text-zinc-500 font-medium mt-0.5">
-                                                Universal document format
-                                            </div>
-                                        </div>
-                                        <ChevronRight className={`w-5 h-5 transition-transform group-hover:translate-x-1 ${isDarkMode ? 'text-zinc-600' : 'text-zinc-400'}`} />
-                                    </div>
-                                </button>
-
-                                <button
-                                    onClick={() => downloadNovelStory('google-docs')}
-                                    className={`w-full p-4 rounded-2xl border-2 transition-all text-left group ${isDarkMode
-                                        ? 'bg-white/5 border-white/10 hover:border-blue-500/50 hover:bg-blue-500/5'
-                                        : 'bg-zinc-50 border-zinc-200 hover:border-blue-500 hover:bg-blue-50'
-                                        }`}
-                                >
-                                    <div className="flex items-center gap-3">
-                                        <div className={`p-2 rounded-xl ${isDarkMode ? 'bg-zinc-800' : 'bg-white'}`}>
-                                            <FileText className={`w-5 h-5 ${isDarkMode ? 'text-blue-400' : 'text-blue-600'}`} />
-                                        </div>
-                                        <div className="flex-1">
-                                            <div className={`text-sm font-black uppercase tracking-tight ${isDarkMode ? 'text-white' : 'text-zinc-900'}`}>
-                                                Google Docs (.docx)
-                                            </div>
-                                            <div className="text-xs text-zinc-500 font-medium mt-0.5">
-                                                Editable Word document
-                                            </div>
-                                        </div>
-                                        <ChevronRight className={`w-5 h-5 transition-transform group-hover:translate-x-1 ${isDarkMode ? 'text-zinc-600' : 'text-zinc-400'}`} />
-                                    </div>
-                                </button>
-                            </div>
-
-                            {/* Footer */}
-                            <div className={`p-4 border-t ${isDarkMode ? 'bg-black/20 border-white/5' : 'bg-zinc-50 border-zinc-200'}`}>
-                                <p className="text-xs text-zinc-500 text-center font-medium">
-                                    AI will generate a seamless novel from your canvas
-                                </p>
-                            </div>
-                        </motion.div>
-                    </div>
-                )}
-            </AnimatePresence>
-            <LicenseConfigModal
-                isOpen={isLicenseModalOpen}
-                onClose={() => setIsLicenseModalOpen(false)}
-            />
-        </div >
+                    )}
+                </AnimatePresence>
+                <LicenseConfigModal
+                    isOpen={isLicenseModalOpen}
+                    onClose={() => setIsLicenseModalOpen(false)}
+                />
+            </div>
+        </div>
     );
 };
 

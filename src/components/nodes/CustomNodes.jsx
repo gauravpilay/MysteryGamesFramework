@@ -1,6 +1,6 @@
 import React, { memo, useState, useRef, useEffect } from 'react';
 import ReactDOM from 'react-dom';
-import { Handle, Position, NodeResizer } from 'reactflow';
+import { Handle, Position, NodeResizer, useNodes } from 'reactflow';
 import { FileText, User, Search, GitMerge, Terminal, MessageSquare, Music, Image as ImageIcon, Star, MousePointerClick, Trash2, Plus, Copy, Fingerprint, Bell, HelpCircle, ToggleLeft, Unlock, Binary, Grid3x3, Folder, ChevronDown, ChevronUp, Maximize, X, Save, File, FolderOpen, AlertCircle, Brain, Cpu, Send, Loader2, Check, Filter, ShieldAlert, Box, CheckCircle, Activity, Shield, Hash, Film, Globe, Lightbulb, Mail, Bold, Italic, List, Type, Palette, Info, Volume2, VolumeX, Eye, Link } from 'lucide-react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { storage } from '../../lib/firebase';
@@ -9,6 +9,7 @@ import { callAI } from '../../lib/ai';
 import { useConfig } from '../../lib/config';
 import { useLicense } from '../../lib/licensing';
 import { CHIRP_HD_VOICES, DEFAULT_CHIRP_VOICE } from '../../lib/useChirpTTS';
+import { useEditorContext } from '../../lib/editorContext';
 
 // ... (existing code for SetterNode) ...
 
@@ -214,13 +215,30 @@ export const IdentifyNode = memo(({ id, data, selected }) => {
                     </div>
 
                     <div>
-                        <p className="text-[10px] text-zinc-500 mb-1">Correct Culprit Name (Must match Suspect Node)</p>
-                        <InputField
-                            placeholder="e.g. Col. Mustard"
-                            value={data.culpritName}
-                            onChange={(e) => handleChange('culpritName', e.target.value)}
-                            className="border-red-900/30 focus:border-red-500"
-                        />
+                        <p className="text-[10px] text-zinc-500 mb-1">Correct Culprit (Must match Suspect Node)</p>
+                        {(() => {
+                            const allNodes = useNodes();
+                            const suspectNodes = (allNodes || []).filter(n => n.type === 'suspect');
+                            return suspectNodes.length > 0 ? (
+                                <select
+                                    className="w-full bg-black border border-zinc-800 rounded px-2 py-1.5 text-[10px] text-zinc-300 focus:border-red-500 outline-none"
+                                    value={data.culpritName || ''}
+                                    onChange={(e) => handleChange('culpritName', e.target.value)}
+                                >
+                                    <option value="">— Pick the Culprit —</option>
+                                    {suspectNodes.map(n => (
+                                        <option key={n.id} value={n.data?.name || n.data?.label || n.id}>{n.data?.name || n.data?.label || n.id}</option>
+                                    ))}
+                                </select>
+                            ) : (
+                                <InputField
+                                    placeholder="e.g. Col. Mustard"
+                                    value={data.culpritName}
+                                    onChange={(e) => handleChange('culpritName', e.target.value)}
+                                    className="border-red-900/30 focus:border-red-500"
+                                />
+                            );
+                        })()}
                     </div>
 
                     <div>
@@ -2196,12 +2214,37 @@ Keep responses concise but immersive.
                         <div className="grid grid-cols-2 gap-2">
                             <div className="space-y-1">
                                 <p className="text-[8px] text-indigo-400/70 uppercase font-bold ml-1">Name</p>
-                                <InputField
-                                    value={data.name}
-                                    onChange={(e) => handleChange('name', e.target.value)}
-                                    placeholder="Suspect Name"
-                                    className="!bg-black/40 !py-1 !px-2"
-                                />
+                                {(() => {
+                                    const allNodes = useNodes();
+                                    const suspectNodes = (allNodes || []).filter(n => n.type === 'suspect');
+                                    return suspectNodes.length > 0 ? (
+                                        <select
+                                            className="w-full bg-black border border-indigo-900/30 rounded px-2 py-1.5 text-[10px] text-indigo-200 focus:border-indigo-500 outline-none cursor-pointer"
+                                            value={data.name || ''}
+                                            onChange={(e) => {
+                                                const node = suspectNodes.find(n => (n.data?.name || n.data?.label || n.id) === e.target.value);
+                                                handleChange('name', e.target.value);
+                                                if (node?.data) {
+                                                    // Auto-fill other fields if possible
+                                                    handleChange('role', node.data.role || '');
+                                                    handleChange('image', (node.data.images && node.data.images[0]) || node.data.image || '');
+                                                }
+                                            }}
+                                        >
+                                            <option value="">— Pick a Suspect —</option>
+                                            {suspectNodes.map(n => (
+                                                <option key={n.id} value={n.data?.name || n.data?.label || n.id}>{n.data?.name || n.data?.label || n.id}</option>
+                                            ))}
+                                        </select>
+                                    ) : (
+                                        <InputField
+                                            value={data.name}
+                                            onChange={(e) => handleChange('name', e.target.value)}
+                                            placeholder="Suspect Name"
+                                            className="!bg-black/40 !py-1 !px-2"
+                                        />
+                                    );
+                                })()}
                             </div>
                             <div className="space-y-1">
                                 <p className="text-[8px] text-indigo-400/70 uppercase font-bold ml-1">Voice Style</p>
@@ -3131,12 +3174,25 @@ const ObjectiveModal = ({ isOpen, onClose, values, onChange, objectives }) => {
     );
 };
 
-const ObjectiveSelector = ({ values = [], onChange, objectives }) => {
+const ObjectiveSelector = ({ values = [], onChange, objectives: objectivesProp }) => {
     const [isModalOpen, setIsModalOpen] = useState(false);
-
-    if (!objectives || objectives.length === 0) return null;
+    const { learningObjectives: contextObjectives } = useEditorContext();
+    const objectives = (objectivesProp && objectivesProp.length > 0) ? objectivesProp : contextObjectives;
 
     const selectedIds = Array.isArray(values) ? values : (values ? [values] : []);
+
+    if (!objectives || objectives.length === 0) {
+        return (
+            <div className="mt-1 p-3 border border-dashed border-zinc-800 rounded-xl bg-zinc-900/40 text-center">
+                <div className="flex flex-col items-center gap-2">
+                    <Star className="w-5 h-5 text-zinc-700" />
+                    <p className="text-[10px] text-zinc-500 uppercase font-black tracking-widest leading-relaxed">
+                        No Learning Objectives <br /> Configured in Case Settings
+                    </p>
+                </div>
+            </div>
+        );
+    }
 
     return (
         <div className="mt-1 relative">
@@ -3342,7 +3398,7 @@ export const CrazyWallNode = memo(({ id, data, selected }) => {
     const addConnection = () => {
         handleChange('connections', [
             ...connections,
-            { suspectId: '', suspectName: '', suspectImage: '', evidenceId: '', evidenceName: '', evidenceImage: '', action: '', objectiveLabel: '' }
+            { suspectId: '', suspectName: '', suspectImage: '', evidenceId: '', evidenceName: '', evidenceImage: '', action: '', learningObjectiveIds: [] }
         ]);
     };
 
@@ -3355,9 +3411,11 @@ export const CrazyWallNode = memo(({ id, data, selected }) => {
         handleChange('connections', connections.filter((_, i) => i !== index));
     };
 
-    // Pull suspect & evidence nodes from siblings via learningObjectives channel
-    const suspectNodes = (data.allNodes || []).filter(n => n.type === 'suspect');
-    const evidenceNodes = (data.allNodes || []).filter(n => n.type === 'evidence');
+    // Pull suspect & evidence nodes from siblings
+    const allNodes = useNodes();
+    const suspectNodes = (allNodes || []).filter(n => n.type === 'suspect');
+    const evidenceNodes = (allNodes || []).filter(n => n.type === 'evidence');
+    const { learningObjectives } = useEditorContext();
 
     return (
         <>
@@ -3493,14 +3551,14 @@ export const CrazyWallNode = memo(({ id, data, selected }) => {
                                         )}
                                     </div>
 
-                                    {/* Learning objective tag */}
                                     <div>
-                                        <p className="text-[9px] text-emerald-400 uppercase font-bold mb-1 flex items-center gap-1"><CheckCircle className="w-2.5 h-2.5" /> Learning Objective Tag</p>
-                                        <InputField
-                                            placeholder="e.g. Understand data breach vectors"
-                                            value={conn.objectiveLabel || ''}
-                                            onChange={(e) => updateConnection(idx, 'objectiveLabel', e.target.value)}
-                                            className="text-emerald-300/80"
+                                        <p className="text-[9px] text-emerald-400 uppercase font-bold mb-1 flex items-center gap-1">
+                                            <CheckCircle className="w-2.5 h-2.5" /> Learning Objectives
+                                        </p>
+                                        <ObjectiveSelector
+                                            values={conn.learningObjectiveIds || []}
+                                            onChange={(v) => updateConnection(idx, 'learningObjectiveIds', v)}
+                                            objectives={data.learningObjectives}
                                         />
                                     </div>
                                 </div>

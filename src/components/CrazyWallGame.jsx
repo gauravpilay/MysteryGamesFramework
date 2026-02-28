@@ -557,12 +557,26 @@ export const CrazyWallGame = ({ node, nodes: allNodes, onComplete }) => {
 
     const allSuspectsConnected = suspects.length > 0 && suspects.every(s => playerMap[s.id]?.actionId);
 
-    const correctRows = useMemo(() => rawConnections.map(c => ({
-        suspectName: c.suspectName || '',
-        action: c.action || '',
-        evidenceName: c.evidenceName || '',
-        objectiveLabel: c.objectiveLabel || '',
-    })), [rawConnections]);
+    const correctRows = useMemo(() => rawConnections.map(c => {
+        let objectiveLabel = '';
+        if (c.learningObjectiveIds && data.learningObjectives) {
+            const labels = [];
+            data.learningObjectives.forEach(cat => {
+                (cat.objectives || []).forEach((obj, i) => {
+                    if (c.learningObjectiveIds.includes(`${cat.id}:${i}`)) {
+                        labels.push(typeof obj === 'string' ? obj : (obj.learningObjective || obj.name || `Obj ${i}`));
+                    }
+                });
+            });
+            objectiveLabel = labels.join(', ');
+        }
+        return {
+            suspectName: c.suspectName || '',
+            action: c.action || '',
+            evidenceName: c.evidenceName || '',
+            objectiveLabel: objectiveLabel || c.objectiveLabel || '',
+        };
+    }), [rawConnections, data.learningObjectives]);
 
     const correctCount = Object.values(results).filter(r => r.actionOk).length;
     const totalScore = correctCount * (data.score || 100);
@@ -637,8 +651,8 @@ export const CrazyWallGame = ({ node, nodes: allNodes, onComplete }) => {
                                 initial={{ scale: 0 }}
                                 animate={{ scale: 1 }}
                                 className={`px-3 py-1 rounded-full text-[10px] font-black uppercase tracking-widest ${correctCount === suspects.length
-                                        ? 'bg-emerald-900/40 border border-emerald-500/30 text-emerald-400'
-                                        : 'bg-red-900/40 border border-red-500/30 text-red-400'
+                                    ? 'bg-emerald-900/40 border border-emerald-500/30 text-emerald-400'
+                                    : 'bg-red-900/40 border border-red-500/30 text-red-400'
                                     }`}
                             >
                                 {correctCount}/{suspects.length} Correct
@@ -827,8 +841,8 @@ export const CrazyWallGame = ({ node, nodes: allNodes, onComplete }) => {
                             onClick={handleReveal}
                             disabled={!allSuspectsConnected}
                             className={`flex items-center gap-3 px-8 py-3 rounded-2xl font-black uppercase tracking-[0.15em] text-sm transition-all ${allSuspectsConnected
-                                    ? 'bg-gradient-to-r from-red-800 to-red-500 text-white shadow-[0_0_30px_rgba(239,68,68,0.4)] hover:shadow-[0_0_40px_rgba(239,68,68,0.6)]'
-                                    : 'bg-zinc-800 text-zinc-600 cursor-not-allowed'
+                                ? 'bg-gradient-to-r from-red-800 to-red-500 text-white shadow-[0_0_30px_rgba(239,68,68,0.4)] hover:shadow-[0_0_40px_rgba(239,68,68,0.6)]'
+                                : 'bg-zinc-800 text-zinc-600 cursor-not-allowed'
                                 }`}
                         >
                             <Eye className="w-5 h-5" />
