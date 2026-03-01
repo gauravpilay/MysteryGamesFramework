@@ -961,7 +961,7 @@ const Editor = () => {
             const payloadStr = JSON.stringify(flow);
             const payloadBytes = new TextEncoder().encode(payloadStr).length;
             console.debug(`[Save] Payload size: ${(payloadBytes / 1024).toFixed(1)} KB`);
-            if (payload > 900_000) {
+            if (payloadBytes > 900_000) {
                 console.warn(`[Save] Payload is ${(payloadBytes / 1024).toFixed(0)} KB — approaching Firestore 1 MB limit.`);
             }
 
