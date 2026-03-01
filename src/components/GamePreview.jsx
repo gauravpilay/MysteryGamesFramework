@@ -564,6 +564,7 @@ const GamePreview = ({ nodes, edges, onClose, gameMetadata, onGameEnd, onNodeCha
     const [showFeedback, setShowFeedback] = useState(false);
     const [pendingResultData, setPendingResultData] = useState(null);
     const [isQuitting, setIsQuitting] = useState(false);
+    const [showQuitConfirm, setShowQuitConfirm] = useState(false);
 
     // Timer State
     const initialTime = (gameMetadata?.timeLimit || 15) * 60; // Convert minutes to seconds
@@ -1225,6 +1226,20 @@ const GamePreview = ({ nodes, edges, onClose, gameMetadata, onGameEnd, onNodeCha
         }
     };
 
+    const handleAbort = () => {
+        const timeSpent = timeElapsed;
+        setPendingResultData({
+            score,
+            objectiveScores: playerObjectiveScores,
+            outcome: 'aborted',
+            timeSpentSeconds: timeSpent
+        });
+        setIsQuitting(true);
+        setShowFeedback(true);
+        ttsStop();
+        setShowQuitConfirm(false);
+    };
+
     const handleCloseModal = () => {
         if (!activeModalNode) return;
 
@@ -1664,16 +1679,7 @@ const GamePreview = ({ nodes, edges, onClose, gameMetadata, onGameEnd, onNodeCha
                         else if (showAccuseModal) setShowAccuseModal(false);
                         else if (zoomedImage) setZoomedImage(null);
                         else {
-                            const timeSpent = timeElapsed;
-                            setPendingResultData({
-                                score,
-                                objectiveScores: playerObjectiveScores,
-                                outcome: 'aborted',
-                                timeSpentSeconds: timeSpent
-                            });
-                            setIsQuitting(true);
-                            setShowFeedback(true);
-                            ttsStop();
+                            setShowQuitConfirm(true);
                         }
                     }}>
                         <X className="w-4 h-4 md:w-5 md:h-5" />
@@ -2915,6 +2921,56 @@ const GamePreview = ({ nodes, edges, onClose, gameMetadata, onGameEnd, onNodeCha
                 caseTitle={gameMetadata?.title || "Unknown Mission"}
                 isSimultaneous={isSimultaneous}
             />
+
+            {/* Quit Confirmation Dialog */}
+            <AnimatePresence>
+                {showQuitConfirm && (
+                    <div className="fixed inset-0 z-[500] flex items-center justify-center p-4 bg-black/80 backdrop-blur-xl">
+                        <motion.div
+                            initial={{ opacity: 0, scale: 0.9, y: 30 }}
+                            animate={{ opacity: 1, scale: 1, y: 0 }}
+                            exit={{ opacity: 0, scale: 0.9, y: 30 }}
+                            className="bg-zinc-950 border border-red-500/30 p-10 rounded-[2.5rem] max-w-lg w-full shadow-[0_0_80px_rgba(239,68,68,0.2)] relative overflow-hidden text-center"
+                        >
+                            {/* Warning Icon with Glow */}
+                            <div className="flex justify-center mb-8">
+                                <div className="w-20 h-20 bg-red-500/10 border border-red-500/30 rounded-full flex items-center justify-center relative">
+                                    <AlertTriangle className="w-10 h-10 text-red-500" />
+                                    <motion.div
+                                        className="absolute inset-0 rounded-full bg-red-500/20 blur-xl"
+                                        animate={{ opacity: [0.5, 1, 0.5] }}
+                                        transition={{ duration: 2, repeat: Infinity }}
+                                    />
+                                </div>
+                            </div>
+
+                            <h2 className="text-3xl font-black text-white uppercase tracking-tighter mb-4 leading-none">Terminate Mission?</h2>
+                            <p className="text-zinc-400 text-lg font-medium leading-relaxed mb-10 px-4">
+                                Quitting now will <span className="text-red-400 font-bold uppercase">reset all current progress</span>.
+                                Are you sure you want to abort the investigation?
+                            </p>
+
+                            <div className="grid grid-cols-2 gap-4">
+                                <button
+                                    onClick={() => setShowQuitConfirm(false)}
+                                    className="py-4 bg-zinc-900 hover:bg-zinc-800 border border-white/10 text-zinc-400 font-black uppercase tracking-widest text-xs rounded-2xl transition-all active:scale-95"
+                                >
+                                    Stay in Game
+                                </button>
+                                <button
+                                    onClick={handleAbort}
+                                    className="py-4 bg-red-600 hover:bg-red-500 text-white font-black uppercase tracking-widest text-xs rounded-2xl transition-all shadow-lg shadow-red-500/20 active:scale-95"
+                                >
+                                    Yes, Terminate
+                                </button>
+                            </div>
+
+                            {/* Decorative background number */}
+                            <span className="absolute -bottom-10 -right-10 text-[200px] font-black text-white/[0.02] pointer-events-none select-none">!</span>
+                        </motion.div>
+                    </div>
+                )}
+            </AnimatePresence>
 
             {/* Question Intelligence Protocol (Help) Popup */}
             <AnimatePresence>
