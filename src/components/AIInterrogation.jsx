@@ -9,7 +9,7 @@ const AIInterrogation = ({ node, onComplete, onFail, requestCount, onAIRequest, 
     const { settings } = useConfig();
     const { licenseData, getFeatureValue } = useLicense();
     const [messages, setMessages] = useState([
-        { role: 'assistant', text: "Neural link established. Interrogation protocol initialized. Subject is ready for questioning. What is your first inquiry, Detective?" }
+        { role: 'assistant', text: "Subject is ready for questioning. What is your first inquiry, Detective?" }
     ]);
     const [input, setInput] = useState('');
     const [isTyping, setIsTyping] = useState(false);
@@ -172,7 +172,7 @@ const AIInterrogation = ({ node, onComplete, onFail, requestCount, onAIRequest, 
                         onClick={() => onComplete()}
                         className="w-full py-3 md:py-4 bg-white text-black text-[10px] md:text-[11px] font-black rounded-xl hover:bg-zinc-200 transition-all uppercase tracking-[0.2em] shadow-2xl shadow-white/5 active:scale-95"
                     >
-                        Conclude Link
+                        End Discussion
                     </button>
                     <button
                         onClick={() => onFail()}

@@ -2022,7 +2022,12 @@ const GamePreview = ({ nodes, edges, onClose, gameMetadata, onGameEnd, onNodeCha
                             initial={{ scale: 0.9, opacity: 0 }}
                             animate={{ scale: 1, opacity: 1 }}
                             exit={{ scale: 0.9, opacity: 0 }}
-                            className={`bg-zinc-950 border border-zinc-800 p-0 rounded-2xl relative overflow-hidden shadow-2xl shadow-black max-h-[95vh] flex flex-col transition-all duration-500 ${(activeModalNode.type === 'threed' || activeModalNode.type === 'suspect' || activeModalNode.type === 'interrogation' || activeModalNode.type === 'question' || activeModalNode.type === 'email' || activeModalNode.type === 'fact') ? 'max-w-6xl w-full h-[95vh] md:h-[85vh]' : 'max-w-3xl w-full'}`}
+                            className={`bg-zinc-950 border p-0 rounded-3xl relative overflow-hidden shadow-2xl transition-all duration-500 
+                                ${activeModalNode.type === 'suspect'
+                                    ? 'border-indigo-500/40 shadow-[0_0_60px_rgba(99,102,241,0.2)]'
+                                    : 'border-zinc-800 shadow-black'}
+                                max-h-[95vh] flex flex-col 
+                                ${(activeModalNode.type === 'threed' || activeModalNode.type === 'suspect' || activeModalNode.type === 'interrogation' || activeModalNode.type === 'question' || activeModalNode.type === 'email' || activeModalNode.type === 'fact') ? 'max-w-6xl w-full h-[95vh] md:h-[85vh]' : 'max-w-3xl w-full'}`}
                         >
                             {/* Modal Close Button - Elevated to top priority */}
                             <button
