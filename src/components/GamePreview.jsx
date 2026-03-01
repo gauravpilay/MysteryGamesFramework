@@ -1114,7 +1114,7 @@ const GamePreview = ({ nodes, edges, onClose, gameMetadata, onGameEnd, onNodeCha
             // Capture node id before state is cleared to avoid stale closure
             const sourceNodeId = activeModalNode.id;
             setActiveExplanation({
-                title: "Excellent Intuition",
+                title: "Excellent",
                 type: "correct",
                 text: explanationText,
                 onClose: () => {
@@ -2357,7 +2357,7 @@ const GamePreview = ({ nodes, edges, onClose, gameMetadata, onGameEnd, onNodeCha
                                 <div className="p-8 bg-zinc-900 border-t-4 border-fuchsia-500 h-full min-h-0 flex flex-col">
                                     <div className="flex items-center justify-between mb-6">
                                         <div className="flex items-center gap-3 text-fuchsia-400">
-                                            <HelpCircle className="w-8 h-8" />
+                                            {/* <HelpCircle className="w-8 h-8" /> */}
                                             <h2 className="text-2xl font-bold text-white uppercase tracking-tight">Challenge / Quiz</h2>
                                         </div>
 
