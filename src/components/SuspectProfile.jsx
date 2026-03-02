@@ -181,8 +181,29 @@ export default function SuspectProfile({
     }, [inventory, nodes]);
 
     const navigationOptions = useMemo(() => {
-        return edges.filter(e => e.source === suspect.id && e.label !== 'Default');
-    }, [edges, suspect.id]);
+        // Build a set of all evidence/email/fact labels and displayNames in the game
+        // so we can exclude edges that are evidence-confrontation links.
+        // Those edges are recognised because their label matches an evidence node's name.
+        const evidenceLabels = new Set();
+        nodes.forEach(n => {
+            if (n.type === 'evidence' || n.type === 'email' || n.type === 'fact') {
+                if (n.data?.label) evidenceLabels.add(n.data.label.toLowerCase());
+                if (n.data?.displayName) evidenceLabels.add(n.data.displayName.toLowerCase());
+            }
+        });
+
+        return edges.filter(e => {
+            if (e.source !== suspect.id) return false;
+            if (e.label === 'Default') return false;
+
+            // Exclude edges whose label matches an evidence item — those belong in the
+            // Confrontation tab, not here.
+            const edgeLabel = (e.label || '').toLowerCase();
+            if (edgeLabel && evidenceLabels.has(edgeLabel)) return false;
+
+            return true;
+        });
+    }, [edges, suspect.id, nodes]);
 
     // Hint Logic
     useEffect(() => {
@@ -537,7 +558,7 @@ export default function SuspectProfile({
                                                 </div>
                                                 <div className="text-left">
                                                     <span className="text-[10px] font-black text-indigo-400 group-hover:text-indigo-200 uppercase tracking-[0.3em] block mb-1">Direct Operational Link</span>
-                                                    <h4 className="text-xl font-black text-white uppercase tracking-tight">{`"Question Suspect using ${option.label}` || "Talk to Suspect"}</h4>
+                                                    <h4 className="text-xl font-black text-white uppercase tracking-tight">{option.label ? `Question Suspect using ${option.label}` : "Question Suspect"}</h4>
                                                 </div>
                                             </div>
                                             <ChevronRight className="w-8 h-8 text-zinc-700 group-hover:text-white group-hover:translate-x-2 transition-all" />
