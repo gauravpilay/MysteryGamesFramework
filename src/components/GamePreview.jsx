@@ -574,6 +574,7 @@ const GamePreview = ({ nodes, edges, onClose, gameMetadata, onGameEnd, onNodeCha
     // Scoring State
     const [score, setScore] = useState(0);
     const [scoreDelta, setScoreDelta] = useState(null);
+    const [flyingPoints, setFlyingPoints] = useState(null); // Separate state for large flying animation
     const [playerObjectiveScores, setPlayerObjectiveScores] = useState({}); // { objId: score }
     const [scoredNodes, setScoredNodes] = useState(new Set());
     const [aiRequestCount, setAiRequestCount] = useState(0);
@@ -582,13 +583,20 @@ const GamePreview = ({ nodes, edges, onClose, gameMetadata, onGameEnd, onNodeCha
     const lastNodeId = useRef(null);
 
 
-    // Clear score delta after animation
+    // Clear score delta and flying points after animation
     useEffect(() => {
         if (scoreDelta) {
             const timer = setTimeout(() => setScoreDelta(null), 2000);
             return () => clearTimeout(timer);
         }
     }, [scoreDelta]);
+
+    useEffect(() => {
+        if (flyingPoints !== null) {
+            const timer = setTimeout(() => setFlyingPoints(null), 2000);
+            return () => clearTimeout(timer);
+        }
+    }, [flyingPoints]);
 
     // Timer Logic
     useEffect(() => {
@@ -761,8 +769,8 @@ const GamePreview = ({ nodes, edges, onClose, gameMetadata, onGameEnd, onNodeCha
     useEffect(() => {
         if (!currentNode || !currentNode.data.score) return;
 
-        // Terminal nodes award score on hack success, not visit.
-        if (currentNode.type === 'terminal') return;
+        // Terminal, Question, etc. award score on action, not visit.
+        if (['terminal', 'question', 'identify', 'lockpick', 'keypad', 'decryption', 'interrogation'].includes(currentNode.type)) return;
 
         if (!scoredNodes.has(currentNode.id)) {
             setScore(s => s + currentNode.data.score);
@@ -1024,6 +1032,7 @@ const GamePreview = ({ nodes, edges, onClose, gameMetadata, onGameEnd, onNodeCha
             if (penalty > 0) {
                 setScore(s => Math.max(0, s - penalty));
                 setScoreDelta(-penalty);
+                setFlyingPoints(-penalty);
                 addLog(`HACK PROTECTION DETECTED: -${penalty} Points`);
 
                 rewardObjectivePoints(activeModalNode, -penalty);
@@ -1060,6 +1069,7 @@ const GamePreview = ({ nodes, edges, onClose, gameMetadata, onGameEnd, onNodeCha
             if (activeAccusationNode && activeAccusationNode.data.score) {
                 setScore(s => s + activeAccusationNode.data.score);
                 setScoreDelta(activeAccusationNode.data.score);
+                setFlyingPoints(activeAccusationNode.data.score);
                 addLog(`CASE CLOSED: +${activeAccusationNode.data.score} Points`);
 
                 rewardObjectivePoints(activeAccusationNode, activeAccusationNode.data.score);
@@ -1070,6 +1080,7 @@ const GamePreview = ({ nodes, edges, onClose, gameMetadata, onGameEnd, onNodeCha
                 const penalty = activeAccusationNode.data.penalty;
                 setScore(s => Math.max(0, s - penalty));
                 setScoreDelta(-penalty);
+                setFlyingPoints(-penalty);
                 addLog(`WRONG ACCUSATION: -${penalty} Points`);
 
                 rewardObjectivePoints(activeAccusationNode, -penalty);
@@ -1095,6 +1106,7 @@ const GamePreview = ({ nodes, edges, onClose, gameMetadata, onGameEnd, onNodeCha
             if (activeModalNode.data.score && !scoredNodes.has(activeModalNode.id)) {
                 setScore(s => s + (activeModalNode.data.score || 0));
                 setScoreDelta(activeModalNode.data.score || 0);
+                setFlyingPoints(activeModalNode.data.score || 0);
 
                 // Objective Scoring (Reward)
                 rewardObjectivePoints(activeModalNode, activeModalNode.data.score || 0);
@@ -1152,6 +1164,7 @@ const GamePreview = ({ nodes, edges, onClose, gameMetadata, onGameEnd, onNodeCha
             if (penalty > 0) {
                 setScore(s => Math.max(0, s - penalty));
                 setScoreDelta(-penalty);
+                setFlyingPoints(-penalty);
                 addLog(`QUIZ PROTECTION: -${penalty} Points`);
 
                 rewardObjectivePoints(activeModalNode, -penalty);
@@ -2199,6 +2212,7 @@ const GamePreview = ({ nodes, edges, onClose, gameMetadata, onGameEnd, onNodeCha
                                         if (activeModalNode.data.score && !scoredNodes.has(activeModalNode.id)) {
                                             setScore(s => s + activeModalNode.data.score);
                                             setScoreDelta(activeModalNode.data.score);
+                                            setFlyingPoints(activeModalNode.data.score);
                                             // Objective Scoring
                                             rewardObjectivePoints(activeModalNode, activeModalNode.data.score);
                                             setScoredNodes(prev => new Set([...prev, activeModalNode.id]));
@@ -3033,7 +3047,35 @@ const GamePreview = ({ nodes, edges, onClose, gameMetadata, onGameEnd, onNodeCha
                     />
                 )}
             </AnimatePresence>
-        </div >
+
+            {/* Flying Score Effect */}
+            <AnimatePresence>
+                {flyingPoints !== null && (
+                    <motion.div
+                        key={`flying-score-${flyingPoints}-${Date.now()}`}
+                        initial={{ opacity: 0, y: 150, scale: 0.5, x: '-50%' }}
+                        animate={{ opacity: 1, y: -250, scale: 2.5, x: '-50%' }}
+                        exit={{ opacity: 0, scale: 4, y: -400, filter: 'blur(15px)', x: '-50%' }}
+                        transition={{
+                            duration: 1.5,
+                            ease: [0.19, 1, 0.22, 1], // expoOut
+                            scale: { type: "spring", stiffness: 300, damping: 15 }
+                        }}
+                        className={`fixed left-1/2 top-1/2 z-[1000] font-black pointer-events-none text-center whitespace-nowrap`}
+                        style={{
+                            fontSize: '120px',
+                            lineHeight: 1,
+                            color: flyingPoints > 0 ? '#ffff00' : '#ef4444',
+                            textShadow: flyingPoints > 0
+                                ? '0 0 20px rgba(255, 255, 0, 0.8), 0 0 40px rgba(255, 255, 0, 0.4)'
+                                : '0 0 20px rgba(239, 68, 68, 0.8), 0 0 40px rgba(239, 68, 68, 0.4)'
+                        }}
+                    >
+                        {flyingPoints > 0 ? `+${flyingPoints}` : flyingPoints}
+                    </motion.div>
+                )}
+            </AnimatePresence>
+        </div>
     );
 };
 
