@@ -950,14 +950,42 @@ const GamePreview = ({ nodes, edges, onClose, gameMetadata, onGameEnd, onNodeCha
 
     const handleOptionClick = (targetId) => {
         ttsStop();
-        const result = resolveNext(targetId, { nodes, edges, inventory, nodeOutputs, history });
+
+        // ── PRE-ENRICH INVENTORY before calling resolveNext ──────────────────────
+        // The departing node (currentNode) may have a variableId flag that needs to
+        // be visible to any Logic Gate that resolveNext is about to traverse.
+        // If we don't add it NOW, the Logic Gate evaluates with stale inventory and
+        // routes incorrectly (e.g. going back to the parent instead of showing the
+        // success message after visiting all required child story nodes).
+        const preInventory = new Set(inventory);
+        if (currentNode?.data?.variableId) {
+            preInventory.add(currentNode.data.variableId);
+        }
+
+        // Now resolveNext sees the flag from the node we're departing
+        const result = resolveNext(targetId, { nodes, edges, inventory: preInventory, nodeOutputs, history });
         const { nodeId, node, intermediateIds, localInventory, localOutputs, stateChanged, audioToPlay } = result;
 
-        // Commit State Changes
-        if (stateChanged) {
-            setInventory(localInventory);
-            setNodeOutputs(localOutputs);
-        }
+        // ── Gather ALL flag IDs to commit this transition ─────────────────────────
+        const flagsToAdd = new Set(preInventory); // Start from the pre-enriched base
+
+        // Destination node + all silently-traversed intermediate nodes
+        [node, ...intermediateIds.map(id => nodes.find(n => n.id === id))]
+            .filter(Boolean)
+            .forEach(n => {
+                flagsToAdd.add(n.id);
+                if (n.data?.variableId) flagsToAdd.add(n.data.variableId);
+                if ((n.type === 'evidence' || n.type === 'email') && n.data?.condition) {
+                    flagsToAdd.add(n.data.condition);
+                }
+            });
+        intermediateIds.forEach(id => flagsToAdd.add(id));
+
+        // ── Commit everything atomically (one single setInventory call) ────────────
+        // If resolveNext mutated state via Setter nodes, merge on top of its result
+        const baseInventory = stateChanged ? localInventory : inventory;
+        setInventory(new Set([...baseInventory, ...flagsToAdd]));
+        if (stateChanged) setNodeOutputs(localOutputs);
 
         if (audioToPlay) {
             const url = typeof audioToPlay === 'object' ? audioToPlay.url : audioToPlay;
@@ -979,13 +1007,6 @@ const GamePreview = ({ nodes, edges, onClose, gameMetadata, onGameEnd, onNodeCha
 
         setCurrentNodeId(nodeId);
 
-        // Global Inventory Update: track visited nodes and their Logic IDs
-        const idsToAdd = [nodeId, ...intermediateIds];
-        [node, ...intermediateIds.map(id => nodes.find(n => n.id === id))].forEach(n => {
-            if (n && n.data?.variableId) idsToAdd.push(n.data.variableId);
-            if (n && n.type === 'evidence' && n.data.condition) idsToAdd.push(n.data.condition);
-        });
-        setInventory(prev => new Set([...prev, ...idsToAdd]));
 
         // Handle Type-Specific UI logic
         if (node && ['suspect', 'evidence', 'terminal', 'message', 'media', 'notification', 'question', 'lockpick', 'decryption', 'keypad', 'interrogation', 'threed', 'email', 'fact'].includes(node.type)) {

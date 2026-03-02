@@ -11,7 +11,7 @@ export const checkLogicCondition = (condition, inventory, history) => {
         return !checkLogicCondition(condition.substring(1).trim(), inventory, history);
     }
 
-    // Check for boolean operators (simple implementation)
+    // Check for boolean operators
     if (condition.includes(' && ')) {
         return condition.split(' && ').every(c => checkLogicCondition(c.trim(), inventory, history));
     }
@@ -27,17 +27,15 @@ export const checkLogicCondition = (condition, inventory, history) => {
 
     // Check visited status
     if (condition.startsWith('visited:')) {
-        const targetId = condition.split(':')[1];
-        return history.includes(targetId);
+        return history.includes(condition.split(':')[1]);
     }
 
     // Check collected status (Inventory)
     if (condition.startsWith('has:')) {
-        const targetId = condition.split(':')[1];
-        return inventory.has(targetId);
+        return inventory.has(condition.split(':')[1]);
     }
 
-    // Default: Check if the condition string matches an item in inventory
+    // Default: plain flag name — check inventory
     return inventory.has(condition);
 };
 
@@ -45,15 +43,26 @@ export const evaluateLogic = (node, inventory, nodeOutputs, history = []) => {
     const { variable, operator, value, condition, logicType } = node.data;
     let isTrue = false;
 
-    // If expression mode or if variable is empty but condition exists
-    if (logicType === 'expression' || (!variable && condition)) {
-        return checkLogicCondition(condition, inventory, history);
+    // ── Auto-detect boolean expressions ──────────────────────────────────────────
+    // If the user typed "flag1 && flag2 && flag3" into either the 'variable' OR
+    // the 'condition' field, route through the expression evaluator regardless of
+    // which UI mode (IF / WHILE / EXPRESSION) is selected.
+    const expressionCandidate = variable || condition || '';
+    const looksLikeExpression = expressionCandidate.includes(' && ') ||
+        expressionCandidate.includes(' || ') ||
+        expressionCandidate.startsWith('!') ||
+        expressionCandidate.startsWith('has:') ||
+        expressionCandidate.startsWith('visited:');
+
+    if (looksLikeExpression || logicType === 'expression' || (!variable && condition)) {
+        return checkLogicCondition(expressionCandidate, inventory, history);
     }
 
     if (variable) {
         let actualValue = undefined;
         if (nodeOutputs[variable] !== undefined) actualValue = nodeOutputs[variable];
         else if (inventory.has(variable)) actualValue = true;
+
 
         if (actualValue === undefined) {
             isTrue = false;
@@ -77,6 +86,7 @@ export const evaluateLogic = (node, inventory, nodeOutputs, history = []) => {
     }
     return isTrue;
 };
+
 
 export const resolveNextNode = (startId, { nodes, edges, inventory, nodeOutputs, history, maxLoops = 20 }) => {
     let currId = startId;
