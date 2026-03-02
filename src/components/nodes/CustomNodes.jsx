@@ -1398,6 +1398,7 @@ export const LogicNode = memo(({ id, data, selected }) => {
             <NodeWrapper id={id} title="Logic Gate" icon={GitMerge} selected={selected} headerClass="bg-emerald-950/30 text-emerald-200" colorClass="border-emerald-900/30" data={data} onLabelChange={(v) => handleChange('label', v)}>
 
                 <div className="space-y-2">
+
                     <div>
                         <p className="text-[10px] text-zinc-400 mb-1">Logic Type</p>
                         <select
@@ -1407,42 +1408,60 @@ export const LogicNode = memo(({ id, data, selected }) => {
                         >
                             <option value="if">IF (Branch)</option>
                             <option value="while">WHILE (Loop/Wait)</option>
+                            <option value="expression">EXPRESSION (Complex)</option>
                         </select>
                     </div>
 
-                    <div>
-                        <p className="text-[10px] text-zinc-400 mb-1">Check Variable / Previous Output</p>
-                        <InputField
-                            placeholder="e.g. 'terminal_1_output' or 'has_key'"
-                            value={data.variable}
-                            onChange={(e) => handleChange('variable', e.target.value)}
-                        />
-                    </div>
-
-                    <div className="flex gap-2">
-                        <div className="w-1/3">
-                            <p className="text-[10px] text-zinc-400 mb-1">Op</p>
-                            <select
-                                className="w-full bg-black border border-zinc-800 rounded px-2 py-1 text-xs text-zinc-300 focus:border-indigo-500 outline-none"
-                                value={data.operator || '=='}
-                                onChange={(e) => handleChange('operator', e.target.value)}
-                            >
-                                <option value="==">==</option>
-                                <option value="!=">!=</option>
-                                <option value=">">&gt;</option>
-                                <option value="<">&lt;</option>
-                                <option value="contains">in</option>
-                            </select>
-                        </div>
-                        <div className="flex-1">
-                            <p className="text-[10px] text-zinc-400 mb-1">Value</p>
-                            <InputField
-                                placeholder="Target value"
-                                value={data.value}
-                                onChange={(e) => handleChange('value', e.target.value)}
+                    {data.logicType === 'expression' ? (
+                        <div>
+                            <p className="text-[10px] text-zinc-400 mb-1">Boolean Expression</p>
+                            <TextArea
+                                placeholder="e.g. has:flag1 && has:flag2 && !visited:node_fail"
+                                value={data.condition}
+                                onChange={(e) => handleChange('condition', e.target.value)}
+                                rows={2}
                             />
+                            <p className="text-[9px] text-zinc-500 mt-1 italic leading-tight">
+                                Use <span className="text-indigo-400">has:ID</span>, <span className="text-indigo-400">visited:ID</span>, <span className="text-indigo-400">&&</span>, <span className="text-indigo-400">||</span>, and <span className="text-indigo-400">!</span>
+                            </p>
                         </div>
-                    </div>
+                    ) : (
+                        <>
+                            <div>
+                                <p className="text-[10px] text-zinc-400 mb-1">Check Variable / Previous Output</p>
+                                <InputField
+                                    placeholder="e.g. 'terminal_1_output' or 'has_key'"
+                                    value={data.variable}
+                                    onChange={(e) => handleChange('variable', e.target.value)}
+                                />
+                            </div>
+
+                            <div className="flex gap-2">
+                                <div className="w-1/3">
+                                    <p className="text-[10px] text-zinc-400 mb-1">Op</p>
+                                    <select
+                                        className="w-full bg-black border border-zinc-800 rounded px-2 py-1 text-xs text-zinc-300 focus:border-indigo-500 outline-none"
+                                        value={data.operator || '=='}
+                                        onChange={(e) => handleChange('operator', e.target.value)}
+                                    >
+                                        <option value="==">==</option>
+                                        <option value="!=">!=</option>
+                                        <option value=">">&gt;</option>
+                                        <option value="<">&lt;</option>
+                                        <option value="contains">in</option>
+                                    </select>
+                                </div>
+                                <div className="flex-1">
+                                    <p className="text-[10px] text-zinc-400 mb-1">Value</p>
+                                    <InputField
+                                        placeholder="Target value"
+                                        value={data.value}
+                                        onChange={(e) => handleChange('value', e.target.value)}
+                                    />
+                                </div>
+                            </div>
+                        </>
+                    )}
                 </div>
 
                 <div className="mt-3 p-2 bg-black/40 border border-emerald-900/20 rounded-lg space-y-2">

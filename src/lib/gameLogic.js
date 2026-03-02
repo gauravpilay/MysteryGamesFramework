@@ -6,6 +6,11 @@ export const checkLogicCondition = (condition, inventory, history) => {
     if (!condition || condition === 'always_true') return true;
     if (condition === 'always_false') return false;
 
+    // Handle NOT operator
+    if (condition.startsWith('!')) {
+        return !checkLogicCondition(condition.substring(1).trim(), inventory, history);
+    }
+
     // Check for boolean operators (simple implementation)
     if (condition.includes(' && ')) {
         return condition.split(' && ').every(c => checkLogicCondition(c.trim(), inventory, history));
@@ -32,23 +37,18 @@ export const checkLogicCondition = (condition, inventory, history) => {
         return inventory.has(targetId);
     }
 
-    // Legacy/Direct ID checks
-    // Hardcoded check for tutorial/sample usage
-    if (condition === 'has_usb_drive' && (inventory.has('evidence-1') || inventory.has('sample-evidence-usb') || Array.from(inventory).some(i => i.toLowerCase().includes('usb')))) return true;
-
-    // Cyber Case Hardcode
-    if (condition === 'keycard_match_ken') {
-        // Logic: Needs Keycard OR Logs (providing Access Code)
-        if (inventory.has('evidence-cctv') || inventory.has('term-logs')) return true;
-    }
-
     // Default: Check if the condition string matches an item in inventory
     return inventory.has(condition);
 };
 
-export const evaluateLogic = (node, inventory, nodeOutputs) => {
-    const { variable, operator, value, condition } = node.data;
+export const evaluateLogic = (node, inventory, nodeOutputs, history = []) => {
+    const { variable, operator, value, condition, logicType } = node.data;
     let isTrue = false;
+
+    // If expression mode or if variable is empty but condition exists
+    if (logicType === 'expression' || (!variable && condition)) {
+        return checkLogicCondition(condition, inventory, history);
+    }
 
     if (variable) {
         let actualValue = undefined;
@@ -143,7 +143,7 @@ export const resolveNextNode = (startId, { nodes, edges, inventory, nodeOutputs,
         }
         // Handle Logic
         else if (currNode.type === 'logic') {
-            const isTrue = evaluateLogic(currNode, localInventory, localOutputs);
+            const isTrue = evaluateLogic(currNode, localInventory, localOutputs, history);
             const nodeOptions = edges.filter(e => e.source === currNode.id);
 
             if (currNode.data.logicType === 'while' && !isTrue) {
@@ -217,7 +217,7 @@ export const resolveEdgeTarget = (edge, { nodes, edges, inventory, nodeOutputs, 
         if (processedLogicNodes.has(targetNode.id)) return null; // Cycle guard
         processedLogicNodes.add(targetNode.id);
 
-        const isTrue = evaluateLogic(targetNode, inventory, nodeOutputs);
+        const isTrue = evaluateLogic(targetNode, inventory, nodeOutputs, history);
 
         // Find next edge based on result
         const logicEdges = edges.filter(e => e.source === targetNode.id);

@@ -583,20 +583,38 @@ const GamePreview = ({ nodes, edges, onClose, gameMetadata, onGameEnd, onNodeCha
     const lastNodeId = useRef(null);
 
 
+    // Unique animation keys – increment every time an animation is fired so
+    // React always sees a new key, even if the points value is the same.
+    const animCounterRef = useRef(0);
+    const [scoreDeltaKey, setScoreDeltaKey] = useState(0);
+    const [flyingPointsKey, setFlyingPointsKey] = useState(0);
+
+    // Helper wrappers so every caller just calls these instead of the raw setters
+    const triggerScoreDelta = (val) => {
+        animCounterRef.current += 1;
+        setScoreDeltaKey(animCounterRef.current);
+        setScoreDelta(val);
+    };
+    const triggerFlyingPoints = (val) => {
+        animCounterRef.current += 1;
+        setFlyingPointsKey(animCounterRef.current);
+        setFlyingPoints(val);
+    };
+
     // Clear score delta and flying points after animation
     useEffect(() => {
-        if (scoreDelta) {
+        if (scoreDelta !== null) {
             const timer = setTimeout(() => setScoreDelta(null), 2000);
             return () => clearTimeout(timer);
         }
-    }, [scoreDelta]);
+    }, [scoreDeltaKey]);
 
     useEffect(() => {
         if (flyingPoints !== null) {
             const timer = setTimeout(() => setFlyingPoints(null), 2000);
             return () => clearTimeout(timer);
         }
-    }, [flyingPoints]);
+    }, [flyingPointsKey]);
 
     // Timer Logic
     useEffect(() => {
@@ -1105,8 +1123,8 @@ const GamePreview = ({ nodes, edges, onClose, gameMetadata, onGameEnd, onNodeCha
             // Award points
             if (activeModalNode.data.score && !scoredNodes.has(activeModalNode.id)) {
                 setScore(s => s + (activeModalNode.data.score || 0));
-                setScoreDelta(activeModalNode.data.score || 0);
-                setFlyingPoints(activeModalNode.data.score || 0);
+                triggerScoreDelta(activeModalNode.data.score || 0);
+                triggerFlyingPoints(activeModalNode.data.score || 0);
 
                 // Objective Scoring (Reward)
                 rewardObjectivePoints(activeModalNode, activeModalNode.data.score || 0);
@@ -1163,8 +1181,8 @@ const GamePreview = ({ nodes, edges, onClose, gameMetadata, onGameEnd, onNodeCha
             const penalty = activeModalNode.data.penalty || 0;
             if (penalty > 0) {
                 setScore(s => Math.max(0, s - penalty));
-                setScoreDelta(-penalty);
-                setFlyingPoints(-penalty);
+                triggerScoreDelta(-penalty);
+                triggerFlyingPoints(-penalty);
                 addLog(`QUIZ PROTECTION: -${penalty} Points`);
 
                 rewardObjectivePoints(activeModalNode, -penalty);
@@ -1475,9 +1493,9 @@ const GamePreview = ({ nodes, edges, onClose, gameMetadata, onGameEnd, onNodeCha
                     {/* Score Display - Enhanced UI */}
                     <div className="relative">
                         <AnimatePresence>
-                            {scoreDelta && (
+                            {scoreDelta !== null && (
                                 <motion.div
-                                    key={score + (scoreDelta || 0)}
+                                    key={scoreDeltaKey}
                                     initial={{ opacity: 0, y: 0, scale: 0.5 }}
                                     animate={{ opacity: 1, y: -40, scale: 1.2 }}
                                     exit={{ opacity: 0, y: -80, scale: 1 }}
@@ -3052,7 +3070,7 @@ const GamePreview = ({ nodes, edges, onClose, gameMetadata, onGameEnd, onNodeCha
             <AnimatePresence>
                 {flyingPoints !== null && (
                     <motion.div
-                        key={`flying-score-${flyingPoints}-${Date.now()}`}
+                        key={flyingPointsKey}
                         initial={{ opacity: 0, y: 150, scale: 0.5, x: '-50%' }}
                         animate={{ opacity: 1, y: -250, scale: 2.5, x: '-50%' }}
                         exit={{ opacity: 0, scale: 4, y: -400, filter: 'blur(15px)', x: '-50%' }}
