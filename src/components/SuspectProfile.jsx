@@ -543,27 +543,41 @@ export default function SuspectProfile({
                                 className="space-y-8"
                             >
                                 <div className="flex flex-col gap-6">
-                                    {navigationOptions.map(option => (
-                                        <button
-                                            key={option.id}
-                                            onClick={() => {
-                                                onClose();
-                                                onNavigate(option.target);
-                                            }}
-                                            className="group flex items-center justify-between p-8 bg-zinc-900 hover:bg-indigo-600 border border-white/10 hover:border-indigo-400 rounded-[2rem] transition-all shadow-2xl hover:-translate-y-1"
-                                        >
-                                            <div className="flex items-center gap-8">
-                                                <div className="w-16 h-16 bg-indigo-500/10 group-hover:bg-white/20 rounded-2xl flex items-center justify-center transition-colors">
-                                                    <Zap className="w-8 h-8 text-indigo-400 group-hover:text-white" />
+                                    {navigationOptions.map(option => {
+                                        // Look up the target node to use its configured label/title
+                                        const targetNode = nodes.find(n => n.id === option.target);
+                                        const nodeTitle = targetNode?.data?.label || option.label || option.target;
+                                        const nodeType = targetNode?.type;
+                                        const subtitle = option.label && option.label !== nodeTitle
+                                            ? option.label
+                                            : nodeType
+                                                ? nodeType.charAt(0).toUpperCase() + nodeType.slice(1)
+                                                : 'Action';
+
+                                        return (
+                                            <button
+                                                key={option.id}
+                                                onClick={() => {
+                                                    onClose();
+                                                    onNavigate(option.target);
+                                                }}
+                                                className="group flex items-center justify-between p-8 bg-zinc-900 hover:bg-indigo-600 border border-white/10 hover:border-indigo-400 rounded-[2rem] transition-all shadow-2xl hover:-translate-y-1"
+                                            >
+                                                <div className="flex items-center gap-8">
+                                                    <div className="w-16 h-16 bg-indigo-500/10 group-hover:bg-white/20 rounded-2xl flex items-center justify-center transition-colors">
+                                                        <Zap className="w-8 h-8 text-indigo-400 group-hover:text-white" />
+                                                    </div>
+                                                    <div className="text-left">
+                                                        <span className="text-[10px] font-black text-indigo-400 group-hover:text-indigo-200 uppercase tracking-[0.3em] block mb-1">
+                                                            {subtitle}
+                                                        </span>
+                                                        <h4 className="text-xl font-black text-white uppercase tracking-tight">{nodeTitle}</h4>
+                                                    </div>
                                                 </div>
-                                                <div className="text-left">
-                                                    <span className="text-[10px] font-black text-indigo-400 group-hover:text-indigo-200 uppercase tracking-[0.3em] block mb-1">Direct Operational Link</span>
-                                                    <h4 className="text-xl font-black text-white uppercase tracking-tight">{option.label ? `Question Suspect using ${option.label}` : "Question Suspect"}</h4>
-                                                </div>
-                                            </div>
-                                            <ChevronRight className="w-8 h-8 text-zinc-700 group-hover:text-white group-hover:translate-x-2 transition-all" />
-                                        </button>
-                                    ))}
+                                                <ChevronRight className="w-8 h-8 text-zinc-700 group-hover:text-white group-hover:translate-x-2 transition-all" />
+                                            </button>
+                                        );
+                                    })}
                                 </div>
                             </motion.div>
                         )}
