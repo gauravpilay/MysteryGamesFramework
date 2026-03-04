@@ -582,6 +582,26 @@ const GamePreview = ({ nodes, edges, onClose, gameMetadata, onGameEnd, onNodeCha
     const [revealedHints, setRevealedHints] = useState(new Set()); // Set of hint IDs
     const lastNodeId = useRef(null);
 
+    // Confrontation state — persisted across suspect modal open/close cycles
+    // pendingConfrontation: { suspect, evidenceName, remainingCount } | null
+    const [pendingConfrontation, setPendingConfrontation] = useState(null);
+    // Per-suspect map of confronted evidence IDs: Map<suspectId, Set<evidenceId>>
+    const [suspectConfrontedIds, setSuspectConfrontedIds] = useState(new Map());
+
+    // Called by SuspectProfile when a confrontation succeeds, right before it navigates to the story node
+    const handleConfrontationSuccess = ({ suspect, evidenceName, usedIds, remainingCount, storyNodeId }) => {
+        // Persist ticked evidence IDs for this suspect
+        setSuspectConfrontedIds(prev => {
+            const next = new Map(prev);
+            next.set(suspect.id, usedIds);
+            return next;
+        });
+        // Always store pending confrontation (even if no remaining evidence)
+        // so we can intercept the story node's Continue button
+        setPendingConfrontation({ suspect, evidenceName, remainingCount, storyNodeId });
+    };
+
+
 
     // Unique animation keys – increment every time an animation is fired so
     // React always sees a new key, even if the points value is the same.
@@ -1517,12 +1537,21 @@ const GamePreview = ({ nodes, edges, onClose, gameMetadata, onGameEnd, onNodeCha
                             {scoreDelta !== null && (
                                 <motion.div
                                     key={scoreDeltaKey}
-                                    initial={{ opacity: 0, y: 0, scale: 0.5 }}
-                                    animate={{ opacity: 1, y: -40, scale: 1.2 }}
-                                    exit={{ opacity: 0, y: -80, scale: 1 }}
-                                    className={`absolute left-1/2 -translate-x-1/2 font-black text-xl pointer-events-none z-[110] drop-shadow-lg ${scoreDelta > 0 ? 'text-amber-400' : 'text-red-500'}`}
+                                    initial={{ opacity: 0, y: 4, scale: 0.7 }}
+                                    animate={{ opacity: 1, y: -38, scale: 1 }}
+                                    exit={{ opacity: 0, y: -64, scale: 0.85 }}
+                                    transition={{ duration: 0.9, ease: [0.22, 1, 0.36, 1] }}
+                                    className="absolute left-1/2 -translate-x-1/2 pointer-events-none z-[110]"
                                 >
-                                    {scoreDelta > 0 ? `+${scoreDelta}` : scoreDelta}
+                                    <div className={`flex items-center gap-1 px-2.5 py-1 rounded-full font-black text-sm backdrop-blur-md border shadow-lg whitespace-nowrap
+                                        ${scoreDelta > 0
+                                            ? 'bg-indigo-500/20 border-indigo-400/40 text-indigo-200 shadow-indigo-900/40'
+                                            : 'bg-rose-500/20 border-rose-400/40 text-rose-300 shadow-rose-900/40'
+                                        }`}
+                                    >
+                                        <span className="text-base">{scoreDelta > 0 ? '▲' : '▼'}</span>
+                                        <span>{scoreDelta > 0 ? `+${scoreDelta}` : scoreDelta}</span>
+                                    </div>
                                 </motion.div>
                             )}
                         </AnimatePresence>
@@ -1771,7 +1800,97 @@ const GamePreview = ({ nodes, edges, onClose, gameMetadata, onGameEnd, onNodeCha
                             // AND if it's not a Logic/Music node (which should be auto-traversing)
                             isContentReady && !['logic', 'music'].includes(currentNode.type) && (
                                 <div className="mt-8 animate-in fade-in zoom-in-95 duration-500">
-                                    {options.some(e => nodes.find(n => n.id === e.target)?.type === 'suspect') ? (
+                                    {/* ── Confrontation story node: replace normal buttons ── */}
+                                    {pendingConfrontation?.storyNodeId === currentNodeId ? (() => {
+                                        // Find where "Continue" would normally go
+                                        const continueTarget = options[0]?.target ?? null;
+                                        return (
+                                            <div className="flex flex-col gap-3">
+                                                {/* Present More Evidence — only if remainingCount > 0 */}
+                                                {pendingConfrontation.remainingCount > 0 && (
+                                                    <motion.button
+                                                        initial={{ opacity: 0, y: 10 }}
+                                                        animate={{ opacity: 1, y: 0 }}
+                                                        transition={{ delay: 0.05 }}
+                                                        onClick={() => {
+                                                            const susp = pendingConfrontation.suspect;
+                                                            setPendingConfrontation(null);
+                                                            setActiveModalNode({ ...susp, _initialTab: 'evidence' });
+                                                        }}
+                                                        className="w-full text-left rounded-2xl cursor-pointer p-4 flex items-center gap-4
+                                                            bg-gradient-to-r from-amber-500/30 via-amber-400/10 to-transparent
+                                                            border border-amber-500/40 hover:border-amber-400
+                                                            hover:from-amber-500/50 hover:shadow-[0_0_25px_rgba(245,158,11,0.2)]
+                                                            transition-all duration-500 group relative overflow-hidden shadow-xl"
+                                                    >
+                                                        <div className="absolute inset-0 bg-gradient-to-r from-white/0 via-white/5 to-white/0 -translate-x-full group-hover:translate-x-full transition-transform duration-1000" />
+                                                        <div className="rounded-xl bg-black/40 p-2.5 border border-white/10 group-hover:rotate-6 transition-transform shrink-0">
+                                                            <Briefcase className="w-5 h-5 text-amber-400 transition-colors duration-500" />
+                                                        </div>
+                                                        <div className="flex-1 min-w-0 flex flex-col">
+                                                            <div className="text-[8px] font-black tracking-[0.2em] uppercase mb-1 text-amber-400 opacity-60 group-hover:opacity-100 transition-opacity">
+                                                                MORE EVIDENCE AVAILABLE
+                                                            </div>
+                                                            <div className="text-amber-100 drop-shadow-md text-base md:text-lg font-bold uppercase tracking-[0.15em] md:tracking-[0.2em] truncate">
+                                                                Present More Evidence
+                                                            </div>
+                                                        </div>
+                                                        <div className="w-8 h-8 rounded-full bg-white/5 flex items-center justify-center border border-white/5 group-hover:border-white/20 transition-all shrink-0">
+                                                            <ArrowRight className="w-3 h-3 text-amber-400 transition-all" />
+                                                        </div>
+                                                    </motion.button>
+                                                )}
+
+                                                {/* No, I'm good for now / Continue — acts as the normal Continue */}
+                                                <motion.button
+                                                    initial={{ opacity: 0, y: 10 }}
+                                                    animate={{ opacity: 1, y: 0 }}
+                                                    transition={{ delay: pendingConfrontation.remainingCount > 0 ? 0.12 : 0.05 }}
+                                                    onClick={() => {
+                                                        setPendingConfrontation(null);
+                                                        if (continueTarget) handleOptionClick(continueTarget);
+                                                    }}
+                                                    className={`w-full text-left rounded-2xl cursor-pointer p-3 flex items-center gap-3 md:gap-4
+                                                        transition-all duration-500 group relative overflow-hidden
+                                                        ${pendingConfrontation.remainingCount === 0
+                                                            ? 'bg-indigo-600/20 border border-indigo-500/30 hover:border-indigo-400/60 hover:bg-indigo-600/30'
+                                                            : 'bg-zinc-950/40 border border-white/5 hover:border-indigo-500/30 hover:bg-zinc-900/60'
+                                                        }`}
+                                                >
+                                                    <div className="absolute inset-0 bg-gradient-to-r from-white/0 via-white/5 to-white/0 -translate-x-full group-hover:translate-x-full transition-transform duration-1000" />
+                                                    <div className={`rounded-xl p-3 border border-white/10 group-hover:rotate-6 transition-transform shrink-0
+                                                        ${pendingConfrontation.remainingCount === 0 ? 'bg-indigo-500/10' : 'bg-zinc-950/40'}`}
+                                                    >
+                                                        <ArrowRight className={`w-4 h-4 transition-colors duration-500
+                                                            ${pendingConfrontation.remainingCount === 0
+                                                                ? 'text-indigo-400 group-hover:text-indigo-300'
+                                                                : 'text-zinc-400 group-hover:text-indigo-400'
+                                                            }`}
+                                                        />
+                                                    </div>
+                                                    <div className="flex-1 min-w-0 flex flex-col items-center justify-center">
+                                                        {pendingConfrontation.remainingCount === 0 ? (
+                                                            <div className="flex flex-col items-center">
+                                                                <span className="text-[9px] font-black tracking-[0.3em] uppercase text-indigo-400/70 group-hover:text-indigo-300/90 transition-colors mb-0.5">
+                                                                    Proceed
+                                                                </span>
+                                                                <span className="text-indigo-200 group-hover:text-white text-sm md:text-base font-black tracking-wide uppercase transition-all duration-500">
+                                                                    Continue
+                                                                </span>
+                                                            </div>
+                                                        ) : (
+                                                            <div className="text-zinc-400 group-hover:text-white text-sm md:text-base font-bold tracking-tight truncate transition-all duration-500">
+                                                                No, I'm good for now
+                                                            </div>
+                                                        )}
+                                                    </div>
+                                                    <div className="w-8 h-8 rounded-full bg-white/5 flex items-center justify-center border border-white/5 group-hover:border-white/20 transition-all shrink-0">
+                                                        <ArrowRight className="w-3 h-3 text-zinc-600 group-hover:text-white transition-all" />
+                                                    </div>
+                                                </motion.button>
+                                            </div>
+                                        );
+                                    })() : options.some(e => nodes.find(n => n.id === e.target)?.type === 'suspect') ? (
                                         // Grid Layout for Suspects
                                         <div className="space-y-4">
                                             {/* Only show label if NOT in the dedicated view (fallback) */}
@@ -2072,6 +2191,62 @@ const GamePreview = ({ nodes, edges, onClose, gameMetadata, onGameEnd, onNodeCha
                 </AnimatePresence>
             </div>
 
+            {/* Floating "Present More Evidence" offer — shown after confrontation story plays */}
+            <AnimatePresence>
+                {pendingConfrontation && !activeModalNode && pendingConfrontation.storyNodeId !== currentNodeId && (
+                    <motion.div
+                        initial={{ opacity: 0, y: 80 }}
+                        animate={{ opacity: 1, y: 0 }}
+                        exit={{ opacity: 0, y: 60 }}
+                        transition={{ type: 'spring', stiffness: 260, damping: 24 }}
+                        className={`${isSimultaneous ? 'absolute' : 'fixed'} bottom-6 left-1/2 -translate-x-1/2 z-[140] w-full max-w-xl px-4`}
+                    >
+                        <div className="bg-zinc-950/95 backdrop-blur-xl border border-amber-500/40 rounded-3xl p-5 shadow-2xl shadow-amber-900/20 flex items-center gap-5">
+                            {/* Icon */}
+                            <div className="w-12 h-12 rounded-2xl bg-amber-500/15 border border-amber-500/30 flex items-center justify-center shrink-0">
+                                <Briefcase className="w-6 h-6 text-amber-400" />
+                            </div>
+                            {/* Message */}
+                            <div className="flex-1 min-w-0">
+                                <p className="text-[10px] font-black text-amber-400 uppercase tracking-[0.3em] mb-0.5">
+                                    More Evidence Available
+                                </p>
+                                <p className="text-sm text-zinc-200 font-medium truncate">
+                                    You have{' '}
+                                    <span className="text-amber-400 font-black">
+                                        {pendingConfrontation.remainingCount} more piece{pendingConfrontation.remainingCount !== 1 ? 's' : ''}
+                                    </span>{' '}
+                                    to present to{' '}
+                                    <span className="text-white font-black">{pendingConfrontation.suspect.data.name}</span>.
+                                </p>
+                            </div>
+                            {/* Actions */}
+                            <div className="flex items-center gap-2 shrink-0">
+                                <button
+                                    onClick={() => {
+                                        const susp = pendingConfrontation.suspect;
+                                        setPendingConfrontation(null);
+                                        // Re-open suspect profile directly on Confrontation tab
+                                        setActiveModalNode({ ...susp, _initialTab: 'evidence' });
+                                    }}
+                                    className="px-4 py-2.5 bg-amber-500 hover:bg-amber-400 text-black font-black uppercase tracking-widest text-[10px] rounded-xl transition-all shadow-lg shadow-amber-900/30 whitespace-nowrap"
+                                >
+                                    Present Now
+                                </button>
+                                <button
+                                    onClick={() => setPendingConfrontation(null)}
+                                    className="w-8 h-8 rounded-xl bg-zinc-800 hover:bg-zinc-700 text-zinc-400 hover:text-white flex items-center justify-center transition-colors border border-white/5"
+                                >
+                                    <X className="w-4 h-4" />
+                                </button>
+                            </div>
+                        </div>
+                        {/* Subtle animated glow line */}
+                        <div className="absolute inset-x-8 -bottom-px h-px bg-gradient-to-r from-transparent via-amber-500/60 to-transparent" />
+                    </motion.div>
+                )}
+            </AnimatePresence>
+
             {/* Generic Interaction Modal (Replaces Suspect Modal) */}
             <AnimatePresence>
                 {activeModalNode && (
@@ -2185,6 +2360,9 @@ const GamePreview = ({ nodes, edges, onClose, gameMetadata, onGameEnd, onNodeCha
                                     onNavigate={handleOptionClick}
                                     onLog={addLog}
                                     isSimultaneous={isSimultaneous}
+                                    onConfrontationSuccess={handleConfrontationSuccess}
+                                    confrontedIds={suspectConfrontedIds.get(activeModalNode.id) ?? new Set()}
+                                    initialTab={activeModalNode._initialTab || 'dossier'}
                                 />
                             )}
                             {activeModalNode.type === 'evidence' && (
@@ -3092,22 +3270,29 @@ const GamePreview = ({ nodes, edges, onClose, gameMetadata, onGameEnd, onNodeCha
                 {flyingPoints !== null && (
                     <motion.div
                         key={flyingPointsKey}
-                        initial={{ opacity: 0, y: 150, scale: 0.5, x: '-50%' }}
-                        animate={{ opacity: 1, y: -250, scale: 2.5, x: '-50%' }}
-                        exit={{ opacity: 0, scale: 4, y: -400, filter: 'blur(15px)', x: '-50%' }}
+                        initial={{ opacity: 0, y: 120, scale: 0.4, x: '-50%', filter: 'blur(12px)' }}
+                        animate={{ opacity: 1, y: -180, scale: 1.8, x: '-50%', filter: 'blur(0px)' }}
+                        exit={{ opacity: 0, scale: 2.8, y: -380, filter: 'blur(20px)', x: '-50%' }}
                         transition={{
-                            duration: 1.5,
-                            ease: [0.19, 1, 0.22, 1], // expoOut
-                            scale: { type: "spring", stiffness: 300, damping: 15 }
+                            duration: 1.6,
+                            ease: [0.16, 1, 0.3, 1],
+                            scale: { type: 'spring', stiffness: 220, damping: 18 },
+                            filter: { duration: 0.35 }
                         }}
-                        className={`fixed left-1/2 top-1/2 z-[1000] font-black pointer-events-none text-center whitespace-nowrap`}
+                        className="fixed left-1/2 top-1/2 z-[1000] font-black pointer-events-none text-center whitespace-nowrap select-none"
                         style={{
-                            fontSize: '120px',
+                            fontSize: '96px',
                             lineHeight: 1,
-                            color: flyingPoints > 0 ? '#ffff00' : '#ef4444',
-                            textShadow: flyingPoints > 0
-                                ? '0 0 20px rgba(255, 255, 0, 0.8), 0 0 40px rgba(255, 255, 0, 0.4)'
-                                : '0 0 20px rgba(239, 68, 68, 0.8), 0 0 40px rgba(239, 68, 68, 0.4)'
+                            background: flyingPoints > 0
+                                ? 'linear-gradient(160deg, #e0e7ff 0%, #a5b4fc 35%, #818cf8 65%, #6366f1 100%)'
+                                : 'linear-gradient(160deg, #fecdd3 0%, #fb7185 40%, #f43f5e 100%)',
+                            WebkitBackgroundClip: 'text',
+                            WebkitTextFillColor: 'transparent',
+                            backgroundClip: 'text',
+                            textShadow: 'none',
+                            filter: flyingPoints > 0
+                                ? 'drop-shadow(0 0 32px rgba(99,102,241,0.7)) drop-shadow(0 0 12px rgba(165,180,252,0.5))'
+                                : 'drop-shadow(0 0 32px rgba(244,63,94,0.7)) drop-shadow(0 0 12px rgba(251,113,133,0.5))'
                         }}
                     >
                         {flyingPoints > 0 ? `+${flyingPoints}` : flyingPoints}

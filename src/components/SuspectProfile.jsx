@@ -3,7 +3,7 @@ import {
     User, Shield, Activity, MessageSquare, Search, Terminal,
     ChevronRight, Briefcase, ShieldAlert, Fingerprint, Dna,
     AlertTriangle, Eye, Zap, Target, Mail, X, Lightbulb,
-    ArrowDown, Sparkles, FileText, Info, AlertCircle
+    ArrowDown, Sparkles, FileText, Info, AlertCircle, CheckCircle2
 } from 'lucide-react';
 import { useState, useEffect, useMemo } from 'react';
 
@@ -161,11 +161,19 @@ export default function SuspectProfile({
     onClose,
     onNavigate,
     onLog,
-    isSimultaneous = false
+    isSimultaneous = false,
+    // Tab to open on (allows parent to force the Confrontation tab on re-open)
+    initialTab = 'dossier',
+    // Evidence IDs already confronted — passed from parent so ticks persist across re-opens
+    confrontedIds = new Set(),
+    // Called when a confrontation succeeds, before navigating away
+    onConfrontationSuccess = null
 }) {
-    const [activeTab, setActiveTab] = useState('dossier');
+    const [activeTab, setActiveTab] = useState(initialTab);
     const [suspectDismissal, setSuspectDismissal] = useState(null);
     const [showHint, setShowHint] = useState(false);
+    // Local mirror of confrontedIds (extended as user confronts more within this session)
+    const [confrontedEvidenceIds, setConfrontedEvidenceIds] = useState(new Set(confrontedIds));
 
     // Derived Data
     const collectedEvidence = useMemo(() => {
@@ -231,6 +239,25 @@ export default function SuspectProfile({
 
         if (match) {
             onLog(`⚡ BREAKTHROUGH: Successfully confronted ${suspect.data.name} with ${evidenceName}.`);
+            // Build the updated set of confronted IDs (including this one)
+            const updatedIds = new Set([...confrontedEvidenceIds, eNode.id]);
+            setConfrontedEvidenceIds(updatedIds);
+            // Count remaining unused evidence (excluding this one just used)
+            const remainingCount = collectedEvidence.filter(
+                ev => ev.id !== eNode.id && !confrontedEvidenceIds.has(ev.id)
+            ).length;
+            // Notify parent so it can show the floating "present more?" offer
+            // AFTER the story node has been rendered
+            if (onConfrontationSuccess) {
+                onConfrontationSuccess({
+                    suspect,
+                    evidenceName,
+                    usedIds: updatedIds,
+                    remainingCount,
+                    storyNodeId: match.target  // so GamePreview knows which node to intercept
+                });
+            }
+            // Immediately close this modal and let the story node render
             onClose();
             onNavigate(match.target);
         } else {
@@ -491,44 +518,71 @@ export default function SuspectProfile({
                                     </div>
                                 ) : (
                                     <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-6">
-                                        {collectedEvidence.map((e, idx) => (
-                                            <motion.button
-                                                key={e.id}
-                                                initial={{ opacity: 0, scale: 0.95 }}
-                                                animate={{ opacity: 1, scale: 1 }}
-                                                transition={{ delay: idx * 0.05 }}
-                                                onClick={() => handleConfront(e)}
-                                                className="group text-left bg-zinc-900 hover:bg-zinc-800 border border-white/10 hover:border-amber-500/50 rounded-3xl overflow-hidden transition-all shadow-xl hover:shadow-amber-500/10 hover:-translate-y-1"
-                                            >
-                                                <div className="aspect-video relative overflow-hidden bg-black">
-                                                    {(e.data.image || (e.type === 'email' && e.data.images?.[0])) ? (
-                                                        <img
-                                                            src={e.data.image || e.data.images[0]}
-                                                            className="w-full h-full object-cover opacity-50 group-hover:opacity-80 transition-opacity"
-                                                            alt={e.data.label}
-                                                        />
-                                                    ) : (
-                                                        <div className="w-full h-full flex items-center justify-center bg-zinc-800">
-                                                            {e.type === 'email' ? <Mail className="w-12 h-12 text-zinc-700" /> : <Fingerprint className="w-12 h-12 text-zinc-700" />}
+                                        {collectedEvidence.map((e, idx) => {
+                                            const alreadyUsed = confrontedEvidenceIds.has(e.id);
+                                            return (
+                                                <motion.button
+                                                    key={e.id}
+                                                    initial={{ opacity: 0, scale: 0.95 }}
+                                                    animate={{ opacity: 1, scale: 1 }}
+                                                    transition={{ delay: idx * 0.05 }}
+                                                    onClick={() => handleConfront(e)}
+                                                    className={`group text-left border rounded-3xl overflow-hidden transition-all shadow-xl relative
+                                                        ${alreadyUsed
+                                                            ? 'bg-zinc-900/60 border-emerald-500/30 hover:border-emerald-400/60 hover:bg-zinc-800/60 cursor-pointer'
+                                                            : 'bg-zinc-900 hover:bg-zinc-800 border-white/10 hover:border-amber-500/50 hover:shadow-amber-500/10 hover:-translate-y-1'
+                                                        }`}
+                                                >
+                                                    <div className="aspect-video relative overflow-hidden bg-black">
+                                                        {(e.data.image || (e.type === 'email' && e.data.images?.[0])) ? (
+                                                            <img
+                                                                src={e.data.image || e.data.images[0]}
+                                                                className={`w-full h-full object-cover transition-opacity ${alreadyUsed ? 'opacity-30' : 'opacity-50 group-hover:opacity-80'}`}
+                                                                alt={e.data.label}
+                                                            />
+                                                        ) : (
+                                                            <div className="w-full h-full flex items-center justify-center bg-zinc-800">
+                                                                {e.type === 'email' ? <Mail className={`w-12 h-12 ${alreadyUsed ? 'text-emerald-800' : 'text-zinc-700'}`} /> : <Fingerprint className={`w-12 h-12 ${alreadyUsed ? 'text-emerald-800' : 'text-zinc-700'}`} />}
+                                                            </div>
+                                                        )}
+                                                        <div className="absolute inset-0 bg-gradient-to-t from-zinc-950 via-transparent to-transparent opacity-80" />
+                                                        <div className="absolute bottom-4 left-5">
+                                                            <span className="px-2 py-1 bg-zinc-900/90 backdrop-blur rounded-lg text-[8px] font-black text-zinc-400 uppercase tracking-widest border border-white/10">
+                                                                {e.type.toUpperCase()}
+                                                            </span>
                                                         </div>
-                                                    )}
-                                                    <div className="absolute inset-0 bg-gradient-to-t from-zinc-950 via-transparent to-transparent opacity-80" />
-                                                    <div className="absolute bottom-4 left-5">
-                                                        <span className="px-2 py-1 bg-zinc-900/90 backdrop-blur rounded-lg text-[8px] font-black text-zinc-400 uppercase tracking-widest border border-white/10">
-                                                            {e.type.toUpperCase()}
-                                                        </span>
+                                                        {/* Already-Used Checkmark Badge */}
+                                                        {alreadyUsed && (
+                                                            <motion.div
+                                                                initial={{ scale: 0, opacity: 0 }}
+                                                                animate={{ scale: 1, opacity: 1 }}
+                                                                className="absolute top-3 right-3 flex items-center gap-1.5 px-2 py-1 bg-emerald-500/90 backdrop-blur rounded-full border border-emerald-400/50 shadow-lg shadow-emerald-900/40"
+                                                            >
+                                                                <CheckCircle2 className="w-3.5 h-3.5 text-white" />
+                                                                <span className="text-[8px] font-black text-white uppercase tracking-widest">Used</span>
+                                                            </motion.div>
+                                                        )}
                                                     </div>
-                                                </div>
-                                                <div className="p-6">
-                                                    <h4 className="text-base font-black text-white uppercase tracking-tight mb-2 group-hover:text-amber-400 transition-colors">
-                                                        {e.data.displayName || e.data.label}
-                                                    </h4>
-                                                    <p className="text-[10px] text-zinc-500 uppercase tracking-widest font-black flex items-center gap-2">
-                                                        Tap to Present Clue <ChevronRight className="w-3 h-3 text-amber-500" />
-                                                    </p>
-                                                </div>
-                                            </motion.button>
-                                        ))}
+                                                    <div className="p-6">
+                                                        <h4 className={`text-base font-black uppercase tracking-tight mb-2 transition-colors
+                                                            ${alreadyUsed
+                                                                ? 'text-emerald-400 group-hover:text-emerald-300'
+                                                                : 'text-white group-hover:text-amber-400'
+                                                            }`}>
+                                                            {e.data.displayName || e.data.label}
+                                                        </h4>
+                                                        <p className={`text-[10px] uppercase tracking-widest font-black flex items-center gap-2
+                                                            ${alreadyUsed ? 'text-emerald-700' : 'text-zinc-500'}`}>
+                                                            {alreadyUsed ? (
+                                                                <><CheckCircle2 className="w-3 h-3 text-emerald-500" /> Already Presented</>
+                                                            ) : (
+                                                                <>Tap to Present Clue <ChevronRight className="w-3 h-3 text-amber-500" /></>
+                                                            )}
+                                                        </p>
+                                                    </div>
+                                                </motion.button>
+                                            );
+                                        })}
                                     </div>
                                 )}
                             </motion.div>
