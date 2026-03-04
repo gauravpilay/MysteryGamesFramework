@@ -25,6 +25,7 @@ const UserManagement = () => {
 
     // Case Management State
     const [cases, setCases] = useState([]);
+    const [userSearchQuery, setUserSearchQuery] = useState("");
     const [managingUser, setManagingUser] = useState(null);
     const [confirmReleaseLicense, setConfirmReleaseLicense] = useState(null);
     const [tempAssignedIds, setTempAssignedIds] = useState([]);
@@ -325,9 +326,22 @@ const UserManagement = () => {
             </header>
 
             <main className="pt-24 px-6 max-w-6xl mx-auto">
-                <div className="mb-8">
-                    <h2 className="text-2xl font-bold mb-2">User Management</h2>
-                    <p className="text-zinc-400">Manage personnel access levels and permissions.</p>
+                <div className="mb-8 flex flex-col md:flex-row md:items-center justify-between gap-4">
+                    <div>
+                        <h2 className="text-2xl font-bold mb-2">User Management</h2>
+                        <p className="text-zinc-400">Manage personnel access levels and permissions.</p>
+                    </div>
+
+                    <div className="relative group/search max-w-md w-full">
+                        <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-zinc-500 group-focus-within/search:text-indigo-400 transition-colors" />
+                        <input
+                            type="text"
+                            placeholder="Find personnel by email or name..."
+                            value={userSearchQuery}
+                            onChange={(e) => setUserSearchQuery(e.target.value)}
+                            className="w-full pl-10 pr-4 py-2.5 bg-zinc-900/50 border border-zinc-800 rounded-xl text-sm text-zinc-200 placeholder-zinc-600 focus:outline-none focus:border-indigo-500/50 transition-all font-medium"
+                        />
+                    </div>
                 </div>
 
                 {error && (
@@ -349,7 +363,11 @@ const UserManagement = () => {
                             </TableRow>
                         </TableHeader>
                         <TableBody>
-                            {users.map((u) => (
+                            {users.filter(u => {
+                                const query = userSearchQuery.toLowerCase().trim();
+                                return (u.email || '').toLowerCase().includes(query) ||
+                                    (u.displayName || '').toLowerCase().includes(query);
+                            }).map((u) => (
                                 <TableRow key={u.id} className="border-b border-white/5 hover:bg-white/5 transition-colors group">
                                     <TableCell className="text-zinc-300 font-mono text-sm py-4 pl-6">
                                         <div className="flex items-center gap-3">

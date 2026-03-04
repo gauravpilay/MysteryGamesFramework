@@ -443,24 +443,37 @@ const Editor = () => {
 
     const filteredNodes = useMemo(() => {
         if (!searchQuery) return [];
-        const query = searchQuery.toLowerCase();
+        const query = searchQuery.toLowerCase().trim();
 
-        // Helper to recursively check for text in data
-        const searchInData = (obj) => {
-            if (!obj) return false;
+        // Helper to recursively check for text in data, excluding circular/heavy references
+        const searchInData = (obj, depth = 0) => {
+            if (!obj || depth > 3) return false; // Prevent deep recursion
+
             if (typeof obj === 'string') return obj.toLowerCase().includes(query);
-            if (Array.isArray(obj)) return obj.some(item => searchInData(item));
+
+            if (Array.isArray(obj)) {
+                return obj.some(item => searchInData(item, depth + 1));
+            }
+
             if (typeof obj === 'object') {
-                return Object.values(obj).some(val => searchInData(val));
+                // Blacklist internal nodes/functions to avoid infinite recursion or heavy processing
+                const blacklist = ['allNodes', 'onChange', 'onDuplicate', 'onUngroup', 'onShowHelp', 'style', 'position'];
+                return Object.entries(obj).some(([key, val]) => {
+                    if (blacklist.includes(key)) return false;
+                    return searchInData(val, depth + 1);
+                });
             }
             return false;
         };
 
         return nodes.filter(node => {
-            const label = node.data?.label?.toLowerCase() || "";
-            const type = node.type?.toLowerCase() || "";
+            const label = (node.data?.label || "").toLowerCase();
+            const type = (node.type || "").toLowerCase();
+            const id = (node.id || "").toLowerCase();
+
             return label.includes(query) ||
                 type.includes(query) ||
+                id.includes(query) ||
                 searchInData(node.data);
         }).slice(0, 10);
     }, [nodes, searchQuery]);
@@ -2776,6 +2789,10 @@ Please provide a concise plot summary and narrative overview based on these elem
                                         setIsSearchOpen(true);
                                     }}
                                     onFocus={() => setIsSearchOpen(true)}
+                                    onBlur={() => {
+                                        // Delay closing to allow onClick on the results list
+                                        setTimeout(() => setIsSearchOpen(false), 200);
+                                    }}
                                 />
                                 {searchQuery && (
                                     <button onClick={() => setSearchQuery("")} className="p-0.5 hover:bg-white/10 rounded-full">

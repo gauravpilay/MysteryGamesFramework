@@ -630,8 +630,10 @@ const AdminProgressModal = ({ onClose }) => {
     };
 
     const filteredUsers = users.filter(u => {
-        const term = searchTerm.toLowerCase();
-        return (u.displayName?.toLowerCase().includes(term) || u.email?.toLowerCase().includes(term));
+        const term = searchTerm.toLowerCase().trim();
+        const name = (u.displayName || '').toLowerCase();
+        const email = (u.email || '').toLowerCase();
+        return name.includes(term) || email.includes(term);
     });
 
 

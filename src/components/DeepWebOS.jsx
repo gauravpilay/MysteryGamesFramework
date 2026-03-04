@@ -124,14 +124,26 @@ const DeepWebOS = ({ data, onComplete, isSimultaneous = false }) => {
         const query = dbSearch.toLowerCase().trim();
         if (!query) return;
         setDbResult({ loading: true });
+
         setTimeout(() => {
-            setDbResult({
-                found: true,
-                id: `ID_${Math.floor(Math.random() * 10000)}`,
-                status: 'ACTIVE',
-                notes: `System record matches search: ${query}. Status verified.`
-            });
-        }, 1000);
+            // Search for a fragment that contains the query
+            const match = fragments.find(f => f.toLowerCase().includes(query));
+
+            if (match) {
+                setDbResult({
+                    found: true,
+                    id: `ID_${Math.floor(Math.random() * 9000) + 1000}`,
+                    status: 'ACTIVE',
+                    notes: match
+                });
+            } else {
+                setDbResult({
+                    found: false,
+                    error: "NO_MATCH_FOUND",
+                    notes: "The search query did not yield any results in the secure database."
+                });
+            }
+        }, 800);
     };
 
     const extractFragment = (f) => {

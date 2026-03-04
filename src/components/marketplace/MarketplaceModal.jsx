@@ -80,13 +80,18 @@ export default function MarketplaceModal({ isOpen, onClose, currentUser }) {
 
         // Filter by search
         if (searchQuery) {
-            const query = searchQuery.toLowerCase();
-            filtered = filtered.filter(mod =>
-                mod.title?.toLowerCase().includes(query) ||
-                mod.description?.toLowerCase().includes(query) ||
-                mod.author?.toLowerCase().includes(query) ||
-                mod.tags?.some(tag => tag.toLowerCase().includes(query))
-            );
+            const query = searchQuery.toLowerCase().trim();
+            filtered = filtered.filter(mod => {
+                const title = (mod.title || '').toLowerCase();
+                const description = (mod.description || '').toLowerCase();
+                const author = (mod.author || '').toLowerCase();
+                const tags = Array.isArray(mod.tags) ? mod.tags : [];
+
+                return title.includes(query) ||
+                    description.includes(query) ||
+                    author.includes(query) ||
+                    tags.some(tag => String(tag).toLowerCase().includes(query));
+            });
         }
 
         // Sort

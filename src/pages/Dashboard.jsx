@@ -160,23 +160,26 @@ const Dashboard = () => {
 
     // Derived State
     const accessibleProjects = projects.filter(p => {
-        const matchesSearch = p.title?.toLowerCase().includes(searchQuery.toLowerCase()) ||
-            p.description?.toLowerCase().includes(searchQuery.toLowerCase());
+        const title = (p.title || 'Untitled Case').toLowerCase();
+        const description = (p.description || '').toLowerCase();
+        const query = (searchQuery || '').toLowerCase().trim();
+
+        const matchesSearch = title.includes(query) || description.includes(query);
 
         if (!matchesSearch) return false;
 
         // Admin override: Admins see everything
         if (isAdmin) return true;
 
-        // Access Control: If user has a specific list of assigned cases, strictly restrict to those
+        // Access Control: If user has a specific list of assigned cases, strictly restrict to those.
+        // If the array is empty [], they have access to NO cases.
         if (user && Object.prototype.hasOwnProperty.call(user, 'assignedCaseIds') && Array.isArray(user.assignedCaseIds)) {
-            const hasAccess = user.assignedCaseIds.includes(p.id);
-            return hasAccess;
+            return user.assignedCaseIds.includes(p.id);
         }
 
-        // If user is a regular User but has NO assignedCaseIds field yet, 
-        // we default to showing nothing to maintain strict mission control.
-        return false;
+        // If 'assignedCaseIds' is missing (not set), it defaults to "All Cases" 
+        // to match the UserManagement UI behavior.
+        return true;
     });
 
 

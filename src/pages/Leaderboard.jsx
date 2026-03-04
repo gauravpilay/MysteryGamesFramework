@@ -130,7 +130,11 @@ const Leaderboard = () => {
 
             return Object.values(userStats)
                 .sort((a, b) => b.totalScore - a.totalScore)
-                .filter(u => u.displayName.toLowerCase().includes(searchQuery.toLowerCase()));
+                .filter(u => {
+                    const query = searchQuery.toLowerCase().trim();
+                    const name = (u.displayName || '').toLowerCase();
+                    return name.includes(query);
+                });
         } else {
             // Individual Game Results (Hall of Fame)
             return filteredResults
@@ -143,8 +147,12 @@ const Leaderboard = () => {
                         photoURL: userObj?.photoURL
                     };
                 })
-                .filter(u => u.displayName.toLowerCase().includes(searchQuery.toLowerCase()) ||
-                    u.caseTitle?.toLowerCase().includes(searchQuery.toLowerCase()));
+                .filter(u => {
+                    const query = searchQuery.toLowerCase().trim();
+                    const name = (u.displayName || '').toLowerCase();
+                    const title = (u.caseTitle || '').toLowerCase();
+                    return name.includes(query) || title.includes(query);
+                });
         }
     };
 
