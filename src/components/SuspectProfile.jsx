@@ -188,6 +188,18 @@ export default function SuspectProfile({
         return Array.from(seenIds.values());
     }, [inventory, nodes]);
 
+    // Only show evidence that has a confrontation edge wired from this suspect
+    const relevantEvidence = useMemo(() => {
+        const suspectEdges = edges.filter(e => e.source === suspect.id);
+        return collectedEvidence.filter(eNode =>
+            suspectEdges.some(e =>
+                e.label?.toLowerCase() === eNode.data?.label?.toLowerCase() ||
+                e.data?.evidenceId === eNode.id ||
+                e.label?.toLowerCase() === (eNode.data?.displayName || '').toLowerCase()
+            )
+        );
+    }, [collectedEvidence, edges, suspect.id]);
+
     const navigationOptions = useMemo(() => {
         // Build a set of all evidence/email/fact labels and displayNames in the game
         // so we can exclude edges that are evidence-confrontation links.
@@ -216,11 +228,11 @@ export default function SuspectProfile({
     // Hint Logic
     useEffect(() => {
         const hintKey = 'confrontation_hint_shown';
-        if (!localStorage.getItem(hintKey) && collectedEvidence.length > 0) {
+        if (!localStorage.getItem(hintKey) && relevantEvidence.length > 0) {
             const timer = setTimeout(() => setShowHint(true), 1500);
             return () => clearTimeout(timer);
         }
-    }, [collectedEvidence]);
+    }, [relevantEvidence]);
 
     const handleDismissHint = () => {
         setShowHint(false);
@@ -404,7 +416,7 @@ export default function SuspectProfile({
                         onClick={() => setActiveTab('evidence')}
                         icon={Briefcase}
                         label="Confrontation"
-                        badge={collectedEvidence.length}
+                        badge={relevantEvidence.length}
                         color="amber"
                     />
                     {navigationOptions.length > 0 && (
@@ -504,21 +516,21 @@ export default function SuspectProfile({
                                     </div>
                                     <div className="flex items-center gap-2 px-4 py-2 bg-amber-500/10 border border-amber-500/20 rounded-xl">
                                         <Search className="w-4 h-4 text-amber-500" />
-                                        <span className="text-[10px] font-black text-amber-500 uppercase tracking-widest">{collectedEvidence.length} Items Available</span>
+                                        <span className="text-[10px] font-black text-amber-500 uppercase tracking-widest">{relevantEvidence.length} Items Available</span>
                                     </div>
                                 </div>
 
-                                {collectedEvidence.length === 0 ? (
+                                {relevantEvidence.length === 0 ? (
                                     <div className="flex flex-col items-center justify-center py-24 bg-zinc-900/30 rounded-[3rem] border border-white/5 border-dashed">
                                         <div className="w-20 h-20 bg-zinc-800 rounded-full flex items-center justify-center mb-6">
                                             <Briefcase className="w-10 h-10 text-zinc-600" />
                                         </div>
-                                        <p className="text-sm font-black text-zinc-400 uppercase tracking-widest">No evidence files found</p>
-                                        <p className="text-xs text-zinc-600 uppercase tracking-wide mt-2">Investigate the case more thoroughly to find clues</p>
+                                        <p className="text-sm font-black text-zinc-400 uppercase tracking-widest">No relevant evidence for this suspect</p>
+                                        <p className="text-xs text-zinc-600 uppercase tracking-wide mt-2">Gather evidence connected to this suspect to confront them</p>
                                     </div>
                                 ) : (
                                     <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-6">
-                                        {collectedEvidence.map((e, idx) => {
+                                        {relevantEvidence.map((e, idx) => {
                                             const alreadyUsed = confrontedEvidenceIds.has(e.id);
                                             return (
                                                 <motion.button
@@ -642,7 +654,7 @@ export default function SuspectProfile({
             {/* Hint Overlay */}
             <AnimatePresence>
                 {showHint && (
-                    <ConfrontationHint count={collectedEvidence.length} onDismiss={handleDismissHint} />
+                    <ConfrontationHint count={relevantEvidence.length} onDismiss={handleDismissHint} />
                 )}
             </AnimatePresence>
 
