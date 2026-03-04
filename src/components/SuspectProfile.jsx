@@ -254,8 +254,11 @@ export default function SuspectProfile({
             // Build the updated set of confronted IDs (including this one)
             const updatedIds = new Set([...confrontedEvidenceIds, eNode.id]);
             setConfrontedEvidenceIds(updatedIds);
-            // Count remaining unused evidence (excluding this one just used)
-            const remainingCount = collectedEvidence.filter(
+            // Count remaining unused evidence for THIS suspect only (excluding this one just used).
+            // We use relevantEvidence (evidence with a confrontation edge wired from this suspect)
+            // instead of collectedEvidence (all inventory items) so the count correctly hits 0
+            // once all suspect-specific confrontations are done, enabling the "Continue" button.
+            const remainingCount = relevantEvidence.filter(
                 ev => ev.id !== eNode.id && !confrontedEvidenceIds.has(ev.id)
             ).length;
             // Notify parent so it can show the floating "present more?" offer
