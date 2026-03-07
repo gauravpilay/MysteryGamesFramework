@@ -376,6 +376,7 @@ const Editor = () => {
 
     const [editingEdge, setEditingEdge] = useState(null); // { id: string, label: string }
     const [tempLabel, setTempLabel] = useState(""); // For input
+    const [tempNote, setTempNote] = useState(""); // For connection notes
 
     // Update handler
     const onNodeUpdate = useCallback((id, newData) => {
@@ -513,6 +514,7 @@ const Editor = () => {
         if (currentEdge?.selected) {
             setEditingEdge(edge);
             setTempLabel(edge.label || "");
+            setTempNote(edge.data?.note || "");
         }
     }, [isLocked, edges]);
 
@@ -520,7 +522,11 @@ const Editor = () => {
         if (!editingEdge) return;
         setEdges((eds) => eds.map((e) => {
             if (e.id === editingEdge.id) {
-                return { ...e, label: tempLabel === "" ? undefined : tempLabel };
+                return {
+                    ...e,
+                    label: tempLabel === "" ? undefined : tempLabel,
+                    data: { ...e.data, note: tempNote }
+                };
             }
             return e;
         }));
@@ -3421,7 +3427,19 @@ Please provide a concise plot summary and narrative overview based on these elem
                                                 className="w-full bg-black border border-zinc-700 rounded px-3 py-2 text-white outline-none focus:border-indigo-500"
                                                 autoFocus
                                             />
-                                            <span className="text-zinc-500 text-xs mt-1 block">Text shown on the line connecting nodes.</span>
+                                            <span className="text-zinc-500 text-[10px] mt-1 block">Visible action label shown on the core game flow.</span>
+                                        </div>
+
+                                        <div>
+                                            <label className="block text-xs font-bold text-zinc-500 uppercase tracking-wider mb-2">Internal Note (Suspect Wall)</label>
+                                            <textarea
+                                                placeholder="Describe the connection... (e.g. 'Both worked at the bank during the heist')"
+                                                value={tempNote}
+                                                onChange={(e) => setTempNote(e.target.value)}
+                                                className="w-full bg-black border border-zinc-700 rounded px-3 py-2 text-white outline-none focus:border-indigo-500 text-xs resize-none"
+                                                rows={3}
+                                            />
+                                            <span className="text-zinc-500 text-[10px] mt-1 block">This note appears on the Suspect Wall when both suspects are revealed.</span>
                                         </div>
                                     </div>
                                     <div className="mt-8 flex justify-between">

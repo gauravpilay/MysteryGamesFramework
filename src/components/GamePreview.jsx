@@ -10,10 +10,12 @@ import SuspectProfile from './SuspectProfile';
 import CinematicCutscene from './CinematicCutscene';
 import CaseClosedNewsReport from './CaseClosedNewsReport';
 import DeepWebOS from './DeepWebOS';
+import SuspectWall from './InteractiveSuspectWall';
 import FeedbackModal from './FeedbackModal';
 import FactDisplay from './FactDisplay';
 import { CrazyWallGame } from './CrazyWallGame';
 import ExplanationHUD from './ExplanationHUD';
+import SuspectHubGrid from './SuspectHubGrid';
 import { useChirpTTS, DEFAULT_CHIRP_VOICE } from '../lib/useChirpTTS';
 import { useConfig } from '../lib/config';
 import { useLicense } from '../lib/licensing';
@@ -551,6 +553,7 @@ const GamePreview = ({ nodes, edges, onClose, gameMetadata, onGameEnd, onNodeCha
     const [showCutscene, setShowCutscene] = useState(false);
     const [showNewsReport, setShowNewsReport] = useState(false);
     const [showDeepWeb, setShowDeepWeb] = useState(false);
+    const [showSuspectWall, setShowSuspectWall] = useState(false);
     const [showCrazyWall, setShowCrazyWall] = useState(false);
     const [activeCrazyWallNode, setActiveCrazyWallNode] = useState(null);
     const [accusedName, setAccusedName] = useState('');
@@ -1733,15 +1736,46 @@ const GamePreview = ({ nodes, edges, onClose, gameMetadata, onGameEnd, onNodeCha
 
                     {/* Evidence Board Button */}
                     {missionStarted && (
-                        <Button
-                            variant="secondary"
-                            size="sm"
-                            onClick={() => setShowEvidenceBoard(true)}
-                            className="bg-zinc-800 border border-zinc-700 text-amber-500 hover:text-amber-400 px-2 md:px-3 h-8 md:h-9"
-                        >
-                            <LayoutGrid className="w-4 h-4 md:mr-2" />
-                            <span className="hidden md:inline">Crazy Wall</span>
-                        </Button>
+                        <div className="flex items-center gap-1.5 md:gap-2">
+                            <Button
+                                variant="secondary"
+                                size="sm"
+                                onClick={() => {
+                                    const hubNode = nodes.find(n =>
+                                        n.type === 'story' &&
+                                        (n.data?.label?.toLowerCase().includes('hub') || n.data?.label?.toLowerCase().includes('investigation'))
+                                    );
+                                    if (hubNode) {
+                                        handleOptionClick(hubNode.id);
+                                        setShowEvidenceBoard(false);
+                                        setActiveModalNode(null);
+                                    } else {
+                                        // Fallback: search for first node with suspect options
+                                        const suspectedHub = nodes.find(n =>
+                                            edges.filter(e => e.source === n.id)
+                                                .some(e => nodes.find(tn => tn.id === e.target)?.type === 'suspect')
+                                        );
+                                        if (suspectedHub) handleOptionClick(suspectedHub.id);
+                                    }
+                                }}
+                                className="relative group bg-zinc-900/90 border border-red-500/20 text-red-500 hover:text-red-400 px-2 md:px-3 h-8 md:h-9 shadow-lg shadow-red-900/20 overflow-hidden"
+                            >
+                                <div className="absolute inset-0 bg-red-500/10 opacity-0 group-hover:opacity-100 transition-opacity" />
+                                <div className="absolute top-0 right-0 w-2 h-2 bg-red-500 rounded-bl-full opacity-50 pulse-simple" />
+                                <User className="w-3 h-3 md:w-4 md:h-4 md:mr-2 relative z-10" />
+                                <span className="relative z-10 uppercase font-black text-[8px] md:text-[10px] tracking-tighter md:tracking-widest">Hub</span>
+                            </Button>
+
+                            <Button
+                                variant="secondary"
+                                size="sm"
+                                onClick={() => setShowEvidenceBoard(true)}
+                                className="bg-zinc-900/80 border border-zinc-700/50 text-amber-500 hover:text-amber-400 px-2 md:px-3 h-8 md:h-9 shadow-lg shadow-amber-900/10"
+                            >
+                                <LayoutGrid className="w-4 h-4 md:mr-2" />
+                                <span className="hidden md:inline">Crazy Wall</span>
+                            </Button>
+                        </div>
                     )}
 
                     {missionStarted && (
@@ -1756,6 +1790,7 @@ const GamePreview = ({ nodes, edges, onClose, gameMetadata, onGameEnd, onNodeCha
                     )}
                     <Button variant="ghost" size="icon" className="w-8 h-8 md:w-10 md:h-10" onClick={() => {
                         if (activeModalNode) handleCloseModal();
+                        else if (showSuspectWall) setShowSuspectWall(false);
                         else if (showEvidenceBoard) setShowEvidenceBoard(false);
                         else if (showAccuseModal) setShowAccuseModal(false);
                         else if (zoomedImage) setZoomedImage(null);
@@ -1891,58 +1926,14 @@ const GamePreview = ({ nodes, edges, onClose, gameMetadata, onGameEnd, onNodeCha
                                             </div>
                                         );
                                     })() : options.some(e => nodes.find(n => n.id === e.target)?.type === 'suspect') ? (
-                                        // Grid Layout for Suspects
-                                        <div className="space-y-4">
-                                            {/* Only show label if NOT in the dedicated view (fallback) */}
-                                            {!(missionStarted && currentNode && currentNode.data.label.toLowerCase().includes('briefing')) && (
-                                                <div className="flex items-center gap-2 text-zinc-400 text-sm font-bold tracking-wider uppercase">
-                                                    <User className="w-4 h-4" />
-                                                    <span>Suspect Database Matches ({options.filter(e => nodes.find(n => n.id === e.target)?.type === 'suspect').length})</span>
-                                                </div>
-                                            )}
-                                            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
-                                                {options.map((edge, i) => {
-                                                    const targetNode = nodes.find(n => n.id === edge.target);
-                                                    if (!targetNode || targetNode.type !== 'suspect') return null;
-
-                                                    return (
-                                                        <motion.button
-                                                            key={edge.id}
-                                                            initial={{ opacity: 0, y: 20 }}
-                                                            animate={{ opacity: 1, y: 0 }}
-                                                            transition={{ delay: i * 0.1 }}
-                                                            onClick={() => setActiveModalNode(targetNode)}
-                                                            className="group text-left relative overflow-hidden bg-zinc-900 border border-zinc-800 hover:border-indigo-500/50 rounded-xl p-0 transition-all hover:shadow-lg hover:shadow-indigo-500/10"
-                                                        >
-                                                            <div className={`h-24 bg-gradient-to-br ${getAvatarColor(targetNode.data.name || 'Unk')} opacity-20 group-hover:opacity-30 transition-opacity`}></div>
-                                                            <div className="absolute top-4 left-4">
-                                                                <div className={`w-12 h-12 rounded-full bg-gradient-to-br ${getAvatarColor(targetNode.data.name || 'Unk')} flex items-center justify-center shadow-lg border-2 border-zinc-900`}>
-                                                                    <span className="text-white font-bold text-lg">
-                                                                        {(targetNode.data.name || '?').charAt(0)}
-                                                                    </span>
-                                                                </div>
-                                                            </div>
-                                                            <div className="p-4 pt-2">
-                                                                <div className="flex justify-between items-start">
-                                                                    <div>
-                                                                        <h3 className="font-bold text-white group-hover:text-indigo-400 transition-colors truncate pr-2">
-                                                                            {targetNode.data.name}
-                                                                        </h3>
-                                                                        <p className="text-xs text-zinc-500 uppercase tracking-wider mt-1">
-                                                                            {targetNode.data.role}
-                                                                        </p>
-                                                                    </div>
-                                                                </div>
-                                                                <div className="mt-4 flex items-center text-xs text-zinc-600 group-hover:text-zinc-400">
-                                                                    <span>Review Profile</span>
-                                                                    <ArrowRight className="w-3 h-3 ml-auto opacity-0 group-hover:opacity-100 transition-opacity" />
-                                                                </div>
-                                                            </div>
-                                                        </motion.button>
-                                                    );
-                                                })}
-                                            </div>
-                                        </div>
+                                        // Linked Grid Layout for Suspects in Hub
+                                        <SuspectHubGrid
+                                            options={options}
+                                            nodes={nodes}
+                                            edges={edges}
+                                            onSuspectClick={(targetNode) => setActiveModalNode(targetNode)}
+                                            getAvatarColor={getAvatarColor}
+                                        />
                                     ) : (
                                         <div className="grid grid-cols-1 gap-3">
                                             {(() => {
@@ -2854,7 +2845,7 @@ const GamePreview = ({ nodes, edges, onClose, gameMetadata, onGameEnd, onNodeCha
             </AnimatePresence >
 
             {/* Evidence Board (Crazy Wall) */}
-            < AnimatePresence >
+            <AnimatePresence>
                 {showEvidenceBoard && (
                     <EvidenceBoard
                         inventory={inventory}
@@ -2877,7 +2868,9 @@ const GamePreview = ({ nodes, edges, onClose, gameMetadata, onGameEnd, onNodeCha
                         isSimultaneous={isSimultaneous}
                     />
                 )}
-            </AnimatePresence >
+            </AnimatePresence>
+
+            {/* Interactive Suspect Wall */}
 
             {/* Accusation Modal */}
             < AnimatePresence >
@@ -3299,7 +3292,7 @@ const GamePreview = ({ nodes, edges, onClose, gameMetadata, onGameEnd, onNodeCha
                     </motion.div>
                 )}
             </AnimatePresence>
-        </div>
+        </div >
     );
 };
 
