@@ -1,7 +1,7 @@
 import React, { memo, useState, useRef, useEffect } from 'react';
 import ReactDOM from 'react-dom';
 import { Handle, Position, NodeResizer, useNodes } from 'reactflow';
-import { FileText, User, Search, GitMerge, Terminal, MessageSquare, Music, Image as ImageIcon, Star, MousePointerClick, Trash2, Plus, Copy, Fingerprint, Bell, HelpCircle, ToggleLeft, Unlock, Binary, Grid3x3, Folder, ChevronDown, ChevronUp, Maximize, X, Save, File, FolderOpen, AlertCircle, Brain, Cpu, Send, Loader2, Check, Filter, ShieldAlert, Box, CheckCircle, Activity, Shield, Hash, Film, Globe, Lightbulb, Mail, Bold, Italic, List, Type, Palette, Info, Volume2, VolumeX, Eye, Link } from 'lucide-react';
+import { FileText, User, Search, GitMerge, Terminal, MessageSquare, Music, Image as ImageIcon, Star, MousePointerClick, Trash2, Plus, Copy, Fingerprint, Bell, HelpCircle, ToggleLeft, Unlock, Binary, Grid3x3, Folder, ChevronDown, ChevronUp, Maximize, X, Save, File, FolderOpen, AlertCircle, Brain, Cpu, Send, Loader2, Check, Filter, ShieldAlert, Box, CheckCircle, Activity, Shield, Hash, Film, Globe, Lightbulb, Mail, Bold, Italic, List, Type, Palette, Info, Volume2, VolumeX, Eye, EyeOff, Link } from 'lucide-react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { storage, db } from '../../lib/firebase';
 import { ref, uploadBytes, getDownloadURL } from 'firebase/storage';
@@ -1108,6 +1108,21 @@ export const EvidenceNode = memo(({ id, data, selected }) => {
                         />
                         {data.condition && <p className="text-[8px] text-zinc-600 mt-0.5">Legacy: {data.condition}</p>}
                     </div>
+
+                    <div className="flex items-center justify-between pt-2 border-t border-yellow-900/20">
+                        <div className="flex flex-col">
+                            <p className="text-[10px] font-bold text-yellow-500 uppercase tracking-widest leading-none">Silent Log</p>
+                            <p className="text-[8px] text-zinc-600 mt-1">Found in background</p>
+                        </div>
+                        <button
+                            onClick={() => handleChange('silent', !data.silent)}
+                            className={`p-1.5 rounded-xl transition-all ${data.silent ? 'bg-yellow-500/20 text-yellow-400 border border-yellow-500/30 shadow-[0_0_15px_rgba(234,179,8,0.2)]' : 'bg-black/40 text-zinc-600 border border-zinc-800 hover:text-zinc-400'}`}
+                            title={data.silent ? "Will be logged silently" : "Will show on screen"}
+                        >
+                            {data.silent ? <EyeOff className="w-4 h-4" /> : <Eye className="w-4 h-4" />}
+                        </button>
+                    </div>
+
                     <div className="mt-2 p-2 bg-black/40 border border-yellow-900/20 rounded-lg space-y-2">
                         <div className="flex items-center justify-between">
                             <p className="text-[9px] font-bold text-yellow-400 uppercase tracking-wider flex items-center gap-1">

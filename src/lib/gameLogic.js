@@ -98,7 +98,7 @@ export const resolveNextNode = (startId, { nodes, edges, inventory, nodeOutputs,
     let stateChanged = false;
     let audioToPlay = null;
 
-    while (currNode && (['music', 'logic', 'setter'].includes(currNode.type)) && loopCount < maxLoops) {
+    while (currNode && (['music', 'logic', 'setter'].includes(currNode.type) || (currNode.type === 'evidence' && currNode.data?.silent)) && loopCount < maxLoops) {
         loopCount++;
         intermediateIds.push(currNode.id);
 
@@ -173,8 +173,16 @@ export const resolveNextNode = (startId, { nodes, edges, inventory, nodeOutputs,
                 currId = nextEdge.target;
                 currNode = nodes.find(n => n.id === currId);
             } else {
-                break; // Dead end
+                break; // Dead end logic path
             }
+        }
+        // Handle Evidence (Silent / Auto-Advance)
+        else if (currNode.type === 'evidence' && currNode.data?.silent) {
+            const outEdges = edges.filter(e => e.source === currNode.id);
+            if (outEdges.length > 0) {
+                currId = outEdges[0].target;
+                currNode = nodes.find(n => n.id === currId);
+            } else break;
         }
     }
 
@@ -244,8 +252,8 @@ export const resolveEdgeTarget = (edge, { nodes, edges, inventory, nodeOutputs, 
         return null; // Dead end logic path (Hidden option)
     }
 
-    if (targetNode.type === 'music' || targetNode.type === 'setter') {
-        // Music/Setter always passes through
+    if (targetNode.type === 'music' || targetNode.type === 'setter' || (targetNode.type === 'evidence' && targetNode.data?.silent)) {
+        // Music/Setter/SilentEvidence always passes through
         const outEdges = edges.filter(e => e.source === targetNode.id);
         if (outEdges.length > 0) return resolveEdgeTarget(outEdges[0], { nodes, edges, inventory, nodeOutputs, history, processedLogicNodes });
         return null;

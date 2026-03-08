@@ -1047,15 +1047,24 @@ const GamePreview = ({ nodes, edges, onClose, gameMetadata, onGameEnd, onNodeCha
         const flagsToAdd = new Set(preInventory); // Start from the pre-enriched base
 
         // Destination node + all silently-traversed intermediate nodes
-        [node, ...intermediateIds.map(id => nodes.find(n => n.id === id))]
-            .filter(Boolean)
-            .forEach(n => {
-                flagsToAdd.add(n.id);
-                if (n.data?.variableId) flagsToAdd.add(n.data.variableId);
-                if ((n.type === 'evidence' || n.type === 'email') && n.data?.condition) {
-                    flagsToAdd.add(n.data.condition);
-                }
-            });
+        const allNodesInJump = [node, ...intermediateIds.map(id => nodes.find(n => n.id === id))].filter(Boolean);
+
+        allNodesInJump.forEach(n => {
+            flagsToAdd.add(n.id);
+            if (n.data?.variableId) flagsToAdd.add(n.data.variableId);
+            if ((n.type === 'evidence' || n.type === 'email') && n.data?.condition) {
+                flagsToAdd.add(n.data.condition);
+            }
+
+            // Award Scores for discoveries (even silent ones)
+            if (n.data?.score && !scoredNodes.has(n.id)) {
+                setScore(s => s + n.data.score);
+                setScoreDelta(n.data.score);
+                rewardObjectivePoints(n, n.data.score);
+                setScoredNodes(prev => new Set([...prev, n.id]));
+                addLog(`DISCOVERY: Found ${n.data.displayName || n.data.label || 'clue'}`);
+            }
+        });
         intermediateIds.forEach(id => flagsToAdd.add(id));
 
         // ── Commit everything atomically (one single setInventory call) ────────────
