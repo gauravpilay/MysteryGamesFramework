@@ -1155,7 +1155,7 @@ const GamePreview = ({ nodes, edges, onClose, gameMetadata, onGameEnd, onNodeCha
             // Penalty
             const penalty = activeModalNode.data.penalty || 0;
             if (penalty > 0) {
-                setScore(s => Math.max(0, s - penalty));
+                setScore(s => s - penalty);
                 setScoreDelta(-penalty);
                 setFlyingPoints(-penalty);
                 addLog(`HACK PROTECTION DETECTED: -${penalty} Points`);
@@ -1203,7 +1203,7 @@ const GamePreview = ({ nodes, edges, onClose, gameMetadata, onGameEnd, onNodeCha
         } else {
             if (activeAccusationNode && activeAccusationNode.data.penalty) {
                 const penalty = activeAccusationNode.data.penalty;
-                setScore(s => Math.max(0, s - penalty));
+                setScore(s => s - penalty);
                 setScoreDelta(-penalty);
                 setFlyingPoints(-penalty);
                 addLog(`WRONG ACCUSATION: -${penalty} Points`);
@@ -1287,7 +1287,7 @@ const GamePreview = ({ nodes, edges, onClose, gameMetadata, onGameEnd, onNodeCha
             // Apply penalty if defined
             const penalty = activeModalNode.data.penalty || 0;
             if (penalty > 0) {
-                setScore(s => Math.max(0, s - penalty));
+                setScore(s => s - penalty);
                 triggerScoreDelta(-penalty);
                 triggerFlyingPoints(-penalty);
                 addLog(`QUIZ PROTECTION: -${penalty} Points`);
@@ -1301,7 +1301,7 @@ const GamePreview = ({ nodes, edges, onClose, gameMetadata, onGameEnd, onNodeCha
         if (revealedHints.has(hint.id)) return;
 
         // Deduct points
-        setScore(s => Math.max(0, s - (hint.penalty || 0)));
+        setScore(s => s - (hint.penalty || 0));
         setScoreDelta(-(hint.penalty || 0));
 
         // Track revealed hint
