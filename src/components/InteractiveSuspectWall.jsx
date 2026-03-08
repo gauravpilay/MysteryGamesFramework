@@ -120,7 +120,7 @@ const SuspectWall = ({ nodes, edges, history, inventory, projectId, onClose, onO
     };
 
     return (
-        <div className="fixed inset-0 z-[160] bg-[#020308] overflow-hidden flex flex-col font-sans select-none animate-in fade-in duration-500">
+        <div className="fixed inset-0 z-[160] bg-transparent overflow-hidden flex flex-col font-sans select-none animate-in fade-in duration-500 backdrop-blur-xl">
             {/* Darker Ambient background grid */}
             <div className="absolute inset-0 opacity-[0.04] pointer-events-none" style={{
                 backgroundImage: `linear-gradient(to right, #4f46e5 1px, transparent 1px), linear-gradient(to bottom, #4f46e5 1px, transparent 1px)`,

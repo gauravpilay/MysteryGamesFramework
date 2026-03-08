@@ -1570,7 +1570,7 @@ const GamePreview = ({ nodes, edges, onClose, gameMetadata, onGameEnd, onNodeCha
                     </div>
                 )}
 
-                <Card className="bg-zinc-900/50 border-zinc-800 p-8 backdrop-blur-md border-t-4 border-t-red-600 shadow-[0_20px_50px_-12px_rgba(0,0,0,0.5)] hover:border-zinc-700 transition-colors duration-500">
+                <Card className="bg-zinc-900/40 border-zinc-800/50 p-8 backdrop-blur-xl border-t-4 border-t-red-600 shadow-[0_20px_50px_-12px_rgba(0,0,0,0.5)] hover:border-zinc-700/50 transition-colors duration-500">
                     <p className="text-zinc-200 leading-loose whitespace-pre-wrap text-lg md:text-xl font-light font-mono">
                         {(ttsAutoPlay || ttsPlaying || ttsPaused || ttsStatus === 'done') ? (
                             <WordHighlightText
@@ -2349,15 +2349,15 @@ const GamePreview = ({ nodes, edges, onClose, gameMetadata, onGameEnd, onNodeCha
             {/* Generic Interaction Modal (Replaces Suspect Modal) */}
             <AnimatePresence>
                 {activeModalNode && (
-                    <div className={`${isSimultaneous ? 'absolute' : 'fixed'} inset-0 z-[150] flex items-center justify-center p-4 bg-black/80 backdrop-blur-sm`}>
+                    <div className={`${isSimultaneous ? 'absolute' : 'fixed'} inset-0 z-[150] flex items-center justify-center p-4 bg-black/40 backdrop-blur-md`}>
                         <motion.div
                             initial={{ scale: 0.9, opacity: 0 }}
                             animate={{ scale: 1, opacity: 1 }}
                             exit={{ scale: 0.9, opacity: 0 }}
-                            className={`bg-zinc-950 border p-0 rounded-3xl relative overflow-hidden shadow-2xl transition-all duration-500 
+                            className={`bg-zinc-950/40 border p-0 rounded-3xl relative overflow-hidden shadow-2xl transition-all duration-500 backdrop-blur-2xl
                                 ${activeModalNode.type === 'suspect'
-                                    ? 'border-indigo-500/40 shadow-[0_0_60px_rgba(99,102,241,0.2)]'
-                                    : 'border-zinc-800 shadow-black'}
+                                    ? 'border-indigo-500/30 shadow-[0_0_60px_rgba(99,102,241,0.1)]'
+                                    : 'border-zinc-800/40 shadow-black/80'}
                                 max-h-[95vh] flex flex-col 
                                 ${(activeModalNode.type === 'threed' || activeModalNode.type === 'suspect' || activeModalNode.type === 'interrogation' || activeModalNode.type === 'question' || activeModalNode.type === 'email' || activeModalNode.type === 'fact') ? 'max-w-6xl w-full h-[95vh] md:h-[85vh]' : 'max-w-3xl w-full'}`}
                         >

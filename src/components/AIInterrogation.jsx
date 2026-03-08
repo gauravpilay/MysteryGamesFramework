@@ -94,9 +94,9 @@ const AIInterrogation = ({ node, onComplete, onFail, requestCount, onAIRequest, 
     };
 
     return (
-        <div className="flex flex-col md:flex-row h-full w-full bg-zinc-950 rounded-2xl overflow-hidden font-sans relative">
+        <div className="flex flex-col md:flex-row h-full w-full bg-transparent rounded-2xl overflow-hidden font-sans relative backdrop-blur-3xl">
             {/* AMBIENT BACKGROUND EFFECTS */}
-            <div className="absolute inset-0 bg-[#020202] pointer-events-none">
+            <div className="absolute inset-0 pointer-events-none">
                 <div className="absolute inset-0 opacity-[0.03]" style={{ backgroundImage: 'radial-gradient(#4f46e5 1px, transparent 1px)', backgroundSize: '30px 30px' }}></div>
                 <div className="absolute inset-0 bg-gradient-to-br from-indigo-500/5 via-transparent to-emerald-500/5"></div>
             </div>

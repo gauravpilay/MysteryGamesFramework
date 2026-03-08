@@ -192,7 +192,7 @@ const AdvancedTerminal = ({ node, edges, onComplete, onFail, addLog }) => {
     };
 
     return (
-        <div className="flex flex-col h-full bg-black text-green-500 font-mono text-[11px] md:text-sm overflow-hidden border border-green-900/20 shadow-[inset_0_0_50px_rgba(0,100,0,0.1)]">
+        <div className="flex flex-col h-full bg-black/60 backdrop-blur-2xl text-green-500 font-mono text-[11px] md:text-sm overflow-hidden border border-green-900/20 shadow-[inset_0_0_50px_rgba(0,100,0,0.1)]">
             {/* Header */}
             <div className="bg-zinc-900/80 backdrop-blur-md px-4 py-2 border-b border-green-900/30 flex items-center justify-between shrink-0">
                 <div className="flex items-center gap-2">

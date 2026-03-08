@@ -100,7 +100,7 @@ const EvidenceBoard = ({
     };
 
     return (
-        <div className={`${isSimultaneous ? 'absolute' : 'fixed'} inset-0 z-[200] bg-zinc-950/98 flex font-mono overflow-hidden`}>
+        <div className={`${isSimultaneous ? 'absolute' : 'fixed'} inset-0 z-[200] bg-black/40 backdrop-blur-xl flex font-mono overflow-hidden`}>
             {/* Sidebar / Toolkit */}
             <motion.div
                 initial={false}
@@ -108,7 +108,7 @@ const EvidenceBoard = ({
                     width: sidebarOpen ? (window.innerWidth < 768 ? '100%' : 320) : (window.innerWidth < 768 ? 0 : 64),
                     x: sidebarOpen ? 0 : (window.innerWidth < 768 ? -320 : 0)
                 }}
-                className={`h-full bg-zinc-950 border-r border-zinc-800 flex flex-col z-[210] shadow-2xl absolute md:relative transition-all duration-300 ${!sidebarOpen && window.innerWidth < 768 ? 'pointer-events-none' : 'pointer-events-auto'}`}
+                className={`h-full bg-zinc-950/40 backdrop-blur-2xl border-r border-zinc-800/40 flex flex-col z-[210] shadow-2xl absolute md:relative transition-all duration-300 ${!sidebarOpen && window.innerWidth < 768 ? 'pointer-events-none' : 'pointer-events-auto'}`}
             >
                 <div className="p-4 border-b border-zinc-900 flex items-center justify-between overflow-hidden">
                     <AnimatePresence mode="wait">
@@ -218,9 +218,9 @@ const EvidenceBoard = ({
             )}
 
             {/* Main Board Container */}
-            < div className="flex-1 flex flex-col bg-zinc-950 relative" >
+            < div className="flex-1 flex flex-col bg-transparent relative" >
                 {/* Board Header */}
-                < div className="p-3 md:p-4 border-b border-zinc-900 flex items-center justify-between relative z-10 bg-zinc-950/50 backdrop-blur-md" >
+                < div className="p-3 md:p-4 border-b border-zinc-900/40 flex items-center justify-between relative z-10 bg-zinc-950/20 backdrop-blur-md" >
                     <h2 className="text-sm md:text-xl font-black text-zinc-600 uppercase tracking-tighter italic truncate mr-4">
                         <span className="text-amber-500">Neural</span> Investigative Canvas
                     </h2>
@@ -232,7 +232,7 @@ const EvidenceBoard = ({
                 {/* Board Area */}
                 < div
                     ref={boardRef}
-                    className="flex-1 relative overflow-hidden bg-[url('https://www.transparenttextures.com/patterns/carbon-fibre.png')] bg-zinc-900"
+                    className="flex-1 relative overflow-hidden bg-transparent"
                     style={{
                         backgroundImage: 'radial-gradient(circle at 2px 2px, rgba(255,255,255,0.03) 1px, transparent 0)',
                         backgroundSize: '32px 32px'

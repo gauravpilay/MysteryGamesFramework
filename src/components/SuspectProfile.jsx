@@ -282,9 +282,9 @@ export default function SuspectProfile({
     };
 
     return (
-        <div className="flex flex-col h-full bg-black text-zinc-100 overflow-hidden relative">
+        <div className="flex flex-col h-full bg-transparent text-zinc-100 overflow-hidden relative backdrop-blur-3xl">
             {/* Background Effects */}
-            <div className="absolute inset-0 bg-[#020205] pointer-events-none" />
+            <div className="absolute inset-0 pointer-events-none" />
 
             {/* Dynamic Ambient Background Tints */}
             <AnimatePresence>
