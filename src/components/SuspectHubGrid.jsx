@@ -133,27 +133,6 @@ const SuspectHubGrid = ({ options, nodes, edges, onSuspectClick, getAvatarColor 
 
     return (
         <div className="space-y-4 relative w-full select-none" ref={containerRef}>
-            {/* Header HUD */}
-            <div className="flex flex-col md:flex-row md:items-center justify-between gap-4 border-l-2 border-red-600 pl-4 py-1">
-                <div>
-                    <div className="flex items-center gap-2 text-red-500 mb-0.5">
-                        <Target className="w-4 h-4 animate-pulse" />
-                        <span className="text-[10px] font-black tracking-[0.3em] uppercase opacity-70">INTELLIGENCE NETWORK</span>
-                    </div>
-                    <h2 className="text-xl font-black text-white uppercase tracking-tighter">Investigation Hub</h2>
-                </div>
-
-                <div className="flex items-center gap-2">
-                    <div className="flex items-center bg-zinc-900 border border-white/5 rounded-lg p-1 mr-2 shadow-inner">
-                        <button onClick={() => setScale(s => Math.max(0.4, s - 0.1))} className="p-1.5 hover:bg-white/5 rounded text-zinc-500 hover:text-white"><ZoomOut className="w-3.5 h-3.5" /></button>
-                        <button onClick={() => setScale(s => Math.min(2, s + 0.1))} className="p-1.5 hover:bg-white/5 rounded text-zinc-500 hover:text-white"><ZoomIn className="w-3.5 h-3.5" /></button>
-                    </div>
-                    <button onClick={resetLayout} className="px-3 py-1.5 bg-zinc-900/50 hover:bg-zinc-800 border border-white/5 rounded-lg text-[9px] font-black text-zinc-400 uppercase tracking-widest transition-all">Reset Layout</button>
-                    <div className="px-3 py-1.5 bg-red-600/10 border border-red-500/20 rounded-lg text-[9px] font-black text-red-500 uppercase flex items-center gap-2">
-                        <Database className="w-3 h-3" /> {suspectOptions.length} Subjects
-                    </div>
-                </div>
-            </div>
 
             {/* Canvas */}
             <div
