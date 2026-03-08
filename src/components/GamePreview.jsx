@@ -27,32 +27,75 @@ import {
 } from '../lib/gameLogic';
 
 const BackgroundEffect = ({ isSimultaneous = false }) => (
-    <div className={`${isSimultaneous ? 'absolute' : 'fixed'} inset-0 pointer-events-none z-0 overflow-hidden`}>
+    <div className={`${isSimultaneous ? 'absolute' : 'fixed'} inset-0 pointer-events-none z-0 overflow-hidden bg-[#020205]`}>
         <style>
             {`
             @keyframes scanline {
                 0% { transform: translateY(-100%); }
                 100% { transform: translateY(100%); }
             }
+            @keyframes grain {
+                0%, 100% { transform: translate(0, 0); }
+                10% { transform: translate(-1%, -1%); }
+                20% { transform: translate(1%, 1%); }
+                30% { transform: translate(-2%, -2%); }
+                40% { transform: translate(2%, 2%); }
+                50% { transform: translate(-1%, 1%); }
+                60% { transform: translate(1%, -1%); }
+                70% { transform: translate(-2%, 1%); }
+                80% { transform: translate(2%, -1%); }
+                90% { transform: translate(-1%, -2%); }
+            }
+            @keyframes pulse-noir {
+                0%, 100% { opacity: 0.15; }
+                50% { opacity: 0.25; }
+            }
+            @keyframes light-leak {
+                0% { transform: translate(-10%, -10%) rotate(0deg); opacity: 0.1; }
+                50% { transform: translate(10%, 10%) rotate(180deg); opacity: 0.2; }
+                100% { transform: translate(-10%, -10%) rotate(360deg); opacity: 0.1; }
+            }
             .animate-scanline {
                 animation: scanline 8s linear infinite;
             }
+            .animate-grain {
+                animation: grain 1s steps(10) infinite;
+            }
+            .animate-light-leak {
+                animation: light-leak 20s ease-in-out infinite;
+            }
             `}
         </style>
-        {/* Dark Gradient Background */}
-        <div className="absolute inset-0 bg-[radial-gradient(circle_at_center,_var(--tw-gradient-stops))] from-zinc-900 via-black to-black opacity-80"></div>
 
-        {/* Animated Grid */}
-        <div className="absolute inset-0 opacity-[0.03]" style={{
-            backgroundImage: 'linear-gradient(to right, #4f46e5 1px, transparent 1px), linear-gradient(to bottom, #4f46e5 1px, transparent 1px)',
-            backgroundSize: '40px 40px'
+        {/* Cinematic Grain Texture */}
+        <div className="absolute inset-[-200%] opacity-[0.04] animate-grain pointer-events-none z-10" style={{
+            backgroundImage: `url("data:image/svg+xml,%3Csvg viewBox='0 0 400 400' xmlns='http://www.w3.org/2000/svg'%3E%3Cfilter id='noiseFilter'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.75' numOctaves='3' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23noiseFilter)'/%3E%3C/svg%3E")`,
         }}></div>
 
-        {/* Scanline Animation */}
-        <div className="absolute inset-0 bg-gradient-to-b from-transparent via-indigo-500/5 to-transparent h-screen w-full animate-scanline opacity-20 pointer-events-none mix-blend-overlay"></div>
+        {/* Primary Moody Gradients */}
+        <div className="absolute inset-0 bg-[radial-gradient(circle_at_0%_0%,_rgba(15,23,42,0.6)_0%,_transparent_50%),radial-gradient(circle_at_100%_0%,_rgba(30,10,10,0.4)_0%,_transparent_50%),radial-gradient(circle_at_50%_100%,_rgba(10,10,40,0.5)_0%,_transparent_80%)]"></div>
 
-        {/* Vignette */}
-        <div className="absolute inset-0 bg-[radial-gradient(circle,_transparent_50%,_black_100%)] opacity-80"></div>
+        {/* Animated Light Leaks */}
+        <div className="absolute inset-0 z-0">
+            <div className="absolute -top-1/4 -left-1/4 w-full h-full bg-indigo-900/10 rounded-full blur-[120px] animate-light-leak opacity-20"></div>
+            <div className="absolute -bottom-1/4 -right-1/4 w-full h-full bg-rose-900/10 rounded-full blur-[120px] animate-light-leak opacity-20" style={{ animationDelay: '-10s' }}></div>
+        </div>
+
+        {/* Grid Floor/Wall - Perspective Hint */}
+        <div className="absolute inset-0 opacity-[0.05]" style={{
+            backgroundImage: 'linear-gradient(to right, rgba(99, 102, 241, 0.4) 1px, transparent 1px), linear-gradient(to bottom, rgba(99, 102, 241, 0.4) 1px, transparent 1px)',
+            backgroundSize: '80px 80px',
+            transform: 'perspective(1000px) rotateX(20deg) translateY(-10%) scale(1.2)',
+        }}></div>
+
+        {/* Scanline Overlay */}
+        <div className="absolute inset-0 bg-gradient-to-b from-transparent via-zinc-400/5 to-transparent h-screen w-full animate-scanline opacity-[0.15] pointer-events-none mix-blend-screen"></div>
+
+        {/* Vignette - Ultra Soft */}
+        <div className="absolute inset-0 bg-[radial-gradient(circle,_transparent_30%,_black_150%)] opacity-90"></div>
+
+        {/* Horizontal Static noise lines */}
+        <div className="absolute inset-0 opacity-[0.02] bg-[repeating-linear-gradient(0deg,transparent,transparent_1px,rgba(255,255,255,0.1)_1px,rgba(255,255,255,0.1)_2px)]"></div>
     </div>
 );
 

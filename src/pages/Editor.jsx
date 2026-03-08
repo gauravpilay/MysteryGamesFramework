@@ -3155,7 +3155,7 @@ Please provide a concise plot summary and narrative overview based on these elem
                 {/* Main View Area */}
                 <div className="flex-1 flex flex-row overflow-hidden relative">
                     {/* Canvas Container */}
-                    <EditorContext.Provider value={{ learningObjectives }}>
+                    <EditorContext.Provider value={{ learningObjectives, projectId }}>
                         <div id="editor-canvas" className={`h-full relative transition-all duration-500 shrink-0 min-w-0 ${isSimultaneousMode && showPreview ? 'w-1/2 border-r border-white/10' : 'flex-1'}`} ref={reactFlowWrapper}>
                             <ReactFlow
                                 nodes={nodes}

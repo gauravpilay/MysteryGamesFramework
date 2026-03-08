@@ -336,23 +336,27 @@ export default function SuspectProfile({
                         <motion.div
                             className="absolute -inset-4 rounded-full bg-indigo-500/20 blur-2xl opacity-0 group-hover:opacity-100 transition-opacity"
                         />
-                        <div className="relative w-24 h-24 md:w-32 md:h-32 rounded-full p-1 bg-gradient-to-br from-white/20 to-transparent">
-                            <div className="w-full h-full rounded-full bg-zinc-900 flex items-center justify-center overflow-hidden border-2 border-white/5 relative">
+                        <div className="relative w-28 h-28 md:w-36 md:h-36 rounded-full p-1.5 bg-gradient-to-br from-white/20 via-transparent to-white/5 border border-white/10 shadow-2xl">
+                            <div className="w-full h-full rounded-full bg-zinc-900 flex items-center justify-center overflow-hidden border-2 border-white/10 relative shadow-[inset_0_0_20px_rgba(0,0,0,0.5)]">
                                 {suspect.data.image ? (
-                                    <img src={suspect.data.image} alt={suspect.data.name} className="w-full h-full object-cover" />
+                                    <img src={suspect.data.image} alt={suspect.data.name} className="w-full h-full object-cover scale-105 group-hover:scale-110 transition-transform duration-700" />
                                 ) : (
-                                    <User className="w-12 h-12 md:w-16 md:h-16 text-zinc-700" />
+                                    <div className="flex flex-col items-center">
+                                        <User className="w-10 h-10 md:w-14 md:h-14 text-zinc-800" />
+                                        <span className="text-[8px] font-black text-zinc-700 uppercase tracking-widest mt-1">No Uplink</span>
+                                    </div>
                                 )}
-                                <div className={`absolute inset-0 bg-gradient-to-br ${getAvatarColor(suspect.data.name)} ${suspect.data.image ? 'opacity-20' : 'opacity-10'}`} />
+                                <div className={`absolute inset-0 bg-gradient-to-tr from-black/40 via-transparent to-transparent pointer-events-none`} />
                                 <motion.div
-                                    className="absolute inset-x-0 h-1 bg-indigo-500/20"
-                                    animate={{ y: ['-100%', '300%'] }}
-                                    transition={{ duration: 4, repeat: Infinity, ease: 'linear' }}
+                                    className="absolute inset-x-0 h-[2px] bg-white/10"
+                                    animate={{ y: ['-100%', '400%'] }}
+                                    transition={{ duration: 3, repeat: Infinity, ease: 'linear' }}
                                 />
                             </div>
                         </div>
-                        <div className="absolute -bottom-1 -right-1 w-6 h-6 bg-emerald-500 rounded-full border-4 border-zinc-950 flex items-center justify-center">
-                            <div className="w-2 h-2 bg-white rounded-full animate-pulse" />
+                        {/* Status Pulse */}
+                        <div className="absolute -bottom-1 right-2 w-7 h-7 bg-zinc-950 rounded-full border border-white/10 flex items-center justify-center shadow-lg">
+                            <div className="w-2.5 h-2.5 bg-emerald-500 rounded-full animate-pulse shadow-[0_0_8px_rgba(16,185,129,0.5)]" />
                         </div>
                     </div>
 

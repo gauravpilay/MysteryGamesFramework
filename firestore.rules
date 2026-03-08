@@ -42,6 +42,12 @@ service cloud.firestore {
       allow read: if isAdmin();
     }
 
+    // CHARACTER MEDIA (Library Assets)
+    match /character_media/{mediaId} {
+      allow read, create: if request.auth != null;
+      allow delete: if isAdmin();
+    }
+
     // SYSTEM CONFIG
     match /system_config/{configId} {
       allow read: if request.auth != null;

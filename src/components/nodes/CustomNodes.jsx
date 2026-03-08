@@ -3,8 +3,9 @@ import ReactDOM from 'react-dom';
 import { Handle, Position, NodeResizer, useNodes } from 'reactflow';
 import { FileText, User, Search, GitMerge, Terminal, MessageSquare, Music, Image as ImageIcon, Star, MousePointerClick, Trash2, Plus, Copy, Fingerprint, Bell, HelpCircle, ToggleLeft, Unlock, Binary, Grid3x3, Folder, ChevronDown, ChevronUp, Maximize, X, Save, File, FolderOpen, AlertCircle, Brain, Cpu, Send, Loader2, Check, Filter, ShieldAlert, Box, CheckCircle, Activity, Shield, Hash, Film, Globe, Lightbulb, Mail, Bold, Italic, List, Type, Palette, Info, Volume2, VolumeX, Eye, Link } from 'lucide-react';
 import { motion, AnimatePresence } from 'framer-motion';
-import { storage } from '../../lib/firebase';
+import { storage, db } from '../../lib/firebase';
 import { ref, uploadBytes, getDownloadURL } from 'firebase/storage';
+import { collection, addDoc, query, where, getDocs, orderBy, serverTimestamp } from 'firebase/firestore';
 import { callAI } from '../../lib/ai';
 import { useConfig } from '../../lib/config';
 import { useLicense } from '../../lib/licensing';
@@ -690,32 +691,9 @@ export const StoryNode = memo(({ id, data, selected }) => {
 });
 
 export const CutsceneNode = memo(({ id, data, selected }) => {
+    const { projectId } = useEditorContext();
     const handleChange = (key, val) => {
         data.onChange && data.onChange(id, { ...data, [key]: val });
-    };
-    const [isUploading, setIsUploading] = useState(false);
-
-    const handleFileUpload = async (e) => {
-        const file = e.target.files[0];
-        if (!file) return;
-
-        if (!storage) {
-            alert("Firebase Storage not initialized.");
-            return;
-        }
-
-        setIsUploading(true);
-        try {
-            const storageRef = ref(storage, `cutscenes/${Date.now()}_${file.name}`);
-            await uploadBytes(storageRef, file);
-            const url = await getDownloadURL(storageRef);
-            handleChange('characterImage', url);
-        } catch (error) {
-            console.error("Upload failed", error);
-            alert("Upload failed. Check console.");
-        } finally {
-            setIsUploading(false);
-        }
     };
 
     return (
@@ -776,38 +754,14 @@ export const CutsceneNode = memo(({ id, data, selected }) => {
                         />
                     </div>
 
-                    {/* Character Image Upload */}
-                    <div className="relative group">
-                        {data.characterImage ? (
-                            <div className="relative w-full h-32 bg-zinc-900 rounded overflow-hidden mb-1 border border-zinc-800 group-hover:border-zinc-600 transition-colors">
-                                <img src={data.characterImage} alt="Character" className="w-full h-full object-cover" />
-                                <button
-                                    onClick={(e) => { e.stopPropagation(); handleChange('characterImage', null); }}
-                                    className="absolute top-2 right-2 p-1.5 bg-black/60 hover:bg-black/90 backdrop-blur-sm rounded-full text-white transition-all shadow-lg"
-                                    title="Remove Image"
-                                >
-                                    <Trash2 className="w-3 h-3" />
-                                </button>
-                            </div>
-                        ) : (
-                            <div className="relative w-full">
-                                <input
-                                    type="file"
-                                    accept="image/*"
-                                    className="absolute inset-0 w-full h-full opacity-0 cursor-pointer z-10"
-                                    onChange={handleFileUpload}
-                                    disabled={isUploading}
-                                />
-                                <div className="p-3 border border-dashed border-zinc-700 rounded text-center text-zinc-500 group-hover:bg-zinc-900/50 group-hover:border-zinc-500 transition-colors cursor-pointer">
-                                    <div className="flex flex-col items-center gap-1">
-                                        <ImageIcon className="w-4 h-4 mb-1" />
-                                        <span className="text-[10px] uppercase font-bold tracking-wider">
-                                            {isUploading ? "Uploading..." : "Upload Character Image"}
-                                        </span>
-                                    </div>
-                                </div>
-                            </div>
-                        )}
+                    {/* Character Identity Management */}
+                    <div className="pt-1">
+                        <p className="text-[10px] text-zinc-500 mb-2 font-bold uppercase tracking-widest pl-1">Cast Profile</p>
+                        <CharacterMediaManager
+                            projectId={projectId}
+                            currentUrl={data.characterImage}
+                            onSelect={(url) => handleChange('characterImage', url)}
+                        />
                     </div>
 
                     <div className="mt-2 p-2 bg-black/40 border border-purple-900/20 rounded-lg space-y-2">
@@ -838,7 +792,182 @@ export const CutsceneNode = memo(({ id, data, selected }) => {
     );
 });
 
+/**
+ * CharacterMediaManager - Reusable interactive media system for suspect identities.
+ * Connects to Firestore to track and display previously-used character assets.
+ */
+const CharacterMediaManager = ({ currentUrl, onSelect, projectId }) => {
+    const [isUploading, setIsUploading] = useState(false);
+    const [previousMedia, setPreviousMedia] = useState([]);
+    const [showGallery, setShowGallery] = useState(false);
+
+    // Load previously uploaded character images for this project
+    useEffect(() => {
+        const fetchMedia = async () => {
+            if (!db || !projectId) return;
+            try {
+                const q = query(
+                    collection(db, 'character_media'),
+                    where('projectId', '==', projectId),
+                    orderBy('createdAt', 'desc')
+                );
+                const snapshot = await getDocs(q);
+                const mediaItems = snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() }));
+
+                // Deduplicate by URL
+                const uniqueMedia = mediaItems.reduce((acc, current) => {
+                    const x = acc.find(item => item.url === current.url);
+                    if (!x) return acc.concat([current]);
+                    return acc;
+                }, []);
+
+                setPreviousMedia(uniqueMedia);
+            } catch (err) {
+                console.error("Error fetching character media:", err);
+            }
+        };
+        if (showGallery) fetchMedia();
+    }, [projectId, showGallery]);
+
+    const handleFileUpload = async (e) => {
+        const file = e.target.files[0];
+        if (!file || !storage) return;
+
+        setIsUploading(true);
+        try {
+            // 1. Upload to Storage
+            console.log("Commencing binary uplink to storage...");
+            const storagePath = `characters/${projectId || 'global'}/${Date.now()}_${file.name}`;
+            const storageRef = ref(storage, storagePath);
+            await uploadBytes(storageRef, file);
+            const url = await getDownloadURL(storageRef);
+            console.log("Storage uplink confirmed. Updating media database...");
+
+            // 2. Save Reference to Firestore for Global Retrieval
+            if (db && projectId) {
+                await addDoc(collection(db, 'character_media'), {
+                    projectId,
+                    url,
+                    name: file.name,
+                    createdAt: serverTimestamp()
+                });
+                console.log("Database index synchronization complete.");
+            }
+
+            onSelect(url);
+            setShowGallery(false);
+        } catch (error) {
+            console.error("Transmission Failure:", error);
+            const phase = error.code?.includes('storage') ? "STORAGE ARCHIVE" : "DATABASE INDEXING";
+            alert(`Digital identity upload failed at [${phase}]. Check Firebase security protocols for '${storagePath}' permissions.`);
+        } finally {
+            setIsUploading(false);
+        }
+    };
+
+    return (
+        <div className="space-y-2">
+            <div className="relative group overflow-hidden rounded-xl border border-white/10 bg-black/40 h-48 flex flex-col transition-all hover:border-indigo-500/50">
+                {currentUrl ? (
+                    <div className="relative h-full w-full">
+                        <img src={currentUrl} className="w-full h-full object-cover" alt="Profile" />
+                        <div className="absolute inset-0 bg-gradient-to-t from-black/80 via-transparent to-transparent opacity-0 group-hover:opacity-100 transition-opacity flex items-end p-3">
+                            <button
+                                onClick={() => onSelect(null)}
+                                className="w-full py-1.5 bg-red-600/20 hover:bg-red-600/40 border border-red-500/30 rounded-lg text-[9px] font-black uppercase tracking-widest text-red-200 transition-all backdrop-blur-md"
+                            >
+                                Purge Identity
+                            </button>
+                        </div>
+                    </div>
+                ) : (
+                    <div className="flex-1 flex flex-col items-center justify-center p-6 text-center">
+                        <div className="w-12 h-12 rounded-full bg-zinc-900 border border-white/5 flex items-center justify-center mb-3">
+                            {isUploading ? <Loader2 className="w-5 h-5 animate-spin text-indigo-500" /> : <User className="w-6 h-6 text-zinc-700" />}
+                        </div>
+                        <span className="text-[10px] font-black uppercase tracking-[0.2em] text-zinc-500">Unassigned Identity</span>
+                        <input
+                            type="file"
+                            accept="image/*"
+                            className="absolute inset-0 opacity-0 cursor-pointer"
+                            onChange={handleFileUpload}
+                            disabled={isUploading}
+                        />
+                    </div>
+                )}
+            </div>
+
+            <div className="flex gap-2">
+                <div className="relative flex-1">
+                    <input
+                        type="file"
+                        accept="image/*"
+                        className="absolute inset-0 opacity-0 cursor-pointer z-10"
+                        onChange={handleFileUpload}
+                        disabled={isUploading}
+                    />
+                    <button className="w-full py-2 bg-indigo-600/10 hover:bg-indigo-600/20 border border-indigo-500/30 rounded-lg flex items-center justify-center gap-2 transition-all">
+                        <Plus className="w-3.5 h-3.5 text-indigo-400" />
+                        <span className="text-[9px] font-black uppercase tracking-widest text-indigo-300">New Uplink</span>
+                    </button>
+                </div>
+
+                <button
+                    onClick={() => setShowGallery(!showGallery)}
+                    className={`px-3 py-2 border rounded-lg transition-all flex items-center gap-2 ${showGallery ? 'bg-amber-500/20 border-amber-500 text-amber-300' : 'bg-zinc-900/50 border-white/5 text-zinc-500 hover:text-white hover:bg-zinc-800'}`}
+                >
+                    <FolderOpen className="w-3.5 h-3.5" />
+                    <span className="text-[9px] font-black uppercase tracking-widest">Library</span>
+                </button>
+            </div>
+
+            <AnimatePresence>
+                {showGallery && (
+                    <motion.div
+                        initial={{ height: 0, opacity: 0 }}
+                        animate={{ height: 'auto', opacity: 1 }}
+                        exit={{ height: 0, opacity: 0 }}
+                        className="overflow-hidden bg-black/40 border border-white/5 rounded-xl p-3 space-y-3 shadow-inner"
+                    >
+                        <div className="flex items-center justify-between">
+                            <span className="text-[8px] font-black text-zinc-500 uppercase tracking-widest">Available Records // {previousMedia.length}</span>
+                            <button onClick={() => setShowGallery(false)} className="text-zinc-600 hover:text-white transition-colors">
+                                <X className="w-3 h-3" />
+                            </button>
+                        </div>
+
+                        {previousMedia.length > 0 ? (
+                            <div className="grid grid-cols-3 gap-2 max-h-40 overflow-y-auto pr-1 custom-scrollbar">
+                                {previousMedia.map((media) => (
+                                    <button
+                                        key={media.id}
+                                        onClick={() => { onSelect(media.url); setShowGallery(false); }}
+                                        className="relative aspect-square rounded-lg border border-white/5 overflow-hidden hover:border-indigo-500 transition-all group/item"
+                                    >
+                                        <img src={media.url} className="w-full h-full object-cover opacity-60 group-hover/item:opacity-100 transition-opacity" alt="Ref" />
+                                        {currentUrl === media.url && (
+                                            <div className="absolute inset-0 bg-indigo-600/20 flex items-center justify-center">
+                                                <Check className="w-4 h-4 text-white" />
+                                            </div>
+                                        )}
+                                    </button>
+                                ))}
+                            </div>
+                        ) : (
+                            <div className="py-6 text-center">
+                                <p className="text-[8px] text-zinc-600 uppercase italic">No historical data found</p>
+                            </div>
+                        )}
+                    </motion.div>
+                )}
+            </AnimatePresence>
+        </div>
+    );
+};
+
+
 export const SuspectNode = memo(({ id, data, selected }) => {
+    const { projectId } = useEditorContext();
     const handleChange = (key, val) => {
         data.onChange && data.onChange(id, { ...data, [key]: val });
     };
@@ -847,6 +976,12 @@ export const SuspectNode = memo(({ id, data, selected }) => {
             <Handle type="target" position={Position.Top} className="!bg-zinc-500 !w-3 !h-3 !border-2 !border-black" />
             <NodeWrapper id={id} title="Suspect Profile" icon={User} selected={selected} headerClass="bg-red-950/30 text-red-200" colorClass="border-red-900/30" data={data} onLabelChange={(v) => handleChange('label', v)}>
                 <div className="space-y-3">
+                    <CharacterMediaManager
+                        projectId={projectId}
+                        currentUrl={data.image}
+                        onSelect={(url) => handleChange('image', url)}
+                    />
+
                     <InputField placeholder="Suspect Name" value={data.name} onChange={(e) => handleChange('name', e.target.value)} />
                     <InputField placeholder="Role / Title" value={data.role} onChange={(e) => handleChange('role', e.target.value)} />
 
@@ -2146,6 +2281,7 @@ export const ThreeDSceneNode = memo(({ id, data, selected }) => {
 export const InterrogationNode = memo(({ id, data, selected }) => {
     const { settings } = useConfig();
     const { licenseData } = useLicense();
+    const { projectId } = useEditorContext();
 
     const handleChange = (key, val) => {
         const newData = { ...data, [key]: val };
@@ -2203,6 +2339,11 @@ Keep responses concise but immersive.
             <Handle type="target" position={Position.Top} id="in-2" className="!bg-zinc-500 !w-3 !h-3 !border-2 !border-black" />
             <NodeWrapper id={id} title="AI Interrogation" icon={Brain} selected={selected} headerClass="bg-indigo-950/30 text-indigo-200" colorClass="border-indigo-900/30" data={data} onLabelChange={(v) => handleChange('label', v)}>
                 <div className="space-y-4">
+                    <CharacterMediaManager
+                        projectId={projectId}
+                        currentUrl={data.image}
+                        onSelect={(url) => handleChange('image', url)}
+                    />
                     {/* Model Selector */}
                     <div className="p-2 bg-indigo-500/5 border border-indigo-500/10 rounded-lg">
                         <p className="text-[9px] text-indigo-400 mb-1.5 uppercase font-black tracking-widest flex items-center gap-1.5">
