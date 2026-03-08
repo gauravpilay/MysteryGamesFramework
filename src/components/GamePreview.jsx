@@ -1435,13 +1435,21 @@ const GamePreview = ({ nodes, edges, onClose, gameMetadata, onGameEnd, onNodeCha
     }, [history, nodes, setCurrentNodeId, setHistory]);
 
     const handleBackAction = React.useCallback(() => {
-        // Priority 1: Closing UI layers / Overlays (Reverse priority - order matters)
+        if (showFeedback) return false;
+
+        // Priority 1: If mission is active, browser back should always warn about progress loss
+        if (missionStarted && !showQuitConfirm) {
+            setShowQuitConfirm(true);
+            return true;
+        }
+
+        // Priority 2: Closing UI layers / Overlays (If mission not started or we are already confirming)
+        if (showQuitConfirm) { setShowQuitConfirm(false); return true; }
         if (activeExplanation) {
             if (activeExplanation.onClose) activeExplanation.onClose();
             setActiveExplanation(null);
             return true;
         }
-        if (showQuitConfirm) { setShowQuitConfirm(false); return true; }
         if (showQuestionHelp) { setShowQuestionHelp(false); return true; }
         if (zoomedImage) { setZoomedImage(null); return true; }
         if (activeModalNode) { handleCloseModal(); return true; }
@@ -1452,16 +1460,6 @@ const GamePreview = ({ nodes, edges, onClose, gameMetadata, onGameEnd, onNodeCha
         if (showEvidenceBoard) { setShowEvidenceBoard(false); return true; }
         if (showNewsReport) { setShowNewsReport(false); return true; }
         if (showCutscene) { setShowCutscene(false); return true; }
-
-        // If feedback is shown, the game is technically over, so back should either do nothing 
-        // or go to dashboard. Returning false here allows browser navigation (or onClose).
-        if (showFeedback) return false;
-
-        // Priority 2: Show Quit Confirmation if we are in the main game loops and no layers are open
-        if (missionStarted && !showQuitConfirm) {
-            setShowQuitConfirm(true);
-            return true;
-        }
 
         return false; // Actually leave the game
     }, [
@@ -3393,9 +3391,8 @@ const GamePreview = ({ nodes, edges, onClose, gameMetadata, onGameEnd, onNodeCha
 
                             <h2 className="text-3xl font-black text-white uppercase tracking-tighter mb-4 leading-none">Terminate Mission?</h2>
                             <p className="text-zinc-400 text-lg font-medium leading-relaxed mb-10 px-4">
-                                Quitting now will <span className="text-red-400 font-bold uppercase">reset all current progress</span>.
-                                In case you want to go to the <span className="text-indigo-400 font-bold">Previous Scene</span>, use the <span className="text-white font-bold">Back Button in the Header</span>.
-                                Are you sure you want to abort the investigation?
+                                Quitting now will cause you to <span className="text-red-400 font-bold uppercase">lose all current game progress</span>.
+                                If you want to go back to the <span className="text-indigo-400 font-bold">Previous Scene</span>, please use the <span className="text-white font-bold">Back option in the header</span> instead.
                             </p>
 
                             <div className="grid grid-cols-2 gap-4">
