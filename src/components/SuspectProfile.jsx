@@ -435,7 +435,7 @@ export default function SuspectProfile({
                         onClick={() => setActiveTab('evidence')}
                         icon={Briefcase}
                         label="Confrontation"
-                        badge={collectedEvidence.length}
+                        badge={relevantEvidence.length}
                         color="amber"
                     />
                     {navigationOptions.length > 0 && (
@@ -535,11 +535,11 @@ export default function SuspectProfile({
                                     </div>
                                     <div className="flex items-center gap-2 px-4 py-2 bg-amber-500/10 border border-amber-500/20 rounded-xl">
                                         <Search className="w-4 h-4 text-amber-500" />
-                                        <span className="text-[10px] font-black text-amber-500 uppercase tracking-widest">{collectedEvidence.length} Items Available</span>
+                                        <span className="text-[10px] font-black text-amber-500 uppercase tracking-widest">{relevantEvidence.length} Items Available</span>
                                     </div>
                                 </div>
 
-                                {collectedEvidence.length === 0 ? (
+                                {relevantEvidence.length === 0 ? (
                                     <div className="flex flex-col items-center justify-center py-24 bg-zinc-900/30 rounded-[3rem] border border-white/5 border-dashed">
                                         <div className="w-20 h-20 bg-zinc-800 rounded-full flex items-center justify-center mb-6">
                                             <Briefcase className="w-10 h-10 text-zinc-600" />
@@ -672,8 +672,8 @@ export default function SuspectProfile({
 
             {/* Hint Overlay */}
             <AnimatePresence>
-                {showHint && (
-                    <ConfrontationHint count={collectedEvidence.length} onDismiss={handleDismissHint} />
+                {showHint && relevantEvidence.length > 0 && (
+                    <ConfrontationHint count={relevantEvidence.length} onDismiss={handleDismissHint} />
                 )}
             </AnimatePresence>
 
