@@ -1811,7 +1811,7 @@ const GamePreview = ({ nodes, edges, onClose, gameMetadata, onGameEnd, onNodeCha
                         initial={{ opacity: 0, y: 10 }}
                         animate={{ opacity: 1, y: 0 }}
                         exit={{ opacity: 0, y: -10 }}
-                        className="max-w-4xl mx-auto w-full pb-20"
+                        className={`${options.some(e => nodes.find(n => n.id === e.target)?.type === 'suspect') ? 'max-w-none w-full px-2 md:px-8' : 'max-w-4xl mx-auto w-full'} pb-20`}
                     >
                         {renderContent()}
 

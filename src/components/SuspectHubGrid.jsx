@@ -29,8 +29,8 @@ const SuspectHubGrid = ({ options, nodes, edges, onSuspectClick, getAvatarColor 
 
         const initialPositions = {};
         const isMobile = window.innerWidth < 768;
-        const cols = isMobile ? 1 : 4;
-        const spacingX = isMobile ? 260 : 300;
+        const cols = isMobile ? 1 : 5; // Expanded desktop columns
+        const spacingX = isMobile ? 260 : 320; // More horizontal breathing room
         const spacingY = 280;
 
         suspectOptions.forEach(({ node }, i) => {
@@ -59,8 +59,8 @@ const SuspectHubGrid = ({ options, nodes, edges, onSuspectClick, getAvatarColor 
     const resetLayout = () => {
         const newPositions = {};
         const isMobile = window.innerWidth < 768;
-        const cols = isMobile ? 1 : 4;
-        const spacingX = isMobile ? 260 : 300;
+        const cols = isMobile ? 1 : 5;
+        const spacingX = isMobile ? 260 : 320;
         const spacingY = 280;
 
         suspectOptions.forEach(({ node }, i) => {
@@ -157,7 +157,7 @@ const SuspectHubGrid = ({ options, nodes, edges, onSuspectClick, getAvatarColor 
 
             {/* Canvas */}
             <div
-                className="relative h-[650px] w-full bg-[#050505] rounded-[2rem] border border-white/5 overflow-auto shadow-[inset_0_0_100px_rgba(0,0,0,1)] custom-scrollbar"
+                className="relative h-[750px] w-full bg-[#050505] rounded-[2rem] border border-white/5 overflow-auto shadow-[inset_0_0_100px_rgba(0,0,0,1)] custom-scrollbar"
                 onClick={() => setSelectedId(null)}
             >
                 <motion.div
