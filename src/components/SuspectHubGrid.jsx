@@ -136,7 +136,7 @@ const SuspectHubGrid = ({ options, nodes, edges, onSuspectClick, getAvatarColor 
 
             {/* Canvas */}
             <div
-                className="relative h-[750px] w-full bg-[#050505] rounded-[2rem] border border-white/5 overflow-auto shadow-[inset_0_0_100px_rgba(0,0,0,1)] custom-scrollbar"
+                className="relative h-[750px] w-full bg-black/20 backdrop-blur-xl rounded-[2rem] border border-white/5 overflow-auto shadow-[inset_0_0_100px_rgba(0,0,0,0.5)] custom-scrollbar"
                 onClick={() => setSelectedId(null)}
             >
                 <motion.div

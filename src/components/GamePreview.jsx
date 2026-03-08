@@ -1,6 +1,6 @@
 import React, { useState, useEffect, useMemo, useRef } from 'react';
 import { Button, Card } from './ui/shared';
-import { X, User, Search, Terminal, MessageSquare, FileText, ArrowRight, ShieldAlert, CheckCircle, AlertTriangle, Volume2, VolumeX, Image as ImageIcon, Briefcase, Star, MousePointerClick, Bell, HelpCircle, Clock, ZoomIn, LayoutGrid, ChevronRight, Fingerprint, Cpu, Activity, Shield, Hash, Box as BoxIcon, Radio, Lightbulb, Mail, Paperclip, Unlock, XCircle, Play, Pause, Square, Info } from 'lucide-react';
+import { X, User, Search, Terminal, MessageSquare, FileText, ArrowRight, ArrowLeft, ShieldAlert, CheckCircle, AlertTriangle, Volume2, VolumeX, Image as ImageIcon, Briefcase, Star, MousePointerClick, Bell, HelpCircle, Clock, ZoomIn, LayoutGrid, ChevronRight, Fingerprint, Cpu, Activity, Shield, Hash, Box as BoxIcon, Radio, Lightbulb, Mail, Paperclip, Unlock, XCircle, Play, Pause, Square, Info } from 'lucide-react';
 import { motion, AnimatePresence } from 'framer-motion';
 import EvidenceBoard from './EvidenceBoard';
 import AdvancedTerminal from './AdvancedTerminal';
@@ -1423,6 +1423,42 @@ const GamePreview = ({ nodes, edges, onClose, gameMetadata, onGameEnd, onNodeCha
         setIsConfronting(false);
     }, [activeModalNode, currentNodeId, history, nodes, setCurrentNodeId, setHistory]);
 
+    const handleGoBack = React.useCallback(() => {
+        ttsStop();
+        if (history.length > 0) {
+            const newHistory = [...history];
+            const prevId = newHistory.pop();
+            setHistory(newHistory);
+            setCurrentNodeId(prevId);
+
+            const node = nodes.find(n => n.id === prevId);
+            if (node && ['suspect', 'evidence', 'terminal', 'message', 'media', 'notification', 'question', 'lockpick', 'decryption', 'keypad', 'interrogation', 'threed', 'email', 'fact'].includes(node.type)) {
+                setActiveModalNode(node);
+                if (node.type === 'question') setUserAnswers(new Set());
+            } else if (node && node.type === 'cutscene') {
+                setShowCutscene(true);
+            } else if (node && node.type === 'deepweb') {
+                setShowDeepWeb(true);
+            } else if (node && node.type === 'crazywall') {
+                setActiveCrazyWallNode(node);
+                setShowCrazyWall(true);
+            } else if (node && node.type === 'identify') {
+                setActiveAccusationNode(node);
+                setShowAccuseModal(true);
+                setAccusationResult(null);
+            } else {
+                setActiveModalNode(null);
+                setIsConfronting(false);
+                setShowCutscene(false);
+                setShowDeepWeb(false);
+                setShowCrazyWall(false);
+                setShowAccuseModal(false);
+            }
+            return true;
+        }
+        return false;
+    }, [history, nodes, setCurrentNodeId, setHistory]);
+
     const handleBackAction = React.useCallback(() => {
         // Priority 1: Closing UI layers / Overlays (Reverse priority - order matters)
         if (activeExplanation) {
@@ -1442,6 +1478,11 @@ const GamePreview = ({ nodes, edges, onClose, gameMetadata, onGameEnd, onNodeCha
         if (showNewsReport) { setShowNewsReport(false); return true; }
         if (showCutscene) { setShowCutscene(false); return true; }
 
+        // Narrative Back - Priority 2
+        if (history.length > 0 && !showFeedback && !showQuitConfirm) {
+            return handleGoBack();
+        }
+
         // If feedback is shown, the game is technically over, so back should either do nothing 
         // or go to dashboard. Returning false here allows browser navigation (or onClose).
         if (showFeedback) return false;
@@ -1457,7 +1498,7 @@ const GamePreview = ({ nodes, edges, onClose, gameMetadata, onGameEnd, onNodeCha
         activeExplanation, showQuitConfirm, showQuestionHelp, zoomedImage,
         activeModalNode, showAccuseModal, showCrazyWall, showSuspectWall,
         showDeepWeb, showEvidenceBoard, showNewsReport, showCutscene,
-        showFeedback, missionStarted, handleCloseModal
+        showFeedback, missionStarted, handleCloseModal, history.length, handleGoBack
     ]);
 
     // -- BROWSER BACK BUTTON SUPPORT --
@@ -1648,6 +1689,18 @@ const GamePreview = ({ nodes, edges, onClose, gameMetadata, onGameEnd, onNodeCha
             {/* Header */}
             <div className="h-16 border-b border-zinc-800 bg-zinc-950 flex items-center justify-between px-3 md:px-6 shrink-0 relative z-[100]">
                 <div className="flex items-center gap-2 md:gap-3">
+                    {history.length > 0 && !showFeedback && (
+                        <button
+                            onClick={handleGoBack}
+                            className="px-3 md:px-5 py-2 bg-indigo-600/10 hover:bg-indigo-600 text-indigo-400 hover:text-white transition-all duration-500 rounded-2xl border border-indigo-500/20 hover:border-indigo-400 shadow-xl group flex items-center gap-2 md:gap-3 active:scale-95 whitespace-nowrap"
+                            title="Go Back"
+                        >
+                            <div className="w-7 h-7 md:w-8 md:h-8 rounded-full bg-black/40 flex items-center justify-center border border-white/5 group-hover:border-white/20 transition-all">
+                                <ArrowLeft className="w-4 h-4 group-hover:-translate-x-1 transition-transform" />
+                            </div>
+                            <span className="text-[10px] md:text-xs font-black uppercase tracking-[0.2em]">Previous Scene</span>
+                        </button>
+                    )}
                     <div className="bg-red-600 px-1.5 md:px-2 py-1 rounded text-[8px] md:text-xs font-bold text-white uppercase tracking-widest animate-pulse shrink-0">
                         Active
                     </div>
