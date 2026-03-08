@@ -1478,11 +1478,6 @@ const GamePreview = ({ nodes, edges, onClose, gameMetadata, onGameEnd, onNodeCha
         if (showNewsReport) { setShowNewsReport(false); return true; }
         if (showCutscene) { setShowCutscene(false); return true; }
 
-        // Narrative Back - Priority 2
-        if (history.length > 0 && !showFeedback && !showQuitConfirm) {
-            return handleGoBack();
-        }
-
         // If feedback is shown, the game is technically over, so back should either do nothing 
         // or go to dashboard. Returning false here allows browser navigation (or onClose).
         if (showFeedback) return false;
@@ -3332,6 +3327,7 @@ const GamePreview = ({ nodes, edges, onClose, gameMetadata, onGameEnd, onNodeCha
                             <h2 className="text-3xl font-black text-white uppercase tracking-tighter mb-4 leading-none">Terminate Mission?</h2>
                             <p className="text-zinc-400 text-lg font-medium leading-relaxed mb-10 px-4">
                                 Quitting now will <span className="text-red-400 font-bold uppercase">reset all current progress</span>.
+                                In case you want to go to the <span className="text-indigo-400 font-bold">Previous Scene</span>, use the <span className="text-white font-bold">Back Button in the Header</span>.
                                 Are you sure you want to abort the investigation?
                             </p>
 
