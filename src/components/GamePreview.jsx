@@ -598,6 +598,8 @@ const GamePreview = ({ nodes, edges, onClose, gameMetadata, onGameEnd, onNodeCha
     const [showAccuseModal, setShowAccuseModal] = useState(false);
     const [accusationResult, setAccusationResult] = useState(null); // 'success' | 'failure' | null | 'timeout'
     const [activeAccusationNode, setActiveAccusationNode] = useState(null);
+    // Suspect Choice State (Show strategy popup before entering profile)
+    const [suspectChoiceNode, setSuspectChoiceNode] = useState(null);
     const [zoomedImage, setZoomedImage] = useState(null);
     const [showEvidenceBoard, setShowEvidenceBoard] = useState(false);
     const [boardItems, setBoardItems] = useState([]);
@@ -1095,7 +1097,9 @@ const GamePreview = ({ nodes, edges, onClose, gameMetadata, onGameEnd, onNodeCha
 
 
         // Handle Type-Specific UI logic
-        if (node && ['suspect', 'evidence', 'terminal', 'message', 'media', 'notification', 'question', 'lockpick', 'decryption', 'keypad', 'interrogation', 'threed', 'email', 'fact'].includes(node.type)) {
+        if (node && node.type === 'suspect') {
+            setSuspectChoiceNode(node);
+        } else if (node && ['evidence', 'terminal', 'message', 'media', 'notification', 'question', 'lockpick', 'decryption', 'keypad', 'interrogation', 'threed', 'email', 'fact'].includes(node.type)) {
             setActiveModalNode(node);
             if (node.type === 'question') setUserAnswers(new Set());
         } else if (node && node.type === 'cutscene') {
@@ -2096,7 +2100,7 @@ const GamePreview = ({ nodes, edges, onClose, gameMetadata, onGameEnd, onNodeCha
                                             options={options}
                                             nodes={nodes}
                                             edges={edges}
-                                            onSuspectClick={(targetNode) => setActiveModalNode(targetNode)}
+                                            onSuspectClick={(targetNode) => setSuspectChoiceNode(targetNode)}
                                             getAvatarColor={getAvatarColor}
                                         />
                                     ) : (
@@ -2977,6 +2981,97 @@ const GamePreview = ({ nodes, edges, onClose, gameMetadata, onGameEnd, onNodeCha
                     </div>
                 )
                 }
+
+                {/* Suspect Strategy Choice Modal */}
+                {suspectChoiceNode && (
+                    <div className="fixed inset-0 z-[1000] flex items-center justify-center p-4 md:p-8 bg-black/60 backdrop-blur-sm">
+                        <motion.div
+                            initial={{ opacity: 0, scale: 0.9, y: 20 }}
+                            animate={{ opacity: 1, scale: 1, y: 0 }}
+                            exit={{ opacity: 0, scale: 0.95, y: 10 }}
+                            className="bg-[#0c0c12] border border-white/10 rounded-3xl w-full max-w-2xl overflow-hidden shadow-[0_0_100px_rgba(0,0,0,0.8)] flex flex-col relative"
+                        >
+                            {/* Header / Suspect Info */}
+                            <div className="relative h-44 md:h-56 bg-zinc-900 border-b border-white/5 overflow-hidden">
+                                {suspectChoiceNode.data?.image ? (
+                                    <img src={suspectChoiceNode.data.image} alt="Suspect" className="w-full h-full object-cover opacity-60" />
+                                ) : (
+                                    <div className={`w-full h-full bg-gradient-to-br ${getAvatarColor(suspectChoiceNode.data?.name || 'Unknown')} opacity-20`} />
+                                )}
+                                <div className="absolute inset-x-0 bottom-0 p-6 md:p-8 bg-gradient-to-t from-[#0c0c12] to-transparent">
+                                    <h2 className="text-3xl md:text-5xl font-black text-white uppercase tracking-[0.05em] drop-shadow-2xl">
+                                        {suspectChoiceNode.data?.name || "Subject Profile"}
+                                    </h2>
+                                    <p className="text-zinc-500 font-bold uppercase tracking-widest text-[10px] md:text-xs mt-1">Select Engagement Strategy</p>
+                                </div>
+                                <button
+                                    onClick={() => setSuspectChoiceNode(null)}
+                                    className="absolute top-6 right-6 p-2 bg-black/40 hover:bg-black/60 text-zinc-400 hover:text-white rounded-full border border-white/5 transition-all"
+                                >
+                                    <X className="w-5 h-5" />
+                                </button>
+                            </div>
+
+                            {/* Options */}
+                            <div className="p-4 md:p-8 grid grid-cols-1 md:grid-cols-2 gap-4 md:gap-6 bg-zinc-950/40">
+                                {/* Talk Strategy */}
+                                <button
+                                    onClick={() => {
+                                        setActiveModalNode({ ...suspectChoiceNode, _initialTab: 'action' });
+                                        setSuspectChoiceNode(null);
+                                    }}
+                                    className="group relative flex flex-col gap-4 p-6 md:p-8 bg-zinc-900/40 rounded-2xl border border-white/5 hover:border-indigo-500/50 transition-all text-left overflow-hidden shadow-xl"
+                                >
+                                    <div className="absolute inset-0 bg-indigo-500/0 group-hover:bg-indigo-500/5 transition-colors duration-500" />
+                                    <div className="w-12 h-12 rounded-xl bg-indigo-500/10 border border-indigo-500/20 flex items-center justify-center group-hover:scale-110 group-hover:bg-indigo-500/20 transition-all duration-500">
+                                        <MessageSquare className="w-6 h-6 text-indigo-400" />
+                                    </div>
+                                    <div>
+                                        <h3 className="text-xl font-black text-white uppercase tracking-widest leading-none mb-2">Talk to Suspect</h3>
+                                        <p className="text-zinc-500 text-xs font-medium leading-relaxed uppercase tracking-wider">
+                                            Access the subject's dossier, review biometric data, and engage in standard dialogue.
+                                        </p>
+                                    </div>
+                                    <div className="flex items-center gap-2 mt-auto text-indigo-400 font-black text-[10px] uppercase tracking-[0.2em] opacity-0 group-hover:opacity-100 transition-all translate-x-[-10px] group-hover:translate-x-0">
+                                        Initialize Protocol <ArrowRight className="w-3 h-3" />
+                                    </div>
+                                </button>
+
+                                {/* Confront Strategy */}
+                                <button
+                                    onClick={() => {
+                                        setActiveModalNode({ ...suspectChoiceNode, _initialTab: 'evidence' });
+                                        setSuspectChoiceNode(null);
+                                    }}
+                                    className="group relative flex flex-col gap-4 p-6 md:p-8 bg-zinc-900/40 rounded-2xl border border-white/5 hover:border-amber-500/50 transition-all text-left overflow-hidden shadow-xl"
+                                >
+                                    <div className="absolute inset-0 bg-amber-500/0 group-hover:bg-amber-500/5 transition-colors duration-500" />
+                                    <div className="w-12 h-12 rounded-xl bg-amber-500/10 border border-amber-500/20 flex items-center justify-center group-hover:scale-110 group-hover:bg-amber-500/20 transition-all duration-500">
+                                        <Briefcase className="w-6 h-6 text-amber-400" />
+                                    </div>
+                                    <div>
+                                        <h3 className="text-xl font-black text-white uppercase tracking-widest leading-none mb-2">Confront Evidence</h3>
+                                        <p className="text-zinc-500 text-xs font-medium leading-relaxed uppercase tracking-wider">
+                                            Present gathered files and clues directly. Challenge discrepancies in their story.
+                                        </p>
+                                    </div>
+                                    <div className="flex items-center gap-2 mt-auto text-amber-400 font-black text-[10px] uppercase tracking-[0.2em] opacity-0 group-hover:opacity-100 transition-all translate-x-[-10px] group-hover:translate-x-0">
+                                        Begin Interrogation <ArrowRight className="w-3 h-3" />
+                                    </div>
+                                </button>
+                            </div>
+
+                            {/* Footer Status */}
+                            <div className="px-8 py-4 bg-black/40 border-t border-white/5 flex items-center justify-between">
+                                <div className="flex items-center gap-2">
+                                    <div className="w-1.5 h-1.5 rounded-full bg-indigo-500 animate-pulse" />
+                                    <span className="text-[9px] font-black text-zinc-600 uppercase tracking-[0.3em]">Neural Link Established</span>
+                                </div>
+                                <span className="text-[9px] font-black text-zinc-700 font-mono tracking-widest">ENCRYPTED // SESSION ID {Math.floor(Math.random() * 900000) + 100000}</span>
+                            </div>
+                        </motion.div>
+                    </div>
+                )}
             </AnimatePresence >
 
             {/* Image Zoom Lightbox */}
