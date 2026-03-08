@@ -167,7 +167,8 @@ export default function SuspectProfile({
     // Evidence IDs already confronted — passed from parent so ticks persist across re-opens
     confrontedIds = new Set(),
     // Called when a confrontation succeeds, before navigating away
-    onConfrontationSuccess = null
+    onConfrontationSuccess = null,
+    history = []
 }) {
     const [activeTab, setActiveTab] = useState(initialTab);
     const [suspectDismissal, setSuspectDismissal] = useState(null);
@@ -216,6 +217,17 @@ export default function SuspectProfile({
             if (e.source !== suspect.id) return false;
             if (e.label === 'Default') return false;
 
+            // Resolve target node info
+            const targetNode = nodes.find(n => n.id === e.target);
+            if (!targetNode) return false;
+
+            // If target is a suspect, ensure it is unlocked
+            if (targetNode.type === 'suspect') {
+                const isVisited = history.includes(targetNode.id);
+                const isFlagged = targetNode.data?.variableId && inventory.has(targetNode.data.variableId);
+                if (!isVisited && !isFlagged) return false;
+            }
+
             // Exclude edges whose label matches an evidence item — those belong in the
             // Confrontation tab, not here.
             const edgeLabel = (e.label || '').toLowerCase();
@@ -223,7 +235,7 @@ export default function SuspectProfile({
 
             return true;
         });
-    }, [edges, suspect.id, nodes]);
+    }, [edges, suspect.id, nodes, history, inventory]);
 
     // Hint Logic
     useEffect(() => {
@@ -537,7 +549,7 @@ export default function SuspectProfile({
                                     </div>
                                 ) : (
                                     <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-6">
-                                        {collectedEvidence.map((e, idx) => {
+                                        {relevantEvidence.map((e, idx) => {
                                             const alreadyUsed = confrontedEvidenceIds.has(e.id);
                                             return (
                                                 <motion.button

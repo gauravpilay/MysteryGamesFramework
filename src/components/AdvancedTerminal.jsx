@@ -256,7 +256,7 @@ const AdvancedTerminal = ({ node, edges, onComplete, onFail, addLog }) => {
                 </div>
                 <div className="flex gap-4">
                     <span>ASYNC_IO: ACTIVE</span>
-                    <span>SECURE_LINK: {Math.random().toString(16).substring(2, 8)}</span>
+                    <span>SECURE_LINK: {React.useMemo(() => Math.random().toString(16).substring(2, 8), [])}</span>
                 </div>
             </div>
 

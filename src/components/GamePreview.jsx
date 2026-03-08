@@ -26,46 +26,8 @@ import {
     resolveEdgeTarget as resolveTarget
 } from '../lib/gameLogic';
 
-const BackgroundEffect = ({ isSimultaneous = false }) => (
+const BackgroundEffect = React.memo(({ isSimultaneous = false }) => (
     <div className={`${isSimultaneous ? 'absolute' : 'fixed'} inset-0 pointer-events-none z-0 overflow-hidden bg-[#020205]`}>
-        <style>
-            {`
-            @keyframes scanline {
-                0% { transform: translateY(-100%); }
-                100% { transform: translateY(100%); }
-            }
-            @keyframes grain {
-                0%, 100% { transform: translate(0, 0); }
-                10% { transform: translate(-1%, -1%); }
-                20% { transform: translate(1%, 1%); }
-                30% { transform: translate(-2%, -2%); }
-                40% { transform: translate(2%, 2%); }
-                50% { transform: translate(-1%, 1%); }
-                60% { transform: translate(1%, -1%); }
-                70% { transform: translate(-2%, 1%); }
-                80% { transform: translate(2%, -1%); }
-                90% { transform: translate(-1%, -2%); }
-            }
-            @keyframes pulse-noir {
-                0%, 100% { opacity: 0.15; }
-                50% { opacity: 0.25; }
-            }
-            @keyframes light-leak {
-                0% { transform: translate(-10%, -10%) rotate(0deg); opacity: 0.1; }
-                50% { transform: translate(10%, 10%) rotate(180deg); opacity: 0.2; }
-                100% { transform: translate(-10%, -10%) rotate(360deg); opacity: 0.1; }
-            }
-            .animate-scanline {
-                animation: scanline 8s linear infinite;
-            }
-            .animate-grain {
-                animation: grain 1s steps(10) infinite;
-            }
-            .animate-light-leak {
-                animation: light-leak 20s ease-in-out infinite;
-            }
-            `}
-        </style>
 
         {/* NEO NOIR BACKGROUND IMAGE - THE BASE LAYER */}
         <div
@@ -108,7 +70,7 @@ const BackgroundEffect = ({ isSimultaneous = false }) => (
         {/* Horizontal Static noise lines */}
         <div className="absolute inset-0 opacity-[0.02] bg-[repeating-linear-gradient(0deg,transparent,transparent_1px,rgba(255,255,255,0.1)_1px,rgba(255,255,255,0.1)_2px)] z-[6]"></div>
     </div>
-);
+));
 
 const parseRichText = (input) => {
     if (!input) return "";
@@ -2523,6 +2485,7 @@ const GamePreview = ({ nodes, edges, onClose, gameMetadata, onGameEnd, onNodeCha
                                     onConfrontationSuccess={handleConfrontationSuccess}
                                     confrontedIds={suspectConfrontedIds.get(activeModalNode.id) ?? new Set()}
                                     initialTab={activeModalNode._initialTab || 'dossier'}
+                                    history={history}
                                 />
                             )}
                             {activeModalNode.type === 'evidence' && (

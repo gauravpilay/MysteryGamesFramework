@@ -156,8 +156,93 @@
   }
 
   100% {
-    transform: translateY(1000%);
+    transform: translateY(100%);
   }
+}
+
+@keyframes grain {
+
+  0%,
+  100% {
+    transform: translate(0, 0);
+  }
+
+  10% {
+    transform: translate(-1%, -1%);
+  }
+
+  20% {
+    transform: translate(1%, 1%);
+  }
+
+  30% {
+    transform: translate(-2%, -2%);
+  }
+
+  40% {
+    transform: translate(2%, 2%);
+  }
+
+  50% {
+    transform: translate(-1%, 1%);
+  }
+
+  60% {
+    transform: translate(1%, -1%);
+  }
+
+  70% {
+    transform: translate(-2%, 1%);
+  }
+
+  80% {
+    transform: translate(2%, -1%);
+  }
+
+  90% {
+    transform: translate(-1%, -2%);
+  }
+}
+
+@keyframes pulse-noir {
+
+  0%,
+  100% {
+    opacity: 0.15;
+  }
+
+  50% {
+    opacity: 0.25;
+  }
+}
+
+@keyframes light-leak {
+  0% {
+    transform: translate(-10%, -10%) rotate(0deg);
+    opacity: 0.1;
+  }
+
+  50% {
+    transform: translate(10%, 10%) rotate(180deg);
+    opacity: 0.2;
+  }
+
+  100% {
+    transform: translate(-10%, -10%) rotate(360deg);
+    opacity: 0.1;
+  }
+}
+
+.animate-scanline {
+  animation: scanline 8s linear infinite;
+}
+
+.animate-grain {
+  animation: grain 1s steps(10) infinite;
+}
+
+.animate-light-leak {
+  animation: light-leak 20s ease-in-out infinite;
 }
 
 .custom-scrollbar::-webkit-scrollbar {
@@ -295,7 +380,8 @@
 
 /* React Flow Customizations */
 .react-flow__edge.selected .react-flow__edge-path {
-  stroke: #6366f1 !important; /* indigo-500 */
+  stroke: #6366f1 !important;
+  /* indigo-500 */
   stroke-width: 4 !important;
   filter: drop-shadow(0 0 8px rgba(99, 102, 241, 0.6));
   transition: all 0.3s ease;

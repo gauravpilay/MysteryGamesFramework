@@ -51,7 +51,7 @@ const FeedbackModal = ({ isOpen, onClose, onSubmit, caseTitle, isSimultaneous = 
     if (!isOpen) return null;
 
     return (
-        <div className={`${isSimultaneous ? 'absolute' : 'fixed'} inset-0 z-[200] flex items-center justify-center p-4 bg-black/90 backdrop-blur-xl`}>
+        <div className={`${isSimultaneous ? 'absolute' : 'fixed'} inset-0 z-[200] flex items-center justify-center p-4 bg-black/90 backdrop-blur-md`}>
             <motion.div
                 initial={{ scale: 0.9, opacity: 0, y: 20 }}
                 animate={{ scale: 1, opacity: 1, y: 0 }}

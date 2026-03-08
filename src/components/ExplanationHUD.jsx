@@ -5,8 +5,9 @@ import { Button } from './ui/shared';
 
 const ExplanationHUD = ({ type, title, text, onClose, isSimultaneous }) => {
     const isCorrect = type === 'correct';
+    const analysisId = React.useMemo(() => `0x${Math.random().toString(16).slice(2, 10).toUpperCase()}`, []);
 
-    const config = isCorrect ? {
+    const config = React.useMemo(() => (isCorrect ? {
         color: 'emerald',
         icon: ShieldCheck,
         badge: 'Validation Success',
@@ -30,7 +31,7 @@ const ExplanationHUD = ({ type, title, text, onClose, isSimultaneous }) => {
         headerBg: 'bg-rose-950/40',
         button: 'bg-zinc-800 hover:bg-zinc-700 text-zinc-300',
         particleColor: 'bg-rose-400'
-    };
+    }), [isCorrect]);
 
     const Icon = config.icon;
 
@@ -41,7 +42,7 @@ const ExplanationHUD = ({ type, title, text, onClose, isSimultaneous }) => {
                 initial={{ opacity: 0 }}
                 animate={{ opacity: 1 }}
                 exit={{ opacity: 0 }}
-                className="absolute inset-0 bg-black/90 backdrop-blur-md"
+                className="absolute inset-0 bg-black/90 backdrop-blur-sm"
                 onClick={onClose}
             />
 
@@ -198,7 +199,7 @@ const ExplanationHUD = ({ type, title, text, onClose, isSimultaneous }) => {
 
                     {/* Technical Footer */}
                     <div className="bg-black/60 px-8 py-4 border-t border-white/5 flex justify-between items-center text-[8px] font-mono text-zinc-600 uppercase tracking-widest">
-                        <span>Analysis ID: 0x{Math.random().toString(16).slice(2, 10).toUpperCase()}</span>
+                        <span>Analysis ID: {analysisId}</span>
                         <div className="flex gap-4">
                             <span className="flex items-center gap-1"><TrendingUp className="w-2 h-2" /> Synced</span>
                             <span className="flex items-center gap-1"><Fingerprint className="w-2 h-2" /> Encrypted</span>
