@@ -1,7 +1,7 @@
 import React, { memo, useState, useRef, useEffect } from 'react';
 import ReactDOM from 'react-dom';
 import { Handle, Position, NodeResizer, useNodes } from 'reactflow';
-import { FileText, User, Search, GitMerge, Terminal, MessageSquare, Music, Image as ImageIcon, Star, MousePointerClick, Trash2, Plus, Copy, Fingerprint, Bell, HelpCircle, ToggleLeft, Unlock, Binary, Grid3x3, Folder, ChevronDown, ChevronUp, Maximize, X, Save, File, FolderOpen, AlertCircle, Brain, Cpu, Send, Loader2, Check, Filter, ShieldAlert, Box, CheckCircle, Activity, Shield, Hash, Film, Globe, Lightbulb, Mail, Bold, Italic, List, Type, Palette, Info, Volume2, VolumeX, Eye, EyeOff, Link } from 'lucide-react';
+import { FileText, User, Search, GitMerge, Terminal, MessageSquare, Music, Image as ImageIcon, Star, MousePointerClick, Trash2, Plus, Copy, Fingerprint, Bell, HelpCircle, ToggleLeft, Unlock, Binary, Grid3x3, Folder, ChevronDown, ChevronUp, Maximize, X, Save, File, FolderOpen, AlertCircle, Brain, Cpu, Send, Loader2, Check, Filter, ShieldAlert, Box, CheckCircle, Activity, Shield, Hash, Film, Globe, Lightbulb, Mail, Bold, Italic, List, Type, Palette, Info, Volume2, VolumeX, Eye, EyeOff, Link, Trophy, Sparkles, Target } from 'lucide-react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { storage, db } from '../../lib/firebase';
 import { ref, uploadBytes, getDownloadURL } from 'firebase/storage';
@@ -796,12 +796,11 @@ export const CutsceneNode = memo(({ id, data, selected }) => {
  * CharacterMediaManager - Reusable interactive media system for suspect identities.
  * Connects to Firestore to track and display previously-used character assets.
  */
-const CharacterMediaManager = ({ currentUrl, onSelect, projectId }) => {
+const CharacterMediaManager = ({ currentUrl, onSelect, projectId, variant = 'full' }) => {
     const [isUploading, setIsUploading] = useState(false);
     const [previousMedia, setPreviousMedia] = useState([]);
     const [showGallery, setShowGallery] = useState(false);
 
-    // Load previously uploaded character images for this project
     useEffect(() => {
         const fetchMedia = async () => {
             if (!db || !projectId) return;
@@ -813,14 +812,11 @@ const CharacterMediaManager = ({ currentUrl, onSelect, projectId }) => {
                 );
                 const snapshot = await getDocs(q);
                 const mediaItems = snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() }));
-
-                // Deduplicate by URL
                 const uniqueMedia = mediaItems.reduce((acc, current) => {
                     const x = acc.find(item => item.url === current.url);
                     if (!x) return acc.concat([current]);
                     return acc;
                 }, []);
-
                 setPreviousMedia(uniqueMedia);
             } catch (err) {
                 console.error("Error fetching character media:", err);
@@ -832,18 +828,12 @@ const CharacterMediaManager = ({ currentUrl, onSelect, projectId }) => {
     const handleFileUpload = async (e) => {
         const file = e.target.files[0];
         if (!file || !storage) return;
-
         setIsUploading(true);
         try {
-            // 1. Upload to Storage
-            console.log("Commencing binary uplink to storage...");
             const storagePath = `characters/${projectId || 'global'}/${Date.now()}_${file.name}`;
             const storageRef = ref(storage, storagePath);
             await uploadBytes(storageRef, file);
             const url = await getDownloadURL(storageRef);
-            console.log("Storage uplink confirmed. Updating media database...");
-
-            // 2. Save Reference to Firestore for Global Retrieval
             if (db && projectId) {
                 await addDoc(collection(db, 'character_media'), {
                     projectId,
@@ -851,116 +841,176 @@ const CharacterMediaManager = ({ currentUrl, onSelect, projectId }) => {
                     name: file.name,
                     createdAt: serverTimestamp()
                 });
-                console.log("Database index synchronization complete.");
             }
-
             onSelect(url);
             setShowGallery(false);
         } catch (error) {
-            console.error("Transmission Failure:", error);
-            const phase = error.code?.includes('storage') ? "STORAGE ARCHIVE" : "DATABASE INDEXING";
-            alert(`Digital identity upload failed at [${phase}]. Check Firebase security protocols for '${storagePath}' permissions.`);
+            console.error("Upload failed:", error);
+            alert("Upload failed.");
         } finally {
             setIsUploading(false);
         }
     };
 
+    const isCompact = variant === 'compact';
+
     return (
-        <div className="space-y-2">
-            <div className="relative group overflow-hidden rounded-xl border border-white/10 bg-black/40 h-48 flex flex-col transition-all hover:border-indigo-500/50">
+        <div className={`space-y-2 ${isCompact ? 'relative' : ''}`}>
+            {/* Main Preview/Trigger Area */}
+            <div className={`relative group overflow-hidden rounded-xl border border-white/10 bg-black/40 transition-all hover:border-indigo-500/50 flex flex-col items-center justify-center ${isCompact ? 'h-12 w-12 cursor-pointer' : 'h-48 w-full'}`}>
                 {currentUrl ? (
-                    <div className="relative h-full w-full">
+                    <div className="relative h-full w-full" onClick={() => isCompact && setShowGallery(!showGallery)}>
                         <img src={currentUrl} className="w-full h-full object-cover" alt="Profile" />
-                        <div className="absolute inset-0 bg-gradient-to-t from-black/80 via-transparent to-transparent opacity-0 group-hover:opacity-100 transition-opacity flex items-end p-3">
-                            <button
-                                onClick={() => onSelect(null)}
-                                className="w-full py-1.5 bg-red-600/20 hover:bg-red-600/40 border border-red-500/30 rounded-lg text-[9px] font-black uppercase tracking-widest text-red-200 transition-all backdrop-blur-md"
-                            >
-                                Purge Identity
-                            </button>
+                        <div className="absolute inset-0 bg-black/60 opacity-0 group-hover:opacity-100 transition-opacity flex items-center justify-center p-1">
+                            {isCompact ? (
+                                <button onClick={(e) => { e.stopPropagation(); onSelect(null); }} className="p-1 bg-red-600 rounded-full text-white">
+                                    <X className="w-2 h-2" />
+                                </button>
+                            ) : (
+                                <button onClick={() => onSelect(null)} className="w-full py-1.5 bg-red-600/20 hover:bg-red-600/40 border border-red-500/30 rounded-lg text-[9px] font-black uppercase tracking-widest text-red-200 backdrop-blur-md">
+                                    Purge Identity
+                                </button>
+                            )}
                         </div>
                     </div>
                 ) : (
-                    <div className="flex-1 flex flex-col items-center justify-center p-6 text-center">
-                        <div className="w-12 h-12 rounded-full bg-zinc-900 border border-white/5 flex items-center justify-center mb-3">
-                            {isUploading ? <Loader2 className="w-5 h-5 animate-spin text-indigo-500" /> : <User className="w-6 h-6 text-zinc-700" />}
+                    <div className="flex flex-col items-center justify-center w-full h-full group-hover:bg-white/5 transition-colors relative" onClick={() => isCompact && setShowGallery(!showGallery)}>
+                        <div className={`${isCompact ? 'w-6 h-6' : 'w-12 h-12'} rounded-full bg-zinc-900 border border-white/5 flex items-center justify-center mb-1`}>
+                            {isUploading ? <Loader2 className={`animate-spin text-indigo-500 ${isCompact ? 'w-3 h-3' : 'w-6 h-6'}`} /> : <User className={`${isCompact ? 'w-3 h-3' : 'w-6 h-6'} text-zinc-700`} />}
                         </div>
-                        <span className="text-[10px] font-black uppercase tracking-[0.2em] text-zinc-500">Unassigned Identity</span>
-                        <input
-                            type="file"
-                            accept="image/*"
-                            className="absolute inset-0 opacity-0 cursor-pointer"
-                            onChange={handleFileUpload}
-                            disabled={isUploading}
-                        />
+                        {!isCompact && <span className="text-[10px] font-black uppercase tracking-[0.2em] text-zinc-500">Unassigned Identity</span>}
+                        {!isCompact && (
+                            <input type="file" accept="image/*" className="absolute inset-0 opacity-0 cursor-pointer" onChange={handleFileUpload} disabled={isUploading} />
+                        )}
                     </div>
                 )}
             </div>
 
-            <div className="flex gap-2">
-                <div className="relative flex-1">
-                    <input
-                        type="file"
-                        accept="image/*"
-                        className="absolute inset-0 opacity-0 cursor-pointer z-10"
-                        onChange={handleFileUpload}
-                        disabled={isUploading}
-                    />
-                    <button className="w-full py-2 bg-indigo-600/10 hover:bg-indigo-600/20 border border-indigo-500/30 rounded-lg flex items-center justify-center gap-2 transition-all">
-                        <Plus className="w-3.5 h-3.5 text-indigo-400" />
-                        <span className="text-[9px] font-black uppercase tracking-widest text-indigo-300">New Uplink</span>
+            {/* Controls (Only in Full variant) */}
+            {!isCompact && (
+                <div className="flex gap-2">
+                    <div className="relative flex-1">
+                        <input type="file" accept="image/*" className="absolute inset-0 opacity-0 cursor-pointer z-10" onChange={handleFileUpload} disabled={isUploading} />
+                        <button className="w-full py-2 bg-indigo-600/10 hover:bg-indigo-600/20 border border-indigo-500/30 rounded-lg flex items-center justify-center gap-2 transition-all">
+                            <Plus className="w-3.5 h-3.5 text-indigo-400" />
+                            <span className="text-[9px] font-black uppercase tracking-widest text-indigo-300">New Uplink</span>
+                        </button>
+                    </div>
+                    <button
+                        onClick={() => setShowGallery(!showGallery)}
+                        className={`px-3 py-2 border rounded-lg transition-all flex items-center gap-2 ${showGallery ? 'bg-amber-500/20 border-amber-500 text-amber-300' : 'bg-zinc-900/50 border-white/5 text-zinc-500 hover:text-white hover:bg-zinc-800'}`}
+                    >
+                        <FolderOpen className="w-3.5 h-3.5" />
+                        <span className="text-[9px] font-black uppercase tracking-widest">Library</span>
                     </button>
                 </div>
+            )}
 
-                <button
-                    onClick={() => setShowGallery(!showGallery)}
-                    className={`px-3 py-2 border rounded-lg transition-all flex items-center gap-2 ${showGallery ? 'bg-amber-500/20 border-amber-500 text-amber-300' : 'bg-zinc-900/50 border-white/5 text-zinc-500 hover:text-white hover:bg-zinc-800'}`}
-                >
-                    <FolderOpen className="w-3.5 h-3.5" />
-                    <span className="text-[9px] font-black uppercase tracking-widest">Library</span>
-                </button>
-            </div>
-
-            <AnimatePresence>
-                {showGallery && (
-                    <motion.div
-                        initial={{ height: 0, opacity: 0 }}
-                        animate={{ height: 'auto', opacity: 1 }}
-                        exit={{ height: 0, opacity: 0 }}
-                        className="overflow-hidden bg-black/40 border border-white/5 rounded-xl p-3 space-y-3 shadow-inner"
-                    >
-                        <div className="flex items-center justify-between">
-                            <span className="text-[8px] font-black text-zinc-500 uppercase tracking-widest">Available Records // {previousMedia.length}</span>
-                            <button onClick={() => setShowGallery(false)} className="text-zinc-600 hover:text-white transition-colors">
-                                <X className="w-3 h-3" />
-                            </button>
-                        </div>
-
-                        {previousMedia.length > 0 ? (
-                            <div className="grid grid-cols-3 gap-2 max-h-40 overflow-y-auto pr-1 custom-scrollbar">
-                                {previousMedia.map((media) => (
+            {/* Gallery Portal */}
+            {typeof document !== 'undefined' && ReactDOM.createPortal(
+                <AnimatePresence>
+                    {showGallery && (
+                        <div className="fixed inset-0 z-[1000] flex items-center justify-center p-4">
+                            <motion.div
+                                initial={{ opacity: 0 }}
+                                animate={{ opacity: 1 }}
+                                exit={{ opacity: 0 }}
+                                onClick={() => setShowGallery(false)}
+                                className="absolute inset-0 bg-black/80 backdrop-blur-sm"
+                            />
+                            <motion.div
+                                initial={{ scale: 0.9, opacity: 0, y: 20 }}
+                                animate={{ scale: 1, opacity: 1, y: 0 }}
+                                exit={{ scale: 0.9, opacity: 0, y: 20 }}
+                                className="relative w-full max-w-lg bg-zinc-950 border border-white/10 rounded-2xl shadow-2xl overflow-hidden flex flex-col max-h-[80vh]"
+                            >
+                                {/* Header */}
+                                <div className="p-4 border-b border-white/5 flex items-center justify-between bg-zinc-900/50">
+                                    <div className="flex items-center gap-3">
+                                        <div className="p-2 bg-indigo-500/10 rounded-lg">
+                                            <FolderOpen className="w-4 h-4 text-indigo-400" />
+                                        </div>
+                                        <div>
+                                            <h3 className="text-xs font-black uppercase tracking-wider text-white">Character Archives</h3>
+                                            <p className="text-[10px] text-zinc-500 font-bold uppercase tracking-widest">{previousMedia.length} Identity Records Found</p>
+                                        </div>
+                                    </div>
                                     <button
-                                        key={media.id}
-                                        onClick={() => { onSelect(media.url); setShowGallery(false); }}
-                                        className="relative aspect-square rounded-lg border border-white/5 overflow-hidden hover:border-indigo-500 transition-all group/item"
+                                        onClick={() => setShowGallery(false)}
+                                        className="p-2 hover:bg-white/5 rounded-full text-zinc-500 hover:text-white transition-all"
                                     >
-                                        <img src={media.url} className="w-full h-full object-cover opacity-60 group-hover/item:opacity-100 transition-opacity" alt="Ref" />
-                                        {currentUrl === media.url && (
-                                            <div className="absolute inset-0 bg-indigo-600/20 flex items-center justify-center">
-                                                <Check className="w-4 h-4 text-white" />
-                                            </div>
-                                        )}
+                                        <X className="w-4 h-4" />
                                     </button>
-                                ))}
-                            </div>
-                        ) : (
-                            <div className="py-6 text-center">
-                                <p className="text-[8px] text-zinc-600 uppercase italic">No historical data found</p>
-                            </div>
-                        )}
-                    </motion.div>
-                )}
-            </AnimatePresence>
+                                </div>
+
+                                {/* Body */}
+                                <div className="p-6 overflow-y-auto custom-scrollbar flex-1 space-y-6">
+                                    {/* Upload Section */}
+                                    <div className="relative group">
+                                        <input
+                                            type="file"
+                                            accept="image/*"
+                                            className="absolute inset-0 opacity-0 cursor-pointer z-10"
+                                            onChange={handleFileUpload}
+                                            disabled={isUploading}
+                                        />
+                                        <div className="p-8 border-2 border-dashed border-white/5 rounded-xl bg-white/[0.02] group-hover:bg-white/[0.04] group-hover:border-indigo-500/30 transition-all text-center">
+                                            <div className="w-12 h-12 rounded-full bg-indigo-500/10 flex items-center justify-center mx-auto mb-3 text-indigo-400 group-hover:scale-110 transition-transform">
+                                                {isUploading ? <Loader2 className="w-6 h-6 animate-spin" /> : <Plus className="w-6 h-6" />}
+                                            </div>
+                                            <span className="text-[10px] font-black uppercase tracking-[0.2em] text-zinc-400">
+                                                {isUploading ? 'Uploading Transmission...' : 'Upload New Personal Identity'}
+                                            </span>
+                                            <p className="text-[9px] text-zinc-600 mt-1 uppercase font-bold tracking-widest">Supports PNG, JPG (Max 5MB)</p>
+                                        </div>
+                                    </div>
+
+                                    {/* Grid Section */}
+                                    {previousMedia.length > 0 ? (
+                                        <div className="grid grid-cols-4 gap-3">
+                                            {previousMedia.map((media) => (
+                                                <button
+                                                    key={media.id}
+                                                    onClick={() => { onSelect(media.url); setShowGallery(false); }}
+                                                    className="relative aspect-square rounded-xl border border-white/5 overflow-hidden transition-all hover:scale-105 hover:border-indigo-500 group shadow-lg"
+                                                >
+                                                    <img src={media.url} className="w-full h-full object-cover opacity-60 group-hover:opacity-100 transition-all" alt="Identity" />
+                                                    {currentUrl === media.url && (
+                                                        <div className="absolute inset-0 bg-indigo-500/40 flex items-center justify-center backdrop-blur-[2px]">
+                                                            <div className="p-1 bg-white rounded-full">
+                                                                <Check className="w-3 h-3 text-indigo-600" />
+                                                            </div>
+                                                        </div>
+                                                    )}
+                                                    <div className="absolute inset-0 bg-gradient-to-t from-black/60 via-transparent to-transparent opacity-0 group-hover:opacity-100 transition-opacity" />
+                                                </button>
+                                            ))}
+                                        </div>
+                                    ) : (
+                                        <div className="py-12 border border-dashed border-white/5 rounded-xl text-center">
+                                            <div className="w-10 h-10 rounded-full bg-zinc-900 flex items-center justify-center mx-auto mb-3">
+                                                <Search className="w-4 h-4 text-zinc-700" />
+                                            </div>
+                                            <p className="text-[10px] text-zinc-500 uppercase font-black tracking-widest italic">Temporal archives are currently empty</p>
+                                        </div>
+                                    )}
+                                </div>
+
+                                {/* Footer */}
+                                <div className="p-4 border-t border-white/5 bg-zinc-900/30 flex justify-end">
+                                    <button
+                                        onClick={() => setShowGallery(false)}
+                                        className="px-6 py-2 bg-zinc-800 hover:bg-zinc-700 text-zinc-300 text-[10px] font-black uppercase tracking-widest rounded-lg transition-all"
+                                    >
+                                        Close Archives
+                                    </button>
+                                </div>
+                            </motion.div>
+                        </div>
+                    )}
+                </AnimatePresence>,
+                document.body
+            )}
         </div>
     );
 };
@@ -3577,7 +3627,7 @@ export const CrazyWallNode = memo(({ id, data, selected }) => {
     const addConnection = () => {
         handleChange('connections', [
             ...connections,
-            { suspectId: '', suspectName: '', suspectImage: '', evidenceId: '', evidenceName: '', evidenceImage: '', action: '', learningObjectiveIds: [] }
+            { suspectId: '', suspectName: '', suspectImage: '', action: '', learningObjectiveIds: [] }
         ]);
     };
 
@@ -3593,8 +3643,7 @@ export const CrazyWallNode = memo(({ id, data, selected }) => {
     // Pull suspect & evidence nodes from siblings
     const allNodes = useNodes();
     const suspectNodes = (allNodes || []).filter(n => n.type === 'suspect');
-    const evidenceNodes = (allNodes || []).filter(n => n.type === 'evidence');
-    const { learningObjectives } = useEditorContext();
+    const { learningObjectives, projectId } = useEditorContext();
 
     return (
         <>
@@ -3604,21 +3653,24 @@ export const CrazyWallNode = memo(({ id, data, selected }) => {
                 title="Plot Reveal — Crazy Wall"
                 icon={Eye}
                 selected={selected}
-                headerClass="bg-red-950/40 text-red-200"
-                colorClass="border-red-900/40"
+                headerClass="bg-red-600 text-white font-black"
+                colorClass="border-red-500 shadow-[0_0_20px_rgba(220,38,38,0.2)]"
                 data={data}
                 onLabelChange={(v) => handleChange('label', v)}
             >
                 <div className="space-y-3">
                     {/* Info banner */}
-                    <div className="p-2 bg-red-950/20 border border-red-500/20 rounded-lg text-center">
-                        <p className="text-[10px] text-red-300 font-bold uppercase tracking-wider mb-0.5">🕵️ Interactive Crazy Wall</p>
-                        <p className="text-[9px] text-zinc-500 italic leading-tight">Player drags tiles to connect suspects, actions & evidence to reveal the plot.</p>
+                    <div className="p-3 bg-red-600/10 border border-red-500/30 rounded-xl text-center shadow-inner group">
+                        <p className="text-[10px] text-red-500 font-black uppercase tracking-[0.2em] mb-1 flex items-center justify-center gap-2">
+                            <Sparkles className="w-3 h-3 group-hover:animate-pulse" />
+                            Interactive Plot Discovery
+                        </p>
+                        <p className="text-[9px] text-zinc-400 font-medium leading-tight">Players link the mastermind to victims and define the motive through a premium drag-and-drop interface.</p>
                     </div>
 
                     {/* Intro text */}
                     <div>
-                        <p className="text-[10px] text-zinc-500 mb-1 uppercase font-bold tracking-tight">Intro Text (shown before the board)</p>
+                        <p className="text-[10px] text-zinc-500 mb-1 uppercase font-bold tracking-tight">Mission Briefing</p>
                         <TextArea
                             placeholder="e.g. You have all the pieces. Now expose the truth..."
                             rows={2}
@@ -3627,33 +3679,59 @@ export const CrazyWallNode = memo(({ id, data, selected }) => {
                         />
                     </div>
 
-                    {/* Connections list */}
+                    {/* Culprit Picker */}
+                    <div className="p-3 bg-red-500/5 border border-red-500/20 rounded-xl space-y-2">
+                        <p className="text-[10px] text-red-500 uppercase font-black tracking-[0.2em] flex items-center gap-2">
+                            <Target className="w-3.5 h-3.5 drop-shadow-[0_0_5px_rgba(220,38,38,0.5)]" /> Identity of Culprit
+                        </p>
+                        <select
+                            className="w-full bg-zinc-950/60 border border-red-500/20 rounded-lg px-2.5 py-2 text-[10px] text-zinc-200 focus:border-red-500 focus:ring-1 focus:ring-red-500/50 outline-none transition-all"
+                            value={data.culpritId || ''}
+                            onChange={(e) => {
+                                const node = suspectNodes.find(n => n.id === e.target.value);
+                                handleChange('culpritId', e.target.value);
+                                handleChange('culpritName', node?.data?.name || node?.data?.label || '');
+                                handleChange('culpritImage', node?.data?.image || node?.data?.images?.[0] || '');
+                            }}
+                        >
+                            <option value="">— Select Culprit —</option>
+                            {suspectNodes.map(n => (
+                                <option key={n.id} value={n.id}>{n.data?.name || n.data?.label || n.id}</option>
+                            ))}
+                        </select>
+
+                        <div className="mt-2 pt-2 border-t border-red-500/10">
+                            <CharacterMediaManager
+                                projectId={projectId}
+                                currentUrl={data.culpritImage}
+                                onSelect={(url) => handleChange('culpritImage', url)}
+                            />
+                        </div>
+                    </div>
+
+                    {/* Associates/Victims list */}
                     <div>
                         <div className="flex items-center justify-between mb-2">
-                            <p className="text-[10px] text-zinc-400 uppercase font-bold tracking-tight flex items-center gap-1">
-                                <Link className="w-3 h-3" /> Plot Connections
+                            <p className="text-[10px] text-indigo-400 uppercase font-black tracking-[0.2em] flex items-center gap-2">
+                                <Link className="w-3.5 h-3.5" /> Exploited Suspects
                             </p>
                             <button
                                 onClick={addConnection}
-                                className="flex items-center gap-1 text-[9px] font-black uppercase tracking-widest text-red-400 hover:text-red-300 px-2 py-1 rounded-lg bg-red-900/20 hover:bg-red-900/30 border border-red-900/30 transition-all"
+                                className="flex items-center gap-1.5 text-[9px] font-black uppercase tracking-[0.15em] text-white px-3 py-1.5 rounded-lg bg-red-600 hover:bg-red-500 shadow-lg shadow-red-600/20 transition-all active:scale-95"
                             >
-                                <Plus className="w-3 h-3" /> Add
+                                <Plus className="w-3 h-3" /> Add Case File
                             </button>
                         </div>
 
                         {connections.length === 0 && (
                             <div className="p-3 border border-dashed border-zinc-800 rounded-lg text-center">
-                                <p className="text-[9px] text-zinc-600 uppercase tracking-wider">No connections yet.<br />Click Add to build the plot.</p>
+                                <p className="text-[9px] text-zinc-600 uppercase tracking-wider">No exploited suspects yet.</p>
                             </div>
                         )}
 
                         <div className="space-y-3 max-h-[400px] overflow-y-auto pr-1 custom-scrollbar">
                             {connections.map((conn, idx) => (
                                 <div key={idx} className="p-3 bg-black/30 border border-zinc-800 rounded-xl space-y-2 relative">
-                                    {/* Row number */}
-                                    <div className="absolute -top-2 -left-2 w-5 h-5 rounded-full bg-red-600 flex items-center justify-center text-[8px] font-black text-white">
-                                        {idx + 1}
-                                    </div>
                                     <button
                                         onClick={() => removeConnection(idx)}
                                         className="absolute top-2 right-2 p-1 rounded-full hover:bg-red-900/30 text-zinc-600 hover:text-red-400 transition-all"
@@ -3663,81 +3741,50 @@ export const CrazyWallNode = memo(({ id, data, selected }) => {
 
                                     {/* Suspect picker */}
                                     <div>
-                                        <p className="text-[9px] text-red-400 uppercase font-bold mb-1 flex items-center gap-1"><User className="w-2.5 h-2.5" /> Suspect</p>
-                                        {suspectNodes.length > 0 ? (
-                                            <select
-                                                className="w-full bg-black border border-zinc-800 rounded px-2 py-1 text-[10px] text-zinc-300 focus:border-red-500 outline-none"
-                                                value={conn.suspectId || ''}
-                                                onChange={(e) => {
-                                                    const node = suspectNodes.find(n => n.id === e.target.value);
-                                                    updateConnection(idx, {
-                                                        suspectId: e.target.value,
-                                                        suspectName: node?.data?.name || node?.data?.label || '',
-                                                        suspectImage: node?.data?.images?.[0] || ''
-                                                    });
-                                                }}
-                                            >
-                                                <option value="">— Pick a Suspect —</option>
-                                                {suspectNodes.map(n => (
-                                                    <option key={n.id} value={n.id}>{n.data?.name || n.data?.label || n.id}</option>
-                                                ))}
-                                            </select>
-                                        ) : (
-                                            <InputField
-                                                placeholder="Suspect name (add Suspect nodes to canvas for picker)"
-                                                value={conn.suspectName || ''}
-                                                onChange={(e) => updateConnection(idx, { suspectName: e.target.value })}
-                                                className="text-red-300/80"
-                                            />
-                                        )}
+                                        <p className="text-[9px] text-zinc-500 uppercase font-bold mb-1 flex items-center gap-1"><User className="w-2.5 h-2.5" /> Associate / Victim</p>
+                                        <div className="flex items-center gap-2">
+                                            <div className="flex-1">
+                                                <select
+                                                    className="w-full bg-black border border-zinc-800 rounded px-2 py-1 text-[10px] text-zinc-300 focus:border-red-500 outline-none"
+                                                    value={conn.suspectId || ''}
+                                                    onChange={(e) => {
+                                                        const node = suspectNodes.find(n => n.id === e.target.value);
+                                                        updateConnection(idx, {
+                                                            suspectId: e.target.value,
+                                                            suspectName: node?.data?.name || node?.data?.label || '',
+                                                            suspectImage: node?.data?.image || node?.data?.images?.[0] || ''
+                                                        });
+                                                    }}
+                                                >
+                                                    <option value="">— Pick a Suspect —</option>
+                                                    {suspectNodes.map(n => (
+                                                        <option key={n.id} value={n.id}>{n.data?.name || n.data?.label || n.id}</option>
+                                                    ))}
+                                                </select>
+                                            </div>
+                                            <div className="w-12 h-12 flex-shrink-0">
+                                                <CharacterMediaManager
+                                                    projectId={projectId}
+                                                    variant="compact"
+                                                    currentUrl={conn.suspectImage}
+                                                    onSelect={(url) => updateConnection(idx, { suspectImage: url })}
+                                                />
+                                            </div>
+                                        </div>
                                     </div>
 
                                     {/* Action text */}
                                     <div>
-                                        <p className="text-[9px] text-indigo-400 uppercase font-bold mb-1 flex items-center gap-1"><FileText className="w-2.5 h-2.5" /> What Did They Do?</p>
+                                        <p className="text-[9px] text-zinc-500 uppercase font-bold mb-1 flex items-center gap-1"><FileText className="w-2.5 h-2.5" /> How were they exploited?</p>
                                         <InputField
-                                            placeholder="e.g. stole the encryption keys"
+                                            placeholder="e.g. Exploited their financial debt"
                                             value={conn.action || ''}
                                             onChange={(e) => updateConnection(idx, { action: e.target.value })}
                                             className="text-indigo-300/80"
                                         />
                                     </div>
 
-                                    {/* Evidence picker */}
                                     <div>
-                                        <p className="text-[9px] text-yellow-400 uppercase font-bold mb-1 flex items-center gap-1"><Search className="w-2.5 h-2.5" /> Using Evidence</p>
-                                        {evidenceNodes.length > 0 ? (
-                                            <select
-                                                className="w-full bg-black border border-zinc-800 rounded px-2 py-1 text-[10px] text-zinc-300 focus:border-yellow-500 outline-none"
-                                                value={conn.evidenceId || ''}
-                                                onChange={(e) => {
-                                                    const node = evidenceNodes.find(n => n.id === e.target.value);
-                                                    updateConnection(idx, {
-                                                        evidenceId: e.target.value,
-                                                        evidenceName: node?.data?.displayName || node?.data?.label || '',
-                                                        evidenceImage: node?.data?.image || ''
-                                                    });
-                                                }}
-                                            >
-                                                <option value="">— Pick Evidence —</option>
-                                                {evidenceNodes.map(n => (
-                                                    <option key={n.id} value={n.id}>{n.data?.displayName || n.data?.label || n.id}</option>
-                                                ))}
-                                            </select>
-                                        ) : (
-                                            <InputField
-                                                placeholder="Evidence name (add Evidence nodes to canvas for picker)"
-                                                value={conn.evidenceName || ''}
-                                                onChange={(e) => updateConnection(idx, { evidenceName: e.target.value })}
-                                                className="text-yellow-300/80"
-                                            />
-                                        )}
-                                    </div>
-
-                                    <div>
-                                        <p className="text-[9px] text-emerald-400 uppercase font-bold mb-1 flex items-center gap-1">
-                                            <CheckCircle className="w-2.5 h-2.5" /> Learning Objectives
-                                        </p>
                                         <ObjectiveSelector
                                             values={conn.learningObjectiveIds || []}
                                             onChange={(v) => updateConnection(idx, { learningObjectiveIds: v })}
@@ -3753,13 +3800,13 @@ export const CrazyWallNode = memo(({ id, data, selected }) => {
                     <div className="mt-2 p-2 bg-black/40 border border-red-900/20 rounded-lg space-y-2">
                         <div className="flex items-center justify-between">
                             <p className="text-[9px] font-bold text-red-400 uppercase tracking-wider flex items-center gap-1">
-                                <Star className="w-3 h-3" /> Score Per Correct Match
+                                <Star className="w-3 h-3" /> Score Reward
                             </p>
                             <InputField
                                 type="number"
                                 placeholder="100"
-                                value={data.score || 100}
-                                onChange={(e) => handleChange('score', parseInt(e.target.value) || 100)}
+                                value={data.score || 1000}
+                                onChange={(e) => handleChange('score', parseInt(e.target.value) || 1000)}
                                 className="w-20 text-right bg-red-950/30 border-red-900/30 text-red-200"
                             />
                         </div>
