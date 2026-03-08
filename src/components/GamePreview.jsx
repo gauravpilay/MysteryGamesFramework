@@ -1766,15 +1766,6 @@ const GamePreview = ({ nodes, edges, onClose, gameMetadata, onGameEnd, onNodeCha
                                 <span className="relative z-10 uppercase font-black text-[8px] md:text-[10px] tracking-tighter md:tracking-widest">Hub</span>
                             </Button>
 
-                            <Button
-                                variant="secondary"
-                                size="sm"
-                                onClick={() => setShowEvidenceBoard(true)}
-                                className="bg-zinc-900/80 border border-zinc-700/50 text-amber-500 hover:text-amber-400 px-2 md:px-3 h-8 md:h-9 shadow-lg shadow-amber-900/10"
-                            >
-                                <LayoutGrid className="w-4 h-4 md:mr-2" />
-                                <span className="hidden md:inline">Crazy Wall</span>
-                            </Button>
                         </div>
                     )}
 
