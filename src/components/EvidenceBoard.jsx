@@ -32,8 +32,8 @@ const EvidenceBoard = ({
         setBoardItems(prev => [...prev, {
             id: item.id,
             type: item.type,
-            label: item.data.displayName || item.data.label || item.data.name,
-            image: item.data.image || item.data.url || (item.type === 'email' ? item.data.images?.[0] : null),
+            label: item.data.displayName || item.data.name || item.data.label || 'Unknown',
+            image: item.data.image || item.data.images?.[0] || item.data.url || (item.type === 'email' ? item.data.images?.[0] : null),
             description: item.data.description || item.data.role || item.data.subject || '',
             x: 100 + Math.random() * 200,
             y: 100 + Math.random() * 200,
@@ -157,7 +157,7 @@ const EvidenceBoard = ({
                                         </div>
                                         {sidebarOpen && (
                                             <div className="min-w-0 flex-1">
-                                                <div className="text-[10px] font-bold text-zinc-200 truncate">{s.data.name}</div>
+                                                <div className="text-[10px] font-bold text-zinc-200 truncate">{s.data.name || s.data.displayName || s.data.label || 'Unknown'}</div>
                                                 <div className="text-[8px] text-zinc-500 truncate">{s.data.role}</div>
                                             </div>
                                         )}

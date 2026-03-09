@@ -257,8 +257,8 @@ const SuspectCard = ({ suspect, position, onUpdatePosition, onOpenDossier, scale
                     <div className="relative w-44 h-44 mb-6 transition-all duration-700">
                         <div className="absolute inset-0 bg-red-600/10 blur-3xl rounded-full opacity-0 group-hover:opacity-100 transition-opacity" />
                         <div className="relative w-full h-full rounded-full border-2 border-white/10 p-2 bg-zinc-950 shadow-2xl overflow-hidden">
-                            {suspect.data.image ? (
-                                <img src={suspect.data.image} alt={suspect.data.name} className="w-full h-full object-cover rounded-full grayscale group-hover:grayscale-0 transition-all duration-700" />
+                            {(suspect.data.image || suspect.data.images?.[0]) ? (
+                                <img src={suspect.data.image || suspect.data.images[0]} alt={suspect.data.name || suspect.data.label} className="w-full h-full object-cover rounded-full grayscale group-hover:grayscale-0 transition-all duration-700" />
                             ) : (
                                 <div className="w-full h-full flex items-center justify-center bg-zinc-900 rounded-full">
                                     <User className="w-16 h-16 text-zinc-700" />
@@ -269,7 +269,7 @@ const SuspectCard = ({ suspect, position, onUpdatePosition, onOpenDossier, scale
 
                     <div className="text-center w-full space-y-2">
                         <span className="text-[10px] font-black text-red-500 tracking-[0.3em] uppercase mb-1 block">Identified</span>
-                        <h4 className="text-2xl font-black text-white tracking-tighter uppercase leading-none">{suspect.data.name}</h4>
+                        <h4 className="text-2xl font-black text-white tracking-tighter uppercase leading-none">{suspect.data.name || suspect.data.label || 'Unknown Suspect'}</h4>
                         <p className="text-xs font-bold text-zinc-500 uppercase tracking-widest">{suspect.data.role || 'Shadow Record'}</p>
 
                         <div className="grid grid-cols-2 gap-3 mt-8 pt-8 border-t border-white/5">

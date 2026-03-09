@@ -350,8 +350,8 @@ export default function SuspectProfile({
                         />
                         <div className="relative w-28 h-28 md:w-36 md:h-36 rounded-full p-1.5 bg-gradient-to-br from-white/20 via-transparent to-white/5 border border-white/10 shadow-2xl">
                             <div className="w-full h-full rounded-full bg-zinc-900 flex items-center justify-center overflow-hidden border-2 border-white/10 relative shadow-[inset_0_0_20px_rgba(0,0,0,0.5)]">
-                                {suspect.data.image ? (
-                                    <img src={suspect.data.image} alt={suspect.data.name} className="w-full h-full object-cover scale-105 group-hover:scale-110 transition-transform duration-700" />
+                                {(suspect.data.image || suspect.data.images?.[0]) ? (
+                                    <img src={suspect.data.image || suspect.data.images[0]} alt={suspect.data.name || suspect.data.label} className="w-full h-full object-cover scale-105 group-hover:scale-110 transition-transform duration-700" />
                                 ) : (
                                     <div className="flex flex-col items-center">
                                         <User className="w-10 h-10 md:w-14 md:h-14 text-zinc-800" />
@@ -383,8 +383,8 @@ export default function SuspectProfile({
                                 <span className="text-[10px] font-black text-zinc-500 uppercase tracking-[0.4em]">#S-{suspect.id.substring(0, 8).toUpperCase()}</span>
                             </div>
                             <h1 className="text-4xl md:text-6xl font-black text-white uppercase tracking-tighter leading-none relative group">
-                                {suspect.data.name}
-                                <span className={`absolute -inset-x-4 -inset-y-2 bg-gradient-to-r ${getAvatarColor(suspect.data.name)} opacity-0 group-hover:opacity-10 blur-2xl transition-opacity duration-700`} />
+                                {suspect.data.name || suspect.data.label || 'Unknown Suspect'}
+                                <span className={`absolute -inset-x-4 -inset-y-2 bg-gradient-to-r ${getAvatarColor(suspect.data.name || suspect.data.label)} opacity-0 group-hover:opacity-10 blur-2xl transition-opacity duration-700`} />
                             </h1>
                             <div className="flex items-center gap-4 mt-6">
                                 <div className="px-4 py-2 bg-zinc-800/80 border border-white/10 rounded-xl shadow-lg flex items-center gap-3">

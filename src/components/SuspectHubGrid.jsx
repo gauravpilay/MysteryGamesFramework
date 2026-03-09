@@ -239,11 +239,11 @@ const SuspectHubGrid = ({ options, nodes, edges, onSuspectClick, getAvatarColor 
                                         <div className="h-24 bg-gradient-to-br from-[#4a2e2a] to-[#2a1a18] p-4 relative">
                                             {/* Circular Avatar */}
                                             <div className="w-14 h-14 rounded-full border-2 border-white/20 overflow-hidden shadow-lg bg-zinc-900">
-                                                {node.data.image ? (
-                                                    <img src={node.data.image} alt={node.data.name} className="w-full h-full object-cover" />
+                                                {(node.data.image || node.data.images?.[0]) ? (
+                                                    <img src={node.data.image || node.data.images[0]} alt={node.data.name || node.data.label} className="w-full h-full object-cover" />
                                                 ) : (
-                                                    <div className={`w-full h-full bg-gradient-to-br ${getAvatarColor(node.data.name || 'U')} flex items-center justify-center text-white font-black text-xl`}>
-                                                        {(node.data.name || 'U').charAt(0).toUpperCase()}
+                                                    <div className={`w-full h-full bg-gradient-to-br ${getAvatarColor(node.data.name || node.data.label || 'U')} flex items-center justify-center text-white font-black text-xl`}>
+                                                        {(node.data.name || node.data.label || 'U').charAt(0).toUpperCase()}
                                                     </div>
                                                 )}
                                             </div>
@@ -257,7 +257,7 @@ const SuspectHubGrid = ({ options, nodes, edges, onSuspectClick, getAvatarColor 
                                         {/* Bottom Details Section (Screenshot Style) */}
                                         <div className="p-5 bg-[#0c0d15] flex flex-col gap-1 min-h-[100px]">
                                             <h3 className="text-xl font-black text-white uppercase tracking-tighter leading-none">
-                                                {node.data.name}
+                                                {node.data.name || node.data.label || 'Unknown Suspect'}
                                             </h3>
                                             <p className="text-[10px] font-bold text-zinc-500 uppercase tracking-widest mb-4">
                                                 {node.data.role || 'Record Available'}

@@ -139,7 +139,7 @@ const DraggableItem = ({ item, type, isUsed }) => {
 };
 
 // ─── Main Game Component ──────────────────────────────────────────────────────
-export const CrazyWallGame = ({ node, nodes: allNodes, onComplete }) => {
+export const CrazyWallGame = ({ node, nodes: allNodes, onComplete, addLog }) => {
     const data = node?.data || {};
     const designerConnections = data.connections || [];
 
@@ -148,8 +148,8 @@ export const CrazyWallGame = ({ node, nodes: allNodes, onComplete }) => {
         const suspectNodes = allNodes.filter(n => n.type === 'suspect');
         return suspectNodes.map(n => ({
             id: n.id,
-            name: n.data?.name || n.data?.label || 'Unknown',
-            image: n.data?.images?.[0] || ''
+            name: n.data?.name || n.data?.displayName || n.data?.label || 'Unknown',
+            image: n.data?.image || n.data?.images?.[0] || n.data?.url || ''
         }));
     }, [allNodes]);
 
@@ -165,6 +165,22 @@ export const CrazyWallGame = ({ node, nodes: allNodes, onComplete }) => {
     const [checked, setChecked] = useState(false);
     const [results, setResults] = useState({ culpritOk: false, rows: [] });
     const [showReveal, setShowReveal] = useState(false);
+
+    // ─── State Sync ───────────────────────────────────────────────────────────
+    // If the node connections change (e.g. from editor), sync the state arrays
+    useEffect(() => {
+        const len = designerConnections.length;
+        setPlacedAssociates(prev => {
+            if (prev.length === len) return prev;
+            return Array(len).fill(null);
+        });
+        setPlacedReasons(prev => {
+            if (prev.length === len) return prev;
+            return Array(len).fill(null);
+        });
+        setResults({ culpritOk: false, rows: [] });
+        setChecked(false);
+    }, [designerConnections.length]);
 
     // ─── Handlers ─────────────────────────────────────────────────────────────
     const handleDropCulprit = (slotId, suspect) => {
@@ -189,12 +205,15 @@ export const CrazyWallGame = ({ node, nodes: allNodes, onComplete }) => {
     };
 
     const handleCheck = () => {
-        const culpritOk = placedCulprit?.id === data.culpritId;
+        const culpritOk = String(placedCulprit?.id) === String(data.culpritId);
         const rowResults = placedAssociates.map((assoc, idx) => {
             const reason = placedReasons[idx];
             if (!assoc || !reason) return { suspectOk: false, reasonOk: false };
-            const match = designerConnections.find(dc => dc.suspectId === assoc.id);
-            const isMatch = match && match.action === reason.action;
+
+            // Look for a connection that matches this suspect ID
+            // We use find to see if ANY of the designer's connections for this suspect match the reason
+            const match = designerConnections.find(dc => String(dc.suspectId) === String(assoc.id));
+            const isMatch = match && String(match.action).trim() === String(reason.action).trim();
             return { suspectOk: isMatch, reasonOk: isMatch };
         });
 
@@ -203,7 +222,10 @@ export const CrazyWallGame = ({ node, nodes: allNodes, onComplete }) => {
 
         const allCorrect = culpritOk && rowResults.every(r => r.suspectOk);
         if (allCorrect) {
+            addLog("ANALYSIS COMPLETE: Conspiracy confirmed.");
             setTimeout(() => setShowReveal(true), 1200);
+        } else {
+            addLog("ANALYSIS FAILED: Correlation mismatch detected.");
         }
     };
 

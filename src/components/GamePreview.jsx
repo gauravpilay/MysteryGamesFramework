@@ -832,14 +832,15 @@ const GamePreview = ({ nodes, edges, onClose, gameMetadata, onGameEnd, onNodeCha
         if (['terminal', 'question', 'identify', 'lockpick', 'keypad', 'decryption', 'interrogation'].includes(currentNode.type)) return;
 
         if (!scoredNodes.has(currentNode.id)) {
-            setScore(s => s + currentNode.data.score);
-            setScoreDelta(currentNode.data.score);
+            const awards = Number(currentNode.data.score) || 0;
+            setScore(s => s + awards);
+            triggerScoreDelta(awards);
 
             // Objective Scoring
-            rewardObjectivePoints(currentNode, currentNode.data.score);
+            rewardObjectivePoints(currentNode, awards);
 
             setScoredNodes(prev => new Set([...prev, currentNode.id]));
-            addLog(`SCORE REWARD: +${currentNode.data.score} Points`);
+            addLog(`SCORE REWARD: +${awards} Points`);
         }
     }, [currentNode, scoredNodes]);
 
@@ -1022,9 +1023,10 @@ const GamePreview = ({ nodes, edges, onClose, gameMetadata, onGameEnd, onNodeCha
 
             // Award Scores for discoveries (even silent ones)
             if (n.data?.score && !scoredNodes.has(n.id)) {
-                setScore(s => s + n.data.score);
-                setScoreDelta(n.data.score);
-                rewardObjectivePoints(n, n.data.score);
+                const awards = Number(n.data.score) || 0;
+                setScore(s => s + awards);
+                triggerScoreDelta(awards);
+                rewardObjectivePoints(n, awards);
                 setScoredNodes(prev => new Set([...prev, n.id]));
                 addLog(`DISCOVERY: Found ${n.data.displayName || n.data.label || 'clue'}`);
             }
@@ -1102,14 +1104,16 @@ const GamePreview = ({ nodes, edges, onClose, gameMetadata, onGameEnd, onNodeCha
 
                 // Award Score for Terminal Hack
                 if (activeModalNode.data.score && !scoredNodes.has(activeModalNode.id)) {
-                    setScore(s => s + activeModalNode.data.score);
-                    setScoreDelta(activeModalNode.data.score);
+                    const awardedS = Number(activeModalNode.data.score) || 0;
+                    setScore(s => s + awardedS);
+                    triggerScoreDelta(awardedS);
+                    triggerFlyingPoints(awardedS);
 
                     // Objective Scoring
-                    rewardObjectivePoints(activeModalNode, activeModalNode.data.score);
+                    rewardObjectivePoints(activeModalNode, awardedS);
 
                     setScoredNodes(prev => new Set([...prev, activeModalNode.id]));
-                    addLog(`HACK REWARD: +${activeModalNode.data.score} Points`);
+                    addLog(`HACK REWARD: +${awardedS} Points`);
                 }
 
                 // Close modal and move to next
@@ -1119,11 +1123,11 @@ const GamePreview = ({ nodes, edges, onClose, gameMetadata, onGameEnd, onNodeCha
         } else {
             addLog(`COMMAND FAILED: Access Denied.`);
             // Penalty
-            const penalty = activeModalNode.data.penalty || 0;
+            const penalty = Number(activeModalNode.data.penalty) || 0;
             if (penalty > 0) {
                 setScore(s => s - penalty);
-                setScoreDelta(-penalty);
-                setFlyingPoints(-penalty);
+                triggerScoreDelta(-penalty);
+                triggerFlyingPoints(-penalty);
                 addLog(`HACK PROTECTION DETECTED: -${penalty} Points`);
 
                 rewardObjectivePoints(activeModalNode, -penalty);
@@ -1158,20 +1162,21 @@ const GamePreview = ({ nodes, edges, onClose, gameMetadata, onGameEnd, onNodeCha
 
         if (isCorrect) {
             if (activeAccusationNode && activeAccusationNode.data.score) {
-                setScore(s => s + activeAccusationNode.data.score);
-                setScoreDelta(activeAccusationNode.data.score);
-                setFlyingPoints(activeAccusationNode.data.score);
-                addLog(`CASE CLOSED: +${activeAccusationNode.data.score} Points`);
+                const awardedS = Number(activeAccusationNode.data.score) || 0;
+                setScore(s => s + awardedS);
+                triggerScoreDelta(awardedS);
+                triggerFlyingPoints(awardedS);
+                addLog(`CASE CLOSED: +${awardedS} Points`);
 
-                rewardObjectivePoints(activeAccusationNode, activeAccusationNode.data.score);
+                rewardObjectivePoints(activeAccusationNode, awardedS);
             }
             setAccusationResult('success');
         } else {
             if (activeAccusationNode && activeAccusationNode.data.penalty) {
-                const penalty = activeAccusationNode.data.penalty;
+                const penalty = Number(activeAccusationNode.data.penalty) || 0;
                 setScore(s => s - penalty);
-                setScoreDelta(-penalty);
-                setFlyingPoints(-penalty);
+                triggerScoreDelta(-penalty);
+                triggerFlyingPoints(-penalty);
                 addLog(`WRONG ACCUSATION: -${penalty} Points`);
 
                 rewardObjectivePoints(activeAccusationNode, -penalty);
@@ -1193,17 +1198,23 @@ const GamePreview = ({ nodes, edges, onClose, gameMetadata, onGameEnd, onNodeCha
 
         if (isCorrect) {
             addLog(`QUESTION SOLVED: ${activeModalNode.data.label}`);
-            // Award points
-            if (activeModalNode.data.score && !scoredNodes.has(activeModalNode.id)) {
-                setScore(s => s + (activeModalNode.data.score || 0));
-                triggerScoreDelta(activeModalNode.data.score || 0);
-                triggerFlyingPoints(activeModalNode.data.score || 0);
+
+            const rawScore = Number(activeModalNode.data.score) || 0;
+
+            // Always trigger feedback animation on success for feel-good factor
+            // If score is 0, show a nominal +100 for visual impact if it's a major gate
+            triggerFlyingPoints(rawScore || 100);
+
+            // Award actual points only once
+            if (rawScore > 0 && !scoredNodes.has(activeModalNode.id)) {
+                setScore(s => s + rawScore);
+                triggerScoreDelta(rawScore);
 
                 // Objective Scoring (Reward)
-                rewardObjectivePoints(activeModalNode, activeModalNode.data.score || 0);
+                rewardObjectivePoints(activeModalNode, rawScore);
 
                 setScoredNodes(prev => new Set([...prev, activeModalNode.id]));
-                addLog(`QUIZ REWARD: +${activeModalNode.data.score} Points`);
+                addLog(`QUIZ REWARD: +${rawScore} Points`);
             }
 
             // Collect explanations from correct options (use generic fallback if none provided)
@@ -1217,20 +1228,24 @@ const GamePreview = ({ nodes, edges, onClose, gameMetadata, onGameEnd, onNodeCha
 
             // Capture node id before state is cleared to avoid stale closure
             const sourceNodeId = activeModalNode.id;
-            setActiveExplanation({
-                title: "Excellent",
-                type: "correct",
-                text: explanationText,
-                onClose: () => {
-                    setActiveExplanation(null);
-                    // Advance to next node
-                    const nodeOptions = edges.filter(e => e.source === sourceNodeId);
-                    setActiveModalNode(null);
-                    if (nodeOptions.length > 0) {
-                        handleOptionClick(nodeOptions[0].target);
+
+            // Give the "flying points" a lot of time to shine before the HUD appears
+            setTimeout(() => {
+                setActiveExplanation({
+                    title: "Excellent",
+                    type: "correct",
+                    text: explanationText,
+                    onClose: () => {
+                        setActiveExplanation(null);
+                        // Advance to next node
+                        const nodeOptions = edges.filter(e => e.source === sourceNodeId);
+                        setActiveModalNode(null);
+                        if (nodeOptions.length > 0) {
+                            handleOptionClick(nodeOptions[0].target);
+                        }
                     }
-                }
-            });
+                });
+            }, 1500);
         } else {
             addLog(`QUESTION FAILED: Incorrect Answer.`);
 
@@ -1251,7 +1266,7 @@ const GamePreview = ({ nodes, edges, onClose, gameMetadata, onGameEnd, onNodeCha
             });
 
             // Apply penalty if defined
-            const penalty = activeModalNode.data.penalty || 0;
+            const penalty = Number(activeModalNode.data.penalty) || 0;
             if (penalty > 0) {
                 setScore(s => s - penalty);
                 triggerScoreDelta(-penalty);
@@ -1267,8 +1282,9 @@ const GamePreview = ({ nodes, edges, onClose, gameMetadata, onGameEnd, onNodeCha
         if (revealedHints.has(hint.id)) return;
 
         // Deduct points
-        setScore(s => s - (hint.penalty || 0));
-        setScoreDelta(-(hint.penalty || 0));
+        const penalty = Number(hint.penalty) || 0;
+        setScore(s => s - penalty);
+        triggerScoreDelta(-penalty);
 
         // Track revealed hint
         setRevealedHints(prev => new Set([...prev, hint.id]));
@@ -2265,7 +2281,7 @@ const GamePreview = ({ nodes, edges, onClose, gameMetadata, onGameEnd, onNodeCha
                                                             whileTap={item.target ? { scale: 0.99 } : {}}
                                                             onClick={() => item.target && handleOptionClick(item.target)}
                                                             disabled={!item.target}
-                                                            className={`w-full text-left rounded-2xl transition-all duration-500 group relative overflow-hidden flex items-center gap-3 md:gap-4 
+                                                            className={`w-full text-left rounded-2xl transition-all duration-500 group relative overflow-hidden flex items-center gap-3 md:gap-4
                                                             ${!item.target ? 'cursor-not-allowed border border-white/5 opacity-40 p-3' : 'cursor-pointer'}
                                                             ${item.isAction && item.target
                                                                     ? `${bg} p-3 md:p-4 border-t border-white/10 shadow-xl`
@@ -2379,7 +2395,7 @@ const GamePreview = ({ nodes, edges, onClose, gameMetadata, onGameEnd, onNodeCha
                                 ${activeModalNode.type === 'suspect'
                                     ? 'border-indigo-500/30 shadow-[0_0_60px_rgba(99,102,241,0.1)]'
                                     : 'border-zinc-800/40 shadow-black/80'}
-                                max-h-[95vh] flex flex-col 
+                                max-h-[95vh] flex flex-col
                                 ${(activeModalNode.type === 'threed' || activeModalNode.type === 'suspect' || activeModalNode.type === 'interrogation' || activeModalNode.type === 'question' || activeModalNode.type === 'email' || activeModalNode.type === 'fact') ? 'max-w-6xl w-full h-[95vh] md:h-[85vh]' : 'max-w-3xl w-full'}`}
                         >
                             {/* Modal Close Button - Elevated to top priority */}
@@ -2455,7 +2471,7 @@ const GamePreview = ({ nodes, edges, onClose, gameMetadata, onGameEnd, onNodeCha
                                             onClick={() => {
                                                 if (activeModalNode.data.score && !scoredNodes.has(activeModalNode.id)) {
                                                     setScore(s => s + activeModalNode.data.score);
-                                                    setScoreDelta(activeModalNode.data.score);
+                                                    triggerScoreDelta(activeModalNode.data.score);
                                                     rewardObjectivePoints(activeModalNode, activeModalNode.data.score);
                                                     setScoredNodes(prev => new Set([...prev, activeModalNode.id]));
                                                     addLog(`EMAIL INTEL REWARD: +${activeModalNode.data.score} Points`);
@@ -2548,13 +2564,14 @@ const GamePreview = ({ nodes, edges, onClose, gameMetadata, onGameEnd, onNodeCha
                                     onComplete={() => {
                                         // Handle score/points if needed
                                         if (activeModalNode.data.score && !scoredNodes.has(activeModalNode.id)) {
-                                            setScore(s => s + activeModalNode.data.score);
-                                            setScoreDelta(activeModalNode.data.score);
-                                            setFlyingPoints(activeModalNode.data.score);
+                                            const awardedS = Number(activeModalNode.data.score) || 0;
+                                            setScore(s => s + awardedS);
+                                            triggerScoreDelta(awardedS);
+                                            triggerFlyingPoints(awardedS);
                                             // Objective Scoring
-                                            rewardObjectivePoints(activeModalNode, activeModalNode.data.score);
+                                            rewardObjectivePoints(activeModalNode, awardedS);
                                             setScoredNodes(prev => new Set([...prev, activeModalNode.id]));
-                                            addLog(`INTERROGATION REWARD: +${activeModalNode.data.score} Points`);
+                                            addLog(`INTERROGATION REWARD: +${awardedS} Points`);
                                         }
 
                                         const next = options[0];
@@ -2915,11 +2932,13 @@ const GamePreview = ({ nodes, edges, onClose, gameMetadata, onGameEnd, onNodeCha
                                     onZoomImage={setZoomedImage}
                                     onConfirm={() => {
                                         if (activeModalNode.data.score && !scoredNodes.has(activeModalNode.id)) {
-                                            setScore(s => s + activeModalNode.data.score);
-                                            setScoreDelta(activeModalNode.data.score);
-                                            rewardObjectivePoints(activeModalNode, activeModalNode.data.score);
+                                            const awardedS = Number(activeModalNode.data.score) || 0;
+                                            setScore(s => s + awardedS);
+                                            triggerScoreDelta(awardedS);
+                                            triggerFlyingPoints(awardedS);
+                                            rewardObjectivePoints(activeModalNode, awardedS);
                                             setScoredNodes(prev => new Set([...prev, activeModalNode.id]));
-                                            addLog(`FACT DISCOVERED: +${activeModalNode.data.score} Points`);
+                                            addLog(`FACT DISCOVERED: +${awardedS} Points`);
                                         }
                                         const rawEdges = edges.filter(e => e.source === activeModalNode.id);
                                         setActiveModalNode(null);
@@ -3127,20 +3146,27 @@ const GamePreview = ({ nodes, edges, onClose, gameMetadata, onGameEnd, onNodeCha
                                         </p>
 
                                         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
-                                            {nodes.filter(n => n.type === 'suspect').map((suspect) => (
-                                                <button
-                                                    key={suspect.id}
-                                                    onClick={() => handleAccuse(suspect)}
-                                                    className="group relative flex flex-col items-center p-6 bg-zinc-900/50 border border-zinc-900 hover:border-red-500/50 rounded-xl transition-all hover:bg-zinc-900"
-                                                >
-                                                    <div className={`w-20 h-20 rounded-full bg-gradient-to-br ${getAvatarColor(suspect.data.name)} flex items-center justify-center mb-4 group-hover:scale-110 transition-transform`}>
-                                                        <span className="text-3xl font-bold text-white shadow-black drop-shadow-lg">{suspect.data.name.charAt(0)}</span>
-                                                    </div>
-                                                    <h3 className="text-lg font-bold text-white mb-1 group-hover:text-red-400 transition-colors">{suspect.data.name}</h3>
-                                                    <p className="text-xs text-zinc-500 uppercase tracking-wider">{suspect.data.role}</p>
-                                                    <div className="absolute inset-0 border-2 border-red-500/0 group-hover:border-red-500/20 rounded-xl transition-colors pointer-events-none"></div>
-                                                </button>
-                                            ))}
+                                            {nodes.filter(n => n.type === 'suspect').map((suspect) => {
+                                                const sName = suspect.data?.name || suspect.data?.label || 'Unknown';
+                                                return (
+                                                    <button
+                                                        key={suspect.id}
+                                                        onClick={() => handleAccuse(suspect)}
+                                                        className="group relative flex flex-col items-center p-6 bg-zinc-900/50 border border-zinc-900 hover:border-red-500/50 rounded-xl transition-all hover:bg-zinc-900"
+                                                    >
+                                                        <div className={`w-20 h-20 rounded-full bg-gradient-to-br ${getAvatarColor(sName)} flex items-center justify-center mb-4 group-hover:scale-110 transition-transform overflow-hidden`}>
+                                                            {(suspect.data?.image || suspect.data?.images?.[0]) ? (
+                                                                <img src={suspect.data.image || suspect.data.images[0]} className="w-full h-full object-cover" alt={sName} />
+                                                            ) : (
+                                                                <span className="text-3xl font-bold text-white shadow-black drop-shadow-lg">{sName.charAt(0).toUpperCase()}</span>
+                                                            )}
+                                                        </div>
+                                                        <h3 className="text-lg font-bold text-white mb-1 group-hover:text-red-400 transition-colors">{sName}</h3>
+                                                        <p className="text-xs text-zinc-500 uppercase tracking-wider">{suspect.data?.role || 'Suspect'}</p>
+                                                        <div className="absolute inset-0 border-2 border-red-500/0 group-hover:border-red-500/20 rounded-xl transition-colors pointer-events-none"></div>
+                                                    </button>
+                                                );
+                                            })}
                                             {nodes.filter(n => n.type === 'suspect').length === 0 && (
                                                 <div className="col-span-full text-center text-zinc-500 py-10">
                                                     No suspects found in database.
@@ -3295,20 +3321,26 @@ const GamePreview = ({ nodes, edges, onClose, gameMetadata, onGameEnd, onNodeCha
                         node={activeCrazyWallNode}
                         nodes={nodes}
                         onComplete={(awardedScore) => {
+                            const completedId = activeCrazyWallNode?.id;
                             setShowCrazyWall(false);
                             // Award points
-                            if (awardedScore > 0) {
-                                setScore(s => s + awardedScore);
-                                setScoreDelta(awardedScore);
-                                rewardObjectivePoints(activeCrazyWallNode, awardedScore);
-                                addLog(`PLOT REVEALED: +${awardedScore} Points`);
+                            const awards = Number(awardedScore) || 0;
+                            if (awards > 0) {
+                                setScore(s => s + awards);
+                                triggerScoreDelta(awards);
+                                triggerFlyingPoints(awards);
+                                rewardObjectivePoints(activeCrazyWallNode, awards);
+                                addLog(`PLOT REVEALED: +${awards} Points`);
                             }
                             setActiveCrazyWallNode(null);
-                            // Advance to next node
-                            if (options.length > 0) {
-                                setTimeout(() => handleOptionClick(options[0].target), 600);
+
+                            // Advance to next node using direct edge search for robustness
+                            const nextEdges = edges.filter(e => e.source === completedId);
+                            if (nextEdges.length > 0) {
+                                setTimeout(() => handleOptionClick(nextEdges[0].target), 600);
                             }
                         }}
+                        addLog={addLog}
                     />
                 )}
             </AnimatePresence>
@@ -3484,28 +3516,28 @@ const GamePreview = ({ nodes, edges, onClose, gameMetadata, onGameEnd, onNodeCha
                 {flyingPoints !== null && (
                     <motion.div
                         key={flyingPointsKey}
-                        initial={{ opacity: 0, y: 120, scale: 0.4, x: '-50%', filter: 'blur(12px)' }}
-                        animate={{ opacity: 1, y: -180, scale: 1.8, x: '-50%', filter: 'blur(0px)' }}
-                        exit={{ opacity: 0, scale: 2.8, y: -380, filter: 'blur(20px)', x: '-50%' }}
+                        initial={{ opacity: 0, y: 0, scale: 0.1, x: '-50%', filter: 'blur(20px)' }}
+                        animate={{ opacity: 1, y: -250, scale: 2.2, x: '-50%', filter: 'blur(0px)' }}
+                        exit={{ opacity: 0, scale: 4, y: -500, filter: 'blur(40px)', x: '-50%' }}
                         transition={{
-                            duration: 1.6,
+                            duration: 1.8,
                             ease: [0.16, 1, 0.3, 1],
-                            scale: { type: 'spring', stiffness: 220, damping: 18 },
-                            filter: { duration: 0.35 }
+                            scale: { type: 'spring', stiffness: 100, damping: 12 },
+                            filter: { duration: 0.4 }
                         }}
-                        className="fixed left-1/2 top-1/2 z-[1000] font-black pointer-events-none text-center whitespace-nowrap select-none"
+                        className="fixed left-1/2 top-1/2 z-[10000] font-black pointer-events-none text-center whitespace-nowrap select-none drop-shadow-[0_0_40px_rgba(0,0,0,0.8)]"
                         style={{
                             fontSize: '96px',
                             lineHeight: 1,
                             background: flyingPoints > 0
-                                ? 'linear-gradient(160deg, #e0e7ff 0%, #a5b4fc 35%, #818cf8 65%, #6366f1 100%)'
+                                ? 'linear-gradient(180deg, #fff 0%, #bcff00 40%, #5efd0b 70%, #00ff00 100%)'
                                 : 'linear-gradient(160deg, #fecdd3 0%, #fb7185 40%, #f43f5e 100%)',
                             WebkitBackgroundClip: 'text',
                             WebkitTextFillColor: 'transparent',
                             backgroundClip: 'text',
                             textShadow: 'none',
                             filter: flyingPoints > 0
-                                ? 'drop-shadow(0 0 32px rgba(99,102,241,0.7)) drop-shadow(0 0 12px rgba(165,180,252,0.5))'
+                                ? 'drop-shadow(0 0 35px rgba(188,255,0,0.8)) drop-shadow(0 0 15px rgba(94,253,11,0.5))'
                                 : 'drop-shadow(0 0 32px rgba(244,63,94,0.7)) drop-shadow(0 0 12px rgba(251,113,133,0.5))'
                         }}
                     >
