@@ -3099,27 +3099,31 @@ const GamePreview = ({ nodes, edges, onClose, gameMetadata, onGameEnd, onNodeCha
             < AnimatePresence >
                 {zoomedImage && (
                     <div
-                        className={`${isSimultaneous ? 'absolute' : 'fixed'} inset-0 z-[200] bg-black/95 backdrop-blur-sm flex items-center justify-center cursor-pointer`}
+                        className={`${isSimultaneous ? 'absolute' : 'fixed'} inset-0 z-[300] bg-black/95 backdrop-blur-sm flex items-center justify-center`}
                         onClick={() => setZoomedImage(null)}
                     >
-                        <button
-                            onClick={(e) => { e.stopPropagation(); setZoomedImage(null); }}
-                            className="absolute top-6 right-6 p-2 bg-zinc-800 text-zinc-400 hover:text-white rounded-full z-[210] transition-colors"
-                        >
-                            <X className="w-6 h-6" />
-                        </button>
                         <motion.div
                             initial={{ scale: 0.9, opacity: 0 }}
                             animate={{ scale: 1, opacity: 1 }}
                             exit={{ scale: 0.9, opacity: 0 }}
-                            className="max-w-[95vw] max-h-[95vh] relative"
+                            className="relative max-w-[95vw] max-h-[95vh]"
                             onClick={(e) => e.stopPropagation()}
                         >
+                            {/* Close button — anchored to image corner, always visible */}
+                            <button
+                                onClick={() => setZoomedImage(null)}
+                                className="absolute -top-4 -right-4 z-[310] w-10 h-10 bg-white text-black rounded-full flex items-center justify-center shadow-2xl hover:bg-zinc-200 transition-colors border-2 border-zinc-300"
+                                title="Close"
+                            >
+                                <X className="w-5 h-5" />
+                            </button>
                             <img
                                 src={zoomedImage}
                                 alt="Zoomed Asset"
-                                className="max-w-full max-h-[90vh] object-contain rounded border border-zinc-800 shadow-2xl"
+                                className="max-w-full max-h-[90vh] object-contain rounded border border-zinc-800 shadow-2xl block"
                             />
+                            {/* Tap-anywhere hint */}
+                            <p className="text-center text-zinc-500 text-xs mt-3 tracking-widest uppercase">Tap anywhere outside to close</p>
                         </motion.div>
                     </div>
                 )}
