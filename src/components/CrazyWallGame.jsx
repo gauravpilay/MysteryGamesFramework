@@ -367,7 +367,7 @@ export const CrazyWallGame = ({ node, nodes: allNodes, onComplete, addLog }) => 
                     </h2>
                     <div className="h-2 w-48 bg-amber-500 mx-auto rounded-full mb-10 shadow-[0_0_30px_rgba(251,191,36,0.5)]" />
                 </div>
-                <p className="text-zinc-400 max-w-2xl text-xl mb-16 leading-relaxed font-medium">The labyrinth has been navigated. The mastermind stands naked against the truth of your deduction.</p>
+                <p className="text-zinc-400 max-w-2xl text-xl mb-16 leading-relaxed font-medium">Well done, you've seen through the complexity and found the person responsible.</p>
                 <motion.button
                     whileHover={{ scale: 1.05, boxShadow: '0 0 50px rgba(251,191,36,0.3)' }}
                     whileTap={{ scale: 0.95 }}
