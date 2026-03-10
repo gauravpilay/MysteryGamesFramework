@@ -73,9 +73,9 @@ const FeedbackModal = ({ isOpen, onClose, onSubmit, caseTitle, isSimultaneous = 
                                     Operation: {caseTitle}
                                 </p>
                             </div>
-                            <Button variant="ghost" size="icon" onClick={onClose} className="rounded-full">
+                            {/* <Button variant="ghost" size="icon" onClick={onClose} className="rounded-full">
                                 <X className="w-5 h-5" />
-                            </Button>
+                            </Button> */}
                         </div>
 
                         <AnimatePresence mode="wait">
