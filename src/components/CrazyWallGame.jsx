@@ -1,6 +1,6 @@
-import React, { useState, useRef, useEffect, useCallback, useMemo } from 'react';
+import React, { useState, useEffect, useCallback, useMemo } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
-import { CheckCircle, AlertTriangle, User, FileText, Star, Trophy, Eye, RotateCcw, X, Target, Link as LinkIcon, Info, Sparkles, Zap, Shield } from 'lucide-react';
+import { CheckCircle, AlertTriangle, User, FileText, Star, Trophy, Eye, RotateCcw, X, Target, Link as LinkIcon, Sparkles, Zap, Shield, XCircle } from 'lucide-react';
 
 // ─── Utilities ───────────────────────────────────────────────────────────────
 const shuffle = (arr) => [...arr].sort(() => Math.random() - 0.5);
@@ -16,10 +16,7 @@ const DropSlot = ({ id, label, icon: Icon, acceptedType, onDrop, currentItem, is
     return (
         <div
             className={`relative w-full h-full border-2 border-dashed rounded-[2rem] transition-all duration-500 flex flex-col items-center justify-center p-3 group backdrop-blur-sm ${border}`}
-            onDragOver={(e) => {
-                e.preventDefault();
-                setIsOver(true);
-            }}
+            onDragOver={(e) => { e.preventDefault(); setIsOver(true); }}
             onDragLeave={() => setIsOver(false)}
             onDrop={(e) => {
                 e.preventDefault();
@@ -27,12 +24,9 @@ const DropSlot = ({ id, label, icon: Icon, acceptedType, onDrop, currentItem, is
                 const dataText = e.dataTransfer.getData('application/json');
                 if (!dataText) return;
                 const data = JSON.parse(dataText);
-                if (data.type === acceptedType) {
-                    onDrop(id, data.item);
-                }
+                if (data.type === acceptedType) onDrop(id, data.item);
             }}
         >
-            {/* Slot Pulse Effect when empty */}
             {!currentItem && !checked && (
                 <div className="absolute inset-0 rounded-[2rem] bg-indigo-500/5 animate-pulse" />
             )}
@@ -92,56 +86,146 @@ const DropSlot = ({ id, label, icon: Icon, acceptedType, onDrop, currentItem, is
 };
 
 // ─── Draggable Item ────────────────────────────────────────────────────────────
-const DraggableItem = ({ item, type, isUsed }) => {
+const DraggableItem = ({ item, type, isUsed }) => (
+    <motion.div
+        draggable={!isUsed}
+        onDragStart={(e) => { e.dataTransfer.setData('application/json', JSON.stringify({ type, item })); }}
+        whileHover={!isUsed ? { scale: 1.05, y: -8, rotate: 1 } : {}}
+        whileTap={!isUsed ? { scale: 0.95 } : {}}
+        className={`cursor-grab active:cursor-grabbing transition-all duration-500 ${isUsed ? 'opacity-20 grayscale scale-90 pointer-events-none' : 'opacity-100'}`}
+    >
+        {type === 'suspect' ? (
+            <div className="w-32 md:w-36 bg-zinc-900 border border-white/10 rounded-[1.5rem] p-3 shadow-[0_15px_30px_-10px_rgba(0,0,0,0.8)] overflow-hidden group relative">
+                <div className="absolute inset-0 bg-indigo-500/0 group-hover:bg-indigo-500/5 transition-colors duration-500" />
+                {item.image ? (
+                    <div className="relative w-full h-24 md:h-28 rounded-xl overflow-hidden mb-3">
+                        <img src={item.image} className="w-full h-full object-cover transition-transform duration-700 group-hover:scale-110" alt={item.name} />
+                        <div className="absolute inset-0 bg-gradient-to-t from-black/80 via-transparent to-transparent opacity-60 group-hover:opacity-100 transition-opacity" />
+                        <div className="absolute bottom-2 left-0 right-0 px-2 text-center">
+                            <span className="text-[9px] font-black text-white/90 uppercase tracking-widest">{item.name}</span>
+                        </div>
+                    </div>
+                ) : (
+                    <div className="w-full h-24 md:h-28 bg-gradient-to-br from-zinc-800 to-black border border-white/5 rounded-xl flex items-center justify-center mb-3">
+                        <User className="w-10 h-10 text-zinc-600" />
+                    </div>
+                )}
+                <div className="flex items-center justify-center gap-2">
+                    <div className="w-1.5 h-1.5 rounded-full bg-red-600 animate-pulse" />
+                    <p className="text-[10px] font-black text-zinc-400 uppercase tracking-[0.2em] group-hover:text-white transition-colors">Suspect File</p>
+                </div>
+            </div>
+        ) : (
+            <div className="w-full bg-indigo-600/10 hover:bg-indigo-600/20 border border-indigo-500/20 hover:border-indigo-400/50 rounded-2xl p-4 shadow-2xl flex items-center gap-4 group transition-all duration-300">
+                <div className="bg-indigo-500/20 p-2.5 rounded-xl border border-indigo-500/20 group-hover:rotate-12 transition-transform shadow-lg">
+                    <Zap className="w-4 h-4 text-indigo-400 group-hover:text-indigo-200" />
+                </div>
+                <p className="text-[11px] font-bold text-indigo-100/80 leading-snug line-clamp-2 uppercase tracking-wide group-hover:text-white transition-colors italic">"{item.action}"</p>
+            </div>
+        )}
+    </motion.div>
+);
+
+// ─── Floating Points Overlay ──────────────────────────────────────────────────
+const FloatingPoints = ({ value, isPositive, onDone }) => {
+    useEffect(() => {
+        const t = setTimeout(onDone, 2200);
+        return () => clearTimeout(t);
+    }, [onDone]);
+
     return (
         <motion.div
-            draggable={!isUsed}
-            onDragStart={(e) => {
-                e.dataTransfer.setData('application/json', JSON.stringify({ type, item }));
-            }}
-            whileHover={!isUsed ? { scale: 1.05, y: -8, rotate: 1 } : {}}
-            whileTap={!isUsed ? { scale: 0.95 } : {}}
-            className={`cursor-grab active:cursor-grabbing transition-all duration-500 ${isUsed ? 'opacity-20 grayscale scale-90 pointer-events-none' : 'opacity-100'}`}
+            initial={{ opacity: 0, y: 0, scale: 0.8 }}
+            animate={{ opacity: [0, 1, 1, 0], y: -160, scale: [0.8, 1.4, 1.2, 1] }}
+            transition={{ duration: 2.2, ease: 'easeOut' }}
+            className="fixed inset-0 z-[999] pointer-events-none flex items-center justify-center"
         >
-            {type === 'suspect' ? (
-                <div className="w-32 md:w-36 bg-zinc-900 border border-white/10 rounded-[1.5rem] p-3 shadow-[0_15px_30px_-10px_rgba(0,0,0,0.8)] overflow-hidden group relative">
-                    {/* Hover Glow */}
-                    <div className="absolute inset-0 bg-indigo-500/0 group-hover:bg-indigo-500/5 transition-colors duration-500" />
-
-                    {item.image ? (
-                        <div className="relative w-full h-24 md:h-28 rounded-xl overflow-hidden mb-3">
-                            <img src={item.image} className="w-full h-full object-cover transition-transform duration-700 group-hover:scale-110" alt={item.name} />
-                            <div className="absolute inset-0 bg-gradient-to-t from-black/80 via-transparent to-transparent opacity-60 group-hover:opacity-100 transition-opacity" />
-                            <div className="absolute bottom-2 left-0 right-0 px-2 text-center">
-                                <span className="text-[9px] font-black text-white/90 uppercase tracking-widest">{item.name}</span>
-                            </div>
-                        </div>
-                    ) : (
-                        <div className="w-full h-24 md:h-28 bg-gradient-to-br from-zinc-800 to-black border border-white/5 rounded-xl flex items-center justify-center mb-3">
-                            <User className="w-10 h-10 text-zinc-600" />
-                        </div>
-                    )}
-                    <div className="flex items-center justify-center gap-2">
-                        <div className="w-1.5 h-1.5 rounded-full bg-red-600 animate-pulse" />
-                        <p className="text-[10px] font-black text-zinc-400 uppercase tracking-[0.2em] group-hover:text-white transition-colors">Suspect File</p>
-                    </div>
-                </div>
-            ) : (
-                <div className="w-full bg-indigo-600/10 hover:bg-indigo-600/20 border border-indigo-500/20 hover:border-indigo-400/50 rounded-2xl p-4 shadow-2xl flex items-center gap-4 group transition-all duration-300">
-                    <div className="bg-indigo-500/20 p-2.5 rounded-xl border border-indigo-500/20 group-hover:rotate-12 transition-transform shadow-lg">
-                        <Zap className="w-4 h-4 text-indigo-400 group-hover:text-indigo-200" />
-                    </div>
-                    <p className="text-[11px] font-bold text-indigo-100/80 leading-snug line-clamp-2 uppercase tracking-wide group-hover:text-white transition-colors italic">"{item.action}"</p>
-                </div>
-            )}
+            <span className={`text-7xl md:text-9xl font-black drop-shadow-2xl ${isPositive ? 'text-emerald-400' : 'text-rose-500'}`}
+                style={{ textShadow: isPositive ? '0 0 60px rgba(52,211,153,0.8)' : '0 0 60px rgba(244,63,94,0.8)' }}
+            >
+                {isPositive ? '+' : '-'}{Math.abs(value)}
+            </span>
         </motion.div>
     );
 };
+
+// ─── Wrong Culprit Overlay ────────────────────────────────────────────────────
+const WrongCulpritOverlay = ({ suspect, penaltyPoints, onDismiss }) => (
+    <motion.div
+        initial={{ opacity: 0 }}
+        animate={{ opacity: 1 }}
+        exit={{ opacity: 0 }}
+        className="fixed inset-0 z-[600] bg-black/90 backdrop-blur-md flex items-center justify-center p-6"
+        onClick={onDismiss}
+    >
+        <motion.div
+            initial={{ scale: 0.85, y: 40, opacity: 0 }}
+            animate={{ scale: 1, y: 0, opacity: 1 }}
+            exit={{ scale: 0.9, opacity: 0 }}
+            transition={{ type: 'spring', damping: 18 }}
+            className="relative bg-zinc-950 border border-rose-500/30 rounded-[3rem] max-w-lg w-full p-12 text-center shadow-[0_0_100px_rgba(244,63,94,0.25)] overflow-hidden"
+            onClick={(e) => e.stopPropagation()}
+        >
+            {/* Decorative glow blobs */}
+            <div className="absolute top-0 left-0 w-72 h-72 bg-rose-600/10 blur-[120px] rounded-full -translate-x-1/2 -translate-y-1/2 pointer-events-none" />
+            <div className="absolute bottom-0 right-0 w-72 h-72 bg-rose-600/10 blur-[120px] rounded-full translate-x-1/2 translate-y-1/2 pointer-events-none" />
+
+            {/* Icon */}
+            <motion.div
+                initial={{ rotate: -15, scale: 0 }}
+                animate={{ rotate: 0, scale: 1 }}
+                transition={{ type: 'spring', damping: 10, delay: 0.1 }}
+                className="relative inline-flex mb-8"
+            >
+                <div className="w-28 h-28 rounded-full bg-rose-500/10 border-2 border-rose-500/30 flex items-center justify-center">
+                    <XCircle className="w-14 h-14 text-rose-500" />
+                </div>
+                <motion.div
+                    animate={{ scale: [1, 1.6, 1], opacity: [0.4, 0, 0.4] }}
+                    transition={{ duration: 2, repeat: Infinity }}
+                    className="absolute inset-0 rounded-full bg-rose-500/20 blur-xl"
+                />
+            </motion.div>
+
+            <h2 className="text-4xl md:text-5xl font-black text-white uppercase tracking-tight mb-3 italic leading-none">
+                Wrong <span className="text-rose-500">Mastermind</span>
+            </h2>
+
+            {suspect && (
+                <p className="text-zinc-400 text-lg font-medium mb-2">
+                    <span className="text-white font-black">{suspect.name}</span> is not the one pulling the strings.
+                </p>
+            )}
+
+            <p className="text-zinc-600 text-sm mb-8 italic">Your deduction was incorrect. Reassess the evidence and try again.</p>
+
+            {penaltyPoints > 0 && (
+                <div className="inline-flex items-center gap-3 px-6 py-3 bg-rose-500/10 border border-rose-500/20 rounded-2xl mb-8">
+                    <AlertTriangle className="w-5 h-5 text-rose-500" />
+                    <span className="text-rose-400 font-black text-xl">−{penaltyPoints} points deducted</span>
+                </div>
+            )}
+
+            <motion.button
+                whileHover={{ scale: 1.05 }}
+                whileTap={{ scale: 0.95 }}
+                onClick={onDismiss}
+                className="px-12 py-4 bg-rose-600 hover:bg-rose-500 text-white font-black uppercase tracking-[0.3em] rounded-2xl transition-all shadow-2xl shadow-rose-900/40 flex items-center gap-3 mx-auto"
+            >
+                <RotateCcw className="w-5 h-5" /> Try Again
+            </motion.button>
+
+            <p className="text-zinc-700 text-xs mt-6 uppercase tracking-widest">The suspect card has been returned to the pool</p>
+        </motion.div>
+    </motion.div>
+);
 
 // ─── Main Game Component ──────────────────────────────────────────────────────
 export const CrazyWallGame = ({ node, nodes: allNodes, onComplete, addLog }) => {
     const data = node?.data || {};
     const designerConnections = data.connections || [];
+    const winPoints = Number(data.score) || 1000;
+    const penaltyPts = Number(data.penalty) || 0;
 
     // ─── Setup Items ──────────────────────────────────────────────────────────
     const suspects = useMemo(() => {
@@ -166,42 +250,30 @@ export const CrazyWallGame = ({ node, nodes: allNodes, onComplete, addLog }) => 
     const [results, setResults] = useState({ culpritOk: false, rows: [] });
     const [showReveal, setShowReveal] = useState(false);
 
+    // Wrong culprit feedback
+    const [wrongCulprit, setWrongCulprit] = useState(null); // suspect object when wrong
+    const [showFloatingPoints, setShowFloatingPoints] = useState(null); // { value, isPositive }
+
     // ─── State Sync ───────────────────────────────────────────────────────────
-    // If the node connections change (e.g. from editor), sync the state arrays
     useEffect(() => {
         const len = designerConnections.length;
-        setPlacedAssociates(prev => {
-            if (prev.length === len) return prev;
-            return Array(len).fill(null);
-        });
-        setPlacedReasons(prev => {
-            if (prev.length === len) return prev;
-            return Array(len).fill(null);
-        });
+        setPlacedAssociates(prev => prev.length === len ? prev : Array(len).fill(null));
+        setPlacedReasons(prev => prev.length === len ? prev : Array(len).fill(null));
         setResults({ culpritOk: false, rows: [] });
         setChecked(false);
     }, [designerConnections.length]);
 
     // ─── Handlers ─────────────────────────────────────────────────────────────
-    const handleDropCulprit = (slotId, suspect) => {
-        setPlacedCulprit(suspect);
-        setChecked(false);
-    };
-
+    const handleDropCulprit = (slotId, suspect) => { setPlacedCulprit(suspect); setChecked(false); };
     const handleDropAssociate = (index, suspect) => {
         const idx = parseInt(index.split('_')[1]);
-        const next = [...placedAssociates];
-        next[idx] = suspect;
-        setPlacedAssociates(next);
-        setChecked(false);
+        const next = [...placedAssociates]; next[idx] = suspect;
+        setPlacedAssociates(next); setChecked(false);
     };
-
     const handleDropReason = (index, reason) => {
         const idx = parseInt(index.split('_')[1]);
-        const next = [...placedReasons];
-        next[idx] = reason;
-        setPlacedReasons(next);
-        setChecked(false);
+        const next = [...placedReasons]; next[idx] = reason;
+        setPlacedReasons(next); setChecked(false);
     };
 
     const handleCheck = () => {
@@ -209,9 +281,6 @@ export const CrazyWallGame = ({ node, nodes: allNodes, onComplete, addLog }) => 
         const rowResults = placedAssociates.map((assoc, idx) => {
             const reason = placedReasons[idx];
             if (!assoc || !reason) return { suspectOk: false, reasonOk: false };
-
-            // Look for a connection that matches this suspect ID
-            // We use find to see if ANY of the designer's connections for this suspect match the reason
             const match = designerConnections.find(dc => String(dc.suspectId) === String(assoc.id));
             const isMatch = match && String(match.action).trim() === String(reason.action).trim();
             return { suspectOk: isMatch, reasonOk: isMatch };
@@ -221,13 +290,35 @@ export const CrazyWallGame = ({ node, nodes: allNodes, onComplete, addLog }) => 
         setChecked(true);
 
         const allCorrect = culpritOk && rowResults.every(r => r.suspectOk);
+
         if (allCorrect) {
-            addLog("ANALYSIS COMPLETE: Conspiracy confirmed.");
-            setTimeout(() => setShowReveal(true), 1200);
+            addLog('ANALYSIS COMPLETE: Conspiracy confirmed.');
+            // Show floating win points, then reveal screen
+            if (winPoints > 0) {
+                setShowFloatingPoints({ value: winPoints, isPositive: true });
+            } else {
+                setTimeout(() => setShowReveal(true), 1200);
+            }
+        } else if (!culpritOk) {
+            addLog('ANALYSIS FAILED: Wrong mastermind identified.');
+            // Show penalty, then wrong-culprit overlay
+            if (penaltyPts > 0) {
+                setShowFloatingPoints({ value: penaltyPts, isPositive: false });
+            } else {
+                setWrongCulprit(placedCulprit);
+            }
         } else {
-            addLog("ANALYSIS FAILED: Correlation mismatch detected.");
+            addLog('ANALYSIS PARTIAL: Culprit correct but connections mismatch.');
         }
     };
+
+    const handleDismissWrong = useCallback(() => {
+        // Move suspect card back to pool
+        setPlacedCulprit(null);
+        setChecked(false);
+        setResults({ culpritOk: false, rows: [] });
+        setWrongCulprit(null);
+    }, []);
 
     const handleReset = () => {
         setPlacedCulprit(null);
@@ -235,6 +326,7 @@ export const CrazyWallGame = ({ node, nodes: allNodes, onComplete, addLog }) => 
         setPlacedReasons(Array(designerConnections.length).fill(null));
         setChecked(false);
         setResults({ culpritOk: false, rows: [] });
+        setWrongCulprit(null);
     };
 
     const isComplete = placedCulprit !== null &&
@@ -244,7 +336,20 @@ export const CrazyWallGame = ({ node, nodes: allNodes, onComplete, addLog }) => 
     const usedSuspectIds = [placedCulprit?.id, ...placedAssociates.map(a => a?.id)].filter(Boolean);
     const usedReasonIds = placedReasons.map(r => r?.id).filter(Boolean);
 
-    // ─── Render ───────────────────────────────────────────────────────────────
+    // ─── Floating points done handler ─────────────────────────────────────────
+    const handleFloatingDone = useCallback(() => {
+        const wasPositive = showFloatingPoints?.isPositive;
+        setShowFloatingPoints(null);
+        if (wasPositive) {
+            // Win — go to reveal
+            setTimeout(() => setShowReveal(true), 400);
+        } else {
+            // Loss — show wrong overlay
+            setWrongCulprit(placedCulprit);
+        }
+    }, [showFloatingPoints, placedCulprit]);
+
+    // ─── Render: Reveal Screen ─────────────────────────────────────────────────
     if (showReveal) {
         return (
             <div className="fixed inset-0 z-[500] bg-black flex flex-col items-center justify-center p-6 text-center">
@@ -266,7 +371,7 @@ export const CrazyWallGame = ({ node, nodes: allNodes, onComplete, addLog }) => 
                 <motion.button
                     whileHover={{ scale: 1.05, boxShadow: '0 0 50px rgba(251,191,36,0.3)' }}
                     whileTap={{ scale: 0.95 }}
-                    onClick={() => onComplete && onComplete(data.score || 1000)}
+                    onClick={() => onComplete && onComplete(winPoints)}
                     className="px-20 py-6 bg-gradient-to-r from-amber-500 via-amber-400 to-amber-600 text-black font-black uppercase tracking-[0.5em] rounded-3xl transition-all shadow-2xl text-lg flex items-center gap-4 group"
                 >
                     Secured Case File
@@ -282,9 +387,30 @@ export const CrazyWallGame = ({ node, nodes: allNodes, onComplete, addLog }) => 
             <div className="absolute top-0 left-0 w-[40%] h-[40%] bg-indigo-600/10 blur-[200px] pointer-events-none opacity-50" />
             <div className="absolute bottom-0 right-0 w-[40%] h-[40%] bg-red-600/10 blur-[200px] pointer-events-none opacity-50" />
 
+            {/* Floating points animation */}
+            <AnimatePresence>
+                {showFloatingPoints && (
+                    <FloatingPoints
+                        value={showFloatingPoints.value}
+                        isPositive={showFloatingPoints.isPositive}
+                        onDone={handleFloatingDone}
+                    />
+                )}
+            </AnimatePresence>
+
+            {/* Wrong culprit overlay */}
+            <AnimatePresence>
+                {wrongCulprit && (
+                    <WrongCulpritOverlay
+                        suspect={wrongCulprit}
+                        penaltyPoints={penaltyPts}
+                        onDismiss={handleDismissWrong}
+                    />
+                )}
+            </AnimatePresence>
+
             {/* Left Sidebar - Evidence Locker */}
             <div className="w-full md:w-96 bg-zinc-950/80 backdrop-blur-3xl border-r border-white/5 flex flex-col h-full z-40 shadow-[20px_0_50px_rgba(0,0,0,0.5)] relative">
-                {/* Header with vibrant accent */}
                 <div className="p-8 border-b border-white/10 bg-gradient-to-br from-zinc-900/60 to-transparent relative overflow-hidden">
                     <div className="absolute top-0 right-[-20px] w-40 h-40 bg-indigo-600/10 blur-3xl rounded-full" />
                     <div className="flex items-center gap-4 mb-4 relative z-10">
@@ -341,13 +467,12 @@ export const CrazyWallGame = ({ node, nodes: allNodes, onComplete, addLog }) => 
 
             {/* Main Plot Area */}
             <div className="flex-1 relative bg-gradient-to-b from-[#08080a] to-[#050507] overflow-y-auto custom-scrollbar flex flex-col">
-                {/* Background Grid Pattern - More Visible */}
                 <div className="absolute inset-0 opacity-[0.05] pointer-events-none"
                     style={{ backgroundImage: 'radial-gradient(circle at 2px 2px, white 1px, transparent 0)', backgroundSize: '48px 48px' }} />
 
                 <div className="relative z-10 px-12 py-24 flex flex-col items-center flex-1 max-w-7xl mx-auto w-full">
 
-                    {/* Header Section */}
+                    {/* Header */}
                     <div className="text-center mb-28 relative">
                         <motion.div initial={{ y: -30, opacity: 0 }} animate={{ y: 0, opacity: 1 }} className="flex flex-col items-center">
                             <div className="px-8 py-2 bg-gradient-to-r from-red-600/20 to-indigo-600/20 border border-white/10 backdrop-blur-3xl rounded-full mb-8 shadow-2xl">
@@ -369,16 +494,13 @@ export const CrazyWallGame = ({ node, nodes: allNodes, onComplete, addLog }) => 
 
                     <div className="w-full flex flex-col items-center gap-20 relative pb-48">
 
-                        {/* 1. MASTERMIND TARGET AREA */}
+                        {/* 1. MASTERMIND TARGET */}
                         <div className="relative z-30 group">
                             <div className="absolute -top-12 left-1/2 -translate-x-1/2 flex flex-col items-center gap-2 whitespace-nowrap">
                                 <span className="text-[11px] font-black text-red-500 uppercase tracking-[0.5em] drop-shadow-[0_0_10px_rgba(220,38,38,0.5)]">The Mastermind</span>
                             </div>
-
-                            {/* Scanning VFX around target */}
                             <div className="absolute inset-[-40px] border border-red-500/10 rounded-full animate-[spin_10s_linear_infinite] pointer-events-none" />
                             <div className="absolute inset-[-20px] border border-white/5 rounded-full pointer-events-none" />
-
                             <div className="w-64 h-[22rem] transform transition-all duration-700 group-hover:scale-[1.05] group-hover:rotate-[-2deg] relative">
                                 <DropSlot
                                     id="culprit"
@@ -391,21 +513,16 @@ export const CrazyWallGame = ({ node, nodes: allNodes, onComplete, addLog }) => 
                                     checked={checked}
                                 />
                             </div>
-
-                            {/* Visual Glow */}
                             <div className={`absolute inset-0 blur-[100px] -z-10 rounded-full transition-colors duration-1000 ${checked ? (results.culpritOk ? 'bg-emerald-600/20' : 'bg-red-600/30') : 'bg-red-600/10'}`} />
                         </div>
 
-                        {/* 2. DYNAMIC CONNECTOR THREADS */}
+                        {/* 2. CONNECTOR THREADS */}
                         <div className="w-full max-w-5xl relative h-[150px]">
-                            {/* Vertical Central Line */}
-                            <div className={`absolute top-0 left-1/2 -translate-x-1/2 w-1 h-full transition-all duration-700 
-                                ${checked ? (results.culpritOk ? 'bg-emerald-500 shadow-[0_0_20px_emerald]' : 'bg-rose-600 shadow-[0_0_20px_rose]') : 'bg-gradient-to-b from-red-600/40 to-indigo-600/40 shadow-[0_0_15px_rgba(220,38,38,0.2)]'}`} />
-
-                            {/* Horizontal Thread Branch */}
+                            <div className={`absolute top-0 left-1/2 -translate-x-1/2 w-1 h-full transition-all duration-700
+                                ${checked ? (results.culpritOk ? 'bg-emerald-500' : 'bg-rose-600') : 'bg-gradient-to-b from-red-600/40 to-indigo-600/40'}`} />
                             {placedAssociates.length > 1 && (
                                 <div className={`absolute bottom-0 left-[20%] right-[20%] h-1 transition-all duration-700 rounded-full
-                                    ${checked ? (results.culpritOk ? 'bg-emerald-500 shadow-[0_0_20px_emerald]' : 'bg-rose-600 shadow-[0_0_20px_rose]') : 'bg-indigo-600/40 shadow-[0_0_15px_rgba(99,102,241,0.2)]'}`} />
+                                    ${checked ? (results.culpritOk ? 'bg-emerald-500' : 'bg-rose-600') : 'bg-indigo-600/40'}`} />
                             )}
                         </div>
 
@@ -413,17 +530,12 @@ export const CrazyWallGame = ({ node, nodes: allNodes, onComplete, addLog }) => 
                         <div className="flex flex-wrap justify-center gap-x-20 gap-y-24 w-full max-w-6xl relative">
                             {placedAssociates.map((_, idx) => (
                                 <div key={idx} className="flex flex-col items-center gap-10 relative group/row">
-
-                                    {/* Connection Line from branch */}
                                     <div className={`absolute -top-24 left-1/2 -translate-x-1/2 w-1 h-24 transition-all duration-700
-                                        ${checked ? (results.rows[idx]?.suspectOk ? 'bg-emerald-500 shadow-[0_0_20px_emerald]' : 'bg-rose-600 shadow-[0_0_20px_rose]') : 'bg-indigo-600/20'}`} />
+                                        ${checked ? (results.rows[idx]?.suspectOk ? 'bg-emerald-500' : 'bg-rose-600') : 'bg-indigo-600/20'}`} />
 
                                     <div className="flex flex-col md:flex-row items-center gap-8 md:gap-12 bg-white/[0.02] p-8 rounded-[3rem] border border-white/5 shadow-2xl relative overflow-hidden group-hover/row:bg-white/[0.04] transition-all">
-
-                                        {/* Row Decorative Elements */}
                                         <div className="absolute top-0 left-0 w-20 h-20 bg-indigo-500/5 blur-3xl rounded-full" />
 
-                                        {/* Target Slot */}
                                         <div className="flex flex-col items-center gap-4">
                                             <div className="px-4 py-1.5 bg-black/40 border border-white/5 rounded-full text-[9px] font-black text-zinc-500 uppercase tracking-widest group-hover/row:text-zinc-300 transition-colors">Target Subject</div>
                                             <div className="w-40 h-56 transform transition-all duration-500 group-hover/row:scale-[1.05] group-hover/row:rotate-[-1deg]">
@@ -440,17 +552,15 @@ export const CrazyWallGame = ({ node, nodes: allNodes, onComplete, addLog }) => 
                                             </div>
                                         </div>
 
-                                        {/* Visual Link Hook */}
-                                        <div className={`p-4 rounded-3xl border-2 transition-all duration-700 relative z-10 
+                                        <div className={`p-4 rounded-3xl border-2 transition-all duration-700 relative z-10
                                             ${checked
                                                 ? (results.rows[idx]?.suspectOk
-                                                    ? 'bg-emerald-500/20 border-emerald-400 shadow-[0_0_25px_emerald] scale-110'
-                                                    : 'bg-rose-600/20 border-rose-500 shadow-[0_0_25px_rose] animate-shake')
+                                                    ? 'bg-emerald-500/20 border-emerald-400 scale-110'
+                                                    : 'bg-rose-600/20 border-rose-500')
                                                 : 'bg-zinc-900/80 border-white/10 group-hover/row:border-indigo-500/40 opacity-40 group-hover/row:opacity-100'}`}>
                                             <LinkIcon className={`w-6 h-6 ${checked ? (results.rows[idx]?.suspectOk ? 'text-emerald-400' : 'text-rose-400') : 'text-zinc-500'}`} />
                                         </div>
 
-                                        {/* Motive Slot */}
                                         <div className="flex flex-col items-center gap-4">
                                             <div className="px-4 py-1.5 bg-black/40 border border-white/5 rounded-full text-[9px] font-black text-zinc-500 uppercase tracking-widest group-hover/row:text-zinc-300 transition-colors">Intel / Reason</div>
                                             <div className="w-64 h-32 transform transition-all duration-500 group-hover/row:scale-[1.05] group-hover/row:rotate-[1deg]">
@@ -468,7 +578,6 @@ export const CrazyWallGame = ({ node, nodes: allNodes, onComplete, addLog }) => 
                                         </div>
                                     </div>
 
-                                    {/* Visual Thread Highlighter - pulses if wrong */}
                                     {checked && !results.rows[idx]?.suspectOk && (
                                         <div className="absolute -inset-8 border-2 border-rose-500/20 rounded-[4rem] animate-pulse pointer-events-none" />
                                     )}
@@ -476,14 +585,10 @@ export const CrazyWallGame = ({ node, nodes: allNodes, onComplete, addLog }) => 
                             ))}
                         </div>
 
-                        {/* REVEAL ACTION BUTTON - ENHANCED */}
+                        {/* REVEAL BUTTON */}
                         <div className="mt-24 flex flex-col items-center gap-8 group">
                             <motion.button
-                                whileHover={isComplete ? {
-                                    scale: 1.08,
-                                    boxShadow: '0 0 70px rgba(220,38,38,0.5)',
-                                    y: -5
-                                } : {}}
+                                whileHover={isComplete ? { scale: 1.08, boxShadow: '0 0 70px rgba(220,38,38,0.5)', y: -5 } : {}}
                                 whileTap={isComplete ? { scale: 0.95, y: 0 } : {}}
                                 onClick={handleCheck}
                                 disabled={!isComplete}
@@ -492,14 +597,8 @@ export const CrazyWallGame = ({ node, nodes: allNodes, onComplete, addLog }) => 
                                         ? 'bg-gradient-to-r from-red-600 via-rose-600 to-red-700 text-white border-white/20 cursor-pointer'
                                         : 'bg-zinc-900 text-zinc-700 cursor-not-allowed border-white/5 opacity-40'}`}
                             >
-                                {/* Animated Shine Flare */}
                                 <div className="absolute inset-0 bg-gradient-to-r from-transparent via-white/20 to-transparent -translate-x-full hover:translate-x-full transition-transform duration-1000" />
-
-                                {isComplete ? (
-                                    <Sparkles className="w-8 h-8 animate-bounce text-white" />
-                                ) : (
-                                    <Eye className="w-8 h-8 opacity-20" />
-                                )}
+                                {isComplete ? <Sparkles className="w-8 h-8 animate-bounce text-white" /> : <Eye className="w-8 h-8 opacity-20" />}
                                 <span className="text-lg md:text-xl drop-shadow-lg italic">Unravel the Truth</span>
                             </motion.button>
 

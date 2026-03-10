@@ -339,13 +339,19 @@
   animation: holographic-flicker 4s infinite linear;
 }
 
-@keyframes shimmer {
+@keyframes shimmer-x {
   0% {
-    transform: translateY(-100%);
+    transform: translateX(-100%);
   }
 
   100% {
-    transform: translateY(100%);
+    transform: translateX(100%);
+  }
+}
+
+@layer utilities {
+  .animate-shimmer {
+    animation: shimmer-x 2s infinite linear;
   }
 }
 

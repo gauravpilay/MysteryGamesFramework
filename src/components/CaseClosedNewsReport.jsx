@@ -1,6 +1,6 @@
 import React, { useState, useEffect, useRef } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
-import { Radio, Newspaper, TrendingUp, Award, Share2, ArrowRight, Clock, Shield, AlertTriangle, CheckCircle, User, FileText, ExternalLink, Download, Check } from 'lucide-react';
+import { Radio, Newspaper, TrendingUp, Award, Share2, ArrowRight, Clock, Shield, AlertTriangle, CheckCircle, User, FileText, ExternalLink, Download, Check, LayoutDashboard, Briefcase, MessageSquare } from 'lucide-react';
 import { callAI } from '../lib/ai';
 import { useConfig } from '../lib/config';
 import { jsPDF } from 'jspdf';
@@ -14,6 +14,7 @@ const CaseClosedNewsReport = ({
     culpritName,
     objectiveScores,
     onClose,
+    onDashboard,
     isSimultaneous = false
 }) => {
     const { settings } = useConfig();
@@ -193,7 +194,7 @@ const CaseClosedNewsReport = ({
     const tickerText = report?.ticker?.join(' • ') || "SCANNING FOR NEW DATA • NEURAL LINK STABLE • RECONSTRUCTION IN PROGRESS • ";
 
     return (
-        <div className={`${isSimultaneous ? 'absolute' : 'fixed'} inset-0 z-[200] bg-[#020202] text-white font-sans overflow-hidden flex flex-col`}>
+        <div className={`${isSimultaneous ? 'absolute' : 'fixed'} inset-0 z-[1000] bg-[#020202] text-white font-sans overflow-hidden flex flex-col`}>
             {/* AMBIENT BACKGROUND */}
             <div className="absolute inset-0 z-0">
                 <div className={`absolute inset-0 opacity-20 bg-gradient-to-b ${report?.mood === 'triumphant' ? 'from-emerald-900/40' : report?.mood === 'somber' ? 'from-red-900/40' : 'from-indigo-900/40'} via-black to-black`} />
@@ -220,18 +221,9 @@ const CaseClosedNewsReport = ({
                     </div>
                 </div>
 
-                <div className="flex items-center gap-3">
-                    <div className="hidden md:flex flex-col items-end mr-4">
-                        <span className="text-[8px] font-black text-zinc-500 uppercase tracking-widest">Network Status</span>
-                        <span className="text-[10px] font-bold text-emerald-400">ENCRYPTED_SIGNAL</span>
-                    </div>
-                    <button
-                        onClick={onClose}
-                        className="p-2 md:px-4 md:py-2 bg-white/5 hover:bg-white/10 border border-white/10 rounded-full md:rounded-xl flex items-center gap-2 transition-all active:scale-95 group"
-                    >
-                        <span className="hidden md:inline text-xs font-bold uppercase tracking-widest">Exit Report</span>
-                        <ArrowRight className="w-4 h-4 group-hover:translate-x-1 transition-transform" />
-                    </button>
+                <div className="hidden md:flex flex-col items-end mr-4">
+                    <span className="text-[8px] font-black text-zinc-500 uppercase tracking-widest">Network Status</span>
+                    <span className="text-[10px] font-bold text-emerald-400">ENCRYPTED_SIGNAL</span>
                 </div>
             </div>
 
@@ -406,6 +398,26 @@ const CaseClosedNewsReport = ({
                                 <span className="text-[8px] font-black uppercase tracking-widest">Download</span>
                             </button>
                         </div>
+
+                        <motion.button
+                            initial={{ opacity: 0, y: 10 }}
+                            animate={{ opacity: 1, y: 0 }}
+                            transition={{ delay: 0.5 }}
+                            onClick={onClose}
+                            className="w-full py-6 mt-4 bg-indigo-600 hover:bg-indigo-500 border border-indigo-400/30 rounded-[2rem] flex flex-col items-center justify-center gap-2 transition-all active:scale-[0.98] shadow-[0_20px_40px_-15px_rgba(79,70,229,0.4)] group relative overflow-hidden"
+                        >
+                            {/* Animated Background Shimmer */}
+                            <div className="absolute inset-0 bg-gradient-to-r from-transparent via-white/10 to-transparent -translate-x-full group-hover:animate-shimmer pointer-events-none" />
+
+                            <div className="flex items-center gap-3">
+                                <MessageSquare className="w-5 h-5 text-white" />
+                                <span className="text-sm font-black uppercase tracking-[0.2em] text-white">Provide Feedback</span>
+                            </div>
+                            <span className="text-[10px] font-bold text-indigo-200/60 uppercase tracking-widest">Mission Debriefing</span>
+
+                            {/* Inner Glow */}
+                            <div className="absolute inset-x-0 top-0 h-px bg-gradient-to-r from-transparent via-white/30 to-transparent" />
+                        </motion.button>
                     </div>
                 </div>
             </main>
@@ -433,7 +445,7 @@ const CaseClosedNewsReport = ({
                     <span className="text-[10px] font-bold text-white/80 font-mono">LIVE_LINK:DET_ALPHA</span>
                 </div>
             </div>
-        </div>
+        </div >
     );
 };
 

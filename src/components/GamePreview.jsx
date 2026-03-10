@@ -579,6 +579,9 @@ const GamePreview = ({ nodes, edges, onClose, gameMetadata, onGameEnd, onNodeCha
     const [showCrazyWall, setShowCrazyWall] = useState(false);
     const [activeCrazyWallNode, setActiveCrazyWallNode] = useState(null);
     const [accusedName, setAccusedName] = useState('');
+    // When CrazyWall completes and shows the news report, this ref holds the next
+    // node to navigate to when the player closes the report.
+    const crazyWallNextTargetRef = React.useRef(null);
     const [activeExplanation, setActiveExplanation] = useState(null); // { title: string, type: 'correct'|'incorrect', text: string, onClose: function }
     const [showQuestionHelp, setShowQuestionHelp] = useState(false);
 
@@ -1388,6 +1391,22 @@ const GamePreview = ({ nodes, edges, onClose, gameMetadata, onGameEnd, onNodeCha
         }
     };
 
+    const handleFinishAndReturn = () => {
+        const timeSpent = timeElapsed;
+        const resultData = {
+            score,
+            objectiveScores: playerObjectiveScores,
+            outcome: accusationResult || 'aborted',
+            timeSpentSeconds: timeSpent
+        };
+        ttsStop();
+        if (onGameEnd) {
+            onGameEnd(resultData);
+        } else {
+            onClose();
+        }
+    };
+
     const handleAbort = () => {
         const timeSpent = timeElapsed;
         setPendingResultData({
@@ -1929,12 +1948,11 @@ const GamePreview = ({ nodes, edges, onClose, gameMetadata, onGameEnd, onNodeCha
                     )}
 
 
-                    {/* Evidence Board Button */}
+                    {/* Investigation Hub Button - Upgraded Visibility */}
                     {missionStarted && (
-                        <div className="flex items-center gap-1.5 md:gap-2">
+                        <div className="flex items-center">
                             <Button
                                 variant="secondary"
-                                size="sm"
                                 onClick={() => {
                                     const hubNode = nodes.find(n =>
                                         n.type === 'story' &&
@@ -1945,7 +1963,6 @@ const GamePreview = ({ nodes, edges, onClose, gameMetadata, onGameEnd, onNodeCha
                                         setShowEvidenceBoard(false);
                                         setActiveModalNode(null);
                                     } else {
-                                        // Fallback: search for first node with suspect options
                                         const suspectedHub = nodes.find(n =>
                                             edges.filter(e => e.source === n.id)
                                                 .some(e => nodes.find(tn => tn.id === e.target)?.type === 'suspect')
@@ -1953,27 +1970,22 @@ const GamePreview = ({ nodes, edges, onClose, gameMetadata, onGameEnd, onNodeCha
                                         if (suspectedHub) handleOptionClick(suspectedHub.id);
                                     }
                                 }}
-                                className="relative group bg-zinc-900/90 border border-red-500/20 text-red-500 hover:text-red-400 px-2 md:px-3 h-8 md:h-9 shadow-lg shadow-red-900/20 overflow-hidden"
+                                className="relative group bg-indigo-600 hover:bg-indigo-500 text-white px-4 md:px-6 h-10 md:h-11 rounded-2xl border border-indigo-400/50 shadow-[0_0_20px_rgba(79,70,229,0.3)] hover:shadow-[0_0_35px_rgba(79,70,229,0.5)] overflow-hidden transition-all duration-300 active:scale-95 flex items-center gap-2"
                             >
-                                <div className="absolute inset-0 bg-red-500/10 opacity-0 group-hover:opacity-100 transition-opacity" />
-                                <div className="absolute top-0 right-0 w-2 h-2 bg-red-500 rounded-bl-full opacity-50 pulse-simple" />
-                                <User className="w-3 h-3 md:w-4 md:h-4 md:mr-2 relative z-10" />
-                                <span className="relative z-10 uppercase font-black text-[8px] md:text-[10px] tracking-tighter md:tracking-widest">Hub</span>
-                            </Button>
+                                {/* Animated Shimmer Effect */}
+                                <div className="absolute inset-0 bg-gradient-to-r from-transparent via-white/20 to-transparent -translate-x-full group-hover:animate-shimmer pointer-events-none" />
 
+                                <LayoutGrid className="w-4 h-4 md:w-5 md:h-5 text-shadow-glow" />
+                                <span className="uppercase font-black text-[9px] md:text-[11px] tracking-[0.1em] md:tracking-[0.2em] relative z-10">
+                                    Investigation Hub
+                                </span>
+
+                                {/* Bottom Indicator Line */}
+                                <div className="absolute bottom-0 left-0 w-full h-[2px] bg-cyan-400 shadow-[0_0_10px_#22d3ee] scale-x-0 group-hover:scale-x-100 transition-transform duration-500 origin-center" />
+                            </Button>
                         </div>
                     )}
 
-                    {missionStarted && (
-                        <Button
-                            variant="outline"
-                            className="border-red-500/50 text-red-500 hover:bg-red-500/10 hover:text-red-400 uppercase tracking-wider text-[10px] md:text-xs font-bold px-2 md:px-3 h-8 md:h-9"
-                            onClick={() => { setShowAccuseModal(true); setAccusationResult(null); }}
-                        >
-                            <ShieldAlert className="w-4 h-4 md:mr-2" />
-                            <span className="hidden md:inline">Identify Culprit</span>
-                        </Button>
-                    )}
                     <Button variant="ghost" size="icon" className="w-8 h-8 md:w-10 md:h-10" onClick={() => {
                         if (activeModalNode) handleCloseModal();
                         else if (showSuspectWall) setShowSuspectWall(false);
@@ -3368,21 +3380,33 @@ const GamePreview = ({ nodes, edges, onClose, gameMetadata, onGameEnd, onNodeCha
                         onComplete={(awardedScore) => {
                             const completedId = activeCrazyWallNode?.id;
                             setShowCrazyWall(false);
+
                             // Award points
                             const awards = Number(awardedScore) || 0;
                             if (awards > 0) {
                                 setScore(s => s + awards);
                                 triggerScoreDelta(awards);
-                                triggerFlyingPoints(awards);
                                 rewardObjectivePoints(activeCrazyWallNode, awards);
                                 addLog(`PLOT REVEALED: +${awards} Points`);
                             }
+
+                            // Set culprit name for the news report
+                            const culpritName = activeCrazyWallNode?.data?.culpritName || '';
+                            setAccusedName(culpritName);
+                            setAccusationResult('success');
+
                             setActiveCrazyWallNode(null);
 
-                            // Advance to next node using direct edge search for robustness
+                            // Show the news report; navigation happens on report close
+                            setShowNewsReport(true);
+
+                            // Store next edge so we can navigate after report closes
                             const nextEdges = edges.filter(e => e.source === completedId);
                             if (nextEdges.length > 0) {
-                                setTimeout(() => handleOptionClick(nextEdges[0].target), 600);
+                                // Override handleFinish to navigate to the correct next node
+                                // We schedule via a small ref so the close handler can pick it up
+                                window.__crazyWallNextTarget = nextEdges[0].target;
+                                crazyWallNextTargetRef.current = nextEdges[0].target;
                             }
                         }}
                         addLog={addLog}
@@ -3428,8 +3452,18 @@ const GamePreview = ({ nodes, edges, onClose, gameMetadata, onGameEnd, onNodeCha
                         objectiveScores={playerObjectiveScores}
                         onClose={() => {
                             setShowNewsReport(false);
-                            handleFinish();
+                            // If this report was shown after a CrazyWall reveal, navigate
+                            // to the next node instead of finishing the game.
+                            const crazyWallTarget = crazyWallNextTargetRef.current;
+                            if (crazyWallTarget) {
+                                crazyWallNextTargetRef.current = null;
+                                setAccusationResult(null);
+                                setTimeout(() => handleOptionClick(crazyWallTarget), 400);
+                            } else {
+                                handleFinish();
+                            }
                         }}
+                        onDashboard={handleFinishAndReturn}
                         isSimultaneous={isSimultaneous}
                     />
                 )}

@@ -3689,9 +3689,13 @@ export const CrazyWallNode = memo(({ id, data, selected }) => {
                             value={data.culpritId || ''}
                             onChange={(e) => {
                                 const node = suspectNodes.find(n => n.id === e.target.value);
-                                handleChange('culpritId', e.target.value);
-                                handleChange('culpritName', node?.data?.name || node?.data?.label || '');
-                                handleChange('culpritImage', node?.data?.image || node?.data?.images?.[0] || '');
+                                // Merge all three in one call to avoid stale-closure overwrites
+                                data.onChange && data.onChange(id, {
+                                    ...data,
+                                    culpritId: e.target.value,
+                                    culpritName: node?.data?.name || node?.data?.label || '',
+                                    culpritImage: node?.data?.image || node?.data?.images?.[0] || ''
+                                });
                             }}
                         >
                             <option value="">— Select Culprit —</option>
@@ -3798,17 +3802,28 @@ export const CrazyWallNode = memo(({ id, data, selected }) => {
 
                     {/* Score & objectives */}
                     <div className="mt-2 p-2 bg-black/40 border border-red-900/20 rounded-lg space-y-2">
-                        <div className="flex items-center justify-between">
-                            <p className="text-[9px] font-bold text-red-400 uppercase tracking-wider flex items-center gap-1">
-                                <Star className="w-3 h-3" /> Score Reward
-                            </p>
-                            <InputField
-                                type="number"
-                                placeholder="100"
-                                value={data.score || 1000}
-                                onChange={(e) => handleChange('score', parseInt(e.target.value) || 1000)}
-                                className="w-20 text-right bg-red-950/30 border-red-900/30 text-red-200"
-                            />
+                        <p className="text-[9px] font-bold text-zinc-500 uppercase tracking-wider mb-1">Points Configuration</p>
+                        <div className="flex gap-2">
+                            <div className="flex-1 relative">
+                                <span className="absolute left-2 top-1.5 text-[8px] text-emerald-500/70 font-bold uppercase">Win</span>
+                                <InputField
+                                    type="number"
+                                    placeholder="1000"
+                                    value={data.score ?? 1000}
+                                    onChange={(e) => handleChange('score', parseInt(e.target.value) || 0)}
+                                    className="pl-8 text-right bg-emerald-950/10 border-emerald-900/30 text-emerald-400"
+                                />
+                            </div>
+                            <div className="flex-1 relative">
+                                <span className="absolute left-2 top-1.5 text-[8px] text-red-500/70 font-bold uppercase">Penalty</span>
+                                <InputField
+                                    type="number"
+                                    placeholder="0"
+                                    value={data.penalty ?? 0}
+                                    onChange={(e) => handleChange('penalty', parseInt(e.target.value) || 0)}
+                                    className="pl-8 text-right bg-red-950/10 border-red-900/30 text-red-400"
+                                />
+                            </div>
                         </div>
                         <ObjectiveSelector
                             values={data.learningObjectiveIds}
