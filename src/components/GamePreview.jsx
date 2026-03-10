@@ -562,6 +562,10 @@ const GamePreview = ({ nodes, edges, onClose, gameMetadata, onGameEnd, onNodeCha
     const [activeAccusationNode, setActiveAccusationNode] = useState(null);
     // Suspect Choice State (Show strategy popup before entering profile)
     const [suspectChoiceNode, setSuspectChoiceNode] = useState(null);
+    // When an "opening" story node is playing before the suspect choice popup,
+    // this holds the suspect node so we can show the popup after the story ends.
+    const [pendingSuspectChoiceNode, setPendingSuspectChoiceNode] = useState(null);
+    const [pendingOpeningStoryNodeId, setPendingOpeningStoryNodeId] = useState(null);
     const [zoomedImage, setZoomedImage] = useState(null);
     const [showEvidenceBoard, setShowEvidenceBoard] = useState(false);
     const [boardItems, setBoardItems] = useState([]);
@@ -990,8 +994,46 @@ const GamePreview = ({ nodes, edges, onClose, gameMetadata, onGameEnd, onNodeCha
     const evaluateLogic = (node, inv = inventory, out = nodeOutputs) => evalLogic(node, inv, out);
 
 
+    // ── Opening Story Node helper ─────────────────────────────────────────────────
+    // Called whenever the player clicks on a suspect (either from hub or via a node edge).
+    // 1. Looks for a story node with label "opening" that has a direct edge FROM this suspect.
+    // 2. If found, navigates to that story node first and stores the suspect in
+    //    pendingSuspectChoiceNode so the popup shows once the story is done.
+    // 3. If not found, shows the popup immediately (original behaviour).
+    const openSuspectProfile = (suspectNode, { nodes: allNodes, edges: allEdges } = { nodes, edges }) => {
+        // Find any edge from this suspect whose label is "opening" and whose target is a story node
+        const openingEdge = allEdges.find(e => {
+            if (e.source !== suspectNode.id) return false;
+            if ((e.label || '').toLowerCase().trim() !== 'opening') return false;
+            const target = allNodes.find(n => n.id === e.target);
+            return target && target.type === 'story';
+        });
+
+        if (openingEdge) {
+            // Navigate to the opening story node
+            const openingStoryNodeId = openingEdge.target;
+            setPendingSuspectChoiceNode(suspectNode);
+            setPendingOpeningStoryNodeId(openingStoryNodeId);
+            // Use handleOptionClick to properly traverse logic nodes / update inventory
+            handleOptionClick(openingStoryNodeId);
+        } else {
+            // No opening node found — show popup immediately
+            setSuspectChoiceNode(suspectNode);
+        }
+    };
+
     const handleOptionClick = (targetId) => {
         ttsStop();
+
+        // ── If the player is advancing from the "opening" story node, intercept ────
+        // Show the suspect choice popup instead of proceeding to whatever comes next.
+        if (pendingSuspectChoiceNode && pendingOpeningStoryNodeId && currentNodeId === pendingOpeningStoryNodeId) {
+            const suspectForPopup = pendingSuspectChoiceNode;
+            setPendingSuspectChoiceNode(null);
+            setPendingOpeningStoryNodeId(null);
+            setSuspectChoiceNode(suspectForPopup);
+            return; // Don't navigate further — let the player choose confront / talk
+        }
 
         // ── PRE-ENRICH INVENTORY before calling resolveNext ──────────────────────
         // The departing node (currentNode) may have a variableId flag that needs to
@@ -1062,7 +1104,7 @@ const GamePreview = ({ nodes, edges, onClose, gameMetadata, onGameEnd, onNodeCha
 
         // Handle Type-Specific UI logic
         if (node && node.type === 'suspect') {
-            setSuspectChoiceNode(node);
+            openSuspectProfile(node, { nodes, edges });
         } else if (node && ['evidence', 'terminal', 'message', 'media', 'notification', 'question', 'lockpick', 'decryption', 'keypad', 'interrogation', 'threed', 'email', 'fact'].includes(node.type)) {
             setActiveModalNode(node);
             if (node.type === 'question') setUserAnswers(new Set());
@@ -2075,7 +2117,7 @@ const GamePreview = ({ nodes, edges, onClose, gameMetadata, onGameEnd, onNodeCha
                                             options={options}
                                             nodes={nodes}
                                             edges={edges}
-                                            onSuspectClick={(targetNode) => setSuspectChoiceNode(targetNode)}
+                                            onSuspectClick={(targetNode) => openSuspectProfile(targetNode, { nodes, edges })}
                                             getAvatarColor={getAvatarColor}
                                         />
                                     ) : (

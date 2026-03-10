@@ -216,6 +216,8 @@ export default function SuspectProfile({
         return edges.filter(e => {
             if (e.source !== suspect.id) return false;
             if (e.label === 'Default') return false;
+            // Exclude the "opening" edge — it's played automatically before the popup
+            if ((e.label || '').toLowerCase().trim() === 'opening') return false;
 
             // Resolve target node info
             const targetNode = nodes.find(n => n.id === e.target);
