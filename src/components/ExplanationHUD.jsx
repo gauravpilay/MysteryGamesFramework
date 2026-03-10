@@ -37,35 +37,20 @@ const ExplanationHUD = ({ type, title, text, onClose, isSimultaneous }) => {
 
     return (
         <div className={`${isSimultaneous ? 'absolute' : 'fixed'} inset-0 z-[200] flex items-center justify-center p-4 overflow-hidden`}>
-            {/* Backdrop with blurring effect */}
+            {/* Backdrop — no backdrop-blur here to avoid per-frame repaint */}
             <motion.div
                 initial={{ opacity: 0 }}
                 animate={{ opacity: 1 }}
                 exit={{ opacity: 0 }}
-                className="absolute inset-0 bg-black/90 backdrop-blur-sm"
+                className="absolute inset-0 bg-black/92"
+                style={{ willChange: 'opacity' }}
                 onClick={onClose}
             />
 
-            {/* Dynamic Background Particles/Glow */}
-            <div className="absolute inset-0 pointer-events-none overflow-hidden">
-                <motion.div
-                    animate={{
-                        scale: [1, 1.2, 1],
-                        opacity: [0.1, 0.2, 0.1],
-                        rotate: [0, 90, 0]
-                    }}
-                    transition={{ duration: 10, repeat: Infinity }}
-                    className={`absolute -top-1/4 -right-1/4 w-full h-full bg-${config.color}-500/10 blur-[120px] rounded-full`}
-                />
-                <motion.div
-                    animate={{
-                        scale: [1.2, 1, 1.2],
-                        opacity: [0.1, 0.15, 0.1],
-                        rotate: [0, -90, 0]
-                    }}
-                    transition={{ duration: 12, repeat: Infinity }}
-                    className={`absolute -bottom-1/4 -left-1/4 w-full h-full bg-${config.color}-500/5 blur-[100px] rounded-full`}
-                />
+            {/* Static background glow — no animating blur to avoid repaint */}
+            <div className="absolute inset-0 pointer-events-none overflow-hidden" aria-hidden="true">
+                <div className={`absolute -top-1/4 -right-1/4 w-full h-full bg-${config.color}-500/10 blur-[120px] rounded-full opacity-20`} />
+                <div className={`absolute -bottom-1/4 -left-1/4 w-full h-full bg-${config.color}-500/5 blur-[100px] rounded-full opacity-10`} />
             </div>
 
             {/* The HUD Component */}
@@ -92,10 +77,11 @@ const ExplanationHUD = ({ type, title, text, onClose, isSimultaneous }) => {
                 <div className={`absolute bottom-6 left-6 w-8 h-8 border-b-2 border-l-2 ${config.border} rounded-bl-xl opacity-50`} />
                 <div className={`absolute bottom-6 right-6 w-8 h-8 border-b-2 border-r-2 ${config.border} rounded-br-xl opacity-50`} />
 
-                {/* Scanning Light Effect */}
+                {/* Scanning Light Effect — uses translateY (GPU composited) instead of 'top' to avoid layout reflow */}
                 <motion.div
-                    animate={{ top: ['-10%', '110%'] }}
-                    transition={{ duration: 3, repeat: Infinity, ease: "linear" }}
+                    animate={{ translateY: ['-10%', '670%'] }}
+                    transition={{ duration: 3, repeat: Infinity, ease: "linear", repeatType: 'loop' }}
+                    style={{ top: 0, willChange: 'transform' }}
                     className={`absolute left-0 right-0 h-px bg-gradient-to-r from-transparent via-${config.color}-400/50 to-transparent z-10`}
                 />
 

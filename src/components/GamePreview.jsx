@@ -1712,8 +1712,7 @@ const GamePreview = ({ nodes, edges, onClose, gameMetadata, onGameEnd, onNodeCha
                                 </motion.div>
                             )}
                         </AnimatePresence>
-                        <motion.div
-                            layout
+                        <div
                             className="flex items-center gap-2 md:gap-4 px-2 md:px-5 py-1.5 md:py-2.5 bg-zinc-900/40 border border-amber-500/20 rounded-xl md:rounded-2xl shadow-[0_0_20px_rgba(0,0,0,0.3)] backdrop-blur-xl group hover:border-amber-500/40 transition-all duration-500 overflow-hidden relative"
                         >
                             {/* Animated background shine effect */}
@@ -1755,7 +1754,7 @@ const GamePreview = ({ nodes, edges, onClose, gameMetadata, onGameEnd, onNodeCha
                                     <span className="text-[8px] md:text-[10px] font-bold text-amber-500/40 self-end mb-0.5">PTS</span>
                                 </div>
                             </div>
-                        </motion.div>
+                        </div>
                     </div>
 
                     {gameMetadata?.enableTimeLimit !== false && (
