@@ -49,6 +49,93 @@ const Dashboard = () => {
     const importInputRef = React.useRef(null);
     const isAdmin = user?.role === 'Admin';
 
+    // Monitor access request feedback and incoming requests
+    useEffect(() => {
+        if (!user || !projects.length) return;
+
+        // 1. Handle outgoing request feedback (we are the requester)
+        if (lockedProject) {
+            const currentProject = projects.find(p => p.id === lockedProject.id);
+            if (currentProject) {
+                if (currentProject.accessRequest && currentProject.accessRequest.uid === user.uid) {
+                    if (currentProject.accessRequest.status === 'accepted') {
+                        setRequestFeedback('accepted');
+                        setDoc(doc(db, "cases", currentProject.id), { accessRequest: null }, { merge: true }).catch(() => { });
+                        setTimeout(() => {
+                            setRequestFeedback(null);
+                            setLockedProject(null);
+                            navigate(`/editor/${currentProject.id}`);
+                        }, 2000);
+                    } else if (currentProject.accessRequest.status === 'declined') {
+                        setRequestFeedback('declined');
+                        setIsRequesting(false);
+                        setTimeout(() => {
+                            setDoc(doc(db, "cases", currentProject.id), { accessRequest: null }, { merge: true }).catch(() => { });
+                            setRequestFeedback(null);
+                        }, 5000);
+                    }
+                } else if (!currentProject.accessRequest && isRequesting) {
+                    setIsRequesting(false);
+                }
+            }
+        }
+
+        // 2. Handle incoming requests (we are the lock holder)
+        const projectWithRequest = projects.find(p =>
+            p.editingBy?.uid === user.uid &&
+            p.accessRequest?.status === 'pending'
+        );
+
+        if (projectWithRequest) {
+            setIncomingRequest({ project: projectWithRequest, request: projectWithRequest.accessRequest });
+        } else {
+            setIncomingRequest(null);
+        }
+    }, [projects, lockedProject, user, isRequesting, navigate]);
+
+    // Fetch Projects
+    useEffect(() => {
+        // Clear projects if user logged out
+        if (!authLoading && !user) {
+            setProjects([]);
+            return;
+        }
+
+        // Wait for user data to be fully available (including role)
+        if (authLoading || !user) return;
+
+        if (!db) {
+            // Mock data if no DB
+            setProjects([
+                { id: 'sample-1', title: 'The Vanishing Protocol', description: 'A high-stakes cyber mystery.', status: 'published', thumbnail: 'https://images.unsplash.com/photo-1550751827-4bd374c3f58b', updatedAt: new Date().toISOString() },
+                { id: 'sample-2', title: 'Midnight Heist', description: 'Who stole the diamond?', status: 'draft', thumbnail: 'https://images.unsplash.com/photo-1478720568477-152d9b164e63', updatedAt: new Date().toISOString() }
+            ]);
+            return;
+        }
+
+        let q;
+        if (isAdmin) {
+            q = query(collection(db, "cases"), orderBy("updatedAt", "desc"));
+        } else {
+            // Non-admins only query published cases to satisfy security rules
+            q = query(collection(db, "cases"), where("status", "==", "published"), orderBy("updatedAt", "desc"));
+        }
+
+        const unsubscribe = onSnapshot(q, (snapshot) => {
+            const docs = snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() }));
+            setProjects(docs);
+        }, (error) => {
+            // Only log actual permission errors, suppress noise during login transitions
+            if (error.code !== 'permission-denied' || (user && !authLoading)) {
+                console.error("[DASHBOARD_PERMISSIONS] Error fetching cases:", error);
+            }
+            setProjects([]);
+        });
+
+        return () => unsubscribe();
+    }, [user, isAdmin, authLoading]);
+
+    // Early Returns after all hooks have been declared
     if (licenseLoading || authLoading) {
         return (
             <div className="fixed inset-0 flex items-center justify-center bg-black">
@@ -59,6 +146,37 @@ const Dashboard = () => {
             </div>
         );
     }
+
+
+    // Derived State
+    const accessibleProjects = projects.filter(p => {
+        const title = (p.title || 'Untitled Case').toLowerCase();
+        const description = (p.description || '').toLowerCase();
+        const query = (searchQuery || '').toLowerCase().trim();
+
+        const matchesSearch = title.includes(query) || description.includes(query);
+
+        if (!matchesSearch) return false;
+
+        // Admin override: Admins see everything
+        if (isAdmin) return true;
+
+        // Access Control: If user has a specific list of assigned cases, strictly restrict to those.
+        // If the array is empty [], they have access to NO cases.
+        if (user && Object.prototype.hasOwnProperty.call(user, 'assignedCaseIds') && Array.isArray(user.assignedCaseIds)) {
+            return user.assignedCaseIds.includes(p.id);
+        }
+
+        // If 'assignedCaseIds' is missing (not set), it defaults to "All Cases" 
+        // to match the UserManagement UI behavior.
+        return true;
+    });
+
+
+
+
+    const draftProjects = accessibleProjects.filter(p => p.status !== 'published');
+    const publishedProjects = accessibleProjects.filter(p => p.status === 'published');
 
     if (!licenseData || licenseData._expired) {
         const isExpired = licenseData?._expired;
@@ -118,80 +236,6 @@ const Dashboard = () => {
             </div>
         );
     }
-
-
-
-    // Fetch Projects
-    useEffect(() => {
-        // Clear projects if user logged out
-        if (!authLoading && !user) {
-            setProjects([]);
-            return;
-        }
-
-        // Wait for user data to be fully available (including role)
-        if (authLoading || !user) return;
-
-        if (!db) {
-            // Mock data if no DB
-            setProjects([
-                { id: 'sample-1', title: 'The Vanishing Protocol', description: 'A high-stakes cyber mystery.', status: 'published', thumbnail: 'https://images.unsplash.com/photo-1550751827-4bd374c3f58b', updatedAt: new Date().toISOString() },
-                { id: 'sample-2', title: 'Midnight Heist', description: 'Who stole the diamond?', status: 'draft', thumbnail: 'https://images.unsplash.com/photo-1478720568477-152d9b164e63', updatedAt: new Date().toISOString() }
-            ]);
-            return;
-        }
-
-        let q;
-        if (isAdmin) {
-            q = query(collection(db, "cases"), orderBy("updatedAt", "desc"));
-        } else {
-            // Non-admins only query published cases to satisfy security rules
-            q = query(collection(db, "cases"), where("status", "==", "published"), orderBy("updatedAt", "desc"));
-        }
-
-        const unsubscribe = onSnapshot(q, (snapshot) => {
-            const docs = snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() }));
-            setProjects(docs);
-        }, (error) => {
-            // Only log actual permission errors, suppress noise during login transitions
-            if (error.code !== 'permission-denied' || (user && !authLoading)) {
-                console.error("[DASHBOARD_PERMISSIONS] Error fetching cases:", error);
-            }
-            setProjects([]);
-        });
-
-        return () => unsubscribe();
-    }, [user, isAdmin, authLoading]);
-
-    // Derived State
-    const accessibleProjects = projects.filter(p => {
-        const title = (p.title || 'Untitled Case').toLowerCase();
-        const description = (p.description || '').toLowerCase();
-        const query = (searchQuery || '').toLowerCase().trim();
-
-        const matchesSearch = title.includes(query) || description.includes(query);
-
-        if (!matchesSearch) return false;
-
-        // Admin override: Admins see everything
-        if (isAdmin) return true;
-
-        // Access Control: If user has a specific list of assigned cases, strictly restrict to those.
-        // If the array is empty [], they have access to NO cases.
-        if (user && Object.prototype.hasOwnProperty.call(user, 'assignedCaseIds') && Array.isArray(user.assignedCaseIds)) {
-            return user.assignedCaseIds.includes(p.id);
-        }
-
-        // If 'assignedCaseIds' is missing (not set), it defaults to "All Cases" 
-        // to match the UserManagement UI behavior.
-        return true;
-    });
-
-
-
-
-    const publishedProjects = accessibleProjects.filter(p => p.status === 'published');
-    const draftProjects = accessibleProjects.filter(p => p.status !== 'published');
 
     // Handlers
     const handleCreateProject = async () => {
@@ -473,49 +517,6 @@ const Dashboard = () => {
         }
     };
 
-    // Monitor access request feedback and incoming requests
-    useEffect(() => {
-        if (!user || !projects.length) return;
-
-        // 1. Handle outgoing request feedback (we are the requester)
-        if (lockedProject) {
-            const currentProject = projects.find(p => p.id === lockedProject.id);
-            if (currentProject) {
-                if (currentProject.accessRequest && currentProject.accessRequest.uid === user.uid) {
-                    if (currentProject.accessRequest.status === 'accepted') {
-                        setRequestFeedback('accepted');
-                        setDoc(doc(db, "cases", currentProject.id), { accessRequest: null }, { merge: true }).catch(() => { });
-                        setTimeout(() => {
-                            setRequestFeedback(null);
-                            setLockedProject(null);
-                            navigate(`/editor/${currentProject.id}`);
-                        }, 2000);
-                    } else if (currentProject.accessRequest.status === 'declined') {
-                        setRequestFeedback('declined');
-                        setIsRequesting(false);
-                        setTimeout(() => {
-                            setDoc(doc(db, "cases", currentProject.id), { accessRequest: null }, { merge: true }).catch(() => { });
-                            setRequestFeedback(null);
-                        }, 5000);
-                    }
-                } else if (!currentProject.accessRequest && isRequesting) {
-                    setIsRequesting(false);
-                }
-            }
-        }
-
-        // 2. Handle incoming requests (we are the lock holder)
-        const projectWithRequest = projects.find(p =>
-            p.editingBy?.uid === user.uid &&
-            p.accessRequest?.status === 'pending'
-        );
-
-        if (projectWithRequest) {
-            setIncomingRequest({ project: projectWithRequest, request: projectWithRequest.accessRequest });
-        } else {
-            setIncomingRequest(null);
-        }
-    }, [projects, lockedProject, user, isRequesting, navigate]);
 
     return (
         <div className="min-h-screen bg-black text-zinc-100 font-sans selection:bg-indigo-500/30 relative overflow-x-hidden">
