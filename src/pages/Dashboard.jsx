@@ -5,7 +5,7 @@ import { collection, addDoc, deleteDoc, updateDoc, setDoc, doc, onSnapshot, quer
 import { ref, uploadBytes, getDownloadURL } from 'firebase/storage';
 import { Button, Card, Input, Label } from '../components/ui/shared';
 import { Logo } from '../components/ui/Logo';
-import { Plus, FolderOpen, LogOut, Search, Trash2, Rocket, Copy, Users, BookOpen, Lock, Unlock, Activity, FileText, CheckCircle, Clock, TrendingUp, Pencil, Fingerprint, Trophy, AlertTriangle, Package, Image as ImageIcon, Upload, Loader2, MessageSquare } from 'lucide-react';
+import { Plus, FolderOpen, LogOut, Search, Trash2, Rocket, Copy, Users, BookOpen, Lock, Unlock, Activity, FileText, CheckCircle, Clock, TrendingUp, Pencil, Fingerprint, Trophy, AlertTriangle, Package, Image as ImageIcon, Upload, Loader2, MessageSquare, Download, FileUp } from 'lucide-react';
 import { useNavigate } from 'react-router-dom';
 import { motion, AnimatePresence } from 'framer-motion';
 import ProgressReportModal from '../components/ProgressReportModal';
@@ -42,6 +42,11 @@ const Dashboard = () => {
     const { licenseData, getFeatureValue, loading: licenseLoading } = useLicense();
     const [isLicenseModalOpen, setIsLicenseModalOpen] = useState(false);
     const [showLimitModal, setShowLimitModal] = useState(false);
+    const [importSuccess, setImportSuccess] = useState(false);
+    const [importPendingData, setImportPendingData] = useState(null); // parsed JSON before confirm
+    const [importCaseName, setImportCaseName] = useState('');
+    const [isConfirmingImport, setIsConfirmingImport] = useState(false);
+    const importInputRef = React.useRef(null);
     const isAdmin = user?.role === 'Admin';
 
     if (licenseLoading || authLoading) {
@@ -349,6 +354,96 @@ const Dashboard = () => {
         }
     };
 
+    const handleDownloadProject = (project) => {
+        try {
+            const exportData = { ...project };
+            delete exportData.id;
+            delete exportData.editingBy;
+            delete exportData.accessRequest;
+
+            const dataStr = JSON.stringify(exportData, null, 4);
+            const fileName = `${project.title.replace(/[^a-zA-Z0-9]/g, '_')}_export.json`;
+
+            const blob = new Blob([dataStr], { type: 'application/octet-stream' });
+            const blobUrl = URL.createObjectURL(blob);
+
+            const a = document.createElement('a');
+            a.style.display = 'none';
+            a.href = blobUrl;
+            a.download = fileName;
+            document.body.appendChild(a);
+
+            // Use dispatchEvent with a real MouseEvent — React synthetic events lose
+            // the "trusted" context, causing Chrome to silently block blob downloads.
+            a.dispatchEvent(
+                new MouseEvent('click', {
+                    bubbles: true,
+                    cancelable: true,
+                    view: window,
+                })
+            );
+
+            setTimeout(() => {
+                document.body.removeChild(a);
+                URL.revokeObjectURL(blobUrl);
+            }, 1000);
+        } catch (err) {
+            console.error('[EXPORT] Download failed:', err);
+            alert('Export failed: ' + err.message);
+        }
+    };
+
+    const handleImportProject = (e) => {
+        const file = e.target.files?.[0];
+        if (!file) return;
+
+        const reader = new FileReader();
+        reader.onload = (event) => {
+            try {
+                const importedData = JSON.parse(event.target.result);
+
+                if (!importedData.title || (!importedData.nodes && !importedData.edges)) {
+                    throw new Error('Invalid case file format. Missing title or node data.');
+                }
+
+                // Just store parsed data and show confirmation modal
+                setImportPendingData(importedData);
+                setImportCaseName(importedData.title);
+            } catch (err) {
+                console.error('Error parsing import file:', err);
+                alert('Failed to parse case file: ' + err.message);
+            } finally {
+                e.target.value = '';
+            }
+        };
+        reader.readAsText(file);
+    };
+
+    const handleConfirmImport = async () => {
+        if (!importPendingData || !importCaseName.trim() || !db) return;
+        setIsConfirmingImport(true);
+        try {
+            const newCase = {
+                ...importPendingData,
+                title: importCaseName.trim(),
+                status: 'draft',
+                createdAt: new Date().toISOString(),
+                updatedAt: new Date().toISOString(),
+                author: user?.email || 'Imported Agent',
+            };
+            await addDoc(collection(db, 'cases'), newCase);
+            setImportPendingData(null);
+            setImportCaseName('');
+            setImportSuccess(true);
+            setTimeout(() => setImportSuccess(false), 3000);
+        } catch (err) {
+            console.error('Error uploading imported case:', err);
+            alert('Failed to upload case: ' + err.message);
+        } finally {
+            setIsConfirmingImport(false);
+        }
+    };
+
     const handleImageUpload = async (projectId, file) => {
         if (!file || !storage || !db) return;
 
@@ -579,6 +674,34 @@ const Dashboard = () => {
                                             </Button>
                                         </div>
                                         <div className="h-6 w-px bg-zinc-800 mx-1 hidden lg:block"></div>
+                                        <div className="relative group/import">
+                                            <input
+                                                type="file"
+                                                accept=".json"
+                                                onChange={handleImportProject}
+                                                className="hidden"
+                                                ref={importInputRef}
+                                            />
+                                            <Button
+                                                variant="ghost"
+                                                size="sm"
+                                                onClick={() => importInputRef.current?.click()}
+                                                className={`h-10 px-4 md:px-6 text-xs md:text-sm font-bold border transition-all hover:scale-[1.02] active:scale-[0.98] w-full sm:w-auto overflow-hidden relative ${importSuccess ? 'bg-emerald-500/20 border-emerald-500/50 text-emerald-400' : 'bg-zinc-800/40 hover:bg-zinc-800 text-indigo-400 border-zinc-700/50'}`}
+                                            >
+                                                {importSuccess ? (
+                                                    <div className="flex items-center relative z-10 animate-in fade-in zoom-in duration-300">
+                                                        <CheckCircle className="w-4 h-4 mr-2" />
+                                                        <span>Transmission Complete</span>
+                                                    </div>
+                                                ) : (
+                                                    <>
+                                                        <div className="absolute inset-0 neural-wave opacity-10 pointer-events-none"></div>
+                                                        <FileUp className="w-4 h-4 mr-2 relative z-10" />
+                                                        <span className="relative z-10">Import Case</span>
+                                                    </>
+                                                )}
+                                            </Button>
+                                        </div>
                                         <Button
                                             onClick={() => setShowNewModal(true)}
                                             className="bg-indigo-600 hover:bg-indigo-500 text-white shadow-lg shadow-indigo-600/20 border-none h-10 px-4 md:px-6 text-xs md:text-sm font-bold tracking-wide transition-all hover:scale-[1.02] active:scale-[0.98] w-full sm:w-auto"
@@ -612,6 +735,7 @@ const Dashboard = () => {
                                 onDuplicate={() => { setDuplicateId(project.id); setDuplicateName(`${project.title} (Copy)`); }}
                                 onToggleStatus={() => handleToggleStatus(project)}
                                 onUploadImage={() => setImageUploadProject(project)}
+                                onDownload={() => handleDownloadProject(project)}
                             />
                         )) : (
                             <p className="col-span-full text-zinc-500 italic">No active missions available.</p>
@@ -638,6 +762,7 @@ const Dashboard = () => {
                                     onDuplicate={() => { setDuplicateId(project.id); setDuplicateName(`${project.title} (Copy)`); }}
                                     onToggleStatus={() => handleToggleStatus(project)}
                                     onUploadImage={() => setImageUploadProject(project)}
+                                    onDownload={() => handleDownloadProject(project)}
                                 />
                             )) : (
                                 <p className="col-span-full text-zinc-500 italic">No drafts in progress.</p>
@@ -939,6 +1064,18 @@ const Dashboard = () => {
                         </motion.div>
                     </div>
                 )}
+                {importPendingData && (
+                    <ImportCaseModal
+                        key="modal-import-case"
+                        caseData={importPendingData}
+                        caseName={importCaseName}
+                        onNameChange={setImportCaseName}
+                        onConfirm={handleConfirmImport}
+                        onClose={() => { setImportPendingData(null); setImportCaseName(''); }}
+                        isLoading={isConfirmingImport}
+                    />
+                )}
+
                 {showLimitModal && (
                     <LimitExhaustedModal
                         key="modal-limit-exhausted"
@@ -1006,7 +1143,7 @@ const LimitExhaustedModal = ({ isOpen, onClose, limit }) => (
     </div>
 );
 
-const CaseCard = ({ project, isAdmin, onPlay, onEdit, onDelete, onDuplicate, onToggleStatus, onUploadImage }) => {
+const CaseCard = ({ project, isAdmin, onPlay, onEdit, onDelete, onDuplicate, onToggleStatus, onUploadImage, onDownload }) => {
     // Deterministic gradient based on project ID
     const getGradient = (id) => {
         const variants = [
@@ -1114,6 +1251,15 @@ const CaseCard = ({ project, isAdmin, onPlay, onEdit, onDelete, onDuplicate, onT
                             <Button variant="secondary" size="icon" onClick={onDuplicate} title="Duplicate">
                                 <Copy className="w-4 h-4" />
                             </Button>
+                            <Button
+                                variant="secondary"
+                                size="icon"
+                                onClick={onDownload}
+                                title="Download JSON Export"
+                                className="hover:text-amber-400"
+                            >
+                                <Download className="w-4 h-4" />
+                            </Button>
                             <div className="relative group/tooltip">
                                 <Button
                                     variant="ghost"
@@ -1138,5 +1284,109 @@ const CaseCard = ({ project, isAdmin, onPlay, onEdit, onDelete, onDuplicate, onT
         </motion.div>
     );
 };
+const ImportCaseModal = ({ caseData, caseName, onNameChange, onConfirm, onClose, isLoading }) => (
+    <div key="modal-container" className="fixed inset-0 z-[600] flex items-center justify-center p-4">
+        <motion.div
+            initial={{ opacity: 0 }}
+            animate={{ opacity: 1 }}
+            exit={{ opacity: 0 }}
+            className="absolute inset-0 bg-black/90 backdrop-blur-xl"
+            onClick={onClose}
+        />
+        <motion.div
+            initial={{ scale: 0.9, opacity: 0, y: 20 }}
+            animate={{ scale: 1, opacity: 1, y: 0 }}
+            exit={{ scale: 0.9, opacity: 0, y: 20 }}
+            className="relative w-full max-w-lg bg-zinc-950 border border-indigo-500/30 rounded-[2.5rem] p-10 overflow-hidden shadow-[0_0_100px_rgba(79,70,229,0.2)]"
+        >
+            {/* Background Glow */}
+            <div className="absolute top-0 left-1/2 -translate-x-1/2 -translate-y-1/2 w-80 h-80 bg-indigo-600/20 rounded-full blur-[100px]" />
+
+            <div className="relative z-10 space-y-8">
+                <div className="flex items-center gap-6">
+                    <div className="relative group">
+                        <div className="absolute inset-0 bg-indigo-500/30 blur-2xl rounded-full group-hover:bg-indigo-500/50 transition-all duration-500" />
+                        <div className="relative w-20 h-20 bg-zinc-900 rounded-[1.5rem] border-2 border-indigo-500/50 flex items-center justify-center shadow-2xl transform group-hover:rotate-6 transition-transform duration-500">
+                            <FileUp className="w-10 h-10 text-indigo-400" />
+                        </div>
+                    </div>
+                    <div className="space-y-1">
+                        <h2 className="text-3xl font-black text-white tracking-tighter uppercase leading-none">Intelligence<br />Retrieval</h2>
+                        <p className="text-zinc-500 text-[10px] font-black uppercase tracking-[0.2em]">Transmission intercepted and parsed</p>
+                    </div>
+                </div>
+
+                <div className="space-y-6">
+                    <div className="space-y-2">
+                        <Label className="text-indigo-400/70 font-black text-[10px] tracking-[0.2em] mb-2 block">Codenaming Assignment</Label>
+                        <Input
+                            value={caseName}
+                            onChange={e => onNameChange(e.target.value)}
+                            placeholder="Enter case codename..."
+                            className="h-14 bg-white/5 border-zinc-800 rounded-2xl text-lg font-bold px-6 focus:border-indigo-500/50 transition-all"
+                        />
+                    </div>
+
+                    <div className="grid grid-cols-2 gap-4">
+                        <div className="p-4 rounded-2xl bg-white/5 border border-white/10 space-y-1">
+                            <div className="flex items-center gap-2 text-zinc-500">
+                                <Activity className="w-3.5 h-3.5" />
+                                <span className="text-[10px] font-bold uppercase tracking-widest">Nodes</span>
+                            </div>
+                            <p className="text-2xl font-black text-white">{(caseData.nodes || []).length}</p>
+                        </div>
+                        <div className="p-4 rounded-2xl bg-white/5 border border-white/10 space-y-1">
+                            <div className="flex items-center gap-2 text-zinc-500">
+                                <Fingerprint className="w-3.5 h-3.5" />
+                                <span className="text-[10px] font-bold uppercase tracking-widest">Edges</span>
+                            </div>
+                            <p className="text-2xl font-black text-white">{(caseData.edges || []).length}</p>
+                        </div>
+                    </div>
+
+                    {caseData.description && (
+                        <div className="p-4 rounded-2xl bg-zinc-900/50 border border-zinc-800/50">
+                            <span className="text-[10px] font-bold text-zinc-600 uppercase tracking-widest mb-1 block underline decoration-indigo-500/30">Briefing Metadata</span>
+                            <p className="text-sm text-zinc-400 font-medium italic line-clamp-2">"{caseData.description}"</p>
+                        </div>
+                    )}
+                </div>
+
+                <div className="w-full h-px bg-gradient-to-r from-transparent via-indigo-500/20 to-transparent" />
+
+                <div className="flex gap-4">
+                    <Button
+                        onClick={onClose}
+                        variant="ghost"
+                        className="flex-1 h-14 text-zinc-500 hover:text-white hover:bg-white/5 font-black uppercase tracking-widest text-xs rounded-2xl transition-all"
+                    >
+                        Abort
+                    </Button>
+                    <Button
+                        onClick={onConfirm}
+                        disabled={!caseName.trim() || isLoading}
+                        className="flex-[2] h-14 bg-indigo-600 hover:bg-indigo-500 text-white font-black uppercase tracking-widest text-xs rounded-2xl shadow-[0_10px_30px_rgba(79,70,229,0.3)] transition-all active:scale-95 border-t border-white/20 relative overflow-hidden"
+                    >
+                        {isLoading ? (
+                            <div className="flex items-center gap-3">
+                                <Loader2 className="w-4 h-4 animate-spin" />
+                                <span>Decrypting...</span>
+                            </div>
+                        ) : (
+                            <div className="flex items-center justify-center gap-2">
+                                <CheckCircle className="w-4 h-4" />
+                                <span>Inject Intelligence</span>
+                            </div>
+                        )}
+                        {isLoading && (
+                            <div className="absolute inset-0 bg-indigo-500/20 animate-pulse" />
+                        )}
+                    </Button>
+                </div>
+            </div>
+        </motion.div>
+    </div>
+);
+
 
 export default Dashboard;
