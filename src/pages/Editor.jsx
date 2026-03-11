@@ -37,6 +37,7 @@ import { callAI } from '../lib/ai';
 import { useLicense } from '../lib/licensing';
 import { Document as DocxDocument, Packer, Paragraph, TextRun, HeadingLevel, AlignmentType, ImageRun } from 'docx';
 import { jsPDF } from 'jspdf';
+import StoryExportModal from '../components/StoryExportModal';
 
 // ... (other imports)
 
@@ -1216,23 +1217,25 @@ const Editor = () => {
         document.body.removeChild(a);
     };
 
-    const downloadNovelStory = async (format = 'markdown') => {
-        // Close the modal immediately to prevent multiple clicks
-        setShowStoryFormatModal(false);
+    // ── Compute story stats for the export modal ──────────────────────────────
+    const getStoryStats = () => ({
+        nodeCount: nodes.length,
+        edgeCount: edges.length,
+        suspectCount: nodes.filter(n => n.type === 'suspect').length,
+        evidenceCount: nodes.filter(n => n.type === 'evidence').length,
+        questionCount: nodes.filter(n => n.type === 'question').length,
+    });
 
+    const downloadNovelStory = async (format = 'pdf', onProgress) => {
         if (!settings?.aiApiKey) {
             alert("Please set an AI API Key in settings to use this feature.");
             return;
         }
 
-        const btn = document.getElementById('download-story-btn');
-        const originalContent = btn ? btn.innerHTML : '';
-        if (btn) {
-            btn.innerHTML = '<span class="flex items-center gap-2 animate-pulse"><div class="w-3 h-3 border-2 border-white/20 border-t-white rounded-full animate-spin"></div>Writing Novel...</span>';
-            btn.disabled = true;
-        }
+        const report = (label, pct) => onProgress?.({ label, pct });
 
         try {
+            report('Preparing story data…', 5);
             const storyData = {
                 title: caseTitle || "Untitled Mystery",
                 description: caseDescription || "A thrilling detective story.",
@@ -1241,6 +1244,8 @@ const Editor = () => {
                     type: n.type,
                     label: n.data?.label || n.type,
                     text: n.data?.text || n.data?.description || n.data?.dialogue || n.data?.question || "",
+                    score: n.data?.score || 0,
+                    penalty: n.data?.penalty || 0,
                     metadata: {
                         name: n.data?.name || "",
                         role: n.data?.role || "",
@@ -1250,9 +1255,7 @@ const Editor = () => {
                         command: n.data?.command || "",
                         answer: n.data?.answer || "",
                         url: n.data?.url || "",
-                        // Single image (evidence, question)
-                        image: n.data?.image || "",
-                        // Array of images (suspect, email, fact, media with gallery)
+                        image: n.data?.image || n.data?.imageUrl || "",
                         images: n.data?.images || [],
                         mediaType: n.data?.mediaType || "",
                         blocking: n.data?.blocking || false,
@@ -1273,67 +1276,82 @@ const Editor = () => {
                 }))
             };
 
-            const systemPrompt = `You are an elite detective novelist and case architect. Your goal is to provide a concise and compelling plot summary of a mystery game based on its node-based structure.
-
-SUMMARY GUIDELINES:
-1. CONCISE PLOT: Write a few paragraphs (a summary) that set the context, plot, and mystery. Do not write a full novel.
-2. FLOW & TRANSITIONS: Explain how the story starts, the key suspects introduced, the major clues found, and how it leads to the final confrontation.
-3. ATMOSPHERE: Maintain a "noir" or "cyber" aesthetic in your summary.
-4. NO EXPOSITION ON MECHANICS: Do not mention "nodes" or "game mechanics". Write it as a story pitch or high-level narrative overview.
-
-IMPORTANT: Focus on the Narrative Summary and the Plot Logic.`;
-
-            const userMessage = `Title: ${storyData.title}
-Background: ${storyData.description}
-
-Narrative Blocks:
-${storyData.nodes.map(n => `[Node: ${n.label} (${n.type})]
-Content: ${n.text}
-${n.metadata.name ? `Character: ${n.metadata.name}, Role: ${n.metadata.role}, Alibi: ${n.metadata.alibi}` : ''}
-${n.metadata.description ? `Detail: ${n.metadata.description}` : ''}
-`).join('\n')}
-
-Connections:
-${storyData.edges.map(e => `From "${storyData.nodes.find(n => n.id === e.source)?.label || 'Unknown'}" to "${storyData.nodes.find(n => n.id === e.target)?.label || 'Unknown'}" ${e.label ? `via "${e.label}"` : ''}`).join('\n')}
-
-Please provide a concise plot summary and narrative overview based on these elements.`;
-
+            report('Generating AI narrative overview…', 20);
+            const systemPrompt = `You are an elite detective novelist. Write a concise, gripping narrative overview of this mystery case (3-5 paragraphs). 
+Rules: cinematic noir/thriller tone; explain the mystery setup, main suspects, key clues, and how it builds to a climax; never mention 'nodes' or game mechanics; end with a one-sentence hook that makes someone want to play it.`;
+            const userMessage = `Title: ${storyData.title}\nBackground: ${storyData.description}\n\nElements:\n${storyData.nodes.map(n => `[${n.type.toUpperCase()}] "${n.label}": ${n.text}${n.metadata.name ? ` | ${n.metadata.name} (${n.metadata.role})` : ''}`).join('\n')}\n\nFlow:\n${storyData.edges.map(e => `"${storyData.nodes.find(n => n.id === e.source)?.label || '?'}" -> "${storyData.nodes.find(n => n.id === e.target)?.label || '?'}"${e.label ? ` [${e.label}]` : ''}`).join('\n')}`;
             const story = await callAI('gemini', systemPrompt, userMessage, settings.aiApiKey);
 
-            // Generate Designer's Canvas Review Section
-            const designerReview = generateDesignerReview(storyData);
+            report('Structuring story data…', 50);
+            const reviewData = buildReviewData(storyData);
 
-            // Combine the novel and designer review
-            const fullDocument = `${story}\n\n${designerReview}`;
-
-            if (format === 'markdown') {
-                const blob = new Blob([fullDocument], { type: 'text/markdown' });
-                const url = window.URL.createObjectURL(blob);
-                const a = document.createElement('a');
-                a.href = url;
-                a.download = `${storyData.title.replace(/\s+/g, '_')}_Mystery_Novel.md`;
-                document.body.appendChild(a);
-                a.click();
-                document.body.removeChild(a);
-                window.URL.revokeObjectURL(url);
-            } else if (format === 'pdf') {
-                await generateEnhancedPDF(storyData, story, designerReview);
-            } else if (format === 'google-docs') {
-                await generateEnhancedDOCX(storyData, story, designerReview);
+            report('Building document…', 65);
+            if (format === 'pdf') {
+                await generateEnhancedPDF(storyData, story, reviewData, (pct) => report('Rendering pages…', 65 + Math.round(pct * 0.30)));
+            } else if (format === 'docx') {
+                await generateEnhancedDOCX(storyData, story, reviewData);
             }
 
+            report('Saving file…', 98);
         } catch (error) {
             console.error("Story generation failed:", error);
-            alert("Failed to write the story. Check your AI key and try again.");
-        } finally {
-            if (btn) {
-                btn.innerHTML = originalContent;
-                btn.disabled = false;
-            }
+            alert("Failed to generate the story document. Check your AI key and try again.");
+            throw error; // re-throw so modal can reset
         }
     };
 
-    // Helper function to generate designer-friendly canvas review
+    // ── buildReviewData: BFS traversal returning structured review object ────────
+    const buildReviewData = (storyData) => {
+        const TYPE_EMOJI = {
+            story: '📖', suspect: '🕵️', evidence: '🔍', question: '❓',
+            terminal: '💻', logic: '🔀', setter: '⚙️', media: '🎬',
+            message: '💬', email: '📧', fact: '💡', notification: '🔔',
+            action: '🖱️', lockpick: '🔓', keypad: '🔢', decryption: '🔐',
+            interrogation: '🗣️', threed: '🌐', cutscene: '🎥', deepweb: '🌑',
+            identify: '⚖️', music: '🎵', crazywall: '🧩',
+        };
+        const emoji = (t) => TYPE_EMOJI[t] || '📌';
+
+        const incomingSet = new Set(storyData.edges.map(e => e.target));
+        let roots = storyData.nodes.filter(n => !incomingSet.has(n.id));
+        if (roots.length === 0 && storyData.nodes.length > 0) {
+            const outDegree = {};
+            storyData.edges.forEach(e => { outDegree[e.source] = (outDegree[e.source] || 0) + 1; });
+            roots = [[...storyData.nodes].sort((a, b) => (outDegree[b.id] || 0) - (outDegree[a.id] || 0))[0]];
+        }
+
+        // BFS
+        const visited = new Set();
+        const orderedNodes = [];
+        const queue = [...roots];
+        roots.forEach(r => visited.add(r.id));
+        while (queue.length > 0) {
+            const cur = queue.shift();
+            orderedNodes.push(cur);
+            storyData.edges.filter(e => e.source === cur.id).forEach(edge => {
+                if (!visited.has(edge.target)) {
+                    visited.add(edge.target);
+                    const child = storyData.nodes.find(n => n.id === edge.target);
+                    if (child) queue.push(child);
+                }
+            });
+        }
+        storyData.nodes.forEach(n => { if (!visited.has(n.id)) orderedNodes.push(n); });
+
+        const nodeLabel = (id) => storyData.nodes.find(n => n.id === id)?.label || id;
+        const deadEnds = storyData.nodes.filter(n => !storyData.edges.some(e => e.source === n.id) && n.type !== 'identify');
+        const orphans = storyData.nodes.filter(n => !storyData.edges.some(e => e.source === n.id) && !storyData.edges.some(e => e.target === n.id));
+        const suspects = storyData.nodes.filter(n => n.type === 'suspect');
+        const evidence = storyData.nodes.filter(n => n.type === 'evidence');
+        const questions = storyData.nodes.filter(n => n.type === 'question');
+
+        const nodeTypes = {};
+        storyData.nodes.forEach(n => { nodeTypes[n.type] = (nodeTypes[n.type] || 0) + 1; });
+
+        return { orderedNodes, roots, nodeLabel, deadEnds, orphans, suspects, evidence, questions, nodeTypes, emoji };
+    };
+
+    // Helper function to generate designer-friendly canvas review (markdown – kept for reference)
     const generateDesignerReview = (storyData) => {
         const divider = '\n\n' + '─'.repeat(80) + '\n\n';
 
@@ -1756,769 +1774,1165 @@ Please provide a concise plot summary and narrative overview based on these elem
             .trim();
     };
 
-    // Helper to fetch and convert image URL to Base64 for PDF/DOCX
-    const fetchImageAsBase64 = (url) => {
-        return new Promise((resolve, reject) => {
-            const img = new Image();
-            img.crossOrigin = 'Anonymous';
-            img.onload = () => {
-                const canvas = document.createElement('canvas');
-                canvas.width = img.width;
-                canvas.height = img.height;
-                const ctx = canvas.getContext('2d');
-                ctx.drawImage(img, 0, 0);
-                const dataURL = canvas.toDataURL('image/jpeg', 0.8);
-                resolve({ dataURL, width: img.width, height: img.height });
-            };
-            img.onerror = (err) => reject(err);
-            img.src = url;
-        });
+    // Fetch a remote image and return a base64 data-URL for jsPDF addImage
+    const fetchImageAsBase64 = async (url) => {
+        if (!url || typeof url !== 'string' || !url.startsWith('http')) return null;
+        try {
+            const response = await fetch(url, { mode: 'cors' });
+            if (!response.ok) return null;
+            const blob = await response.blob();
+            return await new Promise((resolve) => {
+                const reader = new FileReader();
+                reader.onloadend = () => resolve(reader.result);
+                reader.onerror = () => resolve(null);
+                reader.readAsDataURL(blob);
+            });
+        } catch {
+            return null;
+        }
     };
 
-    // Enhanced PDF Generator with beautiful formatting
-    const generateEnhancedPDF = async (storyData, story, designerReview) => {
-        const doc = new jsPDF();
-        const pageWidth = doc.internal.pageSize.getWidth();
-        const pageHeight = doc.internal.pageSize.getHeight();
-        const margin = 20;
-        const contentWidth = pageWidth - 2 * margin;
-        let yPos = margin;
+    // ─── generateEnhancedPDF ──────────────────────────────────────────────────────
 
-        // Helper function to check if we need a new page
-        const checkPageBreak = (requiredSpace = 10) => {
-            if (yPos + requiredSpace > pageHeight - margin) {
-                doc.addPage();
-                yPos = margin;
-                return true;
-            }
+    const generateEnhancedPDF = async (storyData, story, reviewData, onProgress) => {
+        const { orderedNodes, roots, nodeLabel, deadEnds, orphans, suspects, evidence, questions, nodeTypes, emoji } = reviewData;
+        const doc = new jsPDF({ orientation: 'portrait', unit: 'mm', format: 'a4' });
+        const PW = doc.internal.pageSize.getWidth();   // 210mm
+        const PH = doc.internal.pageSize.getHeight();  // 297mm
+        const M = 20;           // left/right margin
+        const FOOTER_H = 18;    // reserved at bottom for footer
+        const SAFE_BOTTOM = PH - FOOTER_H;
+        const CW = PW - 2 * M; // usable content width
+        let y = M;
+        let pageNum = 1;
+        // ── Pre-fetch all node images (suspects, evidence, questions) ──────────────
+        onProgress?.(0);
+        const nodeImages = {}; // nodeId -> base64 data URL
+        const imageNodes = storyData.nodes.filter(n =>
+            ['suspect', 'evidence', 'question'].includes(n.type) &&
+            (n.metadata.image || (n.metadata.images && n.metadata.images[0]))
+        );
+        for (let i = 0; i < imageNodes.length; i++) {
+            const n = imageNodes[i];
+            const url = n.metadata.image || n.metadata.images?.[0];
+            const b64 = await fetchImageAsBase64(url).catch(() => null);
+            if (b64) nodeImages[n.id] = b64;
+            onProgress?.((i + 1) / Math.max(imageNodes.length, 1) * 0.3);
+        }
+
+        const LINE_H = 6;       // standard line height (mm)
+
+        const COLORS = {
+            indigo: [79, 70, 229], violet: [124, 58, 237], amber: [217, 119, 6],
+            slate: [51, 65, 85], white: [255, 255, 255], light: [248, 250, 252],
+            muted: [100, 116, 139], body: [30, 41, 59], border: [203, 213, 225],
+            green: [22, 163, 74], red: [220, 38, 38], blue: [37, 99, 235],
+            pink: [219, 39, 119], yellow: [202, 138, 4], orange: [234, 88, 12],
+            teal: [13, 148, 136],
+        };
+
+        const TYPE_COLOR = {
+            story: COLORS.indigo, suspect: COLORS.pink, evidence: COLORS.amber,
+            question: COLORS.violet, terminal: COLORS.teal, logic: COLORS.green,
+            setter: COLORS.blue, media: COLORS.orange, message: COLORS.blue,
+            email: COLORS.blue, fact: COLORS.yellow, notification: COLORS.slate,
+            identify: COLORS.red, cutscene: COLORS.violet, interrogation: COLORS.pink,
+            deepweb: COLORS.slate, lockpick: COLORS.teal, keypad: COLORS.teal,
+            decryption: COLORS.teal,
+        };
+        const typeColor = (t) => TYPE_COLOR[t] || COLORS.indigo;
+
+        const clean = (txt) => {
+            if (!txt) return '';
+            return txt
+                .replace(/[^\x09\x0A\x0D\x20-\x7E\xA0-\xFF]/g, '')
+                .replace(/[─━—–]/g, '-').trim();
+        };
+
+        const newPage = () => {
+            // Draw footer on current page before turning
+            doc.setFontSize(7); doc.setTextColor(...COLORS.muted); doc.setFont('helvetica', 'normal');
+            doc.setDrawColor(...COLORS.border); doc.setLineWidth(0.2);
+            doc.line(M, SAFE_BOTTOM + 2, PW - M, SAFE_BOTTOM + 2);
+            const titleClean = clean(storyData.title).substring(0, 50);
+            doc.text(titleClean + ' — Story Review', M, SAFE_BOTTOM + 8);
+            doc.text(`Page ${pageNum}`, PW - M, SAFE_BOTTOM + 8, { align: 'right' });
+            doc.addPage();
+            pageNum++;
+            y = M;
+        };
+
+        // Returns true and turns page if remaining space < needed mm
+        const checkY = (needed = 12) => {
+            if (y + needed > SAFE_BOTTOM) { newPage(); return true; }
             return false;
         };
 
-        // Advanced text renderer that handles inline markdown formatting
-        const renderFormattedText = (text, fontSize, baseColor = [0, 0, 0], indent = 0) => {
-            doc.setFontSize(fontSize);
+        // Gap helper — adds vertical space, turning page if needed
+        const gap = (mm = 3) => { y += mm; checkY(0); };
 
-            // Parse the text for markdown formatting
-            const segments = [];
-            let currentPos = 0;
-
-            // Regular expressions for markdown patterns
-            const boldPattern = /\*\*(.+?)\*\*/g;
-            const italicPattern = /(?<!\*)\*(?!\*)(.+?)(?<!\*)\*(?!\*)/g;
-
-            // First, find all bold segments
-            let boldMatches = [];
-            let match;
-            while ((match = boldPattern.exec(text)) !== null) {
-                boldMatches.push({ start: match.index, end: match.index + match[0].length, text: match[1], type: 'bold' });
-            }
-
-            // Then find italic segments (that aren't part of bold)
-            let italicMatches = [];
-            const tempText = text.replace(/\*\*(.+?)\*\*/g, (m) => '█'.repeat(m.length)); // Mask bold sections
-            const italicRegex = /(?<!\*)\*(?!\*)(.+?)(?<!\*)\*(?!\*)/g;
-            while ((match = italicRegex.exec(tempText)) !== null) {
-                italicMatches.push({ start: match.index, end: match.index + match[0].length, text: text.substring(match.index + 1, match.index + match[0].length - 1), type: 'italic' });
-            }
-
-            // Combine and sort all matches
-            const allMatches = [...boldMatches, ...italicMatches].sort((a, b) => a.start - b.start);
-
-            // Build segments
-            let lastEnd = 0;
-            allMatches.forEach(match => {
-                // Add normal text before this match
-                if (match.start > lastEnd) {
-                    segments.push({ text: text.substring(lastEnd, match.start), bold: false, italic: false });
-                }
-                // Add formatted text
-                segments.push({ text: match.text, bold: match.type === 'bold', italic: match.type === 'italic' });
-                lastEnd = match.end;
-            });
-
-            // Add remaining normal text
-            if (lastEnd < text.length) {
-                segments.push({ text: text.substring(lastEnd), bold: false, italic: false });
-            }
-
-            // If no formatting found, just add the whole text
-            if (segments.length === 0) {
-                segments.push({ text: text, bold: false, italic: false });
-            }
-
-            // Now render the segments
-            let currentX = margin + indent;
-            const maxWidth = contentWidth - indent;
-            let currentLine = [];
-            let currentLineWidth = 0;
-
-            segments.forEach((segment, segIndex) => {
-                const words = segment.text.split(' ');
-
-                words.forEach((word, wordIndex) => {
-                    if (wordIndex > 0 || segIndex > 0) {
-                        word = ' ' + word;
-                    }
-
-                    doc.setFont('helvetica', segment.bold ? 'bold' : (segment.italic ? 'italic' : 'normal'));
-                    const wordWidth = doc.getTextWidth(word);
-
-                    if (currentLineWidth + wordWidth > maxWidth && currentLine.length > 0) {
-                        // Render current line
-                        renderLine(currentLine, currentX, yPos, baseColor);
-                        yPos += fontSize * 0.5;
-                        checkPageBreak();
-                        currentLine = [];
-                        currentLineWidth = 0;
-                        currentX = margin + indent;
-                        word = word.trim(); // Remove leading space for new line
-                    }
-
-                    currentLine.push({ text: word, bold: segment.bold, italic: segment.italic, width: doc.getTextWidth(word) });
-                    currentLineWidth += doc.getTextWidth(word);
-                });
-            });
-
-            // Render remaining line
-            if (currentLine.length > 0) {
-                renderLine(currentLine, currentX, yPos, baseColor);
-                yPos += fontSize * 0.5;
-            }
-
-            yPos += 3;
+        // ── helpers ──────────────────────────────────────────────────────────────
+        const sectionBanner = (title, color = COLORS.indigo) => {
+            checkY(16);
+            doc.setFillColor(...color);
+            doc.roundedRect(M, y, CW, 13, 2, 2, 'F');
+            doc.setFontSize(11); doc.setTextColor(...COLORS.white); doc.setFont('helvetica', 'bold');
+            doc.text(clean(title), M + 5, y + 9);
+            y += 18;
         };
 
-        // Helper to render a line with mixed formatting
-        const renderLine = (segments, startX, y, color) => {
-            let x = startX;
-            doc.setTextColor(...color);
+        const subHeading = (title, color = COLORS.indigo) => {
+            checkY(12);
+            doc.setFontSize(10); doc.setTextColor(...color); doc.setFont('helvetica', 'bold');
+            doc.text(clean(title), M, y + 5);
+            y += 7;
+            doc.setDrawColor(...color); doc.setLineWidth(0.4);
+            doc.line(M, y, M + doc.getTextWidth(clean(title)), y);
+            y += 4;
+        };
 
-            segments.forEach(seg => {
-                doc.setFont('helvetica', seg.bold ? 'bold' : (seg.italic ? 'italic' : 'normal'));
-                doc.text(seg.text, x, y);
-                x += seg.width;
+        const bodyText = (text, indent = 0, color = COLORS.body, size = 9.5) => {
+            if (!text || !text.toString().trim()) return;
+            doc.setFontSize(size); doc.setTextColor(...color); doc.setFont('helvetica', 'normal');
+            const lines = doc.splitTextToSize(clean(text.toString()), CW - indent);
+            lines.forEach(l => {
+                checkY(LINE_H + 1);
+                doc.text(l, M + indent, y);
+                y += LINE_H;
+            });
+            y += 2; // paragraph gap
+        };
+
+        const labelValue = (label, value, indent = 0) => {
+            if (!value || !value.toString().trim()) return;
+            checkY(LINE_H + 1);
+            doc.setFontSize(9); doc.setFont('helvetica', 'bold'); doc.setTextColor(...COLORS.slate);
+            const lw = doc.getTextWidth(label + ': ');
+            doc.text(label + ': ', M + indent, y);
+            doc.setFont('helvetica', 'normal'); doc.setTextColor(...COLORS.body);
+            const maxW = CW - indent - lw;
+            const valLines = doc.splitTextToSize(clean(value.toString()), maxW);
+            // First line on same row as label
+            doc.text(valLines[0], M + indent + lw, y);
+            y += LINE_H;
+            // Subsequent lines indented under the value
+            for (let i = 1; i < valLines.length; i++) {
+                checkY(LINE_H + 1);
+                doc.text(valLines[i], M + indent + lw, y);
+                y += LINE_H;
+            }
+        };
+
+        const bullet = (text, indent = 4, color = COLORS.body) => {
+            if (!text) return;
+            checkY(LINE_H + 1);
+            doc.setFontSize(9); doc.setTextColor(...color); doc.setFont('helvetica', 'normal');
+            const lines = doc.splitTextToSize(clean(text), CW - indent - 6);
+            // Draw bullet on the first line only
+            doc.text('\u2022', M + indent, y);
+            lines.forEach((l, i) => {
+                checkY(LINE_H + 1);
+                doc.text(l, M + indent + 5, y);
+                y += LINE_H;
             });
         };
 
-        // Simple text helper for backward compatibility
-        const addText = (text, fontSize, color = [0, 0, 0], isBold = false, indent = 0) => {
-            if (isBold) {
-                text = text.replace(/^\*\*/, '').replace(/\*\*$/, ''); // Remove ** if present
-            }
-            renderFormattedText(text, fontSize, color, indent);
+        const divLine = (color = COLORS.border) => {
+            checkY(6);
+            doc.setDrawColor(...color); doc.setLineWidth(0.2);
+            doc.line(M, y, PW - M, y);
+            y += 6;
         };
 
-        // Cover Page
-        doc.setFillColor(30, 30, 50);
-        doc.rect(0, 0, pageWidth, pageHeight, 'F');
+        const pill = (text, color, x, py) => {
+            const t = clean(text); if (!t) return 0;
+            doc.setFontSize(7.5); doc.setFont('helvetica', 'bold');
+            const tw = doc.getTextWidth(t);
+            const pw2 = tw + 6;
+            doc.setFillColor(color[0], color[1], color[2]);
+            doc.setDrawColor(...color); doc.setLineWidth(0.3);
+            doc.roundedRect(x, py - 4.5, pw2, 6, 1.5, 1.5, 'F');
+            doc.setTextColor(...COLORS.white); doc.text(t, x + 3, py);
+            return pw2 + 3;
+        };
+
+        // ─────────────────────────────────────────────────────────────────────────
+        // PAGE 1 — COVER
+        // ─────────────────────────────────────────────────────────────────────────
+        doc.setFillColor(15, 23, 42);
+        doc.rect(0, 0, PW, PH, 'F');
+        // gradient strip top
+        doc.setFillColor(...COLORS.indigo); doc.rect(0, 0, PW, 2, 'F');
+        // gradient strip amber accent
+        doc.setFillColor(...COLORS.amber); doc.rect(0, 2, PW * 0.4, 2, 'F');
+        doc.setFillColor(124, 58, 237); doc.rect(PW * 0.4, 2, PW * 0.6, 2, 'F');
+
+        // Label
+        doc.setFontSize(9); doc.setTextColor(148, 163, 184); doc.setFont('helvetica', 'normal');
+        doc.text('MYSTERY GAMES FRAMEWORK', PW / 2, 30, { align: 'center' });
+        doc.text('STORY DESIGN REVIEW DOCUMENT', PW / 2, 37, { align: 'center' });
+
+        // Decorative ring
+        doc.setDrawColor(...COLORS.indigo); doc.setLineWidth(0.5);
+        doc.circle(PW / 2, PH / 2 - 30, 45, 'S');
+        doc.setDrawColor(217, 119, 6, 0.3); doc.setLineWidth(0.3);
+        doc.circle(PW / 2, PH / 2 - 30, 50, 'S');
 
         // Title
-        doc.setFontSize(32);
-        doc.setTextColor(255, 215, 0);
-        doc.setFont('helvetica', 'bold');
-        const titleLines = doc.splitTextToSize(storyData.title, contentWidth - 40);
-        let titleY = pageHeight / 3;
-        titleLines.forEach(line => {
-            const textWidth = doc.getTextWidth(line);
-            doc.text(line, (pageWidth - textWidth) / 2, titleY);
-            titleY += 12;
-        });
+        doc.setFontSize(26); doc.setTextColor(248, 250, 252); doc.setFont('helvetica', 'bold');
+        const titleLines = doc.splitTextToSize(storyData.title, CW - 20);
+        let ty = PH / 2 - 10;
+        titleLines.forEach(l => { doc.text(l, PW / 2, ty, { align: 'center' }); ty += 13; });
 
         // Subtitle
-        doc.setFontSize(14);
-        doc.setTextColor(200, 200, 200);
-        doc.setFont('helvetica', 'italic');
-        doc.text('A Mystery Game Story', pageWidth / 2, titleY + 10, { align: 'center' });
+        doc.setFontSize(11); doc.setTextColor(148, 163, 184); doc.setFont('helvetica', 'italic');
+        doc.text('A Mystery Game Story', PW / 2, ty + 5, { align: 'center' });
 
         // Description
         if (storyData.description) {
-            doc.setFontSize(11);
-            doc.setTextColor(180, 180, 180);
-            doc.setFont('helvetica', 'normal');
-            const descLines = doc.splitTextToSize(storyData.description, contentWidth - 60);
-            let descY = titleY + 30;
-            descLines.forEach(line => {
-                doc.text(line, pageWidth / 2, descY, { align: 'center' });
-                descY += 6;
+            doc.setFontSize(9); doc.setTextColor(100, 116, 139); doc.setFont('helvetica', 'normal');
+            const dl = doc.splitTextToSize(storyData.description, CW - 30);
+            let dy = ty + 16;
+            dl.forEach(l => { doc.text(l, PW / 2, dy, { align: 'center' }); dy += 5; });
+        }
+
+        // Stats strip
+        const statsY = PH - 55;
+        doc.setFillColor(30, 41, 59); doc.setDrawColor(51, 65, 85);
+        doc.setLineWidth(0.3); doc.roundedRect(M, statsY, CW, 28, 3, 3, 'FD');
+        const statItems = [
+            { label: 'Nodes', value: storyData.nodes.length },
+            { label: 'Connections', value: storyData.edges.length },
+            { label: 'Suspects', value: suspects.length },
+            { label: 'Evidence', value: evidence.length },
+            { label: 'Questions', value: questions.length },
+        ];
+        const sw = CW / statItems.length;
+        statItems.forEach((s, i) => {
+            const sx = M + i * sw + sw / 2;
+            doc.setFontSize(16); doc.setTextColor(...COLORS.amber); doc.setFont('helvetica', 'bold');
+            doc.text(s.value.toString(), sx, statsY + 13, { align: 'center' });
+            doc.setFontSize(7); doc.setTextColor(148, 163, 184); doc.setFont('helvetica', 'normal');
+            doc.text(s.label.toUpperCase(), sx, statsY + 21, { align: 'center' });
+        });
+
+        // Footer
+        doc.setFontSize(7); doc.setTextColor(71, 85, 105);
+        doc.text(`Generated ${new Date().toLocaleDateString()} by Mystery Games Framework`, PW / 2, PH - 10, { align: 'center' });
+
+        // ─────────────────────────────────────────────────────────────────────────
+        // PAGE 2 — TABLE OF CONTENTS
+        // ─────────────────────────────────────────────────────────────────────────
+        newPage();
+        // reset background for content pages
+        doc.setFillColor(...COLORS.white);
+
+        sectionBanner('TABLE OF CONTENTS', COLORS.slate);
+        y += 3;
+
+        const tocItems = [
+            { n: '1', title: 'Narrative Overview', sub: 'AI-generated story summary' },
+            { n: '2', title: 'Story Flow — Node by Node', sub: `${orderedNodes.length} steps in player order` },
+            { n: '3', title: 'Character Dossiers', sub: `${suspects.length} suspect profiles` },
+            { n: '4', title: 'Evidence Tracker', sub: `${evidence.length} evidence items` },
+            { n: '5', title: 'Question Bank & Answer Key', sub: `${questions.length} questions with answers` },
+            { n: '6', title: 'Story Health Check', sub: 'Flow validation & suggestions' },
+        ];
+
+        tocItems.forEach(item => {
+            checkY(18);
+            // Row background
+            doc.setFillColor(248, 250, 252);
+            doc.setDrawColor(...COLORS.border); doc.setLineWidth(0.2);
+            doc.roundedRect(M, y, CW, 14, 2, 2, 'FD');
+            // Number
+            doc.setFontSize(9); doc.setFont('helvetica', 'bold'); doc.setTextColor(...COLORS.indigo);
+            doc.text(item.n + '.', M + 4, y + 9);
+            // Title
+            doc.setFont('helvetica', 'bold'); doc.setTextColor(...COLORS.body);
+            doc.text(clean(item.title), M + 13, y + 9);
+            // Subtitle (right-aligned only)
+            doc.setFont('helvetica', 'normal'); doc.setTextColor(...COLORS.muted); doc.setFontSize(8);
+            const subW = doc.getTextWidth(clean(item.sub));
+            doc.text(clean(item.sub), PW - M - subW - 3, y + 9);
+            y += 17; // row height + gap
+        });
+
+        y += 4;
+        // Node type breakdown
+        subHeading('Canvas Overview', COLORS.slate);
+        const ntEntries = Object.entries(nodeTypes).sort((a, b) => b[1] - a[1]);
+        let px = M; let py2 = y + 1;
+        ntEntries.forEach(([type, count]) => {
+            const lbl = `${emoji(type)} ${type} (${count})`;
+            const w = pill(lbl, typeColor(type), px, py2);
+            if (w) px += w;
+            if (px > PW - M - 30) { px = M; py2 += 10; y += 10; }
+        });
+        y = py2 + 10;
+
+        if (roots.length > 0) {
+            labelValue('Story starts at', roots.map(r => r.label).join(', '));
+        }
+        if (deadEnds.length > 0) {
+            labelValue('Story ends at', deadEnds.map(n => n.label).join(', '));
+        }
+        if (orphans.length > 0) {
+            checkY(8);
+            doc.setFillColor(254, 243, 199); doc.setDrawColor(217, 119, 6); doc.setLineWidth(0.5);
+            doc.roundedRect(M, y, CW, 9, 2, 2, 'FD');
+            doc.setFontSize(8.5); doc.setFont('helvetica', 'bold'); doc.setTextColor(146, 64, 14);
+            doc.text('WARNING: ' + orphans.length + ' orphaned nodes found — ' + orphans.map(n => n.label).join(', '), M + 3, y + 6);
+            y += 14;
+        }
+
+        // ─────────────────────────────────────────────────────────────────────────
+        // PAGE — SECTION 1: AI NARRATIVE OVERVIEW
+        // ─────────────────────────────────────────────────────────────────────────
+        newPage();
+        sectionBanner('1. NARRATIVE OVERVIEW', COLORS.indigo);
+
+        doc.setFontSize(8.5); doc.setTextColor(...COLORS.muted); doc.setFont('helvetica', 'italic');
+        doc.text('AI-generated summary of the story — for creative context and review purposes.', M, y); y += 8;
+
+        const storyParas = story.split(/\n\n+/);
+        storyParas.forEach(para => {
+            if (!para.trim()) return;
+            checkY(10);
+            // drop any markdown markers
+            const cleanPara = para.replace(/^#+\s*/gm, '').replace(/\*\*/g, '').trim();
+            bodyText(cleanPara, 0, COLORS.body, 10);
+            y += 2;
+        });
+
+        // ─────────────────────────────────────────────────────────────────────────
+        // PAGE — SECTION 2: STORY FLOW NODE BY NODE
+        // ─────────────────────────────────────────────────────────────────────────
+        newPage();
+        sectionBanner('2. STORY FLOW — NODE BY NODE', COLORS.violet);
+
+        doc.setFontSize(8.5); doc.setTextColor(...COLORS.muted); doc.setFont('helvetica', 'italic');
+        doc.text('Nodes are listed in the exact order a player encounters them, from start to finish.', M, y); y += 9;
+
+        orderedNodes.forEach((node, index) => {
+            const isStart = roots.some(r => r.id === node.id);
+            const isEnd = !storyData.edges.some(e => e.source === node.id);
+            const nc = typeColor(node.type);
+
+            // Always start a node card with at least 50mm free — avoids partial cards
+            checkY(50);
+
+            // ── Node header bar ─────────────────────────────────────────────
+            const CARD_BAR_H = 10;
+            doc.setFillColor(...nc);
+            doc.roundedRect(M, y, CW, CARD_BAR_H, 2, 2, 'F');
+
+            // Step number badge
+            doc.setFillColor(255, 255, 255);
+            doc.circle(M + 7, y + CARD_BAR_H / 2, 4, 'F');
+            doc.setFontSize(7.5); doc.setFont('helvetica', 'bold'); doc.setTextColor(...nc);
+            doc.text((index + 1).toString(), M + 7, y + CARD_BAR_H / 2 + 2.5, { align: 'center' });
+
+            // Node title
+            doc.setFontSize(10); doc.setFont('helvetica', 'bold'); doc.setTextColor(...COLORS.white);
+            doc.text(clean(node.label), M + 17, y + CARD_BAR_H / 2 + 3.5);
+
+            // START / END badges
+            let bx = PW - M - 3;
+            if (isEnd) {
+                doc.setFontSize(6.5); doc.setFont('helvetica', 'bold');
+                const ew = doc.getTextWidth('END') + 5;
+                bx -= ew;
+                doc.setFillColor(220, 38, 38); doc.roundedRect(bx, y + 2, ew, 6, 1, 1, 'F');
+                doc.setTextColor(255, 255, 255); doc.text('END', bx + 2.5, y + 6.5);
+                bx -= 3;
+            }
+            if (isStart) {
+                doc.setFontSize(6.5); doc.setFont('helvetica', 'bold');
+                const sw3 = doc.getTextWidth('START') + 5;
+                bx -= sw3;
+                doc.setFillColor(34, 197, 94); doc.roundedRect(bx, y + 2, sw3, 6, 1, 1, 'F');
+                doc.setTextColor(255, 255, 255); doc.text('START', bx + 2.5, y + 6.5);
+            }
+
+            y += CARD_BAR_H + 3;
+
+            // Type label
+            checkY(LINE_H + 1);
+            doc.setFontSize(7.5); doc.setFont('helvetica', 'normal'); doc.setTextColor(...COLORS.muted);
+            doc.text('Type: ' + node.type.toUpperCase(), M + 2, y);
+            y += LINE_H + 1;
+
+            // ── Node Image (if any) ──────────────────────────────────────────
+            const imgB64 = nodeImages[node.id];
+            if (imgB64) {
+                const imgW = (node.type === 'suspect') ? 30 : 50; // suspects get smaller portraits
+                const imgH = (node.type === 'suspect') ? 30 : 35;
+                checkY(imgH + 10);
+                try {
+                    doc.addImage(imgB64, 'JPEG', M + 2, y, imgW, imgH);
+                    doc.setDrawColor(...COLORS.border); doc.setLineWidth(0.2);
+                    doc.rect(M + 2, y, imgW, imgH);
+                    y += imgH + 5;
+                } catch { /* skip bad image */ }
+            }
+
+            // ── Content / dialogue ──────────────────────────────────────────
+            if (node.text && node.text.trim()) {
+                checkY(LINE_H + 2);
+                doc.setFontSize(8.5); doc.setFont('helvetica', 'bold'); doc.setTextColor(...COLORS.slate);
+                doc.text('Content:', M + 2, y);
+                y += LINE_H;
+
+                doc.setFontSize(9); doc.setFont('helvetica', 'normal');
+                const quoteTxt = doc.splitTextToSize(clean(node.text), CW - 14);
+                const qh = quoteTxt.length * LINE_H + 4;
+                checkY(qh + 4);
+                // Left accent bar
+                doc.setFillColor(...nc);
+                doc.rect(M + 2, y - 2, 2, qh, 'F');
+                // Text lines
+                doc.setTextColor(...COLORS.body);
+                quoteTxt.forEach(l => {
+                    checkY(LINE_H + 1);
+                    doc.text(l, M + 8, y);
+                    y += LINE_H;
+                });
+                y += 3; // gap after blockquote
+            }
+
+            // ── Type-specific extras ────────────────────────────────────────
+            switch (node.type) {
+                case 'suspect':
+                    if (node.metadata.name) labelValue('Name', node.metadata.name, 2);
+                    if (node.metadata.role) labelValue('Role', node.metadata.role, 2);
+                    if (node.metadata.alibi) labelValue('Alibi', node.metadata.alibi, 2);
+                    if (node.metadata.culprit) {
+                        checkY(12);
+                        doc.setFillColor(254, 226, 226); doc.setDrawColor(220, 38, 38); doc.setLineWidth(0.5);
+                        doc.roundedRect(M + 2, y, CW - 4, 9, 1, 1, 'FD');
+                        doc.setFontSize(8.5); doc.setFont('helvetica', 'bold'); doc.setTextColor(153, 27, 27);
+                        doc.text('CULPRIT: ' + clean(node.metadata.culprit), M + 6, y + 6);
+                        y += 13;
+                    }
+                    break;
+                case 'evidence':
+                    if (node.metadata.description) labelValue('Details', node.metadata.description, 2);
+                    if (node.metadata.variableId) labelValue('Logic ID', node.metadata.variableId, 2);
+                    break;
+                case 'question':
+                    if (node.metadata.options && node.metadata.options.length > 0) {
+                        checkY(LINE_H * 2);
+                        doc.setFontSize(8.5); doc.setFont('helvetica', 'bold'); doc.setTextColor(...COLORS.slate);
+                        doc.text('Answer Choices:', M + 2, y);
+                        y += LINE_H + 2;
+                        node.metadata.options.forEach((opt, oi) => {
+                            if (!opt) return;
+                            const correct = opt.isCorrect;
+                            const optColor = correct ? COLORS.green : [100, 116, 139];
+                            const optTxt = doc.splitTextToSize(`${oi + 1}. ${clean(opt.text || '')}`, CW - 18);
+                            const oh = optTxt.length * LINE_H + 5;
+                            checkY(oh + 3);
+                            // Background box
+                            doc.setFillColor(correct ? 220 : 248, correct ? 252 : 250, correct ? 231 : 252);
+                            doc.setDrawColor(...optColor); doc.setLineWidth(0.3);
+                            doc.roundedRect(M + 4, y, CW - 8, oh, 1, 1, 'FD');
+                            doc.setFontSize(8.5); doc.setFont('helvetica', correct ? 'bold' : 'normal');
+                            doc.setTextColor(...optColor);
+                            const textY_start = y + LINE_H;
+                            optTxt.forEach((l, li) => {
+                                doc.text(l, M + 7, y + (li + 1) * LINE_H);
+                            });
+                            y += oh + 3;
+                        });
+                    }
+                    if (node.metadata.hints && node.metadata.hints.length > 0) {
+                        checkY(LINE_H * 2);
+                        doc.setFontSize(8.5); doc.setFont('helvetica', 'bold'); doc.setTextColor(...COLORS.slate);
+                        doc.text('Hints:', M + 2, y);
+                        y += LINE_H + 1;
+                        node.metadata.hints.forEach((h, hi) => {
+                            if (h && h.text) bullet(`Hint ${hi + 1}: "${clean(h.text)}" — penalty: -${h.penalty || 0} pts`, 6, COLORS.muted);
+                        });
+                    }
+                    break;
+                case 'terminal':
+                    if (node.metadata.command) labelValue('Required Command', node.metadata.command, 2);
+                    if (node.metadata.answer) labelValue('Expected Answer', node.metadata.answer, 2);
+                    break;
+                case 'logic':
+                    if (node.metadata.condition) labelValue('Condition', node.metadata.condition, 2);
+                    if (node.metadata.logicIds && node.metadata.logicIds.length > 0)
+                        labelValue('Required IDs', node.metadata.logicIds.join(', '), 2);
+                    break;
+                case 'setter':
+                    if (node.metadata.variableId) labelValue('Sets Flag', node.metadata.variableId, 2);
+                    if (node.metadata.variableValue !== undefined && node.metadata.variableValue !== '')
+                        labelValue('Value', String(node.metadata.variableValue), 2);
+                    break;
+                case 'media':
+                    if (node.metadata.mediaType) labelValue('Media Type', node.metadata.mediaType, 2);
+                    if (node.metadata.url) labelValue('URL', node.metadata.url, 2);
+                    break;
+                case 'lockpick': case 'keypad': case 'decryption':
+                    if (node.metadata.command) labelValue('Passcode / Target', node.metadata.command, 2);
+                    break;
+                case 'identify':
+                    if (node.metadata.culprit) labelValue('Correct Culprit', node.metadata.culprit, 2);
+                    break;
+            }
+
+            // Score / penalty
+            if (node.score) bullet(`Score reward: +${node.score} pts`, 2, COLORS.green);
+            if (node.penalty) bullet(`Penalty: -${node.penalty} pts`, 2, COLORS.red);
+
+            gap(2);
+
+            // ── Edge connections ────────────────────────────────────────────
+            const incoming = storyData.edges.filter(e => e.target === node.id);
+            const outgoing = storyData.edges.filter(e => e.source === node.id);
+
+            if (incoming.length > 0) {
+                checkY(LINE_H + 1);
+                doc.setFontSize(8); doc.setFont('helvetica', 'normal'); doc.setTextColor(...COLORS.muted);
+                const inTxt = doc.splitTextToSize('From: ' + incoming.map(e => nodeLabel(e.source)).join('  \u00b7  '), CW - 4);
+                inTxt.forEach(l => { checkY(LINE_H + 1); doc.text(l, M + 2, y); y += LINE_H; });
+            }
+
+            if (outgoing.length === 0) {
+                checkY(LINE_H + 1);
+                doc.setFontSize(8); doc.setFont('helvetica', 'bold'); doc.setTextColor(...COLORS.red);
+                doc.text('(End of path — no further connections)', M + 2, y);
+                y += LINE_H;
+            } else if (outgoing.length === 1) {
+                checkY(LINE_H + 1);
+                doc.setFontSize(8); doc.setFont('helvetica', 'normal'); doc.setTextColor(...COLORS.muted);
+                const lbl = outgoing[0].label ? ` [${outgoing[0].label}]` : '';
+                const leadTxt = doc.splitTextToSize('Leads to: ' + nodeLabel(outgoing[0].target) + lbl, CW - 4);
+                leadTxt.forEach(l => { checkY(LINE_H + 1); doc.text(l, M + 2, y); y += LINE_H; });
+            } else {
+                checkY(LINE_H + 1);
+                doc.setFontSize(8); doc.setFont('helvetica', 'bold'); doc.setTextColor(...COLORS.slate);
+                doc.text('Branches to:', M + 2, y);
+                y += LINE_H;
+                outgoing.forEach(e => {
+                    const lbl = e.label ? ` [${e.label}]` : '';
+                    bullet('\u2192 ' + nodeLabel(e.target) + lbl, 6, COLORS.slate);
+                });
+            }
+
+            gap(2);
+            divLine();
+        });
+
+
+        // ─────────────────────────────────────────────────────────────────────────
+        // PAGE — SECTION 3: CHARACTER DOSSIERS
+        // ─────────────────────────────────────────────────────────────────────────
+        if (suspects.length > 0) {
+            newPage();
+            sectionBanner('3. CHARACTER DOSSIERS', COLORS.pink);
+            suspects.forEach((s, i) => {
+                const imgB64 = nodeImages[s.id];
+                const IMG_W = 32;
+                const IMG_H = 32;
+                const hasPic = !!imgB64;
+                checkY(25 + (hasPic ? IMG_H : 0));
+
+                // ── Card header bar ──────────────────────────────────────────
+                const cardColor = s.metadata.culprit ? [254, 226, 226] : [248, 250, 252];
+                doc.setFillColor(...cardColor);
+                doc.setDrawColor(...(s.metadata.culprit ? COLORS.red : COLORS.border));
+                doc.setLineWidth(s.metadata.culprit ? 0.8 : 0.3);
+                doc.roundedRect(M, y, CW, 7, 2, 2, 'FD');
+                doc.setFontSize(10); doc.setFont('helvetica', 'bold');
+                doc.setTextColor(...(s.metadata.culprit ? COLORS.red : COLORS.pink));
+                doc.text(`${i + 1}. ${clean(s.metadata.name || s.label)}`, M + 4, y + 5.5);
+                if (s.metadata.culprit) {
+                    doc.setFontSize(7); doc.setTextColor(...COLORS.red);
+                    doc.text('[ CULPRIT ]', PW - M - 22, y + 5.5);
+                }
+                y += 10;
+
+                // ── Portrait ABOVE text ──────────────────────────────────────
+                if (hasPic) {
+                    try {
+                        doc.addImage(imgB64, 'JPEG', M + 2, y, IMG_W, IMG_H);
+                        doc.setDrawColor(...COLORS.border); doc.setLineWidth(0.3);
+                        doc.rect(M + 2, y, IMG_W, IMG_H);
+                        y += IMG_H + 5;
+                    } catch { /* skip */ }
+                }
+
+                // Now for the text fields — always below the image
+                if (s.metadata.role) labelValue('Role', s.metadata.role, 2);
+                if (s.metadata.alibi) labelValue('Alibi', s.metadata.alibi, 2);
+                if (s.metadata.description) labelValue('Background', s.metadata.description, 2);
+                if (s.text) labelValue('Profile Note', s.text, 2);
+
+                y += 4;
+                divLine();
             });
         }
 
-        // Footer on cover
-        doc.setFontSize(9);
-        doc.setTextColor(150, 150, 150);
-        doc.text('Generated by Mystery Games Framework', pageWidth / 2, pageHeight - 20, { align: 'center' });
-        doc.text(new Date().toLocaleDateString(), pageWidth / 2, pageHeight - 15, { align: 'center' });
+        // ─────────────────────────────────────────────────────────────────────────
+        // PAGE — SECTION 4: EVIDENCE TRACKER
+        // ─────────────────────────────────────────────────────────────────────────
+        if (evidence.length > 0) {
+            newPage();
+            sectionBanner('4. EVIDENCE TRACKER', COLORS.amber);
+            evidence.forEach((item, i) => {
+                const imgB64 = nodeImages[item.id];
+                const hasPic = !!imgB64;
+                const IMG_W = 45;
+                const IMG_H = 36;
+                checkY(20 + (hasPic ? IMG_H : 0));
 
-        // Start content on new page
-        doc.addPage();
-        yPos = margin;
+                // ── item header bar ──────────────────────────────────────────
+                doc.setFillColor(255, 251, 235); doc.setDrawColor(...COLORS.amber); doc.setLineWidth(0.3);
+                doc.roundedRect(M, y, CW, 7, 2, 2, 'FD');
+                doc.setFontSize(9.5); doc.setFont('helvetica', 'bold'); doc.setTextColor(...COLORS.amber);
+                doc.text(`${i + 1}. ${clean(item.label)}`, M + 4, y + 5.5);
+                y += 10;
 
-        // Parse and render the story
-        const storyLines = story.split('\n');
-
-        doc.setFontSize(18);
-        doc.setTextColor(79, 70, 229);
-        doc.setFont('helvetica', 'bold');
-        doc.text('THE STORY', margin, yPos);
-        yPos += 12;
-
-        // Add a separator line
-        doc.setDrawColor(79, 70, 229);
-        doc.setLineWidth(0.5);
-        doc.line(margin, yPos, pageWidth - margin, yPos);
-        yPos += 8;
-
-        storyLines.forEach(line => {
-            if (!line.trim()) {
-                yPos += 4;
-                return;
-            }
-            addText(line, 11, [40, 40, 40], false, 0);
-        });
-
-        // Designer Review Section
-        doc.addPage();
-        yPos = margin;
-
-        const reviewLines = designerReview.split('\n');
-        let currentSection = 'default';
-
-        for (const line of reviewLines) {
-            const trimmed = line.trim();
-
-            if (!trimmed) {
-                yPos += 3;
-                continue;
-            }
-
-            // Main heading (# DESIGNER'S CANVAS REVIEW)
-            if (trimmed.startsWith('# ')) {
-                checkPageBreak(20);
-                const text = cleanTextForPDF(trimmed.substring(2));
-                doc.setFillColor(79, 70, 229);
-                doc.rect(margin - 5, yPos - 5, contentWidth + 10, 18, 'F');
-                doc.setFontSize(20);
-                doc.setTextColor(255, 255, 255);
-                doc.setFont('helvetica', 'bold');
-                doc.text(text, margin, yPos + 8);
-                yPos += 25;
-                continue;
-            }
-
-            // Section headings (## )
-            if (trimmed.startsWith('## ')) {
-                checkPageBreak(15);
-                yPos += 5;
-                const rawText = trimmed.substring(3);
-                const text = cleanTextForPDF(rawText);
-
-                // Color code different sections based on original text with emojis
-                let bgColor = [79, 70, 229];
-                if (rawText.includes('CANVAS AT A GLANCE') || rawText.includes('STORY STRUCTURE')) { bgColor = [59, 130, 246]; currentSection = 'overview'; }
-                else if (rawText.includes('STORY FLOW')) { bgColor = [139, 92, 246]; currentSection = 'flow'; }
-                else if (rawText.includes('CHARACTER')) { bgColor = [236, 72, 153]; currentSection = 'characters'; }
-                else if (rawText.includes('EVIDENCE TRACKER')) { bgColor = [234, 179, 8]; currentSection = 'evidence'; }
-                else if (rawText.includes('QUESTION BANK')) { bgColor = [168, 85, 247]; currentSection = 'questions'; }
-                else if (rawText.includes('LOGIC')) { bgColor = [34, 197, 94]; currentSection = 'logic'; }
-                else if (rawText.includes('INTERACTIVE')) { bgColor = [249, 115, 22]; currentSection = 'interactive'; }
-                else if (rawText.includes('FLOW HEALTH') || rawText.includes('RECOMMENDATIONS')) { bgColor = [16, 185, 129]; currentSection = 'recommendations'; }
-
-                doc.setFillColor(...bgColor);
-                doc.rect(margin - 3, yPos - 3, contentWidth + 6, 12, 'F');
-                doc.setFontSize(14);
-                doc.setTextColor(255, 255, 255);
-                doc.setFont('helvetica', 'bold');
-                doc.text(text, margin, yPos + 5);
-                yPos += 18;
-                continue;
-            }
-
-            // Subsection headings (### )
-            if (trimmed.startsWith('### ')) {
-                checkPageBreak(12);
-                const text = cleanTextForPDF(trimmed.substring(4));
-                doc.setFontSize(12);
-                doc.setTextColor(79, 70, 229);
-                doc.setFont('helvetica', 'bold');
-                doc.text(text, margin, yPos);
-                yPos += 10;
-                continue;
-            }
-
-            // Bold text (**text**) - now handled by renderFormattedText
-            // Remove this check as it's redundant with the new parser
-            // if (trimmed.startsWith('**') && trimmed.endsWith('**')) {
-            //     const text = trimmed.substring(2, trimmed.length - 2);
-            //     addText(text, 10, [60, 60, 60], true, 0);
-            //     return;
-            // }
-
-            // Blockquote lines (> ...)
-            if (trimmed.startsWith('> ') || trimmed.startsWith('>*')) {
-                checkPageBreak(8);
-                const text = cleanTextForPDF(trimmed.replace(/^>\s?/, ''));
-                doc.setFontSize(10);
-                doc.setDrawColor(180, 180, 180);
-                doc.setLineWidth(1.5);
-                doc.line(margin + 2, yPos - 3, margin + 2, yPos + 4);
-                doc.setTextColor(100, 100, 100);
-                doc.setFont('helvetica', 'italic');
-                const bqLines = doc.splitTextToSize(text, contentWidth - 15);
-                bqLines.forEach(l => {
-                    doc.text(l, margin + 8, yPos);
-                    yPos += 5;
-                    checkPageBreak();
-                });
-                yPos += 2;
-                continue;
-            }
-
-            // Markdown table rows (| col | col |)
-            if (trimmed.startsWith('|') && trimmed.endsWith('|')) {
-                // Skip separator rows (|---|---|
-                if (/^[\|\- :]+$/.test(trimmed)) { continue; }
-                checkPageBreak(7);
-                const cols = trimmed.split('|').map(c => cleanTextForPDF(c.trim())).filter(c => c.length > 0);
-                if (cols.length > 0) {
-                    const colWidth = contentWidth / cols.length;
-                    doc.setFontSize(9);
-                    doc.setFont('helvetica', 'normal');
-                    doc.setTextColor(60, 60, 60);
-                    cols.forEach((col, ci) => {
-                        const cellText = doc.splitTextToSize(col, colWidth - 4);
-                        doc.text(cellText, margin + ci * colWidth + 2, yPos);
-                    });
-                    yPos += 7;
-                    doc.setDrawColor(220, 220, 220);
-                    doc.setLineWidth(0.1);
-                    doc.line(margin, yPos - 1, pageWidth - margin, yPos - 1);
-                }
-                continue;
-            }
-
-            // Warning/Alert boxes (WARNING: or contains warning-like prefix after cleaning)
-            if (trimmed.includes('\u26A0') || trimmed.match(/\*\*⚠/)) {
-                checkPageBreak(15);
-                doc.setFillColor(254, 243, 199);
-                doc.setDrawColor(251, 191, 36);
-                doc.setLineWidth(1);
-
-                // Clean text and add label
-                const cleanText = cleanTextForPDF(trimmed).replace(/\*\*/g, '');
-                const labeledText = 'WARNING: ' + cleanText;
-
-                doc.setFontSize(10);
-                const lines = doc.splitTextToSize(labeledText, contentWidth - 6);
-                const boxHeight = lines.length * 5 + 4;
-
-                doc.rect(margin, yPos - 2, contentWidth, boxHeight, 'FD');
-
-                const savedYPos = yPos;
-                yPos += 2;
-                lines.forEach(l => { doc.setFont('helvetica', 'normal'); doc.setTextColor(146, 64, 14); doc.text(l, margin + 3, yPos); yPos += 5; });
-                yPos = savedYPos + boxHeight + 3;
-                continue;
-            }
-
-            // Suggestion boxes (SUGGESTION keyword)
-            if (trimmed.match(/Suggestion/i) && trimmed.includes('**')) {
-                checkPageBreak(15);
-                doc.setFillColor(219, 234, 254);
-                doc.setDrawColor(59, 130, 246);
-                doc.setLineWidth(1);
-
-                const cleanText = cleanTextForPDF(trimmed).replace(/\*\*/g, '');
-                const labeledText = 'SUGGESTION: ' + cleanText;
-
-                doc.setFontSize(10);
-                const lines = doc.splitTextToSize(labeledText, contentWidth - 6);
-                const boxHeight = lines.length * 5 + 4;
-
-                doc.rect(margin, yPos - 2, contentWidth, boxHeight, 'FD');
-
-                const savedYPos = yPos;
-                yPos += 2;
-                lines.forEach(l => { doc.setFont('helvetica', 'normal'); doc.setTextColor(30, 64, 175); doc.text(l, margin + 3, yPos); yPos += 5; });
-                yPos = savedYPos + boxHeight + 3;
-                continue;
-            }
-
-            // List items (  - or  → or  ← or numbered N.)
-            if (trimmed.startsWith('- ') || trimmed.startsWith('->') || trimmed.startsWith('<-') ||
-                trimmed.startsWith('v ') || trimmed.startsWith('^ ') || /^\d+\.\s/.test(trimmed)) {
-                let bullet = '-';
-                let text = trimmed;
-
-                if (trimmed.startsWith('- ')) {
-                    bullet = '\u2022'; // bullet
-                    text = trimmed.substring(2);
-                } else if (trimmed.startsWith('->')) {
-                    bullet = '->';
-                    text = trimmed.substring(2).trim();
-                } else if (trimmed.startsWith('<-')) {
-                    bullet = '<-';
-                    text = trimmed.substring(2).trim();
-                } else if (/^\d+\.\s/.test(trimmed)) {
-                    const m = trimmed.match(/^(\d+\.\s)/);
-                    bullet = m[1].trim();
-                    text = trimmed.substring(m[1].length);
+                // ── Photo ABOVE text ─────────────────────────────────────────
+                if (hasPic) {
+                    try {
+                        doc.addImage(imgB64, 'JPEG', M + 2, y, IMG_W, IMG_H);
+                        doc.setDrawColor(...COLORS.border); doc.setLineWidth(0.3);
+                        doc.rect(M + 2, y, IMG_W, IMG_H);
+                        y += IMG_H + 5;
+                    } catch { /* skip */ }
                 }
 
-                const cleanItem = cleanTextForPDF(text).replace(/\*\*/g, '');
-                checkPageBreak();
+                if (item.metadata.variableId) labelValue('Logic ID', item.metadata.variableId, 2);
+                if (item.metadata.description) labelValue('Description', item.metadata.description, 2);
+                if (item.text) labelValue('Details', item.text, 2);
 
-                doc.setFontSize(10);
-                doc.setTextColor(80, 80, 80);
-                doc.setFont('helvetica', 'bold');
-                doc.text(bullet, margin + 5, yPos);
-
-                doc.setFont('helvetica', 'normal');
-                const itemLines = doc.splitTextToSize(cleanItem, contentWidth - 16);
-                itemLines.forEach((il, idx) => {
-                    if (idx > 0) checkPageBreak();
-                    doc.setTextColor(80, 80, 80);
-                    doc.text(il, margin + 14, yPos);
-                    yPos += 5;
-                });
-                yPos += 1;
-                continue;
-            }
-
-            // Image lines — any ![alt](url) pattern
-            if (trimmed.startsWith('![') && trimmed.includes('](')) {
-                const urlMatch = trimmed.match(/\(([^)]+)\)/);
-                if (urlMatch && urlMatch[1]) {
-                    const url = urlMatch[1].trim();
-                    // Only try to embed if it looks like an image URL
-                    const looksLikeImage = /\.(png|jpe?g|gif|webp|svg)(\?.*)?$/i.test(url) ||
-                        url.startsWith('data:image') ||
-                        url.includes('firebasestorage') ||
-                        url.includes('googleapis.com') ||
-                        url.includes('storage.googleapis');
-
-                    if (looksLikeImage) {
-                        try {
-                            checkPageBreak(80);
-                            const imgData = await fetchImageAsBase64(url);
-
-                            // Use up to 80% of the content width, preserve aspect ratio
-                            const maxW = contentWidth * 0.85;
-                            const ratio = imgData.width / Math.max(imgData.height, 1);
-                            const displayWidth = Math.min(maxW, imgData.width > 0 ? maxW : 100);
-                            const displayHeight = Math.min(displayWidth / ratio, 160); // cap height at 160pt
-                            const finalWidth = displayHeight * ratio; // recalculate width if height was capped
-
-                            // Centre the image
-                            const xOffset = (contentWidth - finalWidth) / 2;
-
-                            // Light border around image
-                            doc.setDrawColor(200, 200, 200);
-                            doc.setLineWidth(0.3);
-                            doc.rect(margin + xOffset - 1, yPos - 1, finalWidth + 2, displayHeight + 2);
-                            doc.addImage(imgData.dataURL, 'JPEG', margin + xOffset, yPos, finalWidth, displayHeight);
-
-                            yPos += displayHeight + 8;
-                            checkPageBreak();
-                        } catch (err) {
-                            console.warn('PDF: image failed to load:', url, err);
-                            doc.setFontSize(8);
-                            doc.setTextColor(150, 100, 0);
-                            const shortUrl = url.length > 50 ? url.substring(0, 47) + '...' : url;
-                            doc.text(`[Image: ${shortUrl}]`, margin + 5, yPos);
-                            yPos += 8;
-                        }
-                    } else {
-                        // Non-image URL — just print as text
-                        const altText = (trimmed.match(/!\[([^\]]*)]/) || [])[1] || 'Image';
-                        doc.setFontSize(9);
-                        doc.setTextColor(80, 80, 200);
-                        doc.setFont('helvetica', 'italic');
-                        const shortUrl = url.length > 60 ? url.substring(0, 57) + '...' : url;
-                        doc.text(`${altText}: ${shortUrl}`, margin + 5, yPos);
-                        yPos += 7;
-                    }
-                    continue;
-                }
-            }
-
-            // Divider lines (=== or --- or ─── )
-            if (trimmed.startsWith('===') || trimmed.startsWith('---') || trimmed.startsWith('\u2500\u2500\u2500')) {
-                checkPageBreak(5);
-                doc.setDrawColor(200, 200, 200);
-                doc.setLineWidth(trimmed.startsWith('===') ? 0.5 : 0.2);
-                doc.line(margin, yPos, pageWidth - margin, yPos);
-                yPos += 6;
-                continue;
-            }
-
-            // Italic text (*text*)
-            if (trimmed.startsWith('*') && trimmed.endsWith('*') && !trimmed.startsWith('**')) {
-                const cleanItalic = cleanTextForPDF(trimmed.replace(/^\*|\*$/g, ''));
-                doc.setFontSize(9);
-                doc.setFont('helvetica', 'italic');
-                doc.setTextColor(120, 120, 120);
-                const italicLines = doc.splitTextToSize(cleanItalic, contentWidth);
-                italicLines.forEach(l => { doc.text(l, margin, yPos); yPos += 5; checkPageBreak(); });
-                continue;
-            }
-
-            // Regular paragraph — always clean before rendering
-            const cleanPara = cleanTextForPDF(trimmed).replace(/\*\*/g, '');
-            if (cleanPara) {
-                doc.setFontSize(10);
-                doc.setFont('helvetica', 'normal');
-                doc.setTextColor(60, 60, 60);
-                const paraLines = doc.splitTextToSize(cleanPara, contentWidth);
-                paraLines.forEach(l => { checkPageBreak(); doc.text(l, margin, yPos); yPos += 5.5; });
-                yPos += 1;
-            }
+                y += 3;
+                divLine();
+            });
         }
 
-        // Save the PDF
+        // ─────────────────────────────────────────────────────────────────────────
+        // PAGE — SECTION 5: QUESTION BANK & ANSWER KEY
+        // ─────────────────────────────────────────────────────────────────────────
+        if (questions.length > 0) {
+            newPage();
+            sectionBanner('5. QUESTION BANK & ANSWER KEY', COLORS.violet);
+            doc.setFontSize(8.5); doc.setTextColor(...COLORS.muted); doc.setFont('helvetica', 'italic');
+            doc.text('Full answer key for every question — for designer review only.', M, y); y += 9;
+
+            questions.forEach((q, qi) => {
+                const imgB64 = nodeImages[q.id];
+                const hasPic = !!imgB64;
+                const IMG_W = CW; // full width image
+                const IMG_H = 36; // question image height mm
+                checkY(hasPic ? IMG_H + 30 : 22);
+
+                // ── Question header bar ──────────────────────────────────────
+                doc.setFillColor(245, 243, 255); doc.setDrawColor(...COLORS.violet); doc.setLineWidth(0.3);
+                doc.roundedRect(M, y, CW, 7, 2, 2, 'FD');
+                doc.setFontSize(9.5); doc.setFont('helvetica', 'bold'); doc.setTextColor(...COLORS.violet);
+                doc.text(`Q${qi + 1}. ${clean(q.label)}`, M + 4, y + 5.5);
+                y += 10;
+
+                // ── Question image ABOVE text — full width ───────────────────
+                if (hasPic) {
+                    try {
+                        doc.addImage(imgB64, 'JPEG', M, y, IMG_W, IMG_H);
+                        doc.setDrawColor(...COLORS.border); doc.setLineWidth(0.3);
+                        doc.rect(M, y, IMG_W, IMG_H);
+                    } catch { /* skip */ }
+                    // Move y BELOW the image before any text
+                    y += IMG_H + 4;
+                }
+
+                // ── Question text fields (ALWAYS below image if present) ─────
+                if (q.text) {
+                    checkY(LINE_H + 2);
+                    doc.setFontSize(9); doc.setFont('helvetica', 'bold'); doc.setTextColor(...COLORS.slate);
+                    doc.text('Question:', M + 2, y);
+                    y += LINE_H;
+                    bodyText(q.text, 4, COLORS.body, 9);
+                }
+                if (q.metadata.helpContent) {
+                    checkY(LINE_H + 1);
+                    doc.setFontSize(8.5); doc.setFont('helvetica', 'italic'); doc.setTextColor(...COLORS.muted);
+                    const hintLines = doc.splitTextToSize('Hint to player: ' + clean(q.metadata.helpContent), CW - 8);
+                    hintLines.forEach(l => { checkY(LINE_H); doc.text(l, M + 4, y); y += LINE_H; });
+                }
+                if (q.metadata.options && q.metadata.options.length > 0) {
+                    checkY(LINE_H * 2);
+                    doc.setFontSize(8.5); doc.setFont('helvetica', 'bold'); doc.setTextColor(...COLORS.slate);
+                    doc.text('Answers:', M + 2, y);
+                    y += LINE_H;
+                    q.metadata.options.forEach((opt, oi) => {
+                        if (!opt) return;
+                        const correct = opt.isCorrect;
+                        const col = correct ? COLORS.green : [100, 116, 139];
+                        const optTxt = doc.splitTextToSize(`${correct ? '✓' : '✗'} ${oi + 1}. ${clean(opt.text || '')}`, CW - 12);
+                        const boxH = optTxt.length * LINE_H + 4;
+                        checkY(boxH + 2);
+                        doc.setFillColor(correct ? 220 : 248, correct ? 252 : 250, correct ? 231 : 252);
+                        doc.setDrawColor(...col); doc.setLineWidth(0.3);
+                        doc.roundedRect(M + 4, y - 1, CW - 8, boxH, 1, 1, 'FD');
+                        doc.setFontSize(8.5); doc.setFont('helvetica', correct ? 'bold' : 'normal');
+                        doc.setTextColor(...col);
+                        optTxt.forEach((l, li) => {
+                            doc.text(l, M + 7, y + (li + 1) * LINE_H - 1);
+                        });
+                        y += boxH + 3;
+                        if (opt.explanation && opt.explanation.trim()) {
+                            const el = doc.splitTextToSize('Explanation: ' + clean(opt.explanation), CW - 14);
+                            el.forEach(l => { checkY(LINE_H); doc.setFontSize(7.5); doc.setFont('helvetica', 'italic'); doc.setTextColor(...COLORS.muted); doc.text(l, M + 10, y); y += LINE_H; });
+                        }
+                    });
+                }
+                y += 4;
+                divLine();
+            });
+        }
+
+        // ─────────────────────────────────────────────────────────────────────────
+        // PAGE — SECTION 6: HEALTH CHECK
+        // ─────────────────────────────────────────────────────────────────────────
+        newPage();
+        sectionBanner('6. STORY HEALTH CHECK', COLORS.teal);
+        y += 3;
+
+        const hasIdentify = storyData.nodes.some(n => n.type === 'identify');
+
+        if (orphans.length > 0) {
+            checkY(10);
+            doc.setFillColor(254, 243, 199); doc.setDrawColor(...COLORS.yellow); doc.setLineWidth(0.5);
+            doc.roundedRect(M, y, CW, 7, 2, 2, 'FD');
+            doc.setFontSize(8.5); doc.setFont('helvetica', 'bold'); doc.setTextColor(146, 64, 14);
+            doc.text('WARNING: Orphaned nodes (no connections): ' + orphans.map(n => n.label).join(', '), M + 4, y + 5);
+            y += 11;
+        }
+        if (!hasIdentify) {
+            checkY(10);
+            doc.setFillColor(254, 243, 199); doc.setDrawColor(...COLORS.yellow); doc.setLineWidth(0.5);
+            doc.roundedRect(M, y, CW, 7, 2, 2, 'FD');
+            doc.setFontSize(8.5); doc.setFont('helvetica', 'bold'); doc.setTextColor(146, 64, 14);
+            doc.text('WARNING: No "Identify Culprit" node found. Add one to give the mystery a final resolution.', M + 4, y + 5);
+            y += 11;
+        }
+        if (suspects.length === 0) {
+            checkY(8);
+            doc.setFillColor(219, 234, 254); doc.setDrawColor(...COLORS.blue); doc.setLineWidth(0.3);
+            doc.roundedRect(M, y, CW, 7, 2, 2, 'FD');
+            doc.setFontSize(8.5); doc.setFont('helvetica', 'normal'); doc.setTextColor(30, 64, 175);
+            doc.text('SUGGESTION: Add suspect nodes to create characters for the mystery.', M + 4, y + 5);
+            y += 11;
+        }
+        if (evidence.length === 0) {
+            checkY(8);
+            doc.setFillColor(219, 234, 254); doc.setDrawColor(...COLORS.blue); doc.setLineWidth(0.3);
+            doc.roundedRect(M, y, CW, 7, 2, 2, 'FD');
+            doc.setFontSize(8.5); doc.setFont('helvetica', 'normal'); doc.setTextColor(30, 64, 175);
+            doc.text('SUGGESTION: Add evidence nodes to give players clues to find.', M + 4, y + 5);
+            y += 11;
+        }
+        if (orphans.length === 0 && hasIdentify && suspects.length > 0 && evidence.length > 0) {
+            checkY(10);
+            doc.setFillColor(220, 252, 231); doc.setDrawColor(...COLORS.green); doc.setLineWidth(0.5);
+            doc.roundedRect(M, y, CW, 8, 2, 2, 'FD');
+            doc.setFontSize(9); doc.setFont('helvetica', 'bold'); doc.setTextColor(22, 101, 52);
+            doc.text('All clear — story flow looks healthy! All nodes are connected and reachable.', M + 4, y + 5.5);
+            y += 12;
+        }
+
+        y += 6;
+        subHeading('Summary Statistics', COLORS.slate);
+        Object.entries(nodeTypes).sort((a, b) => b[1] - a[1]).forEach(([type, count]) => {
+            labelValue(`${emoji(type)} ${type.charAt(0).toUpperCase() + type.slice(1)}`, `${count} node${count !== 1 ? 's' : ''}`);
+        });
+
+        // Final footer on last page
+        doc.setFontSize(7); doc.setTextColor(...COLORS.muted); doc.setFont('helvetica', 'normal');
+        doc.text(`${storyData.title} — Story Review`, M, PH - 8);
+        doc.text(`Page ${pageNum}`, PW - M, PH - 8, { align: 'right' });
+
         try {
-            doc.save(`${storyData.title.replace(/\s+/g, '_')}_Mystery_Novel.pdf`);
-        } catch (saveErr) {
-            console.error("PDF Save error:", saveErr);
-            alert("Could not save PDF. Try Markdown format instead.");
+            doc.save(`${storyData.title.replace(/\s+/g, '_')}_Story_Review.pdf`);
+        } catch (e) {
+            console.error('PDF save error:', e);
+            alert('Could not save PDF. Please try Word format instead.');
         }
     };
 
-    // Enhanced DOCX Generator with beautiful formatting
-    const generateEnhancedDOCX = async (storyData, story, designerReview) => {
+    // ─── generateEnhancedDOCX ──────────────────────────────────────────────────
+    const generateEnhancedDOCX = async (storyData, story, reviewData) => {
+        const { orderedNodes, roots, nodeLabel, deadEnds, orphans, suspects, evidence, questions, nodeTypes, emoji } = reviewData;
         const children = [];
 
-        // Title Page
+        const mkPara = (opts) => new Paragraph(opts);
+        const mkRun = (opts) => new TextRun(opts);
+
+        const dividerPara = () => mkPara({
+            text: '',
+            border: { bottom: { color: 'C7D2FE', space: 1, style: 'single', size: 8 } },
+            spacing: { before: 80, after: 100 },
+        });
+
+        const taggedPara = (text, bgHex, textHex = 'FFFFFF', heading = HeadingLevel.HEADING_2) => mkPara({
+            children: [mkRun({ text, bold: true, color: textHex, size: 22 })],
+            heading,
+            shading: { fill: bgHex, color: textHex },
+            spacing: { before: 300, after: 120 },
+        });
+
+        const infoRow = (label, value) => {
+            if (!value || !value.toString().trim()) return null;
+            return mkPara({
+                children: [
+                    mkRun({ text: label + ': ', bold: true, color: '334155', size: 20 }),
+                    mkRun({ text: value.toString(), color: '1E293B', size: 20 }),
+                ],
+                spacing: { after: 80 },
+            });
+        };
+
+        // ── COVER / TITLE PAGE ────────────────────────────────────────────────────
         children.push(
-            new Paragraph({
-                text: storyData.title,
-                heading: HeadingLevel.HEADING_1,
+            mkPara({ text: '', spacing: { before: 800 } }),
+            mkPara({
+                children: [mkRun({ text: storyData.title, bold: true, color: '4F46E5', size: 52 })],
                 alignment: AlignmentType.CENTER,
-                spacing: { before: 400, after: 200 },
+                spacing: { before: 0, after: 200 },
             }),
-            new Paragraph({
-                text: 'A Mystery Game Story',
+            mkPara({
+                children: [mkRun({ text: 'A Mystery Game — Story Design Review', italics: true, color: '64748B', size: 26 })],
                 alignment: AlignmentType.CENTER,
-                italics: true,
-                spacing: { after: 100 },
-            })
+                spacing: { after: 150 },
+            }),
         );
 
         if (storyData.description) {
-            children.push(
-                new Paragraph({
-                    text: storyData.description,
-                    alignment: AlignmentType.CENTER,
-                    spacing: { after: 400 },
-                })
-            );
-        }
-
-        children.push(
-            new Paragraph({
-                text: `Generated: ${new Date().toLocaleDateString()}`,
+            children.push(mkPara({
+                children: [mkRun({ text: storyData.description, color: '475569', size: 22 })],
                 alignment: AlignmentType.CENTER,
-                italics: true,
                 spacing: { after: 400 },
-            })
-        );
-
-        // Story Section
-        children.push(
-            new Paragraph({
-                text: 'THE STORY',
-                heading: HeadingLevel.HEADING_1,
-                spacing: { before: 400, after: 200 },
-            })
-        );
-
-        // Add story paragraphs
-        story.split('\n\n').forEach(para => {
-            if (para.trim()) {
-                children.push(
-                    new Paragraph({
-                        children: [new TextRun({ text: para.trim(), size: 24 })],
-                        spacing: { after: 200 },
-                    })
-                );
-            }
-        });
-
-        // Designer Review Section
-        const reviewLines = designerReview.split('\n');
-
-        for (const line of reviewLines) {
-            const trimmed = line.trim();
-
-            if (!trimmed) continue;
-
-            // Main heading
-            if (trimmed.startsWith('# ')) {
-                children.push(
-                    new Paragraph({
-                        text: trimmed.substring(2),
-                        heading: HeadingLevel.HEADING_1,
-                        spacing: { before: 400, after: 200 },
-                        shading: { fill: '4F46E5', color: 'FFFFFF' },
-                    })
-                );
-                continue;
-            }
-
-            // Section headings
-            if (trimmed.startsWith('## ')) {
-                children.push(
-                    new Paragraph({
-                        text: trimmed.substring(3),
-                        heading: HeadingLevel.HEADING_2,
-                        spacing: { before: 300, after: 150 },
-                    })
-                );
-                continue;
-            }
-
-            // Subsection headings
-            if (trimmed.startsWith('### ')) {
-                children.push(
-                    new Paragraph({
-                        text: trimmed.substring(4),
-                        heading: HeadingLevel.HEADING_3,
-                        spacing: { before: 200, after: 100 },
-                    })
-                );
-                continue;
-            }
-
-            // Bold text
-            if (trimmed.startsWith('**') && trimmed.includes(':**')) {
-                const parts = trimmed.split(':**');
-                const label = parts[0].substring(2);
-                const value = parts[1]?.trim() || '';
-                children.push(
-                    new Paragraph({
-                        children: [
-                            new TextRun({ text: label + ': ', bold: true }),
-                            new TextRun({ text: value }),
-                        ],
-                        spacing: { after: 100 },
-                    })
-                );
-                continue;
-            }
-
-            // List items
-            if (trimmed.startsWith('- ') || trimmed.startsWith('→') || trimmed.startsWith('←')) {
-                const text = trimmed.startsWith('-') ? trimmed.substring(2) : trimmed.substring(1).trim();
-                children.push(
-                    new Paragraph({
-                        text: text,
-                        bullet: { level: 0 },
-                        spacing: { after: 50 },
-                    })
-                );
-                continue;
-            }
-
-            // Evidence Images detector
-            if (trimmed.includes('![Evidence](')) {
-                const urlMatch = trimmed.match(/\((.*?)\)/);
-                if (urlMatch && urlMatch[1]) {
-                    try {
-                        const imgData = await fetchImageAsBase64(urlMatch[1]);
-
-                        // Convert DataURL to Uint8Array manually (more robust than fetch in some contexts)
-                        const base64Data = imgData.dataURL.split(',')[1];
-                        const binaryString = window.atob(base64Data);
-                        const len = binaryString.length;
-                        const bytes = new Uint8Array(len);
-                        for (let i = 0; i < len; i++) {
-                            bytes[i] = binaryString.charCodeAt(i);
-                        }
-
-                        children.push(
-                            new Paragraph({
-                                children: [
-                                    new ImageRun({
-                                        data: bytes.buffer,
-                                        transformation: {
-                                            width: 400,
-                                            height: 400 * (imgData.height / imgData.width),
-                                        },
-                                    }),
-                                ],
-                                spacing: { before: 200, after: 200 },
-                                alignment: AlignmentType.CENTER
-                            })
-                        );
-                    } catch (e) {
-                        console.error("DOCX Image fail:", e);
-                    }
-                }
-                continue;
-            }
-
-            // Warnings/Suggestions
-            if (trimmed.includes('⚠️') || trimmed.includes('💭')) {
-                const color = trimmed.includes('⚠️') ? '92400E' : '1E40AF';
-                const fill = trimmed.includes('⚠️') ? 'FEF3C7' : 'DBEAFE';
-                children.push(
-                    new Paragraph({
-                        children: [new TextRun({ text: trimmed, bold: true, color: color })],
-                        spacing: { after: 150 },
-                        shading: { fill: fill },
-                    })
-                );
-                continue;
-            }
-
-            // Dividers
-            if (trimmed.startsWith('===') || trimmed.startsWith('---')) {
-                children.push(
-                    new Paragraph({
-                        text: '',
-                        border: { bottom: { color: 'CCCCCC', space: 1, style: 'single', size: 6 } },
-                        spacing: { before: 100, after: 100 },
-                    })
-                );
-                continue;
-            }
-
-            // Italic text
-            if (trimmed.startsWith('*') && trimmed.endsWith('*') && !trimmed.startsWith('**')) {
-                children.push(
-                    new Paragraph({
-                        children: [new TextRun({ text: trimmed.substring(1, trimmed.length - 1), italics: true, color: '666666' })],
-                        spacing: { after: 100 },
-                    })
-                );
-                continue;
-            }
-
-            // Regular paragraph
-            children.push(
-                new Paragraph({
-                    text: trimmed,
-                    spacing: { after: 100 },
-                })
-            );
+            }));
         }
 
-        const doc = new DocxDocument({
-            sections: [{
-                properties: {},
-                children: children,
-            }],
+        children.push(
+            dividerPara(),
+            mkPara({
+                children: [
+                    mkRun({ text: `Nodes: ${storyData.nodes.length}  •  `, bold: true, color: '7C3AED', size: 22 }),
+                    mkRun({ text: `Suspects: ${suspects.length}  •  `, bold: true, color: 'DB2777', size: 22 }),
+                    mkRun({ text: `Evidence: ${evidence.length}  •  `, bold: true, color: 'D97706', size: 22 }),
+                    mkRun({ text: `Questions: ${questions.length}`, bold: true, color: '7C3AED', size: 22 }),
+                ],
+                alignment: AlignmentType.CENTER,
+                spacing: { after: 150 },
+            }),
+            mkPara({
+                children: [mkRun({ text: `Generated: ${new Date().toLocaleDateString()} — Mystery Games Framework`, italics: true, color: '94A3B8', size: 18 })],
+                alignment: AlignmentType.CENTER,
+                spacing: { after: 400 },
+            }),
+            dividerPara(),
+        );
+
+        // ── SECTION 1: NARRATIVE OVERVIEW ─────────────────────────────────────────
+        children.push(
+            mkPara({ text: '', pageBreakBefore: true }),
+            taggedPara('1. NARRATIVE OVERVIEW', '4F46E5'),
+            mkPara({
+                children: [mkRun({ text: 'AI-generated story summary for creative review.', italics: true, color: '94A3B8', size: 18 })],
+                spacing: { after: 120 },
+            }),
+        );
+        story.split(/\n\n+/).forEach(para => {
+            if (!para.trim()) return;
+            children.push(mkPara({
+                children: [mkRun({ text: para.replace(/\*\*/g, '').replace(/^#+\s*/gm, '').trim(), size: 22, color: '1E293B' })],
+                spacing: { after: 160 },
+            }));
         });
 
-        const blob = await Packer.toBlob(doc);
+        // ── SECTION 2: STORY FLOW NODE BY NODE ───────────────────────────────────
+        children.push(
+            mkPara({ text: '', pageBreakBefore: true }),
+            taggedPara('2. STORY FLOW — NODE BY NODE', '7C3AED'),
+            mkPara({
+                children: [mkRun({ text: 'Nodes listed in the exact order a player encounters them, from start to finish.', italics: true, color: '94A3B8', size: 18 })],
+                spacing: { after: 160 },
+            }),
+        );
+
+        orderedNodes.forEach((node, index) => {
+            const isStart = roots.some(r => r.id === node.id);
+            const isEnd = !storyData.edges.some(e => e.source === node.id);
+
+            const TYPE_HEX = {
+                story: '4F46E5', suspect: 'DB2777', evidence: 'D97706', question: '7C3AED',
+                terminal: '0D9488', logic: '16A34A', setter: '2563EB', media: 'EA580C',
+                identify: 'DC2626', cutscene: '7C3AED', interrogation: 'DB2777',
+            };
+            const hx = TYPE_HEX[node.type] || '334155';
+
+            const badges = [];
+            if (isStart) badges.push(mkRun({ text: '  [START]', bold: true, color: '16A34A', size: 18 }));
+            if (isEnd) badges.push(mkRun({ text: '  [END]', bold: true, color: 'DC2626', size: 18 }));
+
+            children.push(mkPara({
+                children: [
+                    mkRun({ text: `${index + 1}. ${node.label}`, bold: true, color: hx, size: 24 }),
+                    mkRun({ text: `  (${node.type})`, color: '94A3B8', size: 18 }),
+                    ...badges,
+                ],
+                shading: { fill: 'F8FAFC' },
+                border: { left: { color: hx, style: 'single', size: 12, space: 8 } },
+                spacing: { before: 160, after: 60 },
+                indent: { left: 0 },
+            }));
+
+            if (node.text && node.text.trim()) {
+                children.push(mkPara({
+                    children: [
+                        mkRun({ text: 'Content: ', bold: true, color: '334155', size: 20 }),
+                        mkRun({ text: node.text.trim(), color: '1E293B', size: 20, italics: true }),
+                    ],
+                    indent: { left: 360 },
+                    spacing: { after: 80 },
+                }));
+            }
+
+            // Type-specific
+            const addInfo = (label, val) => {
+                if (!val) return;
+                const p = infoRow(label, val);
+                if (p) { p.indent = { left: 360 }; children.push(p); }
+            };
+
+            switch (node.type) {
+                case 'suspect':
+                    addInfo('Name', node.metadata.name);
+                    addInfo('Role', node.metadata.role);
+                    addInfo('Alibi', node.metadata.alibi);
+                    if (node.metadata.culprit) {
+                        children.push(mkPara({
+                            children: [mkRun({ text: 'CULPRIT: ' + node.metadata.culprit, bold: true, color: '991B1B', size: 20 })],
+                            shading: { fill: 'FEE2E2' },
+                            indent: { left: 360 },
+                            spacing: { after: 80 },
+                        }));
+                    }
+                    break;
+                case 'evidence':
+                    addInfo('Logic ID', node.metadata.variableId);
+                    addInfo('Details', node.metadata.description);
+                    break;
+                case 'question':
+                    if (node.metadata.options && node.metadata.options.length > 0) {
+                        children.push(mkPara({ children: [mkRun({ text: 'Answer Choices:', bold: true, color: '334155', size: 20 })], indent: { left: 360 }, spacing: { after: 40 } }));
+                        node.metadata.options.forEach((opt, oi) => {
+                            if (!opt) return;
+                            const correct = opt.isCorrect;
+                            children.push(mkPara({
+                                children: [mkRun({ text: `${correct ? '✓' : '✗'} ${oi + 1}. ${opt.text || ''}`, bold: correct, color: correct ? '16A34A' : '94A3B8', size: 20 })],
+                                shading: { fill: correct ? 'DCFCE7' : 'F8FAFC' },
+                                indent: { left: 720 },
+                                spacing: { after: 40 },
+                            }));
+                            if (opt.explanation && opt.explanation.trim()) {
+                                children.push(mkPara({
+                                    children: [mkRun({ text: 'Explanation: ' + opt.explanation.trim(), italics: true, color: '64748B', size: 18 })],
+                                    indent: { left: 1080 },
+                                    spacing: { after: 40 },
+                                }));
+                            }
+                        });
+                    }
+                    if (node.metadata.hints && node.metadata.hints.length > 0) {
+                        node.metadata.hints.forEach((h, hi) => {
+                            if (h) children.push(mkPara({
+                                children: [mkRun({ text: `Hint ${hi + 1}: "${h.text}" — penalty: -${h.penalty || 0} pts`, color: '64748B', size: 18, italics: true })],
+                                indent: { left: 720 },
+                                spacing: { after: 40 },
+                            }));
+                        });
+                    }
+                    break;
+                case 'terminal':
+                    addInfo('Required Command', node.metadata.command);
+                    addInfo('Expected Answer', node.metadata.answer);
+                    break;
+                case 'logic':
+                    addInfo('Condition', node.metadata.condition);
+                    addInfo('Required IDs', node.metadata.logicIds?.join(', '));
+                    break;
+                case 'setter':
+                    addInfo('Sets Flag', node.metadata.variableId);
+                    addInfo('Value', node.metadata.variableValue?.toString());
+                    break;
+                case 'identify':
+                    addInfo('Correct Culprit', node.metadata.culprit);
+                    break;
+            }
+
+            // Connections
+            const outgoing = storyData.edges.filter(e => e.source === node.id);
+            const incoming = storyData.edges.filter(e => e.target === node.id);
+            if (incoming.length > 0) {
+                children.push(mkPara({
+                    children: [mkRun({ text: 'From: ' + incoming.map(e => nodeLabel(e.source)).join(' · '), color: '94A3B8', size: 18 })],
+                    indent: { left: 360 }, spacing: { after: 40 },
+                }));
+            }
+            if (outgoing.length === 0) {
+                children.push(mkPara({ children: [mkRun({ text: '(End of path — no further connections)', bold: true, color: 'DC2626', size: 18 })], indent: { left: 360 }, spacing: { after: 80 } }));
+            } else if (outgoing.length === 1) {
+                children.push(mkPara({ children: [mkRun({ text: 'Leads to: ' + nodeLabel(outgoing[0].target) + (outgoing[0].label ? ` [${outgoing[0].label}]` : ''), color: '475569', size: 18 })], indent: { left: 360 }, spacing: { after: 80 } }));
+            } else {
+                children.push(mkPara({ children: [mkRun({ text: 'Branches to:', bold: true, color: '475569', size: 18 })], indent: { left: 360 }, spacing: { after: 40 } }));
+                outgoing.forEach(e => {
+                    children.push(mkPara({ children: [mkRun({ text: '→ ' + nodeLabel(e.target) + (e.label ? ` [${e.label}]` : ''), color: '475569', size: 18 })], indent: { left: 720 }, spacing: { after: 40 } }));
+                });
+            }
+            children.push(dividerPara());
+        });
+
+        // ── SECTION 3: CHARACTER DOSSIERS ─────────────────────────────────────────
+        if (suspects.length > 0) {
+            children.push(
+                mkPara({ text: '', pageBreakBefore: true }),
+                taggedPara('3. CHARACTER DOSSIERS', 'DB2777'),
+            );
+            suspects.forEach((s, i) => {
+                const isCulprit = !!s.metadata.culprit;
+                children.push(mkPara({
+                    children: [
+                        mkRun({ text: `${i + 1}. ${s.metadata.name || s.label}`, bold: true, color: isCulprit ? 'DC2626' : 'DB2777', size: 24 }),
+                        ...(isCulprit ? [mkRun({ text: '  ← CULPRIT', bold: true, color: 'DC2626', size: 18 })] : []),
+                    ],
+                    shading: { fill: isCulprit ? 'FEE2E2' : 'FDF2F8' },
+                    spacing: { before: 160, after: 80 },
+                }));
+                const addS = (l, v) => { if (v) { const p = infoRow(l, v); if (p) children.push(p); } };
+                addS('Role', s.metadata.role);
+                addS('Alibi', s.metadata.alibi);
+                addS('Background', s.metadata.description);
+                addS('Profile Note', s.text);
+                children.push(dividerPara());
+            });
+        }
+
+        // ── SECTION 4: EVIDENCE TRACKER ───────────────────────────────────────────
+        if (evidence.length > 0) {
+            children.push(
+                mkPara({ text: '', pageBreakBefore: true }),
+                taggedPara('4. EVIDENCE TRACKER', 'D97706'),
+            );
+            evidence.forEach((item, i) => {
+                children.push(mkPara({
+                    children: [mkRun({ text: `${i + 1}. ${item.label}`, bold: true, color: 'D97706', size: 22 })],
+                    shading: { fill: 'FFFBEB' },
+                    spacing: { before: 120, after: 60 },
+                }));
+                const addE = (l, v) => { if (v) { const p = infoRow(l, v); if (p) children.push(p); } };
+                addE('Logic ID', item.metadata.variableId);
+                addE('Description', item.metadata.description);
+                addE('Details', item.text);
+                children.push(dividerPara());
+            });
+        }
+
+        // ── SECTION 5: QUESTION BANK ──────────────────────────────────────────────
+        if (questions.length > 0) {
+            children.push(
+                mkPara({ text: '', pageBreakBefore: true }),
+                taggedPara('5. QUESTION BANK & ANSWER KEY', '7C3AED'),
+                mkPara({ children: [mkRun({ text: 'Full answer key for every question — for designer review only.', italics: true, color: '94A3B8', size: 18 })], spacing: { after: 120 } }),
+            );
+            questions.forEach((q, qi) => {
+                children.push(mkPara({
+                    children: [mkRun({ text: `Q${qi + 1}. ${q.label}`, bold: true, color: '7C3AED', size: 22 })],
+                    shading: { fill: 'F5F3FF' },
+                    spacing: { before: 120, after: 60 },
+                }));
+                if (q.text) {
+                    children.push(mkPara({ children: [mkRun({ text: 'Question: ', bold: true, color: '334155', size: 20 }), mkRun({ text: q.text, color: '1E293B', size: 20 })], spacing: { after: 80 } }));
+                }
+                if (q.metadata.helpContent) {
+                    children.push(mkPara({ children: [mkRun({ text: 'Hint to player: ' + q.metadata.helpContent, italics: true, color: '64748B', size: 18 })], spacing: { after: 80 } }));
+                }
+                if (q.metadata.options && q.metadata.options.length > 0) {
+                    q.metadata.options.forEach((opt, oi) => {
+                        if (!opt) return;
+                        const correct = opt.isCorrect;
+                        children.push(mkPara({
+                            children: [mkRun({ text: `${correct ? '✓' : '✗'} ${oi + 1}. ${opt.text || ''}`, bold: correct, color: correct ? '16A34A' : '94A3B8', size: 20 })],
+                            shading: { fill: correct ? 'DCFCE7' : 'F8FAFC' },
+                            indent: { left: 360 },
+                            spacing: { after: 40 },
+                        }));
+                        if (opt.explanation && opt.explanation.trim()) {
+                            children.push(mkPara({ children: [mkRun({ text: 'Explanation: ' + opt.explanation.trim(), italics: true, color: '64748B', size: 18 })], indent: { left: 720 }, spacing: { after: 40 } }));
+                        }
+                    });
+                }
+                children.push(dividerPara());
+            });
+        }
+
+        // ── SECTION 6: HEALTH CHECK ───────────────────────────────────────────────
+        children.push(
+            mkPara({ text: '', pageBreakBefore: true }),
+            taggedPara('6. STORY HEALTH CHECK', '0D9488'),
+        );
+
+        const hasIdentify = storyData.nodes.some(n => n.type === 'identify');
+
+        if (orphans.length > 0) {
+            children.push(mkPara({ children: [mkRun({ text: 'WARNING: Orphaned nodes (no connections): ' + orphans.map(n => n.label).join(', '), bold: true, color: '92400E', size: 20 })], shading: { fill: 'FEF3C7' }, spacing: { after: 100 } }));
+        }
+        if (!hasIdentify) {
+            children.push(mkPara({ children: [mkRun({ text: 'WARNING: No "Identify Culprit" node found. Add one to give the mystery a definite resolution.', bold: true, color: '92400E', size: 20 })], shading: { fill: 'FEF3C7' }, spacing: { after: 100 } }));
+        }
+        if (suspects.length === 0) {
+            children.push(mkPara({ children: [mkRun({ text: 'SUGGESTION: Add suspect nodes to create characters for the mystery.', color: '1E40AF', size: 20 })], shading: { fill: 'DBEAFE' }, spacing: { after: 100 } }));
+        }
+        if (evidence.length === 0) {
+            children.push(mkPara({ children: [mkRun({ text: 'SUGGESTION: Add evidence nodes to give players clues to discover.', color: '1E40AF', size: 20 })], shading: { fill: 'DBEAFE' }, spacing: { after: 100 } }));
+        }
+        if (orphans.length === 0 && hasIdentify && suspects.length > 0 && evidence.length > 0) {
+            children.push(mkPara({ children: [mkRun({ text: 'All clear — story flow looks healthy! All nodes are connected and reachable.', bold: true, color: '166534', size: 20 })], shading: { fill: 'DCFCE7' }, spacing: { after: 100 } }));
+        }
+
+        children.push(
+            dividerPara(),
+            mkPara({ children: [mkRun({ text: 'Node Type Breakdown:', bold: true, color: '334155', size: 20 })], spacing: { before: 160, after: 80 } }),
+            ...Object.entries(nodeTypes).sort((a, b) => b[1] - a[1]).map(([type, count]) =>
+                mkPara({ children: [mkRun({ text: `${emoji(type)} ${type}: ${count} node${count !== 1 ? 's' : ''}`, color: '475569', size: 20 })], bullet: { level: 0 }, spacing: { after: 40 } })
+            ),
+        );
+
+        const docx = new DocxDocument({
+            sections: [{ properties: {}, children }],
+            styles: {
+                default: {
+                    document: { run: { font: 'Calibri', size: 20, color: '1E293B' } },
+                },
+            },
+        });
+
+        const blob = await Packer.toBlob(docx);
         const url = window.URL.createObjectURL(blob);
         const a = document.createElement('a');
         a.href = url;
-        a.download = `${storyData.title.replace(/\s+/g, '_')}_Mystery_Novel.docx`;
+        a.download = `${storyData.title.replace(/\s+/g, '_')}_Story_Review.docx`;
         document.body.appendChild(a);
         a.click();
         document.body.removeChild(a);
         window.URL.revokeObjectURL(url);
     };
+
 
 
     const onDragStart = (event, nodeType) => {
@@ -3781,132 +4195,15 @@ Please provide a concise plot summary and narrative overview based on these elem
                     }
                 </AnimatePresence>
 
-                {/* Story Format Selection Modal */}
-                <AnimatePresence>
-                    {showStoryFormatModal && (
-                        <div className="fixed inset-0 z-[200] flex items-center justify-center p-4">
-                            <motion.div
-                                initial={{ opacity: 0 }}
-                                animate={{ opacity: 1 }}
-                                exit={{ opacity: 0 }}
-                                className="absolute inset-0 bg-black/80 backdrop-blur-sm"
-                                onClick={() => setShowStoryFormatModal(false)}
-                            />
-                            <motion.div
-                                initial={{ opacity: 0, scale: 0.9, y: 20 }}
-                                animate={{ opacity: 1, scale: 1, y: 0 }}
-                                exit={{ opacity: 0, scale: 0.9, y: 20 }}
-                                className={`relative w-full max-w-md rounded-3xl border shadow-[0_20px_80px_rgba(0,0,0,0.5)] overflow-hidden ${isDarkMode ? 'bg-zinc-900 border-white/10' : 'bg-white border-zinc-200'}`}
-                            >
-                                {/* Header */}
-                                <div className={`p-6 border-b ${isDarkMode ? 'border-white/10' : 'border-zinc-200'}`}>
-                                    <div className="flex items-center justify-between">
-                                        <div className="flex items-center gap-3">
-                                            <div className={`p-3 rounded-2xl ${isDarkMode ? 'bg-amber-500/10' : 'bg-amber-50'}`}>
-                                                <FileText className={`w-6 h-6 ${isDarkMode ? 'text-amber-400' : 'text-amber-600'}`} />
-                                            </div>
-                                            <div>
-                                                <h3 className={`text-lg font-black uppercase tracking-tight ${isDarkMode ? 'text-white' : 'text-zinc-900'}`}>
-                                                    Download Story
-                                                </h3>
-                                                <p className="text-xs text-zinc-500 font-medium mt-0.5">
-                                                    Choose your preferred format
-                                                </p>
-                                            </div>
-                                        </div>
-                                        <Button
-                                            variant="ghost"
-                                            size="icon"
-                                            onClick={() => setShowStoryFormatModal(false)}
-                                            className="h-8 w-8"
-                                        >
-                                            <X className="w-4 h-4" />
-                                        </Button>
-                                    </div>
-                                </div>
 
-                                {/* Format Options */}
-                                <div className="p-6 space-y-3">
-                                    <button
-                                        onClick={() => downloadNovelStory('markdown')}
-                                        className={`w-full p-4 rounded-2xl border-2 transition-all text-left group ${isDarkMode
-                                            ? 'bg-white/5 border-white/10 hover:border-amber-500/50 hover:bg-amber-500/5'
-                                            : 'bg-zinc-50 border-zinc-200 hover:border-amber-500 hover:bg-amber-50'
-                                            }`}
-                                    >
-                                        <div className="flex items-center gap-3">
-                                            <div className={`p-2 rounded-xl ${isDarkMode ? 'bg-zinc-800' : 'bg-white'}`}>
-                                                <FileText className={`w-5 h-5 ${isDarkMode ? 'text-amber-400' : 'text-amber-600'}`} />
-                                            </div>
-                                            <div className="flex-1">
-                                                <div className={`text-sm font-black uppercase tracking-tight ${isDarkMode ? 'text-white' : 'text-zinc-900'}`}>
-                                                    Markdown (.md)
-                                                </div>
-                                                <div className="text-xs text-zinc-500 font-medium mt-0.5">
-                                                    Plain text with formatting
-                                                </div>
-                                            </div>
-                                            <ChevronRight className={`w-5 h-5 transition-transform group-hover:translate-x-1 ${isDarkMode ? 'text-zinc-600' : 'text-zinc-400'}`} />
-                                        </div>
-                                    </button>
-
-                                    <button
-                                        onClick={() => downloadNovelStory('pdf')}
-                                        className={`w-full p-4 rounded-2xl border-2 transition-all text-left group ${isDarkMode
-                                            ? 'bg-white/5 border-white/10 hover:border-red-500/50 hover:bg-red-500/5'
-                                            : 'bg-zinc-50 border-zinc-200 hover:border-red-500 hover:bg-red-50'
-                                            }`}
-                                    >
-                                        <div className="flex items-center gap-3">
-                                            <div className={`p-2 rounded-xl ${isDarkMode ? 'bg-zinc-800' : 'bg-white'}`}>
-                                                <FileText className={`w-5 h-5 ${isDarkMode ? 'text-red-400' : 'text-red-600'}`} />
-                                            </div>
-                                            <div className="flex-1">
-                                                <div className={`text-sm font-black uppercase tracking-tight ${isDarkMode ? 'text-white' : 'text-zinc-900'}`}>
-                                                    PDF Document
-                                                </div>
-                                                <div className="text-xs text-zinc-500 font-medium mt-0.5">
-                                                    Universal document format
-                                                </div>
-                                            </div>
-                                            <ChevronRight className={`w-5 h-5 transition-transform group-hover:translate-x-1 ${isDarkMode ? 'text-zinc-600' : 'text-zinc-400'}`} />
-                                        </div>
-                                    </button>
-
-                                    <button
-                                        onClick={() => downloadNovelStory('google-docs')}
-                                        className={`w-full p-4 rounded-2xl border-2 transition-all text-left group ${isDarkMode
-                                            ? 'bg-white/5 border-white/10 hover:border-blue-500/50 hover:bg-blue-500/5'
-                                            : 'bg-zinc-50 border-zinc-200 hover:border-blue-500 hover:bg-blue-50'
-                                            }`}
-                                    >
-                                        <div className="flex items-center gap-3">
-                                            <div className={`p-2 rounded-xl ${isDarkMode ? 'bg-zinc-800' : 'bg-white'}`}>
-                                                <FileText className={`w-5 h-5 ${isDarkMode ? 'text-blue-400' : 'text-blue-600'}`} />
-                                            </div>
-                                            <div className="flex-1">
-                                                <div className={`text-sm font-black uppercase tracking-tight ${isDarkMode ? 'text-white' : 'text-zinc-900'}`}>
-                                                    Google Docs (.docx)
-                                                </div>
-                                                <div className="text-xs text-zinc-500 font-medium mt-0.5">
-                                                    Editable Word document
-                                                </div>
-                                            </div>
-                                            <ChevronRight className={`w-5 h-5 transition-transform group-hover:translate-x-1 ${isDarkMode ? 'text-zinc-600' : 'text-zinc-400'}`} />
-                                        </div>
-                                    </button>
-                                </div>
-
-                                {/* Footer */}
-                                <div className={`p-4 border-t ${isDarkMode ? 'bg-black/20 border-white/5' : 'bg-zinc-50 border-zinc-200'}`}>
-                                    <p className="text-xs text-zinc-500 text-center font-medium">
-                                        AI will generate a seamless novel from your canvas
-                                    </p>
-                                </div>
-                            </motion.div>
-                        </div>
-                    )}
-                </AnimatePresence>
+                {/* Story Export Modal */}
+                <StoryExportModal
+                    isOpen={showStoryFormatModal}
+                    onClose={() => setShowStoryFormatModal(false)}
+                    onExport={(format, onProgress) => downloadNovelStory(format, onProgress)}
+                    isDarkMode={isDarkMode}
+                    storyStats={getStoryStats()}
+                />
                 <LicenseConfigModal
                     isOpen={isLicenseModalOpen}
                     onClose={() => setIsLicenseModalOpen(false)}
