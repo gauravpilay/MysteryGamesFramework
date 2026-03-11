@@ -1845,8 +1845,16 @@ Rules: cinematic noir/thriller tone; explain the mystery setup, main suspects, k
         const clean = (txt) => {
             if (!txt) return '';
             return txt
+                // Remove all emoji / symbol Unicode blocks
+                .replace(/[\u{1F000}-\u{1FFFF}]/gu, '')
+                .replace(/[\u{2600}-\u{27BF}]/gu, '')
+                .replace(/[\u{2B00}-\u{2BFF}]/gu, '')
+                // Replace smart / curly arrows
+                .replace(/[↑↓←→⇒⇐]/g, (c) => ({ '↑': '^', '↓': 'v', '←': '<-', '→': '->', '⇒': '=>', '⇐': '<=' }[c] || c))
+                // Basic ASCII cleaning
                 .replace(/[^\x09\x0A\x0D\x20-\x7E\xA0-\xFF]/g, '')
-                .replace(/[─━—–]/g, '-').trim();
+                .replace(/[─━—–]/g, '-')
+                .trim();
         };
 
         const newPage = () => {
@@ -2036,7 +2044,7 @@ Rules: cinematic noir/thriller tone; explain the mystery setup, main suspects, k
             { n: '3', title: 'Character Dossiers', sub: `${suspects.length} suspect profiles` },
             { n: '4', title: 'Evidence Tracker', sub: `${evidence.length} evidence items` },
             { n: '5', title: 'Question Bank & Answer Key', sub: `${questions.length} questions with answers` },
-            { n: '6', title: 'Story Health Check', sub: 'Flow validation & suggestions' },
+            { n: '6', title: 'Summary Statistics', sub: 'Final node count & breakdown' },
         ];
 
         tocItems.forEach(item => {
@@ -2064,7 +2072,7 @@ Rules: cinematic noir/thriller tone; explain the mystery setup, main suspects, k
         const ntEntries = Object.entries(nodeTypes).sort((a, b) => b[1] - a[1]);
         let px = M; let py2 = y + 1;
         ntEntries.forEach(([type, count]) => {
-            const lbl = `${emoji(type)} ${type} (${count})`;
+            const lbl = `${type} (${count})`;
             const w = pill(lbl, typeColor(type), px, py2);
             if (w) px += w;
             if (px > PW - M - 30) { px = M; py2 += 10; y += 10; }
@@ -2230,7 +2238,9 @@ Rules: cinematic noir/thriller tone; explain the mystery setup, main suspects, k
                             if (!opt) return;
                             const correct = opt.isCorrect;
                             const optColor = correct ? COLORS.green : [100, 116, 139];
-                            const optTxt = doc.splitTextToSize(`${oi + 1}. ${clean(opt.text || '')}`, CW - 18);
+                            // Use safe wrapping width and standard characters
+                            const prefix = correct ? '[CORRECT] ' : '[ ] ';
+                            const optTxt = doc.splitTextToSize(`${prefix}${oi + 1}. ${clean(opt.text || '')}`, CW - 24);
                             const oh = optTxt.length * LINE_H + 5;
                             checkY(oh + 3);
                             // Background box
@@ -2239,9 +2249,8 @@ Rules: cinematic noir/thriller tone; explain the mystery setup, main suspects, k
                             doc.roundedRect(M + 4, y, CW - 8, oh, 1, 1, 'FD');
                             doc.setFontSize(8.5); doc.setFont('helvetica', correct ? 'bold' : 'normal');
                             doc.setTextColor(...optColor);
-                            const textY_start = y + LINE_H;
                             optTxt.forEach((l, li) => {
-                                doc.text(l, M + 7, y + (li + 1) * LINE_H);
+                                doc.text(l, M + 8, y + (li + 1) * LINE_H - 1);
                             });
                             y += oh + 3;
                         });
@@ -2317,7 +2326,7 @@ Rules: cinematic noir/thriller tone; explain the mystery setup, main suspects, k
                 y += LINE_H;
                 outgoing.forEach(e => {
                     const lbl = e.label ? ` [${e.label}]` : '';
-                    bullet('\u2192 ' + nodeLabel(e.target) + lbl, 6, COLORS.slate);
+                    bullet('-> ' + nodeLabel(e.target) + lbl, 6, COLORS.slate);
                 });
             }
 
@@ -2467,11 +2476,13 @@ Rules: cinematic noir/thriller tone; explain the mystery setup, main suspects, k
                     doc.setFontSize(8.5); doc.setFont('helvetica', 'bold'); doc.setTextColor(...COLORS.slate);
                     doc.text('Answers:', M + 2, y);
                     y += LINE_H;
+                    y += 10;
                     q.metadata.options.forEach((opt, oi) => {
                         if (!opt) return;
                         const correct = opt.isCorrect;
                         const col = correct ? COLORS.green : [100, 116, 139];
-                        const optTxt = doc.splitTextToSize(`${correct ? '✓' : '✗'} ${oi + 1}. ${clean(opt.text || '')}`, CW - 12);
+                        const prefix = correct ? '[CORRECT] ' : '[ ] ';
+                        const optTxt = doc.splitTextToSize(`${prefix}${oi + 1}. ${clean(opt.text || '')}`, CW - 24);
                         const boxH = optTxt.length * LINE_H + 4;
                         checkY(boxH + 2);
                         doc.setFillColor(correct ? 220 : 248, correct ? 252 : 250, correct ? 231 : 252);
@@ -2480,7 +2491,7 @@ Rules: cinematic noir/thriller tone; explain the mystery setup, main suspects, k
                         doc.setFontSize(8.5); doc.setFont('helvetica', correct ? 'bold' : 'normal');
                         doc.setTextColor(...col);
                         optTxt.forEach((l, li) => {
-                            doc.text(l, M + 7, y + (li + 1) * LINE_H - 1);
+                            doc.text(l, M + 8, y + (li + 1) * LINE_H - 1);
                         });
                         y += boxH + 3;
                         if (opt.explanation && opt.explanation.trim()) {
@@ -2494,60 +2505,13 @@ Rules: cinematic noir/thriller tone; explain the mystery setup, main suspects, k
             });
         }
 
-        // ─────────────────────────────────────────────────────────────────────────
-        // PAGE — SECTION 6: HEALTH CHECK
-        // ─────────────────────────────────────────────────────────────────────────
+        // Final Summary
         newPage();
-        sectionBanner('6. STORY HEALTH CHECK', COLORS.teal);
-        y += 3;
+        sectionBanner('6. SUMMARY STATISTICS', COLORS.teal);
+        y += 5;
 
-        const hasIdentify = storyData.nodes.some(n => n.type === 'identify');
-
-        if (orphans.length > 0) {
-            checkY(10);
-            doc.setFillColor(254, 243, 199); doc.setDrawColor(...COLORS.yellow); doc.setLineWidth(0.5);
-            doc.roundedRect(M, y, CW, 7, 2, 2, 'FD');
-            doc.setFontSize(8.5); doc.setFont('helvetica', 'bold'); doc.setTextColor(146, 64, 14);
-            doc.text('WARNING: Orphaned nodes (no connections): ' + orphans.map(n => n.label).join(', '), M + 4, y + 5);
-            y += 11;
-        }
-        if (!hasIdentify) {
-            checkY(10);
-            doc.setFillColor(254, 243, 199); doc.setDrawColor(...COLORS.yellow); doc.setLineWidth(0.5);
-            doc.roundedRect(M, y, CW, 7, 2, 2, 'FD');
-            doc.setFontSize(8.5); doc.setFont('helvetica', 'bold'); doc.setTextColor(146, 64, 14);
-            doc.text('WARNING: No "Identify Culprit" node found. Add one to give the mystery a final resolution.', M + 4, y + 5);
-            y += 11;
-        }
-        if (suspects.length === 0) {
-            checkY(8);
-            doc.setFillColor(219, 234, 254); doc.setDrawColor(...COLORS.blue); doc.setLineWidth(0.3);
-            doc.roundedRect(M, y, CW, 7, 2, 2, 'FD');
-            doc.setFontSize(8.5); doc.setFont('helvetica', 'normal'); doc.setTextColor(30, 64, 175);
-            doc.text('SUGGESTION: Add suspect nodes to create characters for the mystery.', M + 4, y + 5);
-            y += 11;
-        }
-        if (evidence.length === 0) {
-            checkY(8);
-            doc.setFillColor(219, 234, 254); doc.setDrawColor(...COLORS.blue); doc.setLineWidth(0.3);
-            doc.roundedRect(M, y, CW, 7, 2, 2, 'FD');
-            doc.setFontSize(8.5); doc.setFont('helvetica', 'normal'); doc.setTextColor(30, 64, 175);
-            doc.text('SUGGESTION: Add evidence nodes to give players clues to find.', M + 4, y + 5);
-            y += 11;
-        }
-        if (orphans.length === 0 && hasIdentify && suspects.length > 0 && evidence.length > 0) {
-            checkY(10);
-            doc.setFillColor(220, 252, 231); doc.setDrawColor(...COLORS.green); doc.setLineWidth(0.5);
-            doc.roundedRect(M, y, CW, 8, 2, 2, 'FD');
-            doc.setFontSize(9); doc.setFont('helvetica', 'bold'); doc.setTextColor(22, 101, 52);
-            doc.text('All clear — story flow looks healthy! All nodes are connected and reachable.', M + 4, y + 5.5);
-            y += 12;
-        }
-
-        y += 6;
-        subHeading('Summary Statistics', COLORS.slate);
         Object.entries(nodeTypes).sort((a, b) => b[1] - a[1]).forEach(([type, count]) => {
-            labelValue(`${emoji(type)} ${type.charAt(0).toUpperCase() + type.slice(1)}`, `${count} node${count !== 1 ? 's' : ''}`);
+            labelValue(`${type.charAt(0).toUpperCase() + type.slice(1)}`, `${count} node${count !== 1 ? 's' : ''}`);
         });
 
         // Final footer on last page
