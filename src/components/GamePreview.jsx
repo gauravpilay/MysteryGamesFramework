@@ -1,6 +1,6 @@
 import React, { useState, useEffect, useMemo, useRef } from 'react';
 import { Button, Card } from './ui/shared';
-import { X, User, Search, Terminal, MessageSquare, FileText, ArrowRight, ArrowLeft, ShieldAlert, CheckCircle, AlertTriangle, Volume2, VolumeX, Image as ImageIcon, Briefcase, Star, MousePointerClick, Bell, HelpCircle, Clock, ZoomIn, LayoutGrid, ChevronRight, Fingerprint, Cpu, Activity, Shield, Hash, Box as BoxIcon, Radio, Lightbulb, Mail, Paperclip, Unlock, XCircle, Play, Pause, Square, Info } from 'lucide-react';
+import { X, User, Search, Terminal, MessageSquare, FileText, ArrowRight, ArrowLeft, ShieldAlert, CheckCircle, AlertTriangle, Volume2, VolumeX, Image as ImageIcon, Briefcase, Star, MousePointerClick, Bell, HelpCircle, Clock, ZoomIn, LayoutGrid, ChevronRight, Fingerprint, Cpu, Activity, Shield, Hash, Box as BoxIcon, Radio, Lightbulb, Mail, Paperclip, Unlock, XCircle, Play, Pause, Square, Info, Save, BookmarkCheck, LogOut } from 'lucide-react';
 import { motion, AnimatePresence } from 'framer-motion';
 import EvidenceBoard from './EvidenceBoard';
 import AdvancedTerminal from './AdvancedTerminal';
@@ -539,7 +539,7 @@ const DecryptionMinigame = ({ node, onSuccess }) => {
     );
 };
 
-const GamePreview = ({ nodes, edges, onClose, gameMetadata, onGameEnd, onNodeChange, isSimultaneous = false }) => {
+const GamePreview = ({ nodes, edges, onClose, gameMetadata, onGameEnd, onNodeChange, isSimultaneous = false, userId = null, caseId = null, savedProgress = null, onSaveProgress = null }) => {
     // Game State
     const [currentNodeId, setCurrentNodeId] = useState(null);
 
@@ -593,6 +593,10 @@ const GamePreview = ({ nodes, edges, onClose, gameMetadata, onGameEnd, onNodeCha
     const [pendingResultData, setPendingResultData] = useState(null);
     const [isQuitting, setIsQuitting] = useState(false);
     const [showQuitConfirm, setShowQuitConfirm] = useState(false);
+
+    // Save Progress State
+    const [isSaving, setIsSaving] = useState(false);
+    const [showSaveConfirm, setShowSaveConfirm] = useState(false); // post-save popup (Continue or Quit)
 
     // Timer State
     const initialTime = (gameMetadata?.timeLimit || 15) * 60; // Convert minutes to seconds
@@ -779,6 +783,25 @@ const GamePreview = ({ nodes, edges, onClose, gameMetadata, onGameEnd, onNodeCha
     const isInitialized = useRef(false);
     useEffect(() => {
         if (isInitialized.current) return;
+
+        // ── Restore from saved progress if available ──────────────────────────
+        if (savedProgress) {
+            const sp = savedProgress;
+            if (sp.currentNodeId) setCurrentNodeId(sp.currentNodeId);
+            if (sp.inventory) setInventory(new Set(sp.inventory));
+            if (sp.history) setHistory(sp.history);
+            if (sp.score !== undefined) setScore(sp.score);
+            if (sp.playerObjectiveScores) setPlayerObjectiveScores(sp.playerObjectiveScores);
+            if (sp.scoredNodes) setScoredNodes(new Set(sp.scoredNodes));
+            if (sp.nodeOutputs) setNodeOutputs(sp.nodeOutputs);
+            if (sp.timeElapsed !== undefined) setTimeElapsed(sp.timeElapsed);
+            if (sp.timeLeft !== undefined) setTimeLeft(sp.timeLeft);
+            setMissionStarted(true);
+            isInitialized.current = true;
+            addLog('Neural sync restored. Resuming investigation...');
+            return;
+        }
+        // ─────────────────────────────────────────────────────────────────────
 
         // Find a suitable start node logic:
         // 1. Explicit ID 'start'
@@ -1421,6 +1444,52 @@ const GamePreview = ({ nodes, edges, onClose, gameMetadata, onGameEnd, onNodeCha
         setShowQuitConfirm(false);
     };
 
+    // ── Save Progress ─────────────────────────────────────────────────────────
+    const handleSaveProgress = async () => {
+        if (!onSaveProgress || isSaving) return;
+        setIsSaving(true);
+        ttsStop();
+        try {
+            const progressData = {
+                currentNodeId,
+                inventory: [...inventory],
+                history,
+                score,
+                playerObjectiveScores,
+                scoredNodes: [...scoredNodes],
+                nodeOutputs,
+                timeElapsed,
+                timeLeft,
+                savedAt: new Date().toISOString()
+            };
+            await onSaveProgress(progressData);
+            setShowSaveConfirm(true);
+        } catch (err) {
+            console.error('[GamePreview] Failed to save progress:', err);
+        } finally {
+            setIsSaving(false);
+        }
+    };
+
+    // Called when player picks "Quit" from the post-save popup
+    // Redirect to dashboard without going through the feedback screen
+    const handleQuitAfterSave = () => {
+        setShowSaveConfirm(false);
+        ttsStop();
+        if (onGameEnd) {
+            onGameEnd({
+                score,
+                objectiveScores: playerObjectiveScores,
+                outcome: 'saved_quit',
+                timeSpentSeconds: timeElapsed,
+                savedAndQuit: true
+            });
+        } else {
+            onClose();
+        }
+    };
+    // ─────────────────────────────────────────────────────────────────────────
+
     const handleCloseModal = React.useCallback(() => {
         if (!activeModalNode) return;
 
@@ -1984,6 +2053,35 @@ const GamePreview = ({ nodes, edges, onClose, gameMetadata, onGameEnd, onNodeCha
                                 <div className="absolute bottom-0 left-0 w-full h-[2px] bg-cyan-400 shadow-[0_0_10px_#22d3ee] scale-x-0 group-hover:scale-x-100 transition-transform duration-500 origin-center" />
                             </Button>
                         </div>
+                    )}
+
+                    {/* Save Progress Button */}
+                    {missionStarted && onSaveProgress && (
+                        <motion.button
+                            whileHover={{ scale: 1.04 }}
+                            whileTap={{ scale: 0.93 }}
+                            onClick={handleSaveProgress}
+                            disabled={isSaving}
+                            title="Save your progress"
+                            className="relative group flex items-center gap-2 px-3 md:px-4 h-10 md:h-11 rounded-2xl border transition-all duration-300 active:scale-95 overflow-hidden
+                                bg-emerald-600/20 hover:bg-emerald-600 border-emerald-500/40 hover:border-emerald-400
+                                text-emerald-400 hover:text-white shadow-[0_0_14px_rgba(16,185,129,0.2)] hover:shadow-[0_0_28px_rgba(16,185,129,0.45)]
+                                disabled:opacity-50 disabled:cursor-not-allowed"
+                        >
+                            <div className="absolute inset-0 bg-gradient-to-r from-transparent via-white/10 to-transparent -translate-x-full group-hover:translate-x-full transition-transform duration-700 pointer-events-none" />
+                            {isSaving ? (
+                                <motion.div
+                                    animate={{ rotate: 360 }}
+                                    transition={{ duration: 1, repeat: Infinity, ease: 'linear' }}
+                                    className="w-4 h-4 border-2 border-emerald-400 border-t-transparent rounded-full"
+                                />
+                            ) : (
+                                <Save className="w-4 h-4 shrink-0" />
+                            )}
+                            <span className="uppercase font-black text-[9px] md:text-[10px] tracking-[0.15em] relative z-10 hidden sm:block">
+                                {isSaving ? 'Saving...' : 'Save Progress'}
+                            </span>
+                        </motion.button>
                     )}
 
                     <Button variant="ghost" size="icon" className="w-8 h-8 md:w-10 md:h-10" onClick={() => {
@@ -3523,6 +3621,97 @@ const GamePreview = ({ nodes, edges, onClose, gameMetadata, onGameEnd, onNodeCha
 
                             {/* Decorative background number */}
                             <span className="absolute -bottom-10 -right-10 text-[200px] font-black text-white/[0.02] pointer-events-none select-none">!</span>
+                        </motion.div>
+                    </div>
+                )}
+            </AnimatePresence>
+
+            {/* ── After-Save Popup: Continue or Quit? ────────────────────────── */}
+            <AnimatePresence>
+                {showSaveConfirm && (
+                    <div className="fixed inset-0 z-[510] flex items-center justify-center p-4 bg-black/85 backdrop-blur-2xl">
+                        <motion.div
+                            initial={{ opacity: 0, scale: 0.88, y: 40 }}
+                            animate={{ opacity: 1, scale: 1, y: 0 }}
+                            exit={{ opacity: 0, scale: 0.88, y: 40 }}
+                            transition={{ type: 'spring', stiffness: 320, damping: 26 }}
+                            className="relative bg-zinc-950 border border-emerald-500/30 p-10 rounded-[2.5rem] max-w-lg w-full text-center overflow-hidden"
+                            style={{ boxShadow: '0 0 80px rgba(16,185,129,0.18), 0 30px 60px rgba(0,0,0,0.6)' }}
+                        >
+                            {/* Ambient glow rings */}
+                            <div className="absolute -top-20 -left-20 w-64 h-64 bg-emerald-500/10 rounded-full blur-3xl pointer-events-none" />
+                            <div className="absolute -bottom-20 -right-20 w-64 h-64 bg-indigo-500/10 rounded-full blur-3xl pointer-events-none" />
+
+                            {/* Success checkmark */}
+                            <motion.div
+                                initial={{ scale: 0 }}
+                                animate={{ scale: 1 }}
+                                transition={{ type: 'spring', stiffness: 400, damping: 20, delay: 0.1 }}
+                                className="flex justify-center mb-7"
+                            >
+                                <div className="relative w-24 h-24">
+                                    <motion.div
+                                        className="absolute inset-0 rounded-full bg-emerald-500/20 blur-2xl"
+                                        animate={{ scale: [1, 1.3, 1], opacity: [0.6, 1, 0.6] }}
+                                        transition={{ duration: 2.5, repeat: Infinity, ease: 'easeInOut' }}
+                                    />
+                                    <div className="relative w-24 h-24 bg-emerald-500/10 border-2 border-emerald-500/50 rounded-full flex items-center justify-center">
+                                        <BookmarkCheck className="w-11 h-11 text-emerald-400" />
+                                    </div>
+                                </div>
+                            </motion.div>
+
+                            {/* Title */}
+                            <motion.div initial={{ opacity: 0, y: 10 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: 0.15 }}>
+                                <div className="inline-flex items-center gap-2 px-3 py-1 bg-emerald-500/10 border border-emerald-500/30 rounded-full mb-4">
+                                    <div className="w-1.5 h-1.5 rounded-full bg-emerald-400 animate-pulse" />
+                                    <span className="text-[10px] font-black text-emerald-400 uppercase tracking-[0.3em]">Progress Saved</span>
+                                </div>
+                                <h2 className="text-3xl md:text-4xl font-black text-white uppercase tracking-tighter leading-none mb-3">
+                                    Game Saved!
+                                </h2>
+                                <p className="text-zinc-400 text-base font-medium leading-relaxed mb-8 px-2">
+                                    Your investigation has been saved. You can <span className="text-emerald-400 font-bold">continue</span> where you left off, or <span className="text-rose-400 font-bold">quit</span> and return to the dashboard. Your progress is safe.
+                                </p>
+                            </motion.div>
+
+                            {/* Action Buttons */}
+                            <motion.div
+                                initial={{ opacity: 0, y: 12 }}
+                                animate={{ opacity: 1, y: 0 }}
+                                transition={{ delay: 0.22 }}
+                                className="grid grid-cols-2 gap-4"
+                            >
+                                {/* Continue Playing */}
+                                <button
+                                    onClick={() => setShowSaveConfirm(false)}
+                                    className="group relative py-5 flex flex-col items-center gap-2 bg-emerald-600/20 hover:bg-emerald-600 border border-emerald-500/40 hover:border-emerald-400 text-emerald-300 hover:text-white font-black uppercase tracking-widest text-xs rounded-2xl transition-all duration-300 active:scale-95 overflow-hidden shadow-lg"
+                                >
+                                    <div className="absolute inset-0 bg-gradient-to-r from-transparent via-white/10 to-transparent -translate-x-full group-hover:translate-x-full transition-transform duration-700 pointer-events-none" />
+                                    <div className="p-2 bg-emerald-500/20 rounded-xl border border-emerald-500/30 group-hover:bg-emerald-500/30 transition-colors">
+                                        <Play className="w-5 h-5 fill-current" />
+                                    </div>
+                                    <span>Continue Playing</span>
+                                </button>
+
+                                {/* Quit to Dashboard */}
+                                <button
+                                    onClick={handleQuitAfterSave}
+                                    className="group relative py-5 flex flex-col items-center gap-2 bg-rose-500/10 hover:bg-rose-600 border border-rose-500/30 hover:border-rose-400 text-rose-400 hover:text-white font-black uppercase tracking-widest text-xs rounded-2xl transition-all duration-300 active:scale-95 overflow-hidden shadow-lg"
+                                >
+                                    <div className="absolute inset-0 bg-gradient-to-r from-transparent via-white/10 to-transparent -translate-x-full group-hover:translate-x-full transition-transform duration-700 pointer-events-none" />
+                                    <div className="p-2 bg-rose-500/10 rounded-xl border border-rose-500/20 group-hover:bg-rose-500/20 transition-colors">
+                                        <LogOut className="w-5 h-5" />
+                                    </div>
+                                    <span>Quit to Dashboard</span>
+                                </button>
+                            </motion.div>
+
+                            {/* Decorative corner accents */}
+                            <div className="absolute top-0 left-0 w-10 h-10 border-t-2 border-l-2 border-emerald-500/20 rounded-tl-[2.5rem]" />
+                            <div className="absolute top-0 right-0 w-10 h-10 border-t-2 border-r-2 border-emerald-500/20 rounded-tr-[2.5rem]" />
+                            <div className="absolute bottom-0 left-0 w-10 h-10 border-b-2 border-l-2 border-emerald-500/20 rounded-bl-[2.5rem]" />
+                            <div className="absolute bottom-0 right-0 w-10 h-10 border-b-2 border-r-2 border-emerald-500/20 rounded-br-[2.5rem]" />
                         </motion.div>
                     </div>
                 )}

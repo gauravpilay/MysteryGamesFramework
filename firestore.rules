@@ -42,6 +42,15 @@ service cloud.firestore {
       allow read: if isAdmin();
     }
 
+    // GAME PROGRESS (Save/Resume) COLLECTION
+    // Doc IDs are "{uid}_{caseId}" — users can only access their own progress.
+    match /game_progress/{progressId} {
+      allow read, write, delete: if request.auth != null &&
+        (resource == null || resource.data.userId == request.auth.uid ||
+         request.resource.data.userId == request.auth.uid);
+      allow read, write, delete: if isAdmin();
+    }
+
     // CHARACTER MEDIA (Library Assets)
     match /character_media/{mediaId} {
       allow read, create: if request.auth != null;
