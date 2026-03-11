@@ -787,7 +787,20 @@ const GamePreview = ({ nodes, edges, onClose, gameMetadata, onGameEnd, onNodeCha
         // ── Restore from saved progress if available ──────────────────────────
         if (savedProgress) {
             const sp = savedProgress;
-            if (sp.currentNodeId) setCurrentNodeId(sp.currentNodeId);
+            if (sp.currentNodeId) {
+                const resumedNode = nodes.find(n => n.id === sp.currentNodeId);
+                setCurrentNodeId(sp.currentNodeId);
+
+                // If we're resuming on a modal node, ensure the modal is opened
+                if (resumedNode && ['evidence', 'terminal', 'message', 'media', 'notification', 'question', 'lockpick', 'decryption', 'keypad', 'interrogation', 'threed', 'email', 'fact'].includes(resumedNode.type)) {
+                    // But ONLY if it's not silent/hidden (let the skip effect handle that if needed)
+                    const isVisible = evaluateLogic(resumedNode, new Set(sp.inventory), sp.nodeOutputs || {}, sp.history || []);
+                    if (isVisible && !resumedNode.data?.silent) {
+                        setActiveModalNode(resumedNode);
+                        if (resumedNode.type === 'question') setUserAnswers(new Set());
+                    }
+                }
+            }
             if (sp.inventory) setInventory(new Set(sp.inventory));
             if (sp.history) setHistory(sp.history);
             if (sp.score !== undefined) setScore(sp.score);
@@ -922,8 +935,24 @@ const GamePreview = ({ nodes, edges, onClose, gameMetadata, onGameEnd, onNodeCha
     useEffect(() => {
         if (!currentNode) return;
 
-        // 1. Evidence & Suspects: Auto-collect
+        // 1. Evidence & Suspects: Visibility check and Auto-collect
         if (currentNode.type === 'evidence' || currentNode.type === 'suspect' || currentNode.type === 'email' || currentNode.type === 'fact') {
+            // Check visibility for intel nodes (Evidence, Email, Fact). If hidden OR silent, skip to next.
+            if (currentNode.type === 'evidence' || currentNode.type === 'email' || currentNode.type === 'fact') {
+                const isVisible = evaluateLogic(currentNode);
+                const isSilent = currentNode.data?.silent;
+                if (!isVisible || isSilent) {
+                    const outEdges = options;
+                    if (outEdges.length > 0) {
+                        console.log(`[GamePreview] Skipping ${!isVisible ? 'hidden' : 'silent'} intel node:`, currentNode.id);
+                        addLog(`Advancing past intel...`);
+                        setCurrentNodeId(outEdges[0].target);
+                        if (activeModalNode?.id === currentNode.id) setActiveModalNode(null);
+                        return; // Exit this effect run
+                    }
+                }
+            }
+
             const flag = currentNode.data.variableId || currentNode.data.condition || currentNode.id;
             if (!inventory.has(flag)) {
                 setInventory(prev => new Set([...prev, flag]));
@@ -1083,6 +1112,13 @@ const GamePreview = ({ nodes, edges, onClose, gameMetadata, onGameEnd, onNodeCha
         const allNodesInJump = [node, ...intermediateIds.map(id => nodes.find(n => n.id === id))].filter(Boolean);
 
         allNodesInJump.forEach(n => {
+            // Only process flags/scoring if the node is "visible" 
+            // (Structural nodes like logic/setter are always processed)
+            const isStructural = ['logic', 'music', 'setter'].includes(n.type);
+            const isVisible = isStructural || evaluateLogic(n, preInventory, nodeOutputs, history);
+
+            if (!isVisible) return;
+
             flagsToAdd.add(n.id);
             if (n.data?.variableId) flagsToAdd.add(n.data.variableId);
             if ((n.type === 'evidence' || n.type === 'email') && n.data?.condition) {
@@ -1099,7 +1135,6 @@ const GamePreview = ({ nodes, edges, onClose, gameMetadata, onGameEnd, onNodeCha
                 addLog(`DISCOVERY: Found ${n.data.displayName || n.data.label || 'clue'}`);
             }
         });
-        intermediateIds.forEach(id => flagsToAdd.add(id));
 
         // ── Commit everything atomically (one single setInventory call) ────────────
         // If resolveNext mutated state via Setter nodes, merge on top of its result

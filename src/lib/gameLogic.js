@@ -98,7 +98,7 @@ export const resolveNextNode = (startId, { nodes, edges, inventory, nodeOutputs,
     let stateChanged = false;
     let audioToPlay = null;
 
-    while (currNode && (['music', 'logic', 'setter'].includes(currNode.type) || (currNode.type === 'evidence' && currNode.data?.silent)) && loopCount < maxLoops) {
+    while (currNode && (['music', 'logic', 'setter'].includes(currNode.type) || ((currNode.type === 'evidence' || currNode.type === 'email' || currNode.type === 'fact') && (currNode.data?.silent || !evaluateLogic(currNode, localInventory, localOutputs, history)))) && loopCount < maxLoops) {
         loopCount++;
         intermediateIds.push(currNode.id);
 
@@ -176,8 +176,8 @@ export const resolveNextNode = (startId, { nodes, edges, inventory, nodeOutputs,
                 break; // Dead end logic path
             }
         }
-        // Handle Evidence (Silent / Auto-Advance)
-        else if (currNode.type === 'evidence' && currNode.data?.silent) {
+        // Handle Evidence / Intel (Silent OR Hidden)
+        else if ((currNode.type === 'evidence' || currNode.type === 'email' || currNode.type === 'fact') && (currNode.data?.silent || !evaluateLogic(currNode, localInventory, localOutputs, history))) {
             const outEdges = edges.filter(e => e.source === currNode.id);
             if (outEdges.length > 0) {
                 currId = outEdges[0].target;
@@ -252,8 +252,8 @@ export const resolveEdgeTarget = (edge, { nodes, edges, inventory, nodeOutputs, 
         return null; // Dead end logic path (Hidden option)
     }
 
-    if (targetNode.type === 'music' || targetNode.type === 'setter' || (targetNode.type === 'evidence' && targetNode.data?.silent)) {
-        // Music/Setter/SilentEvidence always passes through
+    if (targetNode.type === 'music' || targetNode.type === 'setter' || ((targetNode.type === 'evidence' || targetNode.type === 'email' || targetNode.type === 'fact') && (targetNode.data?.silent || !evaluateLogic(targetNode, inventory, nodeOutputs, history)))) {
+        // Music/Setter/Silent or Hidden Evidence always passes through
         const outEdges = edges.filter(e => e.source === targetNode.id);
         if (outEdges.length > 0) return resolveEdgeTarget(outEdges[0], { nodes, edges, inventory, nodeOutputs, history, processedLogicNodes });
         return null;
@@ -261,3 +261,4 @@ export const resolveEdgeTarget = (edge, { nodes, edges, inventory, nodeOutputs, 
 
     return edge;
 };
+
