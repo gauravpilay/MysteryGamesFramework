@@ -1786,7 +1786,7 @@ Please provide a concise plot summary and narrative overview based on these elem
 
         // Helper function to check if we need a new page
         const checkPageBreak = (requiredSpace = 10) => {
-            if (yPos + required > pageHeight - margin) {
+            if (yPos + requiredSpace > pageHeight - margin) {
                 doc.addPage();
                 yPos = margin;
                 return true;
@@ -1856,14 +1856,14 @@ Please provide a concise plot summary and narrative overview based on these elem
                 const words = segment.text.split(' ');
 
                 words.forEach((word, wordIndex) => {
-                    if (word > 0 || seg > 0) {
+                    if (wordIndex > 0 || segIndex > 0) {
                         word = ' ' + word;
                     }
 
                     doc.setFont('helvetica', segment.bold ? 'bold' : (segment.italic ? 'italic' : 'normal'));
                     const wordWidth = doc.getTextWidth(word);
 
-                    if (currentLineWidth + word > maxWidth && currentLine.length > 0) {
+                    if (currentLineWidth + wordWidth > maxWidth && currentLine.length > 0) {
                         // Render current line
                         renderLine(currentLine, currentX, yPos, baseColor);
                         yPos += fontSize * 0.5;
