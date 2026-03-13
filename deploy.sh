@@ -2,7 +2,8 @@
 set -e
 
 # Configuration
-SERVICE_NAME="mystery-games-framework"
+ENV_FILE=${1:-.env}
+DEFAULT_SERVICE_NAME="mystery-games-framework"
 DEFAULT_REGION="us-east1"
 REPO_NAME="mystery-games"
 
@@ -25,21 +26,25 @@ if [ -z "$PROJECT_ID" ] || [ "$PROJECT_ID" == "(unset)" ]; then
     exit 1
 fi
 
-# Load environment variables from .env
-if [ ! -f .env ]; then
-    echo "⚠️  Warning: .env file not found. We recommend creating it based on .env.example."
-    echo "Attempting to continue if variables are already exported..."
+# Load environment variables from the specified env file
+if [ ! -f "$ENV_FILE" ]; then
+    echo "❌ Error: Environment file '$ENV_FILE' not found."
+    exit 1
 else
-    echo "📋 Loading environment variables from .env..."
+    echo "📋 Loading environment variables from $ENV_FILE..."
     # Export variables, ignoring comments and empty lines
-    export $(grep -v '^#' .env | xargs)
+    export $(grep -v '^#' "$ENV_FILE" | xargs)
 fi
 
+# Set Service Name (allow override from env file)
+SERVICE_NAME=${SERVICE_NAME:-$DEFAULT_SERVICE_NAME}
 # Ask for region if not set
 REGION=${REGION:-$DEFAULT_REGION}
 
-echo "✅ Project ID: $PROJECT_ID"
-echo "✅ Region:     $REGION"
+echo "✅ Environment: $ENV_FILE"
+echo "✅ Service:     $SERVICE_NAME"
+echo "✅ Project ID:  $PROJECT_ID"
+echo "✅ Region:      $REGION"
 echo "--------------------------------------------------"
 
 # Define Image Tag for Artifact Registry
