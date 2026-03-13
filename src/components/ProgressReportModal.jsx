@@ -424,7 +424,7 @@ const ProgressReportModal = ({ onClose }) => {
             // Footer
             doc.setFontSize(8);
             doc.setTextColor(100, 116, 139);
-            doc.text(`${settings.systemName || 'Mystery Architect'} Intelligence Division - Confidential`, pageWidth / 2, pageHeight - 15, { align: 'center' });
+            doc.text(`${settings.systemName || 'KodeSaGa'} Intelligence Division - Confidential`, pageWidth / 2, pageHeight - 15, { align: 'center' });
             doc.text('Page 1', pageWidth / 2, pageHeight - 10, { align: 'center' });
 
             // ========== PAGE 2: ACHIEVEMENTS ==========
@@ -558,7 +558,7 @@ const ProgressReportModal = ({ onClose }) => {
                 // Footer
                 doc.setFontSize(8);
                 doc.setTextColor(100, 116, 139);
-                doc.text(`${settings.systemName || 'Mystery Architect'} Intelligence Division - Confidential`, pageWidth / 2, pageHeight - 15, { align: 'center' });
+                doc.text(`${settings.systemName || 'KodeSaGa'} Intelligence Division - Confidential`, pageWidth / 2, pageHeight - 15, { align: 'center' });
                 doc.text('Page 2', pageWidth / 2, pageHeight - 10, { align: 'center' });
             }
 
@@ -628,7 +628,7 @@ const ProgressReportModal = ({ onClose }) => {
             // Footer
             doc.setFontSize(8);
             doc.setTextColor(100, 116, 139);
-            doc.text(`${settings.systemName || 'Mystery Architect'} Intelligence Division - Confidential`, pageWidth / 2, pageHeight - 15, { align: 'center' });
+            doc.text(`${settings.systemName || 'KodeSaGa'} Intelligence Division - Confidential`, pageWidth / 2, pageHeight - 15, { align: 'center' });
             doc.text('Page 3', pageWidth / 2, pageHeight - 10, { align: 'center' });
 
             // ========== CONTINUE WITH EXISTING CONTENT (Learning Objectives, etc.) ==========
@@ -924,7 +924,7 @@ const ProgressReportModal = ({ onClose }) => {
                 doc.setPage(i);
                 doc.setFontSize(8);
                 doc.setTextColor(150);
-                doc.text(`${settings.systemName || 'Mystery Architect'} Intelligence Division - Confidential // Page ${i} of ${finalPageCount}`, pageWidth / 2, doc.internal.pageSize.getHeight() - 10, { align: 'center' });
+                doc.text(`${settings.systemName || 'KodeSaGa'} Intelligence Division - Confidential // Page ${i} of ${finalPageCount}`, pageWidth / 2, doc.internal.pageSize.getHeight() - 10, { align: 'center' });
             }
 
             const fileName = `Performance_Record_${user.email.split('@')[0]}.pdf`;

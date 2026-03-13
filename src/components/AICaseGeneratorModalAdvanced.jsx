@@ -101,7 +101,7 @@ const AICaseGeneratorModalAdvanced = ({ isOpen, onClose, onGenerate }) => {
     const [progress, setProgress] = useState(0);
 
     const buildQuickModePrompt = () => {
-        return `You are the "Mystery Architect AI Director". Generate a complete, playable mystery game from the user's story description and learning objectives.
+        return `You are the "KodeSaGa AI Director". Generate a complete, playable mystery game from the user's story description and learning objectives.
 
 RETURN ONLY A VALID JSON OBJECT. NO MARKDOWN. NO EXPLANATION.
 

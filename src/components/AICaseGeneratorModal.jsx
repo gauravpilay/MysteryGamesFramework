@@ -89,7 +89,7 @@ const AICaseGeneratorModal = ({ isOpen, onClose, onGenerate }) => {
         const difficultyConfig = DIFFICULTY_LEVELS.find(d => d.id === difficulty);
         const genreInfo = GENRES.find(g => g.id === genre);
 
-        return `You are the "Mystery Architect AI Director". Your task is to generate a complete, playable mystery game node graph that accomplishes specific LEARNING OBJECTIVES while providing an engaging narrative experience.
+        return `You are the "KodeSaGa AI Director". Your task is to generate a complete, playable mystery game node graph that accomplishes specific LEARNING OBJECTIVES while providing an engaging narrative experience.
 
 RETURN ONLY A VALID JSON OBJECT. NO MARKDOWN. NO EXPLANATION. NO COMMENTARY.
 
@@ -407,8 +407,8 @@ Generate a complete mystery game that masterfully integrates these learning obje
                                                         key={cat.id}
                                                         onClick={() => setLearningCategory(cat.id)}
                                                         className={`p-3 rounded-xl border-2 transition-all text-left ${learningCategory === cat.id
-                                                                ? 'border-indigo-500 bg-indigo-500/10 shadow-[0_0_20px_rgba(99,102,241,0.3)]'
-                                                                : 'border-white/10 bg-white/5 hover:border-white/20'
+                                                            ? 'border-indigo-500 bg-indigo-500/10 shadow-[0_0_20px_rgba(99,102,241,0.3)]'
+                                                            : 'border-white/10 bg-white/5 hover:border-white/20'
                                                             }`}
                                                     >
                                                         <div className="text-sm font-bold text-white mb-1">{cat.label}</div>
@@ -487,8 +487,8 @@ Generate a complete mystery game that masterfully integrates these learning obje
                                                         key={g.id}
                                                         onClick={() => setGenre(g.id)}
                                                         className={`p-4 rounded-xl border-2 transition-all ${genre === g.id
-                                                                ? 'border-purple-500 bg-purple-500/10 shadow-[0_0_20px_rgba(168,85,247,0.3)]'
-                                                                : 'border-white/10 bg-white/5 hover:border-white/20'
+                                                            ? 'border-purple-500 bg-purple-500/10 shadow-[0_0_20px_rgba(168,85,247,0.3)]'
+                                                            : 'border-white/10 bg-white/5 hover:border-white/20'
                                                             }`}
                                                     >
                                                         <div className="text-2xl mb-2">{g.icon}</div>
@@ -543,8 +543,8 @@ Generate a complete mystery game that masterfully integrates these learning obje
                                                     key={d.id}
                                                     onClick={() => setDifficulty(d.id)}
                                                     className={`w-full p-5 rounded-xl border-2 transition-all text-left ${difficulty === d.id
-                                                            ? 'border-amber-500 bg-amber-500/10 shadow-[0_0_20px_rgba(245,158,11,0.3)]'
-                                                            : 'border-white/10 bg-white/5 hover:border-white/20'
+                                                        ? 'border-amber-500 bg-amber-500/10 shadow-[0_0_20px_rgba(245,158,11,0.3)]'
+                                                        : 'border-white/10 bg-white/5 hover:border-white/20'
                                                         }`}
                                                 >
                                                     <div className="flex items-center justify-between mb-2">
@@ -622,8 +622,8 @@ Generate a complete mystery game that masterfully integrates these learning obje
                                                         key={c.id}
                                                         onClick={() => setSuspectComplexity(c.id)}
                                                         className={`p-4 rounded-xl border-2 transition-all ${suspectComplexity === c.id
-                                                                ? 'border-rose-500 bg-rose-500/10'
-                                                                : 'border-white/10 bg-white/5 hover:border-white/20'
+                                                            ? 'border-rose-500 bg-rose-500/10'
+                                                            : 'border-white/10 bg-white/5 hover:border-white/20'
                                                             }`}
                                                     >
                                                         <div className="text-sm font-bold text-white mb-1">{c.label}</div>
@@ -663,8 +663,8 @@ Generate a complete mystery game that masterfully integrates these learning obje
                                                         key={puzzle.id}
                                                         onClick={() => togglePuzzle(puzzle.id)}
                                                         className={`p-4 rounded-xl border-2 transition-all text-left ${isSelected
-                                                                ? 'border-emerald-500 bg-emerald-500/10 shadow-[0_0_15px_rgba(16,185,129,0.2)]'
-                                                                : 'border-white/10 bg-white/5 hover:border-white/20'
+                                                            ? 'border-emerald-500 bg-emerald-500/10 shadow-[0_0_15px_rgba(16,185,129,0.2)]'
+                                                            : 'border-white/10 bg-white/5 hover:border-white/20'
                                                             }`}
                                                     >
                                                         <div className="flex items-start gap-3">
@@ -813,8 +813,8 @@ Generate a complete mystery game that masterfully integrates these learning obje
                                             <div
                                                 key={item.label}
                                                 className={`p-3 rounded-xl border transition-all ${isActive
-                                                        ? 'border-indigo-500/50 bg-indigo-500/10'
-                                                        : 'border-white/10 bg-white/5'
+                                                    ? 'border-indigo-500/50 bg-indigo-500/10'
+                                                    : 'border-white/10 bg-white/5'
                                                     }`}
                                             >
                                                 <Icon className={`w-5 h-5 mx-auto mb-2 ${isActive ? 'text-indigo-400' : 'text-zinc-600'}`} />

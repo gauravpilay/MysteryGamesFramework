@@ -174,7 +174,7 @@ const simulateResponse = (prompt, message) => {
     }
 
     // Support for AI Case Generator Simulation
-    if (systemPrompt.includes("Mystery Architect AI")) {
+    if (systemPrompt.includes("KodeSaGa AI")) {
         return JSON.stringify({
             nodes: [
                 {

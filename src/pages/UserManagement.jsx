@@ -202,7 +202,7 @@ const UserManagement = () => {
             if (isActivating) {
                 const targetUser = updatedUsers.find(u => u.id === userId);
                 if (targetUser) {
-                    sendActivationEmail(targetUser, settings.systemName || 'Simplee5');
+                    sendActivationEmail(targetUser, settings.systemName || 'KodeSaGa');
                 }
             }
 

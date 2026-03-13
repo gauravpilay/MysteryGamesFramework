@@ -70,10 +70,7 @@ const LandingPage = () => {
             <nav className={`fixed top-0 left-0 right-0 z-50 transition-all duration-300 ${scrolled ? 'bg-[#020205]/80 backdrop-blur-md border-b border-white/5 py-4' : 'bg-transparent py-6'}`}>
                 <div className="max-w-7xl mx-auto px-6 flex items-center justify-between">
                     <Link to="/" className="flex items-center gap-3 group">
-                        <img src="/logo.jpg" alt="Simplee5 Logo" className="w-10 h-10 rounded-lg shadow-lg group-hover:scale-110 transition-transform object-contain" />
-                        <span className="text-xl font-extrabold tracking-tight text-white italic">
-                            Simplee<span className="text-orange-500 not-italic">5</span>
-                        </span>
+                        <img src="/login_icon.png" alt="KodeSaGa Icon" className="w-10 h-10 rounded-lg shadow-lg group-hover:scale-110 transition-transform object-contain" />
                     </Link>
 
                     <div className="hidden md:flex items-center gap-8">
@@ -306,10 +303,7 @@ const LandingPage = () => {
             <footer className="py-12 border-t border-white/5 text-zinc-600 text-sm">
                 <div className="max-w-7xl mx-auto px-6 flex flex-col md:flex-row items-center justify-between gap-8">
                     <div className="flex items-center gap-3">
-                        <img src="/logo.jpg" alt="Simplee5 Logo" className="w-8 h-8 rounded-md grayscale opacity-60" />
-                        <span className="font-bold tracking-tight italic">
-                            Simplee<span className="not-italic">5</span>
-                        </span>
+                        <img src="/login_icon.png" alt="KodeSaGa Icon" className="w-8 h-8 rounded-md grayscale opacity-60" />
                     </div>
 
                     <div className="flex items-center gap-8">
@@ -319,7 +313,7 @@ const LandingPage = () => {
                         <a href="#" className="hover:text-white transition-colors">Careers</a>
                     </div>
 
-                    <p>© 2026 Mystery Games Framework. All rights reserved.</p>
+                    <p>© 2026 KodeSaGa. All rights reserved.</p>
                 </div>
             </footer>
         </div>

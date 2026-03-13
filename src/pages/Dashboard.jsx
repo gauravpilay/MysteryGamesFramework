@@ -547,9 +547,9 @@ const Dashboard = () => {
                 <div className="container mx-auto px-4 md:px-6 h-16 flex items-center justify-between">
                     <div className="flex items-center gap-3">
                         <div className="flex items-center justify-center">
-                            <Logo className="w-8 h-8 md:w-9 md:h-9 drop-shadow-[0_0_10px_rgba(99,102,241,0.5)]" />
+                            <Logo className="w-12 h-12 md:w-14 md:h-14 drop-shadow-[0_0_15px_rgba(99,102,241,0.6)]" />
                         </div>
-                        <span className="font-bold text-base md:text-lg tracking-tight truncate max-w-[120px] md:max-w-none">{settings.systemName || 'Simplee5'}</span>
+                        <span className="font-bold text-base md:text-lg tracking-tight truncate max-w-[120px] md:max-w-none">{settings.systemName || 'KodeSaGa'}</span>
                     </div>
                     <div className="flex items-center gap-4">
                         <Button

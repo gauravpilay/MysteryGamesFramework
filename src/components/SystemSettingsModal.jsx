@@ -14,7 +14,7 @@ const SystemSettingsModal = ({ onClose }) => {
     const [formData, setFormData] = useState({
         aiApiKey: settings.aiApiKey || '',
         maxAIRequests: settings.maxAIRequests || 10,
-        systemName: settings.systemName || 'Mystery Architect Central',
+        systemName: settings.systemName || 'KodeSaGa Central',
         enableThreeD: settings.enableThreeD !== undefined ? settings.enableThreeD : true,
         chirpVoiceName: settings.chirpVoiceName || DEFAULT_CHIRP_VOICE,
     });
@@ -27,7 +27,7 @@ const SystemSettingsModal = ({ onClose }) => {
         setFormData({
             aiApiKey: settings.aiApiKey || '',
             maxAIRequests: settings.maxAIRequests || 10,
-            systemName: settings.systemName || 'Mystery Architect Central',
+            systemName: settings.systemName || 'KodeSaGa Central',
             enableThreeD: settings.enableThreeD !== undefined ? settings.enableThreeD : true,
             chirpVoiceName: settings.chirpVoiceName || DEFAULT_CHIRP_VOICE,
         });
@@ -112,7 +112,7 @@ const SystemSettingsModal = ({ onClose }) => {
                                 <div className="space-y-1">
                                     <h4 className="text-sm font-bold text-white uppercase tracking-tight">Licensing Agreement</h4>
                                     <p className="text-[10px] text-zinc-500 font-medium leading-relaxed italic">
-                                        Manage your Mystery Framework v2.0 license manager and activation keys.
+                                        Manage your KodeSaGa v2.0 license manager and activation keys.
                                     </p>
                                 </div>
                                 <Button
@@ -234,7 +234,7 @@ const SystemSettingsModal = ({ onClose }) => {
                                     value={formData.systemName}
                                     onChange={(e) => setFormData({ ...formData, systemName: e.target.value })}
                                     className="bg-black/50 border-zinc-800 focus:border-purple-500/50"
-                                    placeholder="Mystery Architect Central"
+                                    placeholder="KodeSaGa Central"
                                 />
                             </div>
                         </div>

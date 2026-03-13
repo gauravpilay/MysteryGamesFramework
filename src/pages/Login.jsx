@@ -75,8 +75,8 @@ const Login = () => {
                         <div className="relative w-full h-full rounded-full border-4 border-white/10 p-1.5 backdrop-blur-xl bg-gradient-to-b from-white/10 to-transparent overflow-hidden shadow-[0_0_50px_rgba(0,0,0,0.5)]">
                             <div className="w-full h-full rounded-full overflow-hidden bg-zinc-900 flex items-center justify-center">
                                 <img
-                                    src="/logo.jpg"
-                                    alt="Simplee5 Hero"
+                                    src="/login_icon.png"
+                                    alt="KodeSaGa Icon"
                                     className="w-full h-full object-cover transform scale-110 group-hover:scale-125 transition-transform duration-700"
                                 />
                             </div>
@@ -100,9 +100,6 @@ const Login = () => {
                         </motion.div>
                     </motion.div>
 
-                    <h1 className="text-4xl font-black tracking-tighter text-white uppercase">
-                        Mystery <span className="text-orange-500 not-italic">Architect</span>
-                    </h1>
                     <p className="mt-3 text-sm text-gray-400 font-medium tracking-wide">
                         {view === 'login' && 'RE-ENGINEERING EXCELLENCE'}
                         {view === 'signup' && 'JOIN THE ELITE AGENCY'}

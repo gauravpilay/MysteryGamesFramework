@@ -88,7 +88,7 @@ const AICaseGeneratorModal = ({ isOpen, onClose, onGenerate, projectId }) => {
     };
 
     const buildQuickModePrompt = () => {
-        return `You are the "Mystery Architect AI Director". Generate a complete, playable mystery game from the user's story description and learning objectives.
+        return `You are the "KodeSaGa AI Director". Generate a complete, playable mystery game from the user's story description and learning objectives.
 
 RETURN ONLY A VALID JSON OBJECT. NO MARKDOWN. NO EXPLANATION.
 
@@ -168,7 +168,7 @@ Generate a complete mystery game that brings the user's vision to life.`;
         const difficultyConfig = DIFFICULTY_LEVELS.find(d => d.id === difficulty);
         const genreInfo = GENRES.find(g => g.id === genre);
 
-        return `You are the "Mystery Architect AI Director". Your task is to generate a complete, playable mystery game node graph that accomplishes specific LEARNING OBJECTIVES while providing an engaging narrative experience.
+        return `You are the "KodeSaGa AI Director". Your task is to generate a complete, playable mystery game node graph that accomplishes specific LEARNING OBJECTIVES while providing an engaging narrative experience.
 
 RETURN ONLY A VALID JSON OBJECT. NO MARKDOWN. NO EXPLANATION. NO COMMENTARY.
 

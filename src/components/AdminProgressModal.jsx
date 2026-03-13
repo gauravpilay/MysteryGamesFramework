@@ -596,7 +596,7 @@ const AdminProgressModal = ({ onClose }) => {
                 doc.setPage(i);
                 doc.setFontSize(8);
                 doc.setTextColor(150);
-                doc.text(`${settings.systemName || 'Mystery Architect'} - Personnel Division - Page ${i}`, pageWidth / 2, doc.internal.pageSize.getHeight() - 10, { align: 'center' });
+                doc.text(`${settings.systemName || 'KodeSaGa'} - Personnel Division - Page ${i}`, pageWidth / 2, doc.internal.pageSize.getHeight() - 10, { align: 'center' });
             }
 
             const fileName = `Personnel_Agency_Report_${new Date().toISOString().split('T')[0]}.pdf`;

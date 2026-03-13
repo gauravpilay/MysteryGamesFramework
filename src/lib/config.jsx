@@ -8,7 +8,7 @@ const ConfigContext = createContext({});
 export const ConfigProvider = ({ children }) => {
     const { user, loading: authLoading } = useAuth();
     const [settings, setSettings] = useState({
-        systemName: 'Simplee5',
+        systemName: 'KodeSaGa',
         aiApiKey: import.meta.env.VITE_AI_API_KEY || '',
         maxAIRequests: parseInt(import.meta.env.VITE_MAX_AI_REQUESTS) || 10,
     });
