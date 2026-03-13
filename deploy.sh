@@ -2,7 +2,6 @@
 set -e
 
 # Configuration
-ENV_FILE=${1:-.env}
 DEFAULT_SERVICE_NAME="mystery-games-framework"
 DEFAULT_REGION="us-east1"
 REPO_NAME="mystery-games"
@@ -18,29 +17,67 @@ if ! command -v gcloud &> /dev/null; then
     exit 1
 fi
 
-# Get Project ID
-PROJECT_ID=$(gcloud config get-value project 2>/dev/null)
-if [ -z "$PROJECT_ID" ] || [ "$PROJECT_ID" == "(unset)" ]; then
-    echo "❌ Error: No Google Cloud Project set."
-    echo "Please run: gcloud config set project [PROJECT_ID]"
+# 1. Select Environment Profile
+echo "📁 Available Environment Profiles:"
+profiles=($(ls .env* | grep -v ".example"))
+for i in "${!profiles[@]}"; do
+    echo "  [$((i+1))] ${profiles[$i]}"
+done
+
+read -p "Select profile [1-${#profiles[@]}] (default 1): " profile_idx
+profile_idx=${profile_idx:-1}
+ENV_FILE=${profiles[$((profile_idx-1))]}
+
+if [ ! -f "$ENV_FILE" ]; then
+    echo "❌ Error: Invalid selection or file not found."
     exit 1
 fi
 
-# Load environment variables from the specified env file
-if [ ! -f "$ENV_FILE" ]; then
-    echo "❌ Error: Environment file '$ENV_FILE' not found."
+echo "📋 Loading environment variables from $ENV_FILE..."
+export $(grep -v '^#' "$ENV_FILE" | xargs)
+
+# 2. Select Google Cloud Project
+CURRENT_PROJECT=$(gcloud config get-value project 2>/dev/null)
+echo ""
+echo "🆔 Google Cloud Projects:"
+gcloud projects list --format="table(projectId, name)" --limit=10
+
+read -p "Enter Project ID (default '$CURRENT_PROJECT'): " SELECTED_PROJECT
+PROJECT_ID=${SELECTED_PROJECT:-$CURRENT_PROJECT}
+
+if [ -z "$PROJECT_ID" ] || [ "$PROJECT_ID" == "(unset)" ]; then
+    echo "❌ Error: No Project ID specified."
     exit 1
-else
-    echo "📋 Loading environment variables from $ENV_FILE..."
-    # Export variables, ignoring comments and empty lines
-    export $(grep -v '^#' "$ENV_FILE" | xargs)
 fi
+
+gcloud config set project $PROJECT_ID
+
+# 3. Select Region
+echo ""
+echo "🌍 Common Regions:"
+echo "  [1] us-east1 (South Carolina)"
+echo "  [2] us-central1 (Iowa)"
+echo "  [3] europe-west1 (Belgium)"
+echo "  [4] asia-east1 (Taiwan)"
+echo "  [5] Custom..."
+
+read -p "Select region [1-5] (default 1): " region_idx
+region_idx=${region_idx:-1}
+
+case $region_idx in
+    1) REGION="us-east1" ;;
+    2) REGION="us-central1" ;;
+    3) REGION="europe-west1" ;;
+    4) REGION="asia-east1" ;;
+    5) read -p "Enter custom region: " REGION ;;
+    *) REGION="us-east1" ;;
+esac
 
 # Set Service Name (allow override from env file)
 SERVICE_NAME=${SERVICE_NAME:-$DEFAULT_SERVICE_NAME}
-# Ask for region if not set
-REGION=${REGION:-$DEFAULT_REGION}
 
+echo ""
+echo "--------------------------------------------------"
 echo "✅ Environment: $ENV_FILE"
 echo "✅ Service:     $SERVICE_NAME"
 echo "✅ Project ID:  $PROJECT_ID"
