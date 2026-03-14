@@ -352,9 +352,9 @@ const ConnectionLine = ({ edge, p1, p2, isActive, onToggle }) => {
                     y={midY - (isActive ? 100 : 40)}
                     width={isActive ? 350 : 200}
                     height={isActive ? 250 : 80}
-                    className="overflow-visible pointer-events-none"
+                    className="overflow-visible pointer-events-auto"
                 >
-                    <div className="flex flex-col items-center justify-center h-full">
+                    <div className="flex flex-col items-center justify-center h-full cursor-pointer">
                         <motion.div
                             layout
                             initial={{ scale: 0.9, opacity: 0 }}

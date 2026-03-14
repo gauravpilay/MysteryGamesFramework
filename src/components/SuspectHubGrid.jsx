@@ -203,6 +203,7 @@ const SuspectHubGrid = ({ options, nodes, edges, onSuspectClick, getAvatarColor 
                             const accentColor = isIndirect ? '#6366f1' : '#ef4444';
                             const accentColorBright = isIndirect ? '#818cf8' : '#f87171';
                             const isActive = activeConnId === conn.id;
+                            const hasDetail = label || note;
 
                             return (
                                 <g
@@ -240,18 +241,18 @@ const SuspectHubGrid = ({ options, nodes, edges, onSuspectClick, getAvatarColor 
                                     />
 
                                     {/* Label / Note Chip */}
-                                    {label && (
+                                    {hasDetail && (
                                         <foreignObject
                                             x={labelCX - (isActive ? 175 : 110)}
                                             y={labelCY - (isActive ? 100 : 30)}
                                             width={isActive ? 350 : 220}
                                             height={isActive ? 250 : 80}
                                             overflow="visible"
-                                            className="pointer-events-none"
+                                            className="pointer-events-auto"
                                         >
                                             <div
                                                 xmlns="http://www.w3.org/1999/xhtml"
-                                                className="flex items-center justify-center h-full"
+                                                className="flex flex-col items-center justify-center h-full cursor-pointer"
                                             >
                                                 <motion.div
                                                     layout
