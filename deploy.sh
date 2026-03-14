@@ -34,7 +34,16 @@ if [ ! -f "$ENV_FILE" ]; then
 fi
 
 echo "📋 Loading environment variables from $ENV_FILE..."
-export $(grep -v '^#' "$ENV_FILE" | xargs)
+# Robust way to load env variables, handling quotes and comments
+while IFS= read -r line || [[ -n "$line" ]]; do
+    # Skip comments and empty lines
+    if [[ ! "$line" =~ ^# && "$line" =~ = ]]; then
+        # Strip quotes from the value
+        key=$(echo "$line" | cut -d'=' -f1)
+        value=$(echo "$line" | cut -d'=' -f2- | sed -e 's/^"//' -e 's/"$//' -e "s/^'//" -e "s/'$//")
+        export "$key"="$value"
+    fi
+done < "$ENV_FILE"
 
 # 2. Select Google Cloud Project
 CURRENT_PROJECT=$(gcloud config get-value project 2>/dev/null)
