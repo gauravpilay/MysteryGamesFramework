@@ -50,6 +50,8 @@ const SuspectWall = ({ nodes, edges, history, inventory, projectId, onClose, onO
         });
     }, [nodes, history, inventory]);
 
+    const [activeConnId, setActiveConnId] = useState(null);
+
     // Graph Connectivity Logic: Find direct and 1-hop connections between suspects
     const activeConnections = useMemo(() => {
         const unlockedIds = new Set(unlockedSuspects.map(s => s.id));
@@ -173,6 +175,7 @@ const SuspectWall = ({ nodes, edges, history, inventory, projectId, onClose, onO
                     drag
                     dragMomentum={false}
                     onDrag={(e, info) => setCanvasPos(prev => ({ x: prev.x + info.delta.x, y: prev.y + info.delta.y }))}
+                    onClick={() => setActiveConnId(null)}
                     style={{
                         x: canvasPos.x,
                         y: canvasPos.y,
@@ -180,8 +183,8 @@ const SuspectWall = ({ nodes, edges, history, inventory, projectId, onClose, onO
                         transformOrigin: '0 0'
                     }}
                 >
-                    {/* SVG Layer inside the same transform! */}
-                    <svg className="absolute inset-0 pointer-events-none z-0 w-full h-full overflow-visible">
+                    {/* SVG thread layer */}
+                    <svg className="absolute inset-0 z-0 w-full h-full overflow-visible pointer-events-none">
                         <defs>
                             <filter id="glow-red">
                                 <feGaussianBlur stdDeviation="4" result="coloredBlur" />
@@ -191,14 +194,22 @@ const SuspectWall = ({ nodes, edges, history, inventory, projectId, onClose, onO
                                 </feMerge>
                             </filter>
                         </defs>
-                        {activeConnections.map(conn => (
-                            <ConnectionLine
-                                key={conn.id}
-                                edge={conn}
-                                p1={getEffectivePos(conn.source)}
-                                p2={getEffectivePos(conn.target)}
-                            />
-                        ))}
+                        {activeConnections.map(conn => {
+                            const p1 = getEffectivePos(conn.source);
+                            const p2 = getEffectivePos(conn.target);
+                            if (!p1 || !p2) return null;
+
+                            return (
+                                <ConnectionLine
+                                    key={conn.id}
+                                    edge={conn}
+                                    p1={p1}
+                                    p2={p2}
+                                    isActive={activeConnId === conn.id}
+                                    onToggle={() => setActiveConnId(activeConnId === conn.id ? null : conn.id)}
+                                />
+                            );
+                        })}
                     </svg>
 
                     {unlockedSuspects.map(suspect => (
@@ -294,8 +305,11 @@ const SuspectCard = ({ suspect, position, onUpdatePosition, onOpenDossier, scale
     );
 };
 
-const ConnectionLine = ({ edge, p1, p2 }) => {
+const ConnectionLine = ({ edge, p1, p2, isActive, onToggle }) => {
     if (!p1 || !p2) return null;
+
+    const CARD_WIDTH = 224;
+    const CARD_HEIGHT = 160;
 
     // Hit the centers (Card width 288, approximate height 400)
     const x1 = p1.x + 144;
@@ -312,36 +326,88 @@ const ConnectionLine = ({ edge, p1, p2 }) => {
     const isIndirect = edge.id.startsWith('hop-');
 
     return (
-        <g className="connection-group group">
+        <g
+            className="connection-group pointer-events-auto"
+            onClick={(e) => { e.stopPropagation(); onToggle(); }}
+        >
+            {/* Hit area */}
             <line
                 x1={x1} y1={y1} x2={x2} y2={y2}
-                stroke={isIndirect ? "#4f46e5" : "#dc2626"}
-                strokeWidth={isIndirect ? "1" : "2"}
-                strokeDasharray={isIndirect ? "10 10" : "15 5"}
-                className={`${isIndirect ? 'opacity-10' : 'opacity-20'} group-hover:opacity-60 transition-all duration-500`}
+                stroke="transparent"
+                strokeWidth="20"
+                className="cursor-pointer"
             />
+
             <line
                 x1={x1} y1={y1} x2={x2} y2={y2}
-                stroke={isIndirect ? "#4f46e5" : "#dc2626"}
-                strokeWidth="10"
-                className="opacity-0 group-hover:opacity-20 transition-all duration-500 blur-2xl"
+                stroke={isActive ? (isIndirect ? "#818cf8" : "#f87171") : (isIndirect ? "#4f46e5" : "#dc2626")}
+                strokeWidth={isActive ? 5 : 1.5}
+                strokeDasharray={isIndirect ? "8,8" : "0"}
+                className="transition-all duration-500"
             />
 
             {hasDetail && (
-                <foreignObject x={midX - 100} y={midY - 40} width="200" height="80" className="overflow-visible pointer-events-none">
+                <foreignObject
+                    x={midX - (isActive ? 175 : 100)}
+                    y={midY - (isActive ? 100 : 40)}
+                    width={isActive ? 350 : 200}
+                    height={isActive ? 250 : 80}
+                    className="overflow-visible pointer-events-none"
+                >
                     <div className="flex flex-col items-center justify-center h-full">
                         <motion.div
+                            layout
                             initial={{ scale: 0.9, opacity: 0 }}
-                            animate={{ scale: 1, opacity: 1 }}
-                            className="bg-black/95 border border-white/10 group-hover:border-red-500/30 backdrop-blur-2xl px-5 py-2.5 rounded-[1.5rem] shadow-2xl flex flex-col items-center gap-1 border-t-2 border-t-red-600 transition-all"
+                            animate={{
+                                scale: isActive ? 1.1 : 1,
+                                opacity: 1,
+                                zIndex: isActive ? 100 : 10
+                            }}
+                            className={`
+                                relative flex flex-col items-center gap-2 px-6 py-4 rounded-[2rem] shadow-2xl backdrop-blur-3xl border transition-all duration-500
+                                ${isActive ? 'w-[320px] bg-black/98 border-white/30' : 'bg-black/95 border-white/10'}
+                            `}
+                            style={{
+                                borderTop: `4px solid ${isActive ? (isIndirect ? '#818cf8' : '#ef4444') : '#dc2626'}`,
+                                boxShadow: isActive ? `0 40px 80px -15px rgba(0,0,0,0.9), 0 0 30px ${isIndirect ? '#4f46e566' : '#ef444466'}` : '0 10px 30px rgba(0,0,0,0.5)'
+                            }}
                         >
-                            {label && (
-                                <span className="text-[11px] font-black text-white uppercase tracking-widest">{label}</span>
+                            {isActive && (
+                                <div className="flex items-center justify-between w-full mb-1">
+                                    <div className="flex items-center gap-2">
+                                        <span className="text-[9px] font-black text-white/40 uppercase tracking-[0.25em]">CLASSIFIED INTEL</span>
+                                        <div className={`w-2 h-2 rounded-full animate-ping ${isIndirect ? 'bg-indigo-500' : 'bg-red-500'}`} />
+                                    </div>
+                                    <div className="text-[8px] font-bold text-zinc-700 font-mono italic">REF: NODE_{edge.id.slice(-4).toUpperCase()}</div>
+                                </div>
                             )}
-                            {note && (
-                                <span className="text-[9px] text-zinc-500 font-bold uppercase tracking-[0.05em] text-center leading-tight max-w-[170px]">
-                                    {note}
+
+                            {label && (
+                                <span className={`font-black text-white uppercase tracking-widest ${isActive ? 'text-sm md:text-base border-b border-white/20 pb-1' : 'text-[11px]'}`}>
+                                    {label}
                                 </span>
+                            )}
+
+                            {note && (
+                                <div className={`flex flex-col gap-3 ${isActive ? 'mt-2' : ''}`}>
+                                    <p
+                                        className={`
+                                            text-zinc-600 font-bold uppercase tracking-[0.05em] text-center leading-tight transition-all
+                                            ${isActive ? 'text-[12px] md:text-sm text-zinc-300 line-clamp-none italic font-serif' : 'text-[9px] line-clamp-2 max-w-[170px]'}
+                                        `}
+                                    >
+                                        {note}
+                                    </p>
+                                    {isActive && (
+                                        <div className="pt-3 border-t border-white/10 mt-2 flex flex-col items-center gap-2">
+                                            <div className="flex items-center gap-2">
+                                                <FileText className="w-4 h-4 text-zinc-500" />
+                                                <span className="text-[8px] text-zinc-500 font-black tracking-[0.4em] uppercase">Intelligence Verified</span>
+                                            </div>
+                                            <span className="text-[7px] text-zinc-700 font-mono">ENCRYPTION: AES-256-GCM // DECRYPTED_SESSION_ACTIVE</span>
+                                        </div>
+                                    )}
+                                </div>
                             )}
                         </motion.div>
                     </div>

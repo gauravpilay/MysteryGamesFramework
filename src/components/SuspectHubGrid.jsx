@@ -8,6 +8,7 @@ const SuspectHubGrid = ({ options, nodes, edges, onSuspectClick, getAvatarColor 
     const [isLoaded, setIsLoaded] = useState(false);
     const [scale, setScale] = useState(1);
     const [selectedId, setSelectedId] = useState(null);
+    const [activeConnId, setActiveConnId] = useState(null);
 
     // Card Dimensions
     const CARD_WIDTH = 224;
@@ -153,7 +154,7 @@ const SuspectHubGrid = ({ options, nodes, edges, onSuspectClick, getAvatarColor 
             {/* Canvas */}
             <div
                 className="relative h-[820px] w-full bg-black/20 backdrop-blur-xl rounded-[2rem] border border-white/5 overflow-auto shadow-[inset_0_0_100px_rgba(0,0,0,0.5)] custom-scrollbar"
-                onClick={() => setSelectedId(null)}
+                onClick={() => { setSelectedId(null); setActiveConnId(null); }}
             >
                 <motion.div
                     style={{ scale }}
@@ -169,7 +170,7 @@ const SuspectHubGrid = ({ options, nodes, edges, onSuspectClick, getAvatarColor 
                     />
 
                     {/* SVG connection layer */}
-                    <svg className="absolute inset-0 pointer-events-none z-0 w-full h-full overflow-visible">
+                    <svg className="absolute inset-0 z-0 w-full h-full overflow-visible pointer-events-none">
                         {activeConnections.map(conn => {
                             const p1 = cardPositions[conn.source];
                             const p2 = cardPositions[conn.target];
@@ -201,80 +202,114 @@ const SuspectHubGrid = ({ options, nodes, edges, onSuspectClick, getAvatarColor 
                             const note = conn.data?.note || '';
                             const accentColor = isIndirect ? '#6366f1' : '#ef4444';
                             const accentColorBright = isIndirect ? '#818cf8' : '#f87171';
+                            const isActive = activeConnId === conn.id;
 
                             return (
-                                <g key={conn.id}>
+                                <g
+                                    key={conn.id}
+                                    className="cursor-pointer pointer-events-auto"
+                                    onClick={(e) => {
+                                        e.stopPropagation();
+                                        setActiveConnId(isActive ? null : conn.id);
+                                    }}
+                                >
+                                    {/* Thick invisible hit area for easier clicking */}
+                                    <line
+                                        x1={x1} y1={y1} x2={x2} y2={y2}
+                                        stroke="transparent"
+                                        strokeWidth="40"
+                                        className="cursor-pointer"
+                                    />
+
                                     {/* Soft glow behind the line */}
                                     <line
                                         x1={x1} y1={y1} x2={x2} y2={y2}
                                         stroke={accentColor}
-                                        strokeWidth={isSelected ? 14 : 8}
-                                        opacity={isSelected ? 0.18 : 0.06}
-                                        style={{ filter: 'blur(6px)' }}
+                                        strokeWidth={isActive ? 24 : (isSelected ? 14 : 8)}
+                                        opacity={isActive ? 0.45 : (isSelected ? 0.18 : 0.06)}
+                                        style={{ filter: 'blur(10px)', transition: 'stroke-width 0.3s, opacity 0.3s' }}
                                     />
                                     {/* Main thread */}
                                     <line
                                         x1={x1} y1={y1} x2={x2} y2={y2}
-                                        stroke={isSelected ? accentColorBright : accentColor}
-                                        strokeWidth={isSelected ? 2.5 : 1.5}
+                                        stroke={isActive || isSelected ? accentColorBright : accentColor}
+                                        strokeWidth={isActive ? 5 : (isSelected ? 2.5 : 1.5)}
                                         strokeDasharray={isIndirect ? '8 6' : undefined}
-                                        opacity={selectedId && !isSelected ? 0.12 : 0.55}
+                                        opacity={selectedId && !isSelected && !isActive ? 0.12 : (isActive ? 1 : 0.55)}
+                                        className="transition-all duration-300"
                                     />
-                                    {/* Label chip — always visible, offset perpendicularly */}
+
+                                    {/* Label / Note Chip */}
                                     {label && (
                                         <foreignObject
-                                            x={labelCX - 110}
-                                            y={labelCY - 30}
-                                            width={220}
-                                            height={64}
+                                            x={labelCX - (isActive ? 175 : 110)}
+                                            y={labelCY - (isActive ? 100 : 30)}
+                                            width={isActive ? 350 : 220}
+                                            height={isActive ? 250 : 80}
                                             overflow="visible"
-                                            style={{ pointerEvents: 'none' }}
+                                            className="pointer-events-none"
                                         >
-                                            <div xmlns="http://www.w3.org/1999/xhtml" style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', height: '100%' }}>
-                                                <div
+                                            <div
+                                                xmlns="http://www.w3.org/1999/xhtml"
+                                                className="flex items-center justify-center h-full"
+                                            >
+                                                <motion.div
+                                                    layout
+                                                    initial={false}
+                                                    animate={{
+                                                        scale: isActive ? 1.1 : (isSelected ? 1.12 : 1),
+                                                        opacity: selectedId && !isSelected && !isActive ? 0.2 : 1,
+                                                        zIndex: isActive ? 100 : 10
+                                                    }}
+                                                    className={`
+                                                        relative flex flex-col items-center gap-2 p-4 px-6 rounded-[2rem] shadow-2xl backdrop-blur-3xl border transition-all duration-500
+                                                        ${isActive ? 'w-[320px] bg-black/98 border-white/30' : 'max-w-[200px] bg-[#0c0d15]/95 border-white/10'}
+                                                    `}
                                                     style={{
-                                                        background: 'rgba(12,13,21,0.97)',
-                                                        border: `1px solid rgba(255,255,255,0.12)`,
-                                                        borderTop: `3px solid ${accentColor}`,
-                                                        borderRadius: '12px',
-                                                        padding: '6px 14px',
-                                                        boxShadow: '0 6px 28px rgba(0,0,0,0.8)',
-                                                        backdropFilter: 'blur(12px)',
-                                                        display: 'flex',
-                                                        flexDirection: 'column',
-                                                        alignItems: 'center',
-                                                        gap: '2px',
-                                                        opacity: selectedId && !isSelected ? 0.3 : 1,
-                                                        transform: isSelected ? 'scale(1.12)' : 'scale(1)',
-                                                        transition: 'opacity 0.3s, transform 0.3s',
-                                                        maxWidth: '200px',
+                                                        borderTop: `4px solid ${isActive || isSelected ? accentColorBright : accentColor}`,
+                                                        boxShadow: isActive ? `0 40px 80px -15px rgba(0,0,0,0.9), 0 0 30px ${accentColor}66` : '0 6px 28px rgba(0,0,0,0.8)'
                                                     }}
                                                 >
-                                                    <span style={{
-                                                        fontSize: '10px',
-                                                        fontWeight: 900,
-                                                        color: '#ffffff',
-                                                        textTransform: 'uppercase',
-                                                        letterSpacing: '0.12em',
-                                                        whiteSpace: 'nowrap',
-                                                    }}>{label}</span>
-                                                    {note && (
-                                                        <span style={{
-                                                            fontSize: '8px',
-                                                            fontWeight: 700,
-                                                            color: '#a1a1aa',
-                                                            textTransform: 'uppercase',
-                                                            letterSpacing: '0.06em',
-                                                            textAlign: 'center',
-                                                            lineHeight: '1.3',
-                                                            maxWidth: '180px',
-                                                            overflow: 'hidden',
-                                                            display: '-webkit-box',
-                                                            WebkitLineClamp: 2,
-                                                            WebkitBoxOrient: 'vertical',
-                                                        }}>{note}</span>
+                                                    {isActive && (
+                                                        <div className="flex items-center justify-between w-full mb-2">
+                                                            <div className="flex items-center gap-2">
+                                                                <div className="p-1.5 px-3 rounded-lg bg-white/5 border border-white/10">
+                                                                    <span className="text-[9px] font-black text-white uppercase tracking-[0.25em]">CLASSIFIED INTEL</span>
+                                                                </div>
+                                                                <div className={`w-2 h-2 rounded-full animate-ping`} style={{ backgroundColor: accentColor }} />
+                                                            </div>
+                                                            <div className="text-[8px] font-bold text-zinc-600 font-mono italic">REF: CASE_{conn.id.slice(-4).toUpperCase()}</div>
+                                                        </div>
                                                     )}
-                                                </div>
+
+                                                    <div className="flex items-center gap-3">
+                                                        <span className={`font-black text-white uppercase tracking-widest transition-all ${isActive ? 'text-sm md:text-base border-b border-white/20 pb-1' : 'text-[10px]'}`}>
+                                                            {label}
+                                                        </span>
+                                                    </div>
+
+                                                    {note && (
+                                                        <div className={`flex flex-col gap-3 ${isActive ? 'mt-2' : ''}`}>
+                                                            <p
+                                                                className={`
+                                                                    text-zinc-300 font-medium tracking-wide
+                                                                    ${isActive ? 'text-[12px] md:text-sm leading-relaxed text-center font-serif italic' : 'text-[8px] leading-tight line-clamp-2 uppercase text-center'}
+                                                                `}
+                                                            >
+                                                                {note}
+                                                            </p>
+                                                            {isActive && (
+                                                                <div className="pt-3 border-t border-white/10 mt-2 flex flex-col items-center gap-2">
+                                                                    <div className="flex items-center gap-2">
+                                                                        <FileText className="w-4 h-4 text-zinc-500" />
+                                                                        <span className="text-[8px] text-zinc-500 font-black tracking-[0.4em] uppercase">Intelligence Verified</span>
+                                                                    </div>
+                                                                    <span className="text-[7px] text-zinc-700 font-mono">ENCRYPTION: AES-256-GCM // DECRYPTED_SESSION_ACTIVE</span>
+                                                                </div>
+                                                            )}
+                                                        </div>
+                                                    )}
+                                                </motion.div>
                                             </div>
                                         </foreignObject>
                                     )}
