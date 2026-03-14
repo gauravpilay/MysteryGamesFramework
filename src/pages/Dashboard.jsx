@@ -16,6 +16,8 @@ import { Settings, ShieldAlert } from 'lucide-react';
 import { useConfig } from '../lib/config';
 import { useLicense } from '../lib/licensing';
 import LicenseConfigModal from '../components/LicenseConfigModal';
+import { exportCaseToZip, importCaseFromZip } from '../lib/caseArchive';
+
 
 const Dashboard = () => {
     const { user, logout, loading: authLoading } = useAuth();
@@ -398,18 +400,18 @@ const Dashboard = () => {
         }
     };
 
-    const handleDownloadProject = (project) => {
+    const handleDownloadProject = async (project) => {
         try {
             const exportData = { ...project };
             delete exportData.id;
             delete exportData.editingBy;
             delete exportData.accessRequest;
 
-            const dataStr = JSON.stringify(exportData, null, 4);
-            const fileName = `${project.title.replace(/[^a-zA-Z0-9]/g, '_')}_export.json`;
+            // Show a "Processing" state if possible, but for now just call the utility
+            const zipBlob = await exportCaseToZip(exportData);
+            const fileName = `${project.title.replace(/[^a-zA-Z0-9]/g, '_')}_full_export.zip`;
 
-            const blob = new Blob([dataStr], { type: 'application/octet-stream' });
-            const blobUrl = URL.createObjectURL(blob);
+            const blobUrl = URL.createObjectURL(zipBlob);
 
             const a = document.createElement('a');
             a.style.display = 'none';
@@ -417,8 +419,6 @@ const Dashboard = () => {
             a.download = fileName;
             document.body.appendChild(a);
 
-            // Use dispatchEvent with a real MouseEvent — React synthetic events lose
-            // the "trusted" context, causing Chrome to silently block blob downloads.
             a.dispatchEvent(
                 new MouseEvent('click', {
                     bubbles: true,
@@ -437,56 +437,81 @@ const Dashboard = () => {
         }
     };
 
-    const handleImportProject = (e) => {
+
+    const handleImportProject = async (e) => {
         const file = e.target.files?.[0];
         if (!file) return;
 
-        const reader = new FileReader();
-        reader.onload = (event) => {
-            try {
-                const importedData = JSON.parse(event.target.result);
+        const isZip = file.name.toLowerCase().endsWith('.zip');
 
-                if (!importedData.title || (!importedData.nodes && !importedData.edges)) {
-                    throw new Error('Invalid case file format. Missing title or node data.');
-                }
-
-                // Just store parsed data and show confirmation modal
-                setImportPendingData(importedData);
-                setImportCaseName(importedData.title);
-            } catch (err) {
-                console.error('Error parsing import file:', err);
-                alert('Failed to parse case file: ' + err.message);
-            } finally {
-                e.target.value = '';
+        try {
+            let importedData;
+            if (isZip) {
+                // Peak into the ZIP to get case.json for the preview
+                const JSZip = (await import('jszip')).default;
+                const zip = await JSZip.loadAsync(file);
+                const caseFile = zip.file("case.json");
+                if (!caseFile) throw new Error("Invalid Archive: case.json is missing.");
+                importedData = JSON.parse(await caseFile.async("string"));
+            } else {
+                const text = await file.text();
+                importedData = JSON.parse(text);
             }
-        };
-        reader.readAsText(file);
+
+            if (!importedData.title || (!importedData.nodes && !importedData.edges)) {
+                throw new Error('Invalid case file format. Missing title or node data.');
+            }
+
+            setImportPendingData({
+                data: importedData,
+                file: isZip ? file : null,
+                isZip
+            });
+            setImportCaseName(importedData.title);
+        } catch (err) {
+            console.error('Error importing file:', err);
+            alert('Import failed: ' + err.message);
+        } finally {
+            e.target.value = '';
+        }
     };
+
 
     const handleConfirmImport = async () => {
         if (!importPendingData || !importCaseName.trim() || !db) return;
         setIsConfirmingImport(true);
         try {
+            let finalData;
+
+            if (importPendingData.isZip && importPendingData.file) {
+                // Process ZIP: Upload assets and update URLs
+                finalData = await importCaseFromZip(importPendingData.file);
+            } else {
+                finalData = importPendingData.data;
+            }
+
             const newCase = {
-                ...importPendingData,
+                ...finalData,
                 title: importCaseName.trim(),
                 status: 'draft',
                 createdAt: new Date().toISOString(),
                 updatedAt: new Date().toISOString(),
                 author: user?.email || 'Imported Agent',
             };
+
             await addDoc(collection(db, 'cases'), newCase);
             setImportPendingData(null);
             setImportCaseName('');
             setImportSuccess(true);
             setTimeout(() => setImportSuccess(false), 3000);
         } catch (err) {
-            console.error('Error uploading imported case:', err);
-            alert('Failed to upload case: ' + err.message);
+            console.error('Error during case construction:', err);
+            alert('Failed to construct case: ' + err.message);
         } finally {
             setIsConfirmingImport(false);
         }
     };
+
 
     const handleImageUpload = async (projectId, file) => {
         if (!file || !storage || !db) return;
@@ -678,11 +703,12 @@ const Dashboard = () => {
                                         <div className="relative group/import">
                                             <input
                                                 type="file"
-                                                accept=".json"
+                                                accept=".json,.zip"
                                                 onChange={handleImportProject}
                                                 className="hidden"
                                                 ref={importInputRef}
                                             />
+
                                             <Button
                                                 variant="ghost"
                                                 size="sm"
@@ -1334,21 +1360,33 @@ const ImportCaseModal = ({ caseData, caseName, onNameChange, onConfirm, onClose,
                                 <Activity className="w-3.5 h-3.5" />
                                 <span className="text-[10px] font-bold uppercase tracking-widest">Nodes</span>
                             </div>
-                            <p className="text-2xl font-black text-white">{(caseData.nodes || []).length}</p>
+                            <p className="text-2xl font-black text-white">{(caseData?.data?.nodes || []).length}</p>
                         </div>
                         <div className="p-4 rounded-2xl bg-white/5 border border-white/10 space-y-1">
                             <div className="flex items-center gap-2 text-zinc-500">
                                 <Fingerprint className="w-3.5 h-3.5" />
                                 <span className="text-[10px] font-bold uppercase tracking-widest">Edges</span>
                             </div>
-                            <p className="text-2xl font-black text-white">{(caseData.edges || []).length}</p>
+                            <p className="text-2xl font-black text-white">{(caseData?.data?.edges || []).length}</p>
                         </div>
                     </div>
 
-                    {caseData.description && (
+                    {caseData?.isZip && (
+                        <div className="p-3 bg-amber-500/10 border border-amber-500/30 rounded-xl flex items-center gap-3 animate-pulse">
+                            <Package className="w-5 h-5 text-amber-400" />
+                            <div className="flex-1">
+                                <p className="text-[9px] font-black text-amber-400 uppercase tracking-widest leading-tight">Complex Payload Detected</p>
+                                <p className="text-[8px] text-amber-300 font-bold opacity-70">Media assets will be reconstructed in Storage</p>
+                            </div>
+                        </div>
+                    )}
+
+                    {caseData?.data?.description && (
                         <div className="p-4 rounded-2xl bg-zinc-900/50 border border-zinc-800/50">
                             <span className="text-[10px] font-bold text-zinc-600 uppercase tracking-widest mb-1 block underline decoration-indigo-500/30">Briefing Metadata</span>
-                            <p className="text-sm text-zinc-400 font-medium italic line-clamp-2">"{caseData.description}"</p>
+                            <p className="text-sm text-zinc-400 font-medium italic line-clamp-2">"{caseData.data.description}"</p>
+
+
                         </div>
                     )}
                 </div>
