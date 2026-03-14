@@ -212,10 +212,12 @@ export const importCaseFromZip = async (zipBlob) => {
                     folderParts = folderParts.slice(1);
                 }
 
-                const targetFolder = folderParts[folderParts.length - 1] || 'uploads';
+                const sanitizedFolderPath = folderParts.join('/');
 
                 // Construct a unique but organized storage path in the target folder
-                const storagePath = `${targetFolder}/${Date.now()}_${fileName}`;
+                const storagePath = sanitizedFolderPath
+                    ? `${sanitizedFolderPath}/${Date.now()}_${fileName}`
+                    : `uploads/${Date.now()}_${fileName}`;
                 const storageRef = ref(storage, storagePath);
 
                 console.log(`[IMPORT] Uploading: ${relativePath} -> ${storagePath}`);
