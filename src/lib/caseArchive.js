@@ -89,6 +89,11 @@ function findAssets(obj, assets = new Set()) {
  * Recursively replace asset URLs in an object
  */
 function replaceAssetUrls(obj, mapping) {
+    // If it's a string, check the mapping immediately
+    if (typeof obj === 'string') {
+        return mapping[obj] || obj;
+    }
+
     if (!obj || typeof obj !== 'object') return obj;
 
     if (Array.isArray(obj)) {
@@ -97,14 +102,8 @@ function replaceAssetUrls(obj, mapping) {
 
     const newObj = {};
     for (const key in obj) {
-        let value = obj[key];
-        if (typeof value === 'string' && mapping[value]) {
-            newObj[key] = mapping[value];
-        } else if (typeof value === 'object') {
-            newObj[key] = replaceAssetUrls(value, mapping);
-        } else {
-            newObj[key] = value;
-        }
+        const value = obj[key];
+        newObj[key] = replaceAssetUrls(value, mapping);
     }
     return newObj;
 }
@@ -180,24 +179,24 @@ export const exportCaseToZip = async (caseData) => {
 };
 
 export const importCaseFromZip = async (zipBlob) => {
+    console.log("[IMPORT] Starting ZIP import process...");
     const zip = await JSZip.loadAsync(zipBlob);
     const caseFile = zip.file("case.json");
     if (!caseFile) throw new Error("Invalid ZIP format: case.json is missing.");
 
     const caseData = JSON.parse(await caseFile.async("string"));
-    const assetsFolder = zip.folder("assets");
     const assetMapping = {};
 
-    if (assetsFolder) {
-        const assetFiles = [];
-        // Walk through all files in the assets folder (including subfolders)
-        zip.folder("assets").forEach((relativePath, file) => {
-            if (!file.dir) {
-                assetFiles.push({ relativePath, file });
-            }
-        });
+    // Walk through all files in the assets folder (including subfolders)
+    const assetFiles = [];
+    zip.folder("assets")?.forEach((relativePath, file) => {
+        if (!file.dir) {
+            assetFiles.push({ relativePath, file });
+        }
+    });
 
-        console.log(`[IMPORT] Uploading ${assetFiles.length} assets to Storage...`);
+    if (assetFiles.length > 0) {
+        console.log(`[IMPORT] Detected ${assetFiles.length} assets. Beginning reconstruction...`);
 
         const uploadPromises = assetFiles.map(async ({ relativePath, file }) => {
             try {
@@ -212,22 +211,28 @@ export const importCaseFromZip = async (zipBlob) => {
                 const targetFolder = originalFolder || 'imported_assets';
 
                 // Construct a unique but organized storage path
-                // Prefix with 'imported/' to distinguish from original files
-                const storagePath = `imported/${targetFolder}/${Date.now()}_${fileName}`;
+                const storagePath = `imported_assets/${targetFolder}/${Date.now()}_${fileName}`;
                 const storageRef = ref(storage, storagePath);
 
-                await uploadBytes(storageRef, blob, { contentType: blob.type });
+                console.log(`[IMPORT] Uploading: ${relativePath} -> ${storagePath}`);
+
+                await uploadBytes(storageRef, blob, { contentType: blob.type || 'application/octet-stream' });
                 const downloadURL = await getDownloadURL(storageRef);
 
                 // Remap the relative path in JSON to the new Storage URL
                 assetMapping[`assets/${relativePath}`] = downloadURL;
+                console.log(`[IMPORT] Success: ${relativePath} mapped to ${downloadURL.substring(0, 50)}...`);
             } catch (err) {
-                console.error(`[IMPORT] Failed to upload asset ${relativePath}:`, err);
+                console.error(`[IMPORT] Reconstruction failed for ${relativePath}:`, err);
             }
         });
 
         await Promise.all(uploadPromises);
+    } else {
+        console.log("[IMPORT] No assets found in archive. Proceeding with flat JSON import.");
     }
 
-    return replaceAssetUrls(caseData, assetMapping);
+    const finalData = replaceAssetUrls(caseData, assetMapping);
+    console.log("[IMPORT] Process complete. Node references updated.");
+    return finalData;
 };

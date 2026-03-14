@@ -17,6 +17,7 @@ import { useConfig } from '../lib/config';
 import { useLicense } from '../lib/licensing';
 import LicenseConfigModal from '../components/LicenseConfigModal';
 import { exportCaseToZip, importCaseFromZip } from '../lib/caseArchive';
+import { doc, updateDoc } from 'firebase/firestore';
 
 
 const Dashboard = () => {
@@ -479,6 +480,9 @@ const Dashboard = () => {
 
     const handleConfirmImport = async () => {
         if (!importPendingData || !importCaseName.trim() || !db) return;
+
+        const existingCase = projects.find(p => p.title.toLowerCase() === importCaseName.trim().toLowerCase());
+
         setIsConfirmingImport(true);
         try {
             let finalData;
@@ -490,23 +494,36 @@ const Dashboard = () => {
                 finalData = importPendingData.data;
             }
 
-            const newCase = {
+            const caseMetadata = {
                 ...finalData,
                 title: importCaseName.trim(),
                 status: 'draft',
-                createdAt: new Date().toISOString(),
                 updatedAt: new Date().toISOString(),
                 author: user?.email || 'Imported Agent',
             };
 
-            await addDoc(collection(db, 'cases'), newCase);
+            if (existingCase) {
+                // Overwrite existing case
+                const caseRef = doc(db, 'cases', existingCase.id);
+                await updateDoc(caseRef, caseMetadata);
+                console.log(`[IMPORT] Overwrote existing case: ${existingCase.id}`);
+            } else {
+                // Create new case
+                const newCase = {
+                    ...caseMetadata,
+                    createdAt: new Date().toISOString(),
+                };
+                await addDoc(collection(db, 'cases'), newCase);
+                console.log('[IMPORT] Created new case document.');
+            }
+
             setImportPendingData(null);
             setImportCaseName('');
             setImportSuccess(true);
             setTimeout(() => setImportSuccess(false), 3000);
         } catch (err) {
-            console.error('Error during case construction:', err);
-            alert('Failed to construct case: ' + err.message);
+            console.error('Error during case import:', err);
+            alert('Failed to import case: ' + err.message);
         } finally {
             setIsConfirmingImport(false);
         }
@@ -681,7 +698,7 @@ const Dashboard = () => {
                                     <input
                                         type="text"
                                         placeholder="Filter Intelligence Files..."
-                                        className="w-full pl-11 pr-4 py-2.5 bg-black/40 border border-zinc-800 rounded-xl text-sm text-zinc-100 placeholder-zinc-600 focus:outline-none focus:border-indigo-500/50 focus:ring-4 focus:ring-indigo-500/5 transition-all"
+                                        className="w-full pl-11 pr-4 py-2.5 bg-black/40 border border-zinc-800 rounded-xl text-sm text-zinc-100 placeholder-zinc-600 focus:outline-none focus:border-indigo-500/50 focus:ring-4 focus:ring-indigo-500/1 transition-all"
                                         value={searchQuery}
                                         onChange={(e) => setSearchQuery(e.target.value)}
                                     />
@@ -1094,6 +1111,7 @@ const Dashboard = () => {
                 {importPendingData && (
                     <ImportCaseModal
                         key="modal-import-case"
+                        projects={projects}
                         caseData={importPendingData}
                         caseName={importCaseName}
                         onNameChange={setImportCaseName}
@@ -1311,121 +1329,146 @@ const CaseCard = ({ project, isAdmin, onPlay, onEdit, onDelete, onDuplicate, onT
         </motion.div>
     );
 };
-const ImportCaseModal = ({ caseData, caseName, onNameChange, onConfirm, onClose, isLoading }) => (
-    <div key="modal-container" className="fixed inset-0 z-[600] flex items-center justify-center p-4">
-        <motion.div
-            initial={{ opacity: 0 }}
-            animate={{ opacity: 1 }}
-            exit={{ opacity: 0 }}
-            className="absolute inset-0 bg-black/90 backdrop-blur-xl"
-            onClick={onClose}
-        />
-        <motion.div
-            initial={{ scale: 0.9, opacity: 0, y: 20 }}
-            animate={{ scale: 1, opacity: 1, y: 0 }}
-            exit={{ scale: 0.9, opacity: 0, y: 20 }}
-            className="relative w-full max-w-lg bg-zinc-950 border border-indigo-500/30 rounded-[2.5rem] p-10 overflow-hidden shadow-[0_0_100px_rgba(79,70,229,0.2)]"
-        >
-            {/* Background Glow */}
-            <div className="absolute top-0 left-1/2 -translate-x-1/2 -translate-y-1/2 w-80 h-80 bg-indigo-600/20 rounded-full blur-[100px]" />
+const ImportCaseModal = ({ projects, caseData, caseName, onNameChange, onConfirm, onClose, isLoading }) => {
+    const existingCase = (projects || []).find(p => p.title.toLowerCase() === caseName.trim().toLowerCase());
 
-            <div className="relative z-10 space-y-8">
-                <div className="flex items-center gap-6">
-                    <div className="relative group">
-                        <div className="absolute inset-0 bg-indigo-500/30 blur-2xl rounded-full group-hover:bg-indigo-500/50 transition-all duration-500" />
-                        <div className="relative w-20 h-20 bg-zinc-900 rounded-[1.5rem] border-2 border-indigo-500/50 flex items-center justify-center shadow-2xl transform group-hover:rotate-6 transition-transform duration-500">
-                            <FileUp className="w-10 h-10 text-indigo-400" />
-                        </div>
-                    </div>
-                    <div className="space-y-1">
-                        <h2 className="text-3xl font-black text-white tracking-tighter uppercase leading-none">Intelligence<br />Retrieval</h2>
-                        <p className="text-zinc-500 text-[10px] font-black uppercase tracking-[0.2em]">Transmission intercepted and parsed</p>
-                    </div>
-                </div>
+    return (
+        <div key="modal-container" className="fixed inset-0 z-[600] flex items-center justify-center p-4">
 
-                <div className="space-y-6">
-                    <div className="space-y-2">
-                        <Label className="text-indigo-400/70 font-black text-[10px] tracking-[0.2em] mb-2 block">Codenaming Assignment</Label>
-                        <Input
-                            value={caseName}
-                            onChange={e => onNameChange(e.target.value)}
-                            placeholder="Enter case codename..."
-                            className="h-14 bg-white/5 border-zinc-800 rounded-2xl text-lg font-bold px-6 focus:border-indigo-500/50 transition-all"
-                        />
-                    </div>
+            <motion.div
+                initial={{ opacity: 0 }}
+                animate={{ opacity: 1 }}
+                exit={{ opacity: 0 }}
+                className="absolute inset-0 bg-black/90 backdrop-blur-xl"
+                onClick={onClose}
+            />
+            <motion.div
+                initial={{ scale: 0.9, opacity: 0, y: 20 }}
+                animate={{ scale: 1, opacity: 1, y: 0 }}
+                exit={{ scale: 0.9, opacity: 0, y: 20 }}
+                className="relative w-full max-w-lg bg-zinc-950 border border-indigo-500/30 rounded-[2.5rem] p-10 overflow-hidden shadow-[0_0_100px_rgba(79,70,229,0.2)]"
+            >
+                {/* Background Glow */}
+                <div className="absolute top-0 left-1/2 -translate-x-1/2 -translate-y-1/2 w-80 h-80 bg-indigo-600/20 rounded-full blur-[100px]" />
 
-                    <div className="grid grid-cols-2 gap-4">
-                        <div className="p-4 rounded-2xl bg-white/5 border border-white/10 space-y-1">
-                            <div className="flex items-center gap-2 text-zinc-500">
-                                <Activity className="w-3.5 h-3.5" />
-                                <span className="text-[10px] font-bold uppercase tracking-widest">Nodes</span>
+                <div className="relative z-10 space-y-8">
+                    <div className="flex items-center gap-6">
+                        <div className="relative group">
+                            <div className="absolute inset-0 bg-indigo-500/30 blur-2xl rounded-full group-hover:bg-indigo-500/50 transition-all duration-500" />
+                            <div className="relative w-20 h-20 bg-zinc-900 rounded-[1.5rem] border-2 border-indigo-500/50 flex items-center justify-center shadow-2xl transform group-hover:rotate-6 transition-transform duration-500">
+                                <FileUp className="w-10 h-10 text-indigo-400" />
                             </div>
-                            <p className="text-2xl font-black text-white">{(caseData?.data?.nodes || []).length}</p>
                         </div>
-                        <div className="p-4 rounded-2xl bg-white/5 border border-white/10 space-y-1">
-                            <div className="flex items-center gap-2 text-zinc-500">
-                                <Fingerprint className="w-3.5 h-3.5" />
-                                <span className="text-[10px] font-bold uppercase tracking-widest">Edges</span>
-                            </div>
-                            <p className="text-2xl font-black text-white">{(caseData?.data?.edges || []).length}</p>
+                        <div className="space-y-1">
+                            <h2 className="text-3xl font-black text-white tracking-tighter uppercase leading-none">Intelligence<br />Retrieval</h2>
+                            <p className="text-zinc-500 text-[10px] font-black uppercase tracking-[0.2em]">Transmission intercepted and parsed</p>
                         </div>
                     </div>
 
-                    {caseData?.isZip && (
-                        <div className="p-3 bg-amber-500/10 border border-amber-500/30 rounded-xl flex items-center gap-3 animate-pulse">
-                            <Package className="w-5 h-5 text-amber-400" />
-                            <div className="flex-1">
-                                <p className="text-[9px] font-black text-amber-400 uppercase tracking-widest leading-tight">Complex Payload Detected</p>
-                                <p className="text-[8px] text-amber-300 font-bold opacity-70">Media assets will be reconstructed in Storage</p>
+                    <div className="space-y-6">
+                        <div className="space-y-2">
+                            <Label className="text-indigo-400/70 font-black text-[10px] tracking-[0.2em] mb-2 block">Codenaming Assignment</Label>
+                            <Input
+                                value={caseName}
+                                onChange={e => onNameChange(e.target.value)}
+                                placeholder="Enter case codename..."
+                                className={`h-14 bg-white/5 border-zinc-800 rounded-2xl text-lg font-bold px-6 focus:border-indigo-500/50 transition-all ${existingCase ? 'border-amber-500/50 text-amber-200 shadow-[0_0_20px_rgba(245,158,11,0.1)]' : ''}`}
+                            />
+                            {existingCase && (
+                                <motion.div
+                                    initial={{ opacity: 0, scale: 0.95 }}
+                                    animate={{ opacity: 1, scale: 1 }}
+                                    className="flex items-center gap-3 px-5 py-3 bg-amber-500/10 border border-amber-500/30 rounded-2xl mt-4"
+                                >
+                                    <div className="p-2 rounded-lg bg-amber-500/20">
+                                        <AlertTriangle className="w-5 h-5 text-amber-500" />
+                                    </div>
+                                    <div>
+                                        <p className="text-[10px] font-black text-amber-500 uppercase tracking-widest leading-none mb-1">Conflict Detected</p>
+                                        <p className="text-[9px] text-amber-200/60 font-medium">"{existingCase.title}" will be overwritten with new intel.</p>
+                                    </div>
+                                </motion.div>
+                            )}
+                        </div>
+
+
+                        <div className="grid grid-cols-2 gap-4">
+                            <div className="p-4 rounded-2xl bg-white/5 border border-white/10 space-y-1">
+                                <div className="flex items-center gap-2 text-zinc-500">
+                                    <Activity className="w-3.5 h-3.5" />
+                                    <span className="text-[10px] font-bold uppercase tracking-widest">Nodes</span>
+                                </div>
+                                <p className="text-2xl font-black text-white">{(caseData?.data?.nodes || []).length}</p>
+                            </div>
+                            <div className="p-4 rounded-2xl bg-white/5 border border-white/10 space-y-1">
+                                <div className="flex items-center gap-2 text-zinc-500">
+                                    <Fingerprint className="w-3.5 h-3.5" />
+                                    <span className="text-[10px] font-bold uppercase tracking-widest">Edges</span>
+                                </div>
+                                <p className="text-2xl font-black text-white">{(caseData?.data?.edges || []).length}</p>
                             </div>
                         </div>
-                    )}
 
-                    {caseData?.data?.description && (
-                        <div className="p-4 rounded-2xl bg-zinc-900/50 border border-zinc-800/50">
-                            <span className="text-[10px] font-bold text-zinc-600 uppercase tracking-widest mb-1 block underline decoration-indigo-500/30">Briefing Metadata</span>
-                            <p className="text-sm text-zinc-400 font-medium italic line-clamp-2">"{caseData.data.description}"</p>
-
-
-                        </div>
-                    )}
-                </div>
-
-                <div className="w-full h-px bg-gradient-to-r from-transparent via-indigo-500/20 to-transparent" />
-
-                <div className="flex gap-4">
-                    <Button
-                        onClick={onClose}
-                        variant="ghost"
-                        className="flex-1 h-14 text-zinc-500 hover:text-white hover:bg-white/5 font-black uppercase tracking-widest text-xs rounded-2xl transition-all"
-                    >
-                        Abort
-                    </Button>
-                    <Button
-                        onClick={onConfirm}
-                        disabled={!caseName.trim() || isLoading}
-                        className="flex-[2] h-14 bg-indigo-600 hover:bg-indigo-500 text-white font-black uppercase tracking-widest text-xs rounded-2xl shadow-[0_10px_30px_rgba(79,70,229,0.3)] transition-all active:scale-95 border-t border-white/20 relative overflow-hidden"
-                    >
-                        {isLoading ? (
-                            <div className="flex items-center gap-3">
-                                <Loader2 className="w-4 h-4 animate-spin" />
-                                <span>Decrypting...</span>
-                            </div>
-                        ) : (
-                            <div className="flex items-center justify-center gap-2">
-                                <CheckCircle className="w-4 h-4" />
-                                <span>Inject Intelligence</span>
+                        {caseData?.isZip && (
+                            <div className="p-3 bg-amber-500/10 border border-amber-500/30 rounded-xl flex items-center gap-3 animate-pulse">
+                                <Package className="w-5 h-5 text-amber-400" />
+                                <div className="flex-1">
+                                    <p className="text-[9px] font-black text-amber-400 uppercase tracking-widest leading-tight">Complex Payload Detected</p>
+                                    <p className="text-[8px] text-amber-300 font-bold opacity-70">Media assets will be reconstructed in Storage</p>
+                                </div>
                             </div>
                         )}
-                        {isLoading && (
-                            <div className="absolute inset-0 bg-indigo-500/20 animate-pulse" />
+
+                        {caseData?.data?.description && (
+                            <div className="p-4 rounded-2xl bg-zinc-900/50 border border-zinc-800/50">
+                                <span className="text-[10px] font-bold text-zinc-600 uppercase tracking-widest mb-1 block underline decoration-indigo-500/30">Briefing Metadata</span>
+                                <p className="text-sm text-zinc-400 font-medium italic line-clamp-2">"{caseData.data.description}"</p>
+
+
+                            </div>
                         )}
-                    </Button>
+                    </div>
+
+                    <div className="w-full h-px bg-gradient-to-r from-transparent via-indigo-500/20 to-transparent" />
+
+                    <div className="flex gap-4">
+                        <Button
+                            onClick={onClose}
+                            variant="ghost"
+                            className="flex-1 h-14 text-zinc-500 hover:text-white hover:bg-white/5 font-black uppercase tracking-widest text-xs rounded-2xl transition-all"
+                        >
+                            Abort
+                        </Button>
+                        <Button
+                            onClick={onConfirm}
+                            disabled={!caseName.trim() || isLoading}
+                            className={`flex-[2] h-14 font-black uppercase tracking-widest text-xs rounded-2xl shadow-lg transition-all active:scale-95 border-t border-white/20 relative overflow-hidden ${existingCase
+                                ? 'bg-amber-600 hover:bg-amber-500 text-white shadow-amber-600/30'
+                                : 'bg-indigo-600 hover:bg-indigo-500 text-white shadow-indigo-600/30'
+                                }`}
+                        >
+                            {isLoading ? (
+                                <div className="flex items-center gap-3">
+                                    <Loader2 className="w-4 h-4 animate-spin" />
+                                    <span>{caseData?.isZip ? 'Reconstructing...' : 'Decrypting...'}</span>
+                                </div>
+                            ) : (
+                                <div className="flex items-center justify-center gap-2">
+                                    <CheckCircle className="w-4 h-4" />
+                                    <span>{existingCase ? 'Overwrite & Inject' : 'Inject Intelligence'}</span>
+                                </div>
+                            )}
+                            {isLoading && (
+                                <div className="absolute inset-0 bg-white/10 animate-pulse" />
+                            )}
+                        </Button>
+                    </div>
+
                 </div>
-            </div>
-        </motion.div>
-    </div>
-);
+            </motion.div>
+        </div>
+    );
+};
 
 
 export default Dashboard;
