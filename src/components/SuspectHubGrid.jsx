@@ -33,14 +33,12 @@ const SuspectHubGrid = ({ options, nodes, edges, onSuspectClick, getAvatarColor 
 
         if (!isMobile && count <= 8) {
             // ── Radial / Circular Layout ──────────────────────────────────────────
-            // Radius is generous so midpoints between adjacent cards are well clear
-            // of the card boundaries, giving the connector labels ample breathing room.
-            const radius = Math.max(420, count * 90);
-            const centerX = radius + CARD_WIDTH / 2 + 120;
-            const centerY = radius + CARD_HEIGHT / 2 + 120;
+            // Significantly increased radius to allow expanded cards (320px+) to breathe
+            const radius = Math.max(520, count * 110);
+            const centerX = radius + CARD_WIDTH / 2 + 150;
+            const centerY = radius + CARD_HEIGHT / 2 + 150;
 
             opts.forEach(({ node }, i) => {
-                // Start from top (-π/2) and go clockwise
                 const angle = (2 * Math.PI * i) / count - Math.PI / 2;
                 newPositions[node.id] = {
                     x: centerX + radius * Math.cos(angle) - CARD_WIDTH / 2,
@@ -49,19 +47,18 @@ const SuspectHubGrid = ({ options, nodes, edges, onSuspectClick, getAvatarColor 
             });
         } else {
             // ── Staggered Grid Layout ─────────────────────────────────────────────
-            // Every odd row is offset by half a column width (honeycomb feel).
-            // Large spacing ensures midpoints are always in open canvas space.
+            // Increased spacing to 650x450 to accommodate multi-note expansions
             const cols = isMobile ? 1 : Math.min(3, Math.ceil(Math.sqrt(count)));
-            const spacingX = isMobile ? 280 : 500;
-            const spacingY = 380;
+            const spacingX = isMobile ? 320 : 650;
+            const spacingY = isMobile ? 400 : 450;
 
             opts.forEach(({ node }, i) => {
                 const row = Math.floor(i / cols);
                 const col = i % cols;
                 const isOddRow = row % 2 === 1;
                 newPositions[node.id] = {
-                    x: col * spacingX + (isOddRow ? spacingX / 2 : 0) + 100,
-                    y: row * spacingY + 100,
+                    x: col * spacingX + (isOddRow ? spacingX / 2 : 0) + 150,
+                    y: row * spacingY + 150,
                 };
             });
         }
@@ -189,12 +186,8 @@ const SuspectHubGrid = ({ options, nodes, edges, onSuspectClick, getAvatarColor 
                             const dx = x2 - x1;
                             const dy = y2 - y1;
                             const len = Math.sqrt(dx * dx + dy * dy) || 1;
-                            const perpX = -dy / len;
-                            const perpY = dx / len;
-                            const LABEL_OFFSET = 36; // px above the midpoint
-
-                            const labelCX = midX + perpX * LABEL_OFFSET;
-                            const labelCY = midY + perpY * LABEL_OFFSET;
+                            const labelCX = midX;
+                            const labelCY = midY;
 
                             const isSelected = selectedId === conn.source || selectedId === conn.target;
                             const isIndirect = conn.type === 'indirect';
@@ -244,7 +237,7 @@ const SuspectHubGrid = ({ options, nodes, edges, onSuspectClick, getAvatarColor 
                                     {hasDetail && (
                                         <foreignObject
                                             x={labelCX - (isActive ? 175 : 110)}
-                                            y={labelCY - (isActive ? 100 : 30)}
+                                            y={labelCY - (isActive ? 125 : 40)}
                                             width={isActive ? 350 : 220}
                                             height={isActive ? 250 : 80}
                                             overflow="visible"

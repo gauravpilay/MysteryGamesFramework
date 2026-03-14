@@ -349,7 +349,7 @@ const ConnectionLine = ({ edge, p1, p2, isActive, onToggle }) => {
             {hasDetail && (
                 <foreignObject
                     x={midX - (isActive ? 175 : 100)}
-                    y={midY - (isActive ? 100 : 40)}
+                    y={midY - (isActive ? 125 : 40)}
                     width={isActive ? 350 : 200}
                     height={isActive ? 250 : 80}
                     className="overflow-visible pointer-events-auto"
