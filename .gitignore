@@ -22,6 +22,7 @@ dist-ssr
 firestore-debug.log
 ui-debug.log
 firebase-debug.log*
+migration_temp
 
 # Editor directories and files
 .vscode/
