@@ -207,11 +207,11 @@ export const importCaseFromZip = async (zipBlob) => {
                 const fileName = pathParts.pop();
                 const originalFolder = pathParts.join('/'); // e.g. "blueprints"
 
-                // Use the original folder name if available, otherwise 'imported_assets'
-                const targetFolder = originalFolder || 'imported_assets';
+                // Use the original folder name if available, otherwise 'uploads'
+                const targetFolder = originalFolder || 'uploads';
 
-                // Construct a unique but organized storage path
-                const storagePath = `imported_assets/${targetFolder}/${Date.now()}_${fileName}`;
+                // Construct a unique but organized storage path in the target folder
+                const storagePath = `${targetFolder}/${Date.now()}_${fileName}`;
                 const storageRef = ref(storage, storagePath);
 
                 console.log(`[IMPORT] Uploading: ${relativePath} -> ${storagePath}`);
