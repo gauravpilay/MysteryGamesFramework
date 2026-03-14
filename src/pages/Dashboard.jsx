@@ -17,7 +17,7 @@ import { useConfig } from '../lib/config';
 import { useLicense } from '../lib/licensing';
 import LicenseConfigModal from '../components/LicenseConfigModal';
 import { exportCaseToZip, importCaseFromZip } from '../lib/caseArchive';
-import { doc, updateDoc } from 'firebase/firestore';
+
 
 
 const Dashboard = () => {
