@@ -202,13 +202,17 @@ export const importCaseFromZip = async (zipBlob) => {
             try {
                 const blob = await file.async("blob");
 
-                // Extract original folder structure from relativePath: "blueprints/file.jpg"
+                // Extract original folder structure and sanitize it
                 const pathParts = relativePath.split('/');
                 const fileName = pathParts.pop();
-                const originalFolder = pathParts.join('/'); // e.g. "blueprints"
 
-                // Use the original folder name if available, otherwise 'uploads'
-                const targetFolder = originalFolder || 'uploads';
+                // Sanitize folder: remove 'imported_assets' or 'imported' if they are at the start
+                let folderParts = pathParts;
+                if (folderParts[0] === 'imported_assets' || folderParts[0] === 'imported') {
+                    folderParts = folderParts.slice(1);
+                }
+
+                const targetFolder = folderParts[folderParts.length - 1] || 'uploads';
 
                 // Construct a unique but organized storage path in the target folder
                 const storagePath = `${targetFolder}/${Date.now()}_${fileName}`;
