@@ -26,6 +26,8 @@ import {
     resolveEdgeTarget as resolveTarget
 } from '../lib/gameLogic';
 
+const shuffle = (arr) => [...arr].sort(() => Math.random() - 0.5);
+
 const BackgroundEffect = React.memo(({ isSimultaneous = false }) => (
     <div className={`${isSimultaneous ? 'absolute' : 'fixed'} inset-0 pointer-events-none z-0 overflow-hidden bg-[#020205]`}>
 
@@ -713,6 +715,13 @@ const GamePreview = ({ nodes, edges, onClose, gameMetadata, onGameEnd, onNodeCha
         nodes.find(n => n.id === currentNodeId),
         [currentNodeId, nodes]
     );
+
+    const shuffledOptions = useMemo(() => {
+        if (activeModalNode?.type === 'question' && activeModalNode.data?.options) {
+            return shuffle(activeModalNode.data.options);
+        }
+        return [];
+    }, [activeModalNode?.id]);
 
     // ── Chirp TTS: driven by current story node + system settings + license ──
     const { settings } = useConfig();
@@ -2957,7 +2966,7 @@ const GamePreview = ({ nodes, edges, onClose, gameMetadata, onGameEnd, onNodeCha
                                         </p>
 
                                         <div className="space-y-3">
-                                            {(activeModalNode.data.options || []).map((opt) => {
+                                            {shuffledOptions.map((opt) => {
                                                 const isSelected = userAnswers.has(opt.id);
                                                 return (
                                                     <div

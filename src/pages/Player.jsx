@@ -84,6 +84,10 @@ const Player = () => {
 
     // Load game data + check for existing progress
     useEffect(() => {
+        // Guard: If we have already started the game or are showing a prompt, 
+        // don't let background logic (like auth updates) trigger a re-check that might interrupt the session.
+        if (gameReady || showResumePrompt) return;
+
         const loadCaseData = async () => {
             if (!projectId) return;
             if (!user) return; // wait for user
@@ -126,7 +130,7 @@ const Player = () => {
         };
 
         loadCaseData();
-    }, [projectId, user]);
+    }, [projectId, user, gameReady, showResumePrompt]);
 
     // Handle resume decision
     const handleResume = () => {
