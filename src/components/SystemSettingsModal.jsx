@@ -1,6 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
-import { X, Settings, Shield, Key, Sliders, Save, AlertTriangle, Cpu, Globe, Box, Brain, ShieldCheck, Volume2, Mic2 } from 'lucide-react';
+import { X, Settings, Shield, Key, Sliders, Save, AlertTriangle, Cpu, Globe, Box, Brain, ShieldCheck, Volume2, Mic2, Webhook, Link2, PlusCircle, Trash2, CheckCircle, Info } from 'lucide-react';
 import { useConfig } from '../lib/config';
 import { DEFAULT_CHIRP_VOICE, CHIRP_HD_VOICES } from '../lib/useChirpTTS';
 import { useLicense } from '../lib/licensing';
@@ -17,12 +17,13 @@ const SystemSettingsModal = ({ onClose }) => {
         systemName: settings.systemName || 'KodeSaGa Central',
         enableThreeD: settings.enableThreeD !== undefined ? settings.enableThreeD : true,
         chirpVoiceName: settings.chirpVoiceName || DEFAULT_CHIRP_VOICE,
+        integrations: settings.integrations || { webhooks: [] }
     });
     const [isSaving, setIsSaving] = useState(false);
     const [status, setStatus] = useState(null); // { type, message }
     const [isLicenseModalOpen, setIsLicenseModalOpen] = useState(false);
 
-    // Sync formData when settings change (e.g. after initial load or remote update)
+    // Sync formData when settings change
     useEffect(() => {
         setFormData({
             aiApiKey: settings.aiApiKey || '',
@@ -30,6 +31,7 @@ const SystemSettingsModal = ({ onClose }) => {
             systemName: settings.systemName || 'KodeSaGa Central',
             enableThreeD: settings.enableThreeD !== undefined ? settings.enableThreeD : true,
             chirpVoiceName: settings.chirpVoiceName || DEFAULT_CHIRP_VOICE,
+            integrations: settings.integrations || { webhooks: [] }
         });
     }, [settings]);
 
@@ -46,6 +48,44 @@ const SystemSettingsModal = ({ onClose }) => {
         } finally {
             setIsSaving(false);
         }
+    };
+
+    const addWebhook = () => {
+        const newWebhook = {
+            id: crypto.randomUUID(),
+            name: 'New Integration',
+            url: '',
+            secret: '',
+            enabled: true,
+            events: ['game_completed']
+        };
+        setFormData(prev => ({
+            ...prev,
+            integrations: {
+                ...prev.integrations,
+                webhooks: [...prev.integrations.webhooks, newWebhook]
+            }
+        }));
+    };
+
+    const updateWebhook = (id, fields) => {
+        setFormData(prev => ({
+            ...prev,
+            integrations: {
+                ...prev.integrations,
+                webhooks: prev.integrations.webhooks.map(w => w.id === id ? { ...w, ...fields } : w)
+            }
+        }));
+    };
+
+    const removeWebhook = (id) => {
+        setFormData(prev => ({
+            ...prev,
+            integrations: {
+                ...prev.integrations,
+                webhooks: prev.integrations.webhooks.filter(w => w.id !== id)
+            }
+        }));
     };
 
     return (
@@ -196,32 +236,7 @@ const SystemSettingsModal = ({ onClose }) => {
                             </div>
                         </div>
 
-                        {/* Global Architecture Override */}
-                        {/* <div className="space-y-6">
-                            <div className="flex items-center gap-2 border-l-2 border-cyan-500 pl-4">
-                                <Box className="w-4 h-4 text-cyan-500" />
-                                <h3 className="text-sm font-black text-white uppercase tracking-[0.2em]">Global Architecture Override</h3>
-                            </div>
-
-                            <div className="p-4 bg-cyan-500/5 border border-cyan-500/10 rounded-xl">
-                                <div className="flex items-center justify-between">
-                                    <div className="space-y-1">
-                                        <p className="text-sm font-bold text-white uppercase tracking-tight">3D Neural Reconstruction</p>
-                                        <p className="text-[10px] text-zinc-500 font-medium leading-relaxed italic">
-                                            Enable/Disable Holodeck hardware acceleration across all missions.
-                                        </p>
-                                    </div>
-                                    <button
-                                        onClick={() => setFormData(prev => ({ ...prev, enableThreeD: !prev.enableThreeD }))}
-                                        className={`w-12 h-6 rounded-full transition-all flex items-center px-1 ${formData.enableThreeD ? 'bg-cyan-600' : 'bg-zinc-800'}`}
-                                    >
-                                        <div className={`w-4 h-4 rounded-full bg-white transition-all transform ${formData.enableThreeD ? 'translate-x-6' : 'translate-x-0'}`} />
-                                    </button>
-                                </div>
-                            </div>
-
-
-                        </div> */}
+                        {/* Platform Identity */}
                         <div className="space-y-6">
                             <div className="flex items-center gap-2 border-l-2 border-purple-500 pl-4">
                                 <Globe className="w-4 h-4 text-purple-500" />
@@ -236,6 +251,116 @@ const SystemSettingsModal = ({ onClose }) => {
                                     className="bg-black/50 border-zinc-800 focus:border-purple-500/50"
                                     placeholder="KodeSaGa Central"
                                 />
+                            </div>
+                        </div>
+
+                        {/* ── External Integrations (Hooks) ── */}
+                        <div className="space-y-6">
+                            <div className="flex items-center justify-between border-l-2 border-amber-500 pl-4">
+                                <div className="flex items-center gap-2">
+                                    <Webhook className="w-4 h-4 text-amber-500" />
+                                    <h3 className="text-sm font-black text-white uppercase tracking-[0.2em]">Integrations (LMS Hooks)</h3>
+                                </div>
+                                <button
+                                    onClick={addWebhook}
+                                    className="p-1 hover:bg-white/5 rounded-full transition-colors group"
+                                    title="Add New Integration"
+                                >
+                                    <PlusCircle className="w-5 h-5 text-zinc-500 group-hover:text-amber-400" />
+                                </button>
+                            </div>
+
+                            <div className="space-y-4">
+                                {formData.integrations.webhooks?.length === 0 ? (
+                                    <div className="p-8 border border-dashed border-zinc-800 rounded-2xl text-center">
+                                        <Link2 className="w-8 h-8 text-zinc-800 mx-auto mb-3" />
+                                        <p className="text-xs text-zinc-600 font-medium">No external hooks configured. Connect your LMS or reporting tool.</p>
+                                    </div>
+                                ) : (
+                                    formData.integrations.webhooks.map((webhook) => (
+                                        <div key={webhook.id} className="p-5 bg-zinc-900/40 border border-zinc-800 rounded-2xl space-y-4 relative group">
+                                            <div className="flex items-center justify-between gap-4">
+                                                <div className="flex-1">
+                                                    <Input
+                                                        value={webhook.name}
+                                                        onChange={(e) => updateWebhook(webhook.id, { name: e.target.value })}
+                                                        placeholder="Integration Name (e.g. Moodle Score Hook)"
+                                                        className="h-8 text-xs font-bold bg-transparent border-none focus:ring-0 p-0 mb-1 text-white"
+                                                    />
+                                                    <div className="flex items-center gap-2">
+                                                        <span className={`w-1.5 h-1.5 rounded-full ${webhook.enabled ? 'bg-emerald-500' : 'bg-zinc-700'}`} />
+                                                        <span className="text-[10px] text-zinc-500 uppercase font-black">{webhook.enabled ? 'Active' : 'Disabled'}</span>
+                                                    </div>
+                                                </div>
+                                                <div className="flex items-center gap-2">
+                                                    <button
+                                                        onClick={() => updateWebhook(webhook.id, { enabled: !webhook.enabled })}
+                                                        className={`w-8 h-4 rounded-full transition-all flex items-center px-0.5 ${webhook.enabled ? 'bg-amber-600' : 'bg-zinc-800'}`}
+                                                    >
+                                                        <div className={`w-3 h-3 rounded-full bg-white transition-all transform ${webhook.enabled ? 'translate-x-4' : 'translate-x-0'}`} />
+                                                    </button>
+                                                    <button
+                                                        onClick={() => removeWebhook(webhook.id)}
+                                                        className="p-1.5 text-zinc-600 hover:text-rose-500 transition-colors"
+                                                    >
+                                                        <Trash2 className="w-4 h-4" />
+                                                    </button>
+                                                </div>
+                                            </div>
+
+                                            <div className="space-y-3">
+                                                <div>
+                                                    <Label className="text-[9px] text-zinc-600 uppercase font-black mb-1 block">Webhook Target URL</Label>
+                                                    <Input
+                                                        value={webhook.url}
+                                                        onChange={(e) => updateWebhook(webhook.id, { url: e.target.value })}
+                                                        placeholder="https://..."
+                                                        className="h-9 text-xs bg-black/40 border-zinc-800"
+                                                    />
+                                                </div>
+                                                <div>
+                                                    <Label className="text-[9px] text-zinc-600 uppercase font-black mb-1 block">Auth Secret / Token (Optional)</Label>
+                                                    <Input
+                                                        type="password"
+                                                        value={webhook.secret}
+                                                        onChange={(e) => updateWebhook(webhook.id, { secret: e.target.value })}
+                                                        placeholder="••••••••"
+                                                        className="h-9 text-xs bg-black/40 border-zinc-800"
+                                                    />
+                                                </div>
+                                            </div>
+
+                                            <div className="pt-2 flex items-center justify-between">
+                                                <div className="flex items-center gap-2">
+                                                    <Info className="w-3 h-3 text-zinc-600" />
+                                                    <p className="text-[9px] text-zinc-600 italic">Triggers on "game_completed" events.</p>
+                                                </div>
+                                                <Button
+                                                    variant="ghost"
+                                                    size="sm"
+                                                    className="h-7 px-3 text-[10px] font-black uppercase tracking-widest bg-zinc-800/50 hover:bg-zinc-800 hover:text-amber-400 border border-zinc-700/50"
+                                                    onClick={async () => {
+                                                        const { triggerWebhook } = await import('../lib/integrations');
+                                                        const res = await triggerWebhook(webhook, {
+                                                            test: true,
+                                                            userId: 'test-agent@kodesaga.com',
+                                                            score: 95,
+                                                            outcome: 'success',
+                                                            caseTitle: 'Test Integration Case'
+                                                        });
+                                                        if (res?.success) {
+                                                            alert('Connection Valid: Transmission successful.');
+                                                        } else {
+                                                            alert(`Connection Failed: ${res?.error || 'Unknown error'}`);
+                                                        }
+                                                    }}
+                                                >
+                                                    Test Connection
+                                                </Button>
+                                            </div>
+                                        </div>
+                                    ))
+                                )}
                             </div>
                         </div>
 

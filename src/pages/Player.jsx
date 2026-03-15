@@ -5,6 +5,8 @@ import {
     doc, getDoc, addDoc, collection, setDoc, deleteDoc, query, where, getDocs
 } from 'firebase/firestore';
 import { useAuth } from '../lib/auth';
+import { useConfig } from '../lib/config';
+import { triggerAllHooks } from '../lib/integrations';
 import GamePreview from '../components/GamePreview';
 import { motion, AnimatePresence } from 'framer-motion';
 import { AlertTriangle, Fingerprint, BookOpen, RefreshCcw, BookmarkCheck, Clock, Star } from 'lucide-react';
@@ -69,6 +71,7 @@ const Player = () => {
     const { projectId } = useParams();
     const navigate = useNavigate();
     const { user } = useAuth() || {};
+    const { settings } = useConfig();
 
     const [gameData, setGameData] = useState(null);
     const [error, setError] = useState(null);
@@ -174,6 +177,11 @@ const Player = () => {
             caseTitle: gameData?.title || 'Unknown Case',
             playedAt: new Date().toISOString(),
         };
+
+        // Trigger External Integrations (Hooks)
+        if (settings.integrations?.webhooks) {
+            triggerAllHooks(settings.integrations.webhooks, 'game_completed', newResult);
+        }
 
         if (db) {
             try {
