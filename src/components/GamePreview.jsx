@@ -607,10 +607,11 @@ const GamePreview = ({ nodes, edges, onClose, gameMetadata, onGameEnd, onNodeCha
 
     // Scoring State
     const [score, setScore] = useState(0);
+    const [scoredNodes, setScoredNodes] = useState(new Set());
+    const [penalizedNodes, setPenalizedNodes] = useState(new Set());
     const [scoreDelta, setScoreDelta] = useState(null);
     const [flyingPoints, setFlyingPoints] = useState(null); // Separate state for large flying animation
     const [playerObjectiveScores, setPlayerObjectiveScores] = useState({}); // { objId: score }
-    const [scoredNodes, setScoredNodes] = useState(new Set());
     const [aiRequestCount, setAiRequestCount] = useState(0);
     const [userAnswers, setUserAnswers] = useState(new Set()); // Set of selected option IDs for Question Nodes
     const [revealedHints, setRevealedHints] = useState(new Set()); // Set of hint IDs
@@ -815,6 +816,7 @@ const GamePreview = ({ nodes, edges, onClose, gameMetadata, onGameEnd, onNodeCha
             if (sp.score !== undefined) setScore(sp.score);
             if (sp.playerObjectiveScores) setPlayerObjectiveScores(sp.playerObjectiveScores);
             if (sp.scoredNodes) setScoredNodes(new Set(sp.scoredNodes));
+            if (sp.penalizedNodes) setPenalizedNodes(new Set(sp.penalizedNodes));
             if (sp.nodeOutputs) setNodeOutputs(sp.nodeOutputs);
             if (sp.timeElapsed !== undefined) setTimeElapsed(sp.timeElapsed);
             if (sp.timeLeft !== undefined) setTimeLeft(sp.timeLeft);
@@ -1273,7 +1275,7 @@ const GamePreview = ({ nodes, edges, onClose, gameMetadata, onGameEnd, onNodeCha
         }
 
         if (isCorrect) {
-            if (activeAccusationNode && activeAccusationNode.data.score) {
+            if (activeAccusationNode && activeAccusationNode.data.score && !scoredNodes.has(activeAccusationNode.id)) {
                 const awardedS = Number(activeAccusationNode.data.score) || 0;
                 setScore(s => s + awardedS);
                 triggerScoreDelta(awardedS);
@@ -1281,6 +1283,7 @@ const GamePreview = ({ nodes, edges, onClose, gameMetadata, onGameEnd, onNodeCha
                 addLog(`CASE CLOSED: +${awardedS} Points`);
 
                 rewardObjectivePoints(activeAccusationNode, awardedS);
+                setScoredNodes(prev => new Set([...prev, activeAccusationNode.id]));
             }
             setAccusationResult('success');
         } else {
@@ -1313,20 +1316,23 @@ const GamePreview = ({ nodes, edges, onClose, gameMetadata, onGameEnd, onNodeCha
 
             const rawScore = Number(activeModalNode.data.score) || 0;
 
-            // Always trigger feedback animation on success for feel-good factor
-            // If score is 0, show a nominal +100 for visual impact if it's a major gate
-            triggerFlyingPoints(rawScore || 100);
-
             // Award actual points only once
             if (rawScore > 0 && !scoredNodes.has(activeModalNode.id)) {
                 setScore(s => s + rawScore);
                 triggerScoreDelta(rawScore);
+                triggerFlyingPoints(rawScore);
 
                 // Objective Scoring (Reward)
                 rewardObjectivePoints(activeModalNode, rawScore);
 
                 setScoredNodes(prev => new Set([...prev, activeModalNode.id]));
                 addLog(`QUIZ REWARD: +${rawScore} Points`);
+            } else if (rawScore > 0) {
+                // Still show visual feedback for correctness even if points were already awarded
+                triggerFlyingPoints(rawScore);
+            } else if (rawScore === 0) {
+                // Major gate impact
+                triggerFlyingPoints(100);
             }
 
             // Collect explanations from correct options (use generic fallback if none provided)
@@ -1501,6 +1507,7 @@ const GamePreview = ({ nodes, edges, onClose, gameMetadata, onGameEnd, onNodeCha
                 score,
                 playerObjectiveScores,
                 scoredNodes: [...scoredNodes],
+                penalizedNodes: [...penalizedNodes],
                 nodeOutputs,
                 timeElapsed,
                 timeLeft,
@@ -3525,10 +3532,12 @@ const GamePreview = ({ nodes, edges, onClose, gameMetadata, onGameEnd, onNodeCha
 
                             // Award points
                             const awards = Number(awardedScore) || 0;
-                            if (awards > 0) {
+                            if (awards > 0 && !scoredNodes.has(activeCrazyWallNode.id)) {
                                 setScore(s => s + awards);
                                 triggerScoreDelta(awards);
+                                triggerFlyingPoints(awards);
                                 rewardObjectivePoints(activeCrazyWallNode, awards);
+                                setScoredNodes(prev => new Set([...prev, activeCrazyWallNode.id]));
                                 addLog(`PLOT REVEALED: +${awards} Points`);
                             }
 
