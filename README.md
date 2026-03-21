@@ -20,3 +20,8 @@
 	 }
  - Run below command to deploy rules and indexes 
 	 firebase deploy --only firestore -P [GCP Project name]
+
+
+- After deployment, Add the cloud run domain to list of authorized domains in Firebase console. 
+
+- 
