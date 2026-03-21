@@ -15,6 +15,6 @@ const firebaseConfig = {
 // Initialize Firebase only if config is present, else we might mock or handle it
 const app = Boolean(firebaseConfig.apiKey) ? initializeApp(firebaseConfig) : null;
 export const auth = app ? getAuth(app) : null;
-export const db = app ? getFirestore(app) : null;
+export const db = app ? getFirestore(app, import.meta.env.VITE_FIREBASE_DATABASE_ID || '(default)') : null;
 export const storage = app ? getStorage(app) : null;
 export const googleProvider = new GoogleAuthProvider();

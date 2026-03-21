@@ -20,6 +20,8 @@ steps:
       - 'VITE_AI_API_KEY=${_VITE_AI_API_KEY}'
       - '--build-arg'
       - 'VITE_MAX_AI_REQUESTS=${_VITE_MAX_AI_REQUESTS}'
+      - '--build-arg'
+      - 'VITE_FIREBASE_DATABASE_ID=${_VITE_FIREBASE_DATABASE_ID}'
       - '.'
 images:
   - '${_IMAGE_TAG}'
