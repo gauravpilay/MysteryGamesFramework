@@ -11,6 +11,7 @@ export const ConfigProvider = ({ children }) => {
         systemName: 'KodeSaGa',
         aiApiKey: import.meta.env.VITE_AI_API_KEY || '',
         maxAIRequests: parseInt(import.meta.env.VITE_MAX_AI_REQUESTS) || 10,
+        appVersion: import.meta.env.VITE_APP_VERSION || 'v1.0.0',
     });
     const [loading, setLoading] = useState(true);
 
@@ -40,6 +41,7 @@ export const ConfigProvider = ({ children }) => {
                 const initialSettings = {
                     aiApiKey: import.meta.env.VITE_AI_API_KEY || '',
                     maxAIRequests: parseInt(import.meta.env.VITE_MAX_AI_REQUESTS) || 10,
+                    appVersion: import.meta.env.VITE_APP_VERSION || 'v1.0.0',
                 };
 
                 if (user?.role === 'Admin') {

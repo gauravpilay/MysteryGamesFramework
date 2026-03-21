@@ -3778,7 +3778,7 @@ const GamePreview = ({ nodes, edges, onClose, gameMetadata, onGameEnd, onNodeCha
                             initial={{ opacity: 0, scale: 0.9, y: 20 }}
                             animate={{ opacity: 1, scale: 1, y: 0 }}
                             exit={{ opacity: 0, scale: 0.9, y: 20 }}
-                            className="bg-zinc-950 border border-indigo-500/30 p-8 rounded-3xl max-w-lg w-full shadow-[0_0_50px_rgba(99,102,241,0.2)] relative overflow-hidden"
+                            className="bg-zinc-950 border border-indigo-500/30 p-8 rounded-3xl max-w-2xl w-full shadow-[0_0_50px_rgba(99,102,241,0.2)] relative overflow-hidden"
                             onClick={(e) => e.stopPropagation()}
                         >
                             {/* Decorative Background Items */}
@@ -3795,10 +3795,11 @@ const GamePreview = ({ nodes, edges, onClose, gameMetadata, onGameEnd, onNodeCha
                                     </div>
                                 </div>
 
-                                <div className="bg-black/40 border border-white/5 p-6 rounded-2xl mb-8">
-                                    <p className="text-zinc-300 leading-relaxed whitespace-pre-wrap italic font-serif text-lg">
-                                        "{activeModalNode.data.helpContent}"
-                                    </p>
+                                <div className="bg-black/40 border border-white/5 p-6 rounded-2xl mb-8 max-h-[50vh] overflow-y-auto custom-scrollbar pr-4">
+                                    <p 
+                                        className="text-zinc-300 leading-relaxed whitespace-pre-wrap italic font-serif text-lg"
+                                        dangerouslySetInnerHTML={{ __html: `"${parseRichText(activeModalNode.data.helpContent)}"` }}
+                                    />
                                 </div>
 
                                 <Button
@@ -3866,6 +3867,9 @@ const GamePreview = ({ nodes, edges, onClose, gameMetadata, onGameEnd, onNodeCha
                     </motion.div>
                 )}
             </AnimatePresence>
+            <div className="fixed bottom-4 right-4 z-[100] pointer-events-none opacity-20 hover:opacity-100 transition-opacity">
+                <span className="text-[10px] font-mono text-zinc-500 uppercase tracking-[0.2em]">{settings.appVersion || 'v1.0.0'}</span>
+            </div>
         </div >
     );
 };

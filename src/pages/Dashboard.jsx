@@ -591,7 +591,10 @@ const Dashboard = () => {
                         <div className="flex items-center justify-center">
                             <Logo className="w-12 h-12 md:w-14 md:h-14 drop-shadow-[0_0_15px_rgba(99,102,241,0.6)]" />
                         </div>
-                        <span className="font-bold text-base md:text-lg tracking-tight truncate max-w-[120px] md:max-w-none">{settings.systemName || 'KodeSaGa'}</span>
+                        <div className="flex flex-col">
+                            <span className="font-bold text-base md:text-lg tracking-tight truncate max-w-[120px] md:max-w-none leading-tight">{settings.systemName || 'KodeSaGa'}</span>
+                            <span className="text-[10px] font-mono text-zinc-600 uppercase tracking-widest leading-none mt-0.5">{settings.appVersion || 'v1.0.0'}</span>
+                        </div>
                     </div>
                     <div className="flex items-center gap-4">
                         <Button

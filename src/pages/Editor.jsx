@@ -3147,7 +3147,10 @@ Rules: cinematic noir/thriller tone; explain the mystery setup, main suspects, k
                                     <Pencil className="w-3 h-3 text-zinc-600 opacity-0 group-hover:opacity-100 transition-opacity hidden md:block" />
                                 )}
                             </div>
-                            <span className="text-[8px] md:text-[10px] text-zinc-500 font-bold uppercase tracking-widest mt-0.5 truncate">Mission Architect</span>
+                            <div className="flex items-baseline gap-2">
+                                <span className="text-[8px] md:text-[10px] text-zinc-500 font-bold uppercase tracking-widest mt-0.5 truncate">Mission Architect</span>
+                                <span className="text-[8px] font-mono text-zinc-600 uppercase tracking-tighter opacity-70"> / {settings.appVersion || 'v1.0.0'}</span>
+                            </div>
                         </div>
                     </button>
                     {isLocked && (
@@ -3844,18 +3847,18 @@ Rules: cinematic noir/thriller tone; explain the mystery setup, main suspects, k
                                     initial={{ opacity: 0, scale: 0.9, y: 20 }}
                                     animate={{ opacity: 1, scale: 1, y: 0 }}
                                     exit={{ opacity: 0, scale: 0.9, y: 20 }}
-                                    className="bg-zinc-950 border border-white/10 p-8 rounded-3xl max-w-lg w-full shadow-[0_0_50px_rgba(99,102,241,0.2)] relative overflow-hidden"
+                                    className="bg-zinc-950 border border-white/10 p-8 rounded-3xl max-w-2xl w-full shadow-[0_0_50px_rgba(99,102,241,0.2)] relative overflow-hidden flex flex-col max-h-[90vh]"
                                     onClick={(e) => e.stopPropagation()}
                                 >
                                     {/* Decorative background elements */}
                                     <div className="absolute top-0 right-0 w-32 h-32 bg-indigo-500/10 blur-[60px]"></div>
                                     <div className="absolute bottom-0 left-0 w-32 h-32 bg-fuchsia-500/10 blur-[60px]"></div>
 
-                                    <button onClick={() => setHelpModalData(null)} className="absolute top-6 right-6 text-zinc-500 hover:text-white transition-all hover:rotate-90">
+                                    <button onClick={() => setHelpModalData(null)} className="absolute top-6 right-6 text-zinc-500 hover:text-white transition-all hover:rotate-90 z-20">
                                         <X className="w-5 h-5" />
                                     </button>
 
-                                    <div className="flex items-center gap-4 mb-6">
+                                    <div className="flex items-center gap-4 mb-6 shrink-0">
                                         <div className="p-3 rounded-2xl bg-indigo-500/20 border border-indigo-500/30">
                                             <Info className="w-6 h-6 text-indigo-400" />
                                         </div>
@@ -3867,30 +3870,32 @@ Rules: cinematic noir/thriller tone; explain the mystery setup, main suspects, k
                                         </div>
                                     </div>
 
-                                    <p className="text-zinc-400 leading-relaxed mb-8 text-sm font-medium italic">
-                                        "{helpModalData.desc}"
-                                    </p>
+                                    <div className="flex-1 overflow-y-auto custom-scrollbar pr-4">
+                                        <p className="text-zinc-400 leading-relaxed mb-8 text-base font-medium italic border-l-2 border-indigo-500/30 pl-4">
+                                            "{helpModalData.desc}"
+                                        </p>
 
-                                    {helpModalData.details && (
-                                        <div className="space-y-3 mb-8">
-                                            {helpModalData.details.map((detail, i) => (
-                                                <div key={i} className="flex items-center gap-3 text-xs text-zinc-300 font-medium">
-                                                    <div className="w-1.5 h-1.5 rounded-full bg-indigo-500 shadow-[0_0_10px_rgba(99,102,241,0.8)]"></div>
-                                                    {detail}
-                                                </div>
-                                            ))}
-                                        </div>
-                                    )}
+                                        {helpModalData.details && (
+                                            <div className="space-y-3 mb-8">
+                                                {helpModalData.details.map((detail, i) => (
+                                                    <div key={i} className="flex items-start gap-3 text-sm text-zinc-300 font-medium">
+                                                        <div className="w-1.5 h-1.5 rounded-full bg-indigo-500 shadow-[0_0_10px_rgba(99,102,241,0.8)] mt-1.5 shrink-0"></div>
+                                                        <span className="leading-tight">{detail}</span>
+                                                    </div>
+                                                ))}
+                                            </div>
+                                        )}
 
-                                    <div className="bg-white/5 rounded-2xl p-6 border border-white/10 backdrop-blur-md">
-                                        <h3 className="text-[10px] font-black text-white/40 uppercase tracking-[0.2em] mb-4">Tactical Examples</h3>
-                                        <div className="grid grid-cols-1 gap-3">
-                                            {helpModalData.examples.map((ex, i) => (
-                                                <div key={i} className="px-4 py-2.5 bg-black/40 border border-white/5 rounded-xl text-xs text-zinc-400 font-mono flex items-center gap-3 group hover:border-indigo-500/50 transition-all">
-                                                    <span className="text-indigo-600 font-bold">0{i + 1}</span>
-                                                    {ex}
-                                                </div>
-                                            ))}
+                                        <div className="bg-white/5 rounded-2xl p-6 border border-white/10 backdrop-blur-md">
+                                            <h3 className="text-[10px] font-black text-white/40 uppercase tracking-[0.2em] mb-4">Tactical Examples</h3>
+                                            <div className="grid grid-cols-1 gap-3">
+                                                {helpModalData.examples.map((ex, i) => (
+                                                    <div key={i} className="px-4 py-2.5 bg-black/40 border border-white/5 rounded-xl text-xs text-zinc-400 font-mono flex items-center gap-3 group hover:border-indigo-500/50 transition-all">
+                                                        <span className="text-indigo-600 font-bold">0{i + 1}</span>
+                                                        {ex}
+                                                    </div>
+                                                ))}
+                                            </div>
                                         </div>
                                     </div>
 
