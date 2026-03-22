@@ -1,0 +1,337 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Our Team | KodeSaGa</title>
+    <meta name="description"
+        content="Meet the visionary founders behind KodeSaGa, redefining corporate training through immersive storytelling and gamification.">
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link
+        href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800;900&family=Outfit:wght@300;400;500;600;700;800;900&display=swap"
+        rel="stylesheet">
+    <script src="https://unpkg.com/lucide@latest"></script>
+    <style>
+        :root {
+            --bg-color: #050508;
+            --accent-primary: #3b82f6;
+            --accent-secondary: #f97316;
+            --text-main: #ffffff;
+            --text-dim: #a1a1aa;
+            --glass-bg: rgba(255, 255, 255, 0.03);
+            --glass-border: rgba(255, 255, 255, 0.1);
+            --gradient-1: linear-gradient(135deg, #3b82f6 0%, #f97316 100%);
+        }
+
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            background-color: var(--bg-color);
+            color: var(--text-main);
+            font-family: 'Inter', sans-serif;
+            line-height: 1.6;
+            overflow-x: hidden;
+        }
+
+        .container {
+            max-width: 1100px;
+            margin: 0 auto;
+            padding: 6rem 2rem;
+        }
+
+        nav {
+            height: 80px;
+            display: flex;
+            align-items: center;
+            border-bottom: 1px solid var(--glass-border);
+            position: sticky;
+            top: 0;
+            background: rgba(5, 5, 8, 0.8);
+            backdrop-filter: blur(15px);
+            z-index: 1000;
+        }
+
+        .nav-content {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            width: 100%;
+            max-width: 1200px;
+            margin: 0 auto;
+            padding: 0 2rem;
+        }
+
+        .logo {
+            display: flex;
+            align-items: center;
+            text-decoration: none;
+            color: white;
+            font-weight: 800;
+        }
+
+        .logo img {
+            height: 150px;
+            width: auto;
+            border-radius: 8px;
+            object-fit: contain;
+        }
+
+        .hero-team {
+            text-align: center;
+            padding: 4rem 0;
+            position: relative;
+        }
+
+        .hero-team::before {
+            content: '';
+            position: absolute;
+            top: 50%;
+            left: 50%;
+            transform: translate(-50%, -50%);
+            width: 400px;
+            height: 400px;
+            background: var(--accent-primary);
+            filter: blur(180px);
+            opacity: 0.1;
+            z-index: -1;
+        }
+
+        h1 {
+            font-family: 'Outfit';
+            font-size: 4rem;
+            line-height: 1.1;
+            margin-bottom: 1.5rem;
+            font-weight: 900;
+            letter-spacing: -0.02em;
+        }
+
+        h1 span {
+            background: var(--gradient-1);
+            -webkit-background-clip: text;
+            background-clip: text;
+            -webkit-text-fill-color: transparent;
+        }
+
+        .subtitle {
+            font-size: 1.25rem;
+            color: var(--text-dim);
+            max-width: 700px;
+            margin: 0 auto 4rem;
+        }
+
+        .team-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(350px, 1fr));
+            gap: 3rem;
+            margin-top: 2rem;
+        }
+
+        .team-card {
+            background: var(--glass-bg);
+            border: 1px solid var(--glass-border);
+            border-radius: 40px;
+            padding: 3rem;
+            text-align: center;
+            transition: all 0.4s cubic-bezier(0.175, 0.885, 0.32, 1.275);
+            position: relative;
+            overflow: hidden;
+        }
+
+        .team-card:hover {
+            transform: translateY(-15px);
+            border-color: var(--accent-primary);
+            background: rgba(255, 255, 255, 0.05);
+            box-shadow: 0 30px 60px rgba(0, 0, 0, 0.5), 0 0 30px rgba(59, 130, 246, 0.1);
+        }
+
+        .team-image-container {
+            width: 200px;
+            height: 200px;
+            margin: 0 auto 2rem;
+            border-radius: 50%;
+            position: relative;
+            padding: 8px;
+            background: var(--gradient-1);
+        }
+
+        .team-image {
+            width: 100%;
+            height: 100%;
+            border-radius: 50%;
+            object-fit: cover;
+            border: 4px solid var(--bg-color);
+        }
+
+        .team-card h2 {
+            font-family: 'Outfit';
+            font-size: 2.25rem;
+            font-weight: 800;
+            margin-bottom: 0.5rem;
+            color: white;
+        }
+
+        .team-role {
+            color: var(--accent-primary);
+            font-weight: 700;
+            font-size: 1.1rem;
+            text-transform: uppercase;
+            letter-spacing: 0.1em;
+            margin-bottom: 1.5rem;
+            display: block;
+        }
+
+        .team-bio {
+            color: var(--text-dim);
+            font-size: 1.05rem;
+            line-height: 1.7;
+        }
+
+        .social-links {
+            display: flex;
+            justify-content: center;
+            gap: 1.5rem;
+            margin-top: 2rem;
+        }
+
+        .social-links a {
+            color: var(--text-dim);
+            transition: all 0.3s ease;
+        }
+
+        .social-links a:hover {
+            color: white;
+            transform: scale(1.2);
+        }
+
+        footer {
+            border-top: 1px solid var(--glass-border);
+            padding: 6rem 0;
+            background: rgba(255, 255, 255, 0.01);
+            text-align: center;
+        }
+
+        .footer-links {
+            display: flex;
+            gap: 3rem;
+            justify-content: center;
+            margin: 2rem 0;
+        }
+
+        .footer-links a {
+            color: var(--text-dim);
+            text-decoration: none;
+            font-weight: 500;
+            transition: color 0.3s ease;
+        }
+
+        .footer-links a:hover {
+            color: var(--accent-primary);
+        }
+
+        @media (max-width: 768px) {
+            h1 {
+                font-size: 3rem;
+            }
+
+            .team-grid {
+                grid-template-columns: 1fr;
+            }
+        }
+    </style>
+</head>
+
+<body>
+    <nav>
+        <div class="nav-content">
+            <a href="index.html" class="logo">
+                <img src="kodesaga-logo.png" alt="KodeSaGa Logo">
+            </a>
+            <div style="display: flex; gap: 2rem; align-items: center;">
+                <a href="about.html"
+                    style="color: var(--text-dim); text-decoration: none; font-weight: 600; font-size: 0.9rem; transition: color 0.3s ease;">About</a>
+                <a href="index.html"
+                    style="color: var(--text-main); text-decoration: none; font-weight: 700; font-size: 0.9rem; text-transform: uppercase; letter-spacing: 0.05em;">Back
+                    to Mission</a>
+            </div>
+        </div>
+    </nav>
+
+    <div class="container">
+        <header class="hero-team">
+            <h1>The Minds behind the <span>Mission.</span></h1>
+            <p class="subtitle">Meet the visionaries who are transforming corporate education through the power of story
+                and gameplay.</p>
+        </header>
+
+        <section class="team-grid">
+            <!-- Asmeeta -->
+            <div class="team-card">
+                <div class="team-image-container">
+                    <img src="asmeeta.png" alt="Asmeeta" class="team-image">
+                </div>
+                <h2>Asmeeta</h2>
+                <span class="team-role">Co-Founder</span>
+                <p class="team-bio">Driving the creative vision and instructional design that makes KodeSaGa's immersion
+                    so effective.</p>
+                <div class="social-links">
+                    <a href="https://www.linkedin.com/in/asmita-tole/" target="_blank"><i
+                            data-lucide="linkedin"></i></a>
+
+                </div>
+            </div>
+
+            <!-- Saurabh -->
+            <div class="team-card">
+                <div class="team-image-container">
+                    <img src="saurabh.jpg" alt="Saurabh" class="team-image">
+                </div>
+                <h2>Saurabh</h2>
+                <span class="team-role">Co-Founder</span>
+                <p class="team-bio">Driving the creative vision and instructional design that makes KodeSaGa's immersion
+                    so effective.</p>
+                <div class="social-links">
+                    <a href="https://www.linkedin.com/in/saurabh-k-b43517ba/" target="_blank"><i
+                            data-lucide="linkedin"></i></a>
+
+                </div>
+            </div>
+        </section>
+
+        <section style="text-align: center; margin-top: 8rem;">
+            <h2>Join the Revolution</h2>
+            <p style="font-size: 1.4rem; color: var(--text-dim);">We are always looking for creative minds to help us
+                build the future of corporate training.</p>
+            <a href="mailto:careers@kodesaga.com"
+                style="display: inline-block; background: var(--glass-bg); border: 1px solid var(--glass-border); color: white; padding: 1.25rem 2.5rem; border-radius: 14px; text-decoration: none; font-weight: 800; margin-top: 2rem; transition: all 0.3s ease;">Contact
+                Us</a>
+        </section>
+    </div>
+
+    <footer>
+        <div class="container" style="padding: 0;">
+            <img src="kodesaga-logo.png" alt="KodeSaGa Logo" style="height: 80px; margin-bottom: 2rem;">
+            <p>Redefining corporate training through the power of story-driven education.</p>
+            <div class="footer-links">
+                <a href="index.html">Home</a>
+                <a href="about.html">About</a>
+                <a href="privacy.html">Privacy</a>
+                <a href="terms.html">Terms</a>
+                <a href="mailto:sales@kodesaga.com">Contact</a>
+            </div>
+            <p style="color: var(--text-dim); font-size: 0.9rem; margin-top: 2rem;">&copy; 2026 KodeSaGa LLP. All Rights
+                Reserved.</p>
+        </div>
+    </footer>
+
+    <script>
+        lucide.createIcons();
+    </script>
+</body>
+
+</html>
