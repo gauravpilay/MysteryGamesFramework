@@ -9,7 +9,7 @@ const AIInterrogation = ({ node, onComplete, onFail, requestCount, onAIRequest, 
     const { settings } = useConfig();
     const { licenseData, getFeatureValue } = useLicense();
     const [messages, setMessages] = useState([
-        { role: 'assistant', text: "Subject is ready for questioning. What is your first inquiry, Detective?" }
+        { role: 'assistant', text: `Hello. I am ${node.data.name || 'the suspect'}. What would you like to ask me?` }
     ]);
     const [input, setInput] = useState('');
     const [isTyping, setIsTyping] = useState(false);
@@ -104,41 +104,37 @@ const AIInterrogation = ({ node, onComplete, onFail, requestCount, onAIRequest, 
             {/* LEFT PROFILE STRIP (Vertical Sidebar) */}
             <div className="w-full md:w-80 bg-black/40 border-b md:border-b-0 md:border-r border-white/5 flex flex-col shrink-0 relative z-10 backdrop-blur-3xl">
                 <div className="p-4 md:p-8 flex flex-col items-center">
-                    {/* AVATAR HEXAGON/DIAMOND */}
-                    <div className="relative mb-4 md:mb-6">
-                        <div className="absolute -inset-4 bg-indigo-500/10 rounded-full blur-2xl animate-pulse"></div>
-                        <div className="w-24 h-24 md:w-32 md:h-32 relative">
-                            {/* Animated tech ring */}
-                            <svg className="absolute -inset-2 w-[144px] h-[144px] animate-[spin_10s_linear_infinite]">
-                                <circle cx="72" cy="72" r="70" stroke="currentColor" strokeWidth="1" fill="none" className="text-indigo-500/20" strokeDasharray="10 20" />
-                            </svg>
-                            <div className="w-full h-full bg-zinc-900 border-2 border-indigo-500/30 rounded-3xl rotate-45 flex items-center justify-center overflow-hidden shadow-[0_0_30px_rgba(79,70,229,0.2)]">
-                                <div className="-rotate-45 flex flex-col items-center">
-                                    <User className="w-16 h-16 text-indigo-400 opacity-60" />
-                                </div>
+                    {/* CHARACTER PHOTO */}
+                    <div className="relative mb-6 md:mb-10">
+                        <div className="absolute -inset-6 bg-indigo-500/10 rounded-full blur-3xl"></div>
+                        <div className="w-48 h-48 md:w-64 md:h-64 relative group">
+                            {/* Inner Border/Glow */}
+                            <div className="absolute -inset-1 bg-gradient-to-tr from-indigo-500/20 to-emerald-500/20 rounded-[2.5rem] blur-sm opacity-0 group-hover:opacity-100 transition-opacity duration-700"></div>
+                            
+                            <div className="w-full h-full bg-zinc-900 border border-white/10 rounded-[2.5rem] overflow-hidden shadow-2xl relative">
+                                {node.data.image ? (
+                                    <img 
+                                        src={node.data.image} 
+                                        alt={node.data.name || 'Character'} 
+                                        className="w-full h-full object-cover grayscale-[0.3] hover:grayscale-0 transition-all duration-700 scale-110"
+                                    />
+                                ) : (
+                                    <div className="w-full h-full flex flex-col items-center justify-center bg-gradient-to-br from-zinc-800 to-zinc-900">
+                                        <User className="w-24 h-24 text-zinc-700" />
+                                        <p className="text-[8px] font-black text-zinc-600 uppercase tracking-widest mt-2">No Image Found</p>
+                                    </div>
+                                )}
+                                {/* Overlay to match theme */}
+                                <div className="absolute inset-0 bg-gradient-to-t from-black/60 via-transparent to-transparent opacity-60"></div>
                             </div>
                         </div>
                     </div>
 
                     <div className="text-center">
-                        <h3 className="text-lg md:text-xl font-black text-white uppercase tracking-tighter mb-1">{node.data.name || 'Unknown Subject'}</h3>
+                        <h3 className="text-lg md:text-xl font-black text-white uppercase tracking-tighter mb-1">{node.data.name || 'Unknown Person'}</h3>
                         <div className="flex items-center justify-center gap-2">
-                            <span className="w-2 h-2 rounded-full bg-emerald-500 animate-pulse"></span>
-                            <span className="text-[10px] font-black text-zinc-500 uppercase tracking-widest leading-none">Status: Connected</span>
-                        </div>
-                    </div>
-
-                    {/* BIOMETRICS GRID */}
-                    <div className="grid grid-cols-2 gap-3 w-full mt-6 md:mt-10">
-                        <div className="p-3 bg-zinc-900/50 border border-white/5 rounded-xl flex flex-col gap-1">
-                            <Activity className="w-3 h-3 text-red-500/50" />
-                            <span className="text-[8px] font-black text-zinc-600 uppercase">Heart Rate</span>
-                            <span className="text-xs font-mono text-zinc-400">84 BPM</span>
-                        </div>
-                        <div className="p-3 bg-zinc-900/50 border border-white/5 rounded-xl flex flex-col gap-1">
-                            <Radio className="w-3 h-3 text-emerald-500/50" />
-                            <span className="text-[8px] font-black text-zinc-600 uppercase">Neural Lag</span>
-                            <span className="text-xs font-mono text-zinc-400">12ms</span>
+                            <span className="w-2 h-2 rounded-full bg-emerald-500"></span>
+                            <span className="text-[10px] font-black text-zinc-500 uppercase tracking-widest leading-none">Online</span>
                         </div>
                     </div>
 
@@ -148,7 +144,7 @@ const AIInterrogation = ({ node, onComplete, onFail, requestCount, onAIRequest, 
                             <Brain className="w-12 h-12 text-white" />
                         </div>
                         <div className="flex justify-between items-end mb-2">
-                            <span className="text-[10px] font-black text-indigo-400 uppercase tracking-widest">Query Buffer</span>
+                            <span className="text-[10px] font-black text-indigo-400 uppercase tracking-widest">Questions Remaining</span>
                             <span className="text-sm font-mono font-black text-white">{MAX_REQUESTS - requestCount} / {MAX_REQUESTS}</span>
                         </div>
                         <div className="h-1 bg-zinc-800 rounded-full overflow-hidden">
@@ -165,20 +161,20 @@ const AIInterrogation = ({ node, onComplete, onFail, requestCount, onAIRequest, 
                     {score > 0 && (
                         <div className="flex items-center justify-between px-4 py-3 bg-amber-500/5 border border-amber-500/10 rounded-xl">
                             <Star className="w-4 h-4 text-amber-500 fill-amber-500" />
-                            <span className="text-[10px] font-black text-amber-500 uppercase tracking-widest">{score} Bounty Points</span>
+                            <span className="text-[10px] font-black text-amber-500 uppercase tracking-widest">{score} Points Available</span>
                         </div>
                     )}
                     <button
                         onClick={() => onComplete()}
                         className="w-full py-3 md:py-4 bg-white text-black text-[10px] md:text-[11px] font-black rounded-xl hover:bg-zinc-200 transition-all uppercase tracking-[0.2em] shadow-2xl shadow-white/5 active:scale-95"
                     >
-                        End Discussion
+                        Finished
                     </button>
                     <button
                         onClick={() => onFail()}
                         className="w-full py-3 text-[9px] font-black text-zinc-600 hover:text-red-400 uppercase tracking-widest transition-colors"
                     >
-                        Emergency Abort
+                        Cancel
                     </button>
                 </div>
             </div>
@@ -189,15 +185,7 @@ const AIInterrogation = ({ node, onComplete, onFail, requestCount, onAIRequest, 
                 <div className="h-12 md:h-16 px-4 md:px-8 border-b border-white/5 bg-black/20 backdrop-blur-md flex items-center justify-between">
                     <div className="flex items-center gap-6">
                         <div className="flex flex-col">
-                            <span className="text-[9px] font-black text-zinc-600 uppercase tracking-widest">Operation Node</span>
-                            <span className="text-xs font-bold text-white uppercase tracking-tight">C-LINK // ALPHA-7</span>
-                        </div>
-                        <div className="h-4 w-px bg-white/10" />
-                        <div className="flex flex-col">
-                            <span className="text-[9px] font-black text-zinc-600 uppercase tracking-widest">AI Engine</span>
-                            <span className="text-[10px] font-bold text-indigo-400 uppercase tracking-tight">
-                                {apiKey ? (provider === 'gemini' ? 'Gemini 3.0 FLASH' : 'GPT-4 TURBO') : 'PROXIED_SIMULATION'}
-                            </span>
+                            <span className="text-xs font-bold text-white uppercase tracking-tight">Active Chat</span>
                         </div>
                     </div>
                 </div>
@@ -219,10 +207,10 @@ const AIInterrogation = ({ node, onComplete, onFail, requestCount, onAIRequest, 
                                     {/* Header Info */}
                                     <div className={`flex items-center gap-3 mb-2 px-1 ${msg.role === 'user' ? 'flex-row-reverse' : ''}`}>
                                         <div className={`w-6 h-6 rounded-lg ${msg.role === 'user' ? 'bg-indigo-500/20' : 'bg-white/10'} flex items-center justify-center p-1.5`}>
-                                            {msg.role === 'user' ? <ShieldAlert className="w-full h-full text-indigo-400" /> : <Terminal className="w-full h-full text-zinc-400" />}
+                                            {msg.role === 'user' ? <User className="w-full h-full text-indigo-400" /> : <MessageSquare className="w-full h-full text-zinc-400" />}
                                         </div>
                                         <span className={`text-[8px] font-black uppercase tracking-[0.2em] ${msg.role === 'user' ? 'text-indigo-400' : 'text-zinc-500'}`}>
-                                            {msg.role === 'user' ? 'INTERROGATOR_MAIN' : 'SUBJECT_REPLY'}
+                                            {msg.role === 'user' ? 'YOU' : (node.data.name || 'SUSPECT')}
                                         </span>
                                     </div>
 
@@ -242,7 +230,7 @@ const AIInterrogation = ({ node, onComplete, onFail, requestCount, onAIRequest, 
                                 <div className="flex flex-col items-start max-w-[80%]">
                                     <div className="flex items-center gap-2 mb-2 px-1 text-emerald-500">
                                         <div className="w-1.5 h-1.5 rounded-full bg-emerald-500 animate-pulse"></div>
-                                        <span className="text-[8px] font-black uppercase tracking-[0.2em]">Processing Signal...</span>
+                                        <span className="text-[8px] font-black uppercase tracking-[0.2em]">Thinking...</span>
                                     </div>
                                     <div className="bg-zinc-900 border border-white/5 p-5 rounded-2xl rounded-tl-none flex items-center gap-2">
                                         <div className="flex gap-1">
@@ -272,7 +260,7 @@ const AIInterrogation = ({ node, onComplete, onFail, requestCount, onAIRequest, 
                                 value={input}
                                 onChange={(e) => setInput(e.target.value)}
                                 onKeyDown={(e) => e.key === 'Enter' && handleSendMessage()}
-                                placeholder="TYPE SIGNAL..."
+                                placeholder="Type your message..."
                                 className="w-full bg-zinc-900/80 border border-white/10 rounded-xl md:rounded-2xl px-4 md:px-8 py-3.5 md:py-5 text-sm text-white placeholder:text-zinc-800 focus:outline-none focus:border-indigo-500/50 transition-all font-mono tracking-wider relative z-10 shadow-inner"
                             />
                         </div>
@@ -287,10 +275,9 @@ const AIInterrogation = ({ node, onComplete, onFail, requestCount, onAIRequest, 
                     </div>
                     <div className="mt-4 flex justify-between items-center text-[8px] font-black text-zinc-700 uppercase tracking-[0.3em]">
                         <div className="flex gap-6">
-                            <span>Signal: 256-BIT_ENC</span>
-                            <span>Direct Line: Node_82</span>
+                            <span>Secure Connection</span>
                         </div>
-                        <div className="animate-pulse">Waiting for transmit Command_</div>
+                        <div className="">Press Enter to send</div>
                     </div>
                 </div>
             </div>
@@ -309,7 +296,7 @@ const AIInterrogation = ({ node, onComplete, onFail, requestCount, onAIRequest, 
                                 <ShieldAlert className="w-6 h-6 text-red-500" />
                             </div>
                             <div className="flex-1 min-w-0">
-                                <p className="text-[10px] font-black text-red-500 uppercase tracking-widest mb-1 leading-none">Transmission Failure</p>
+                                <p className="text-[10px] font-black text-red-500 uppercase tracking-widest mb-1 leading-none">Something went wrong</p>
                                 <p className="text-xs text-red-100/60 truncate">{error}</p>
                             </div>
                         </div>
@@ -331,14 +318,14 @@ const AIInterrogation = ({ node, onComplete, onFail, requestCount, onAIRequest, 
                             </div>
                             <h3 className="text-2xl font-black text-white uppercase tracking-tighter mb-4">Limit Reached</h3>
                             <p className="text-sm text-zinc-400 mb-10 leading-relaxed px-4">
-                                You can not ask additional questions. Please complete the interrogation to continue.
+                                You've reached the maximum number of questions. Please finish this conversation to continue.
                             </p>
                             <div className="space-y-4">
                                 <button
                                     onClick={() => onComplete()}
                                     className="w-full py-4 bg-white text-black text-xs font-black rounded-2xl hover:bg-zinc-200 transition-all uppercase tracking-widest"
                                 >
-                                    Review Transcript
+                                    Finish Conversation
                                 </button>
                                 <button
                                     onClick={() => setShowLimitPopup(false)}

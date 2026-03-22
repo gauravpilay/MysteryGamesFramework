@@ -2402,7 +2402,7 @@ Keep responses concise but immersive.
         <>
             <Handle type="target" position={Position.Top} id="in-1" className="!bg-zinc-500 !w-3 !h-3 !border-2 !border-black" />
             <Handle type="target" position={Position.Top} id="in-2" className="!bg-zinc-500 !w-3 !h-3 !border-2 !border-black" />
-            <NodeWrapper id={id} title="AI Interrogation" icon={Brain} selected={selected} headerClass="bg-indigo-950/30 text-indigo-200" colorClass="border-indigo-900/30" data={data} onLabelChange={(v) => handleChange('label', v)}>
+            <NodeWrapper id={id} title="AI Chat" icon={Brain} selected={selected} headerClass="bg-indigo-950/30 text-indigo-200" colorClass="border-indigo-900/30" data={data} onLabelChange={(v) => handleChange('label', v)}>
                 <div className="space-y-4">
                     <CharacterMediaManager
                         projectId={projectId}
@@ -2412,7 +2412,7 @@ Keep responses concise but immersive.
                     {/* Model Selector */}
                     <div className="p-2 bg-indigo-500/5 border border-indigo-500/10 rounded-lg">
                         <p className="text-[9px] text-indigo-400 mb-1.5 uppercase font-black tracking-widest flex items-center gap-1.5">
-                            <Cpu className="w-3 h-3" /> Core Engine
+                            <Cpu className="w-3 h-3" /> AI Settings
                         </p>
                         <select
                             className="w-full bg-black border border-indigo-900/30 rounded px-2 py-1.5 text-[10px] text-indigo-200 focus:border-indigo-500 outline-none cursor-pointer"
@@ -2420,14 +2420,14 @@ Keep responses concise but immersive.
                             onChange={(e) => handleChange('aiProvider', e.target.value)}
                         >
                             <option value="gemini">Google Gemini 2.0</option>
-                            <option value="openai">OpenAI ChatGPT 4</option>
+                            {/* <option value="openai">OpenAI ChatGPT 4</option> */}
                         </select>
                     </div>
 
                     {/* Suspect Persona Section */}
                     <div className="space-y-3">
                         <div className="flex items-center justify-between">
-                            <p className="text-[10px] text-zinc-500 uppercase font-black tracking-widest">Suspect Persona</p>
+                            <p className="text-[10px] text-zinc-500 uppercase font-black tracking-widest">Character Details</p>
                             <button
                                 onClick={applyTemplate}
                                 className="text-[9px] text-indigo-400 hover:text-indigo-300 font-bold uppercase tracking-wider transition-colors flex items-center gap-1"
@@ -2465,14 +2465,14 @@ Keep responses concise but immersive.
                                         <InputField
                                             value={data.name}
                                             onChange={(e) => handleChange('name', e.target.value)}
-                                            placeholder="Suspect Name"
+                                            placeholder="Character Name"
                                             className="!bg-black/40 !py-1 !px-2"
                                         />
                                     );
                                 })()}
                             </div>
                             <div className="space-y-1">
-                                <p className="text-[8px] text-indigo-400/70 uppercase font-bold ml-1">Voice Style</p>
+                                <p className="text-[8px] text-indigo-400/70 uppercase font-bold ml-1">Personality Style</p>
                                 <InputField
                                     value={data.speakingStyle}
                                     onChange={(e) => handleChange('speakingStyle', e.target.value)}
@@ -2483,7 +2483,7 @@ Keep responses concise but immersive.
                         </div>
 
                         <div className="space-y-1">
-                            <p className="text-[8px] text-indigo-400/70 uppercase font-bold ml-1">Traits & History</p>
+                            <p className="text-[8px] text-indigo-400/70 uppercase font-bold ml-1">Background</p>
                             <TextArea
                                 value={data.personality}
                                 onChange={(e) => handleChange('personality', e.target.value)}
@@ -2505,7 +2505,7 @@ Keep responses concise but immersive.
                         </div>
 
                         <p className="text-[8px] text-red-400 uppercase font-black tracking-wider flex items-center gap-1.5 ml-1 mb-1">
-                            <ShieldAlert className="w-2.5 h-2.5" /> Critical Secret
+                            <ShieldAlert className="w-2.5 h-2.5" /> Hidden Secret
                         </p>
                         <TextArea
                             value={data.secret}
@@ -2540,7 +2540,7 @@ Keep responses concise but immersive.
                 <div className="pt-2 border-t border-indigo-900/20 space-y-3">
                     <div className="flex items-center justify-between">
                         <p className="text-[9px] font-bold text-indigo-400 uppercase tracking-wider flex items-center gap-1">
-                            <Star className="w-3 h-3" /> Achievement Score
+                            <Star className="w-3 h-3" /> Points
                         </p>
                         <InputField
                             type="number"

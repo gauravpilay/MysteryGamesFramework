@@ -13,6 +13,8 @@ dist-ssr
 # Env files
 .env
 .env.kodesaga
+.env.finistry
+.env.*
 .env.local
 .env.*.local
 *.local
