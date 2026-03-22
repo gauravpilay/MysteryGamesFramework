@@ -1,0 +1,309 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>About Our Mission | KodeSaGa</title>
+    <meta name="description"
+        content="Discover the mission and vision of KodeSaGa. We are redefining corporate training through immersive storytelling and gamification.">
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link
+        href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800;900&family=Outfit:wght@300;400;500;600;700;800;900&display=swap"
+        rel="stylesheet">
+    <script src="https://unpkg.com/lucide@latest"></script>
+    <style>
+        :root {
+            --bg-color: #050508;
+            --accent-primary: #3b82f6;
+            --accent-secondary: #f97316;
+            --text-main: #ffffff;
+            --text-dim: #a1a1aa;
+            --glass-bg: rgba(255, 255, 255, 0.03);
+            --glass-border: rgba(255, 255, 255, 0.1);
+            --gradient-1: linear-gradient(135deg, #3b82f6 0%, #f97316 100%);
+        }
+
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            background-color: var(--bg-color);
+            color: var(--text-main);
+            font-family: 'Inter', sans-serif;
+            line-height: 1.6;
+            overflow-x: hidden;
+        }
+
+        .container {
+            max-width: 1000px;
+            margin: 0 auto;
+            padding: 6rem 2rem;
+        }
+
+        nav {
+            height: 80px;
+            display: flex;
+            align-items: center;
+            border-bottom: 1px solid var(--glass-border);
+            position: sticky;
+            top: 0;
+            background: rgba(5, 5, 8, 0.8);
+            backdrop-filter: blur(15px);
+            z-index: 1000;
+        }
+
+        .nav-content {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            width: 100%;
+            max-width: 1200px;
+            margin: 0 auto;
+            padding: 0 2rem;
+        }
+
+        .logo {
+            display: flex;
+            align-items: center;
+            text-decoration: none;
+            color: white;
+            font-weight: 800;
+        }
+
+        .logo img {
+            height: 50px;
+        }
+
+        .hero-about {
+            text-align: center;
+            padding: 4rem 0;
+            position: relative;
+        }
+
+        .hero-about::before {
+            content: '';
+            position: absolute;
+            top: 50%;
+            left: 50%;
+            transform: translate(-50%, -50%);
+            width: 300px;
+            height: 300px;
+            background: var(--accent-primary);
+            filter: blur(150px);
+            opacity: 0.15;
+            z-index: -1;
+        }
+
+        h1 {
+            font-family: 'Outfit';
+            font-size: 4rem;
+            line-height: 1.1;
+            margin-bottom: 1.5rem;
+            font-weight: 900;
+            letter-spacing: -0.02em;
+        }
+
+        h1 span {
+            background: var(--gradient-1);
+            -webkit-background-clip: text;
+            background-clip: text;
+            -webkit-text-fill-color: transparent;
+        }
+
+        .subtitle {
+            font-size: 1.25rem;
+            color: var(--text-dim);
+            max-width: 700px;
+            margin: 0 auto 3rem;
+        }
+
+        section {
+            margin-bottom: 6rem;
+        }
+
+        .grid-2 {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 4rem;
+            align-items: center;
+        }
+
+        .card {
+            background: var(--glass-bg);
+            border: 1px solid var(--glass-border);
+            padding: 3rem;
+            border-radius: 32px;
+            height: 100%;
+            transition: transform 0.3s ease;
+        }
+
+        .card:hover {
+            transform: translateY(-5px);
+            border-color: rgba(255, 255, 255, 0.2);
+        }
+
+        .card i {
+            font-size: 2.5rem;
+            color: var(--accent-primary);
+            margin-bottom: 1.5rem;
+        }
+
+        h2 {
+            font-family: 'Outfit';
+            font-size: 2.25rem;
+            margin-bottom: 1.5rem;
+            font-weight: 800;
+        }
+
+        h3 {
+            font-family: 'Outfit';
+            font-size: 1.75rem;
+            margin-bottom: 1rem;
+            font-weight: 700;
+        }
+
+        p {
+            color: var(--text-dim);
+            font-size: 1.1rem;
+            margin-bottom: 1.5rem;
+        }
+
+        .highlight {
+            color: white;
+            font-weight: 600;
+        }
+
+        .gamification-section {
+            background: linear-gradient(135deg, rgba(59, 130, 246, 0.05) 0%, rgba(249, 115, 22, 0.05) 100%);
+            padding: 5rem;
+            border-radius: 48px;
+            border: 1px solid var(--glass-border);
+        }
+
+        footer {
+            border-top: 1px solid var(--glass-border);
+            padding: 6rem 0;
+            background: rgba(255, 255, 255, 0.01);
+            text-align: center;
+        }
+
+        .footer-links {
+            display: flex;
+            gap: 3rem;
+            justify-content: center;
+            margin: 2rem 0;
+        }
+
+        .footer-links a {
+            color: var(--text-dim);
+            text-decoration: none;
+            font-weight: 500;
+            transition: color 0.3s ease;
+        }
+
+        .footer-links a:hover {
+            color: var(--accent-primary);
+        }
+
+        @media (max-width: 768px) {
+            h1 { font-size: 3rem; }
+            .grid-2 { grid-template-columns: 1fr; gap: 2rem; }
+            .gamification-section { padding: 2rem; }
+        }
+    </style>
+</head>
+
+<body>
+    <nav>
+        <div class="nav-content">
+            <a href="index.html" class="logo">
+                <img src="kodesaga-logo.png" alt="KodeSaGa Logo">
+            </a>
+            <a href="index.html" style="color: var(--text-main); text-decoration: none; font-weight: 700; font-size: 0.9rem; text-transform: uppercase; letter-spacing: 0.05em;">Back to Mission Control</a>
+        </div>
+    </nav>
+
+    <div class="container">
+        <header class="hero-about">
+            <h1>The Heart of the <span>Mystery.</span></h1>
+            <p class="subtitle">We believe that the most complex professional challenges are best solved through the power of play and the pursuit of narrative clarity.</p>
+        </header>
+
+        <section class="grid-2">
+            <div class="card">
+                <i data-lucide="target"></i>
+                <h3>Our Mission</h3>
+                <p>To redefine corporate excellence by replacing uninspiring training with <span class="highlight">immersive, story-driven mysteries</span>. We simplify the complex and transform passive learning into active mastery.</p>
+            </div>
+            <div class="card">
+                <i data-lucide="eye"></i>
+                <h3>Our Vision</h3>
+                <p>To be the world's premier <span class="highlight">edutainment architecture</span> for high-stakes industries, proving that engagement and entertainment are the ultimate keys to professional growth.</p>
+            </div>
+        </section>
+
+        <section>
+            <div style="max-width: 800px; margin: 0 auto; text-align: center;">
+                <h2>Simplifying the Complex</h2>
+                <p>Corporate training in Banking, Pharma, and Manufacturing is often burdened by dense regulations and technical jargon. <span class="highlight">KodeSaGa</span> strips away the frustration.</p>
+                <p>By engineering these concepts into a <strong>"Case to be Solved"</strong>, we provide immediate context and purpose. Users aren't just memorizing rules; they are applying knowledge to uncover the truth. This shift from theory to investigation is how we <span class="highlight">Simplify Excellence.</span></p>
+            </div>
+        </section>
+
+        <section class="gamification-section">
+            <div class="grid-2">
+                <div>
+                    <h2>The Power of Gamification</h2>
+                    <p>Why do we remember the plot of a mystery novel but forget a 50-slide deck within hours? The answer is <strong>Narrative Engagement.</strong></p>
+                </div>
+                <div>
+                    <ul style="list-style: none; color: var(--text-dim);">
+                        <li style="margin-bottom: 1.5rem; display: flex; gap: 1rem;">
+                            <i data-lucide="zap" style="color: var(--accent-secondary); flex-shrink: 0;"></i>
+                            <span><strong style="color: white;">Active Participation:</strong> Logic puzzles and "Live Interrogations" keep the mind engaged and alert.</span>
+                        </li>
+                        <li style="margin-bottom: 1.5rem; display: flex; gap: 1rem;">
+                            <i data-lucide="trending-up" style="color: var(--accent-secondary); flex-shrink: 0;"></i>
+                            <span><strong style="color: white;">Measurable Progress:</strong> Every clue found and suspect questioned correlates to a real-world competency.</span>
+                        </li>
+                        <li style="margin-bottom: 1.5rem; display: flex; gap: 1rem;">
+                            <i data-lucide="award" style="color: var(--accent-secondary); flex-shrink: 0;"></i>
+                            <span><strong style="color: white;">The "EE" Factor:</strong> We bridge the gap between Education and Entertainment to ensure long-term retention.</span>
+                        </li>
+                    </ul>
+                </div>
+            </div>
+        </section>
+
+        <section style="text-align: center;">
+            <h2>Improve Engagement by 10x</h2>
+            <p style="font-size: 1.4rem;">When users are <span class="highlight">the protagonist of the story</span>, engagement isn't forced—it's organic. We turn mandatory compliance into the highlight of the work week.</p>
+            <a href="mailto:sales@kodesaga.com" style="display: inline-block; background: var(--accent-primary); color: white; padding: 1.25rem 2.5rem; border-radius: 14px; text-decoration: none; font-weight: 800; margin-top: 2rem; transition: transform 0.3s ease;">Partner with KodeSaGa</a>
+        </section>
+    </div>
+
+    <footer>
+        <div class="container" style="padding: 0;">
+            <img src="kodesaga-logo.png" alt="KodeSaGa Logo" style="height: 80px; margin-bottom: 2rem;">
+            <p>Redefining corporate training through the power of story-driven education.</p>
+            <div class="footer-links">
+                <a href="index.html">Home</a>
+                <a href="privacy.html">Privacy</a>
+                <a href="terms.html">Terms</a>
+                <a href="mailto:sales@kodesaga.com">Contact</a>
+            </div>
+            <p style="color: var(--text-dim); font-size: 0.9rem; margin-top: 2rem;">&copy; 2026 KodeSaGa LLP. All Rights Reserved.</p>
+        </div>
+    </footer>
+
+    <script>
+        lucide.createIcons();
+    </script>
+</body>
+
+</html>

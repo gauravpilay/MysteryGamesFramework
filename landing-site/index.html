@@ -526,6 +526,141 @@
                 gap: 2rem;
             }
         }
+
+        /* Licensing Section */
+        .licensing {
+            padding: 120px 0;
+            background: linear-gradient(to top, transparent, rgba(99, 102, 241, 0.05), transparent);
+        }
+
+        .licensing-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(300px, 1fr));
+            gap: 2.5rem;
+            margin-top: 60px;
+        }
+
+        .license-card {
+            background: var(--glass-bg);
+            border: 1px solid var(--glass-border);
+            padding: 4rem 2.5rem;
+            border-radius: 40px;
+            display: flex;
+            flex-direction: column;
+            transition: all 0.4s cubic-bezier(0.175, 0.885, 0.32, 1.275);
+            position: relative;
+            overflow: hidden;
+        }
+
+        .license-card.featured {
+            background: rgba(99, 102, 241, 0.1);
+            border-color: var(--accent-primary);
+            transform: scale(1.05);
+            z-index: 2;
+        }
+
+        .license-card:hover {
+            transform: translateY(-15px);
+            border-color: var(--accent-primary);
+            box-shadow: 0 30px 60px rgba(0, 0, 0, 0.5), 0 0 30px rgba(99, 102, 241, 0.2);
+        }
+
+        .license-badge {
+            position: absolute;
+            top: 2rem;
+            right: -2.5rem;
+            background: var(--accent-secondary);
+            color: white;
+            padding: 0.5rem 3.5rem;
+            font-size: 0.8rem;
+            font-weight: 900;
+            text-transform: uppercase;
+            transform: rotate(45deg);
+            letter-spacing: 0.05em;
+        }
+
+        .license-card h3 {
+            font-size: 1.75rem;
+            margin-bottom: 0.75rem;
+            color: white;
+        }
+
+        .license-price {
+            font-size: 3rem;
+            font-weight: 800;
+            margin-bottom: 2.5rem;
+            font-family: 'Outfit';
+        }
+
+        .license-price span {
+            font-size: 1.1rem;
+            color: var(--text-dim);
+            font-weight: 400;
+        }
+
+        .license-features {
+            list-style: none;
+            margin-bottom: 3.5rem;
+            flex-grow: 1;
+        }
+
+        .license-features li {
+            color: var(--text-dim);
+            margin-bottom: 1.25rem;
+            display: flex;
+            align-items: center;
+            gap: 1rem;
+            font-size: 1rem;
+        }
+
+        .license-features i {
+            color: var(--accent-primary);
+            width: 20px;
+        }
+
+        .license-btn {
+            width: 100%;
+            padding: 1.25rem;
+            border-radius: 16px;
+            text-align: center;
+            text-decoration: none;
+            font-weight: 800;
+            transition: all 0.3s ease;
+            font-size: 1rem;
+            letter-spacing: -0.01em;
+        }
+
+        .license-btn-outline {
+            border: 1px solid var(--glass-border);
+            color: white;
+            background: transparent;
+        }
+
+        .license-btn-outline:hover {
+            background: rgba(255, 255, 255, 0.1);
+            border-color: white;
+        }
+
+        .license-btn-primary {
+            background: var(--accent-primary);
+            color: white;
+            box-shadow: 0 10px 25px rgba(59, 130, 246, 0.3);
+        }
+
+        .license-btn-primary:hover {
+            box-shadow: 0 15px 35px rgba(59, 130, 246, 0.5);
+            transform: scale(1.02);
+        }
+
+        @media (max-width: 992px) {
+            .license-card.featured {
+                transform: scale(1);
+            }
+
+            .licensing-grid {
+                gap: 2rem;
+            }
+        }
     </style>
 </head>
 
@@ -538,8 +673,10 @@
             </a>
 
             <ul class="nav-links">
+                <li><a href="about.html">About Us</a></li>
                 <li><a href="#mission">Our Mission</a></li>
                 <li><a href="#pillars">The S.I.M.P.L.E Pillars</a></li>
+                <li><a href="#licensing">Licensing</a></li>
                 <li><a href="#industries">Industries</a></li>
             </ul>
 
@@ -655,6 +792,65 @@
         </div>
     </section>
 
+    <section id="licensing" class="licensing reveal">
+        <div class="container">
+            <div style="text-align: center; margin-bottom: 60px;">
+                <h2 style="font-size: 3.5rem; font-weight: 900; margin-bottom: 1rem;">Licensing <span>Framework</span>
+                </h2>
+                <p style="color: var(--text-dim); font-size: 1.2rem; max-width: 600px; margin: 0 auto;">Select the
+                    intensity of your mystery-driven transformation journey.</p>
+            </div>
+
+            <div class="licensing-grid">
+                <!-- SagaBasic -->
+                <div class="license-card">
+                    <h3>SagaBasic</h3>
+                    <div class="license-price">$29<span>per user/month</span></div>
+                    <ul class="license-features">
+                        <li><i data-lucide="check-circle"></i> 4 cases per year</li>
+                        <li><i data-lucide="check-circle"></i> 2 Live Questions per suspect</li>
+                        <li><i data-lucide="check-circle"></i> Standard Email Support</li>
+                        <li><i data-lucide="check-circle"></i> Up to 10 Active Players</li>
+                    </ul>
+                    <a href="mailto:sales@kodesaga.com?subject=SagaBasic Inquiry"
+                        class="license-btn license-btn-outline">Initiate Operation</a>
+                </div>
+
+                <!-- SagaPro -->
+                <div class="license-card featured">
+                    <div class="license-badge">Recommended</div>
+                    <h3>SagaPro</h3>
+                    <div class="license-price">$49<span>per user/month</span></div>
+                    <ul class="license-features">
+                        <li><i data-lucide="check-circle"></i> 12 Cases per year</li>
+                        <li><i data-lucide="check-circle"></i> 5 Live Questions per suspect</li>
+                        <li><i data-lucide="check-circle"></i> Priority Email Support</li>
+                        <li><i data-lucide="check-circle"></i> Up to 50 Active Players</li>
+                    </ul>
+                    <a href="mailto:sales@kodesaga.com?subject=SagaPro Inquiry"
+                        class="license-btn license-btn-primary">Elevate Training</a>
+                </div>
+
+                <!-- SagaEnterprise -->
+                <div class="license-card">
+                    <h3>SagaEnterprise</h3>
+                    <div class="license-price">Custom <span>/quoted</span></div>
+                    <ul class="license-features">
+                        <li><i data-lucide="check-circle"></i> Access to Mystery Architect for Building your own Cases
+                        </li>
+                        <li><i data-lucide="check-circle"></i> Dedicated hosting</li>
+                        <li><i data-lucide="check-circle"></i> Customized number of Live Questions per suspect</li>
+                        <li><i data-lucide="check-circle"></i> Customized number of Active Players</li>
+                        <li><i data-lucide="check-circle"></i> 4 Workshops on building your own cases using Myster
+                            Architect</li>
+                    </ul>
+                    <a href="mailto:sales@kodesaga.com?subject=SagaEnterprise Inquiry"
+                        class="license-btn license-btn-outline">Contact Architect</a>
+                </div>
+            </div>
+        </div>
+    </section>
+
     <section class="cta reveal">
         <div class="container">
             <div class="cta-box">
@@ -687,7 +883,7 @@
                     <h4>Operations</h4>
                     <ul>
                         <li><a href="#">Case Studies</a></li>
-                        <li><a href="#">Industry Solutions</a></li>
+                        <!-- <li><a href="#">Industry Solutions</a></li> -->
                         <li><a href="#">Client Success</a></li>
                         <li><a href="#">Our Methodology</a></li>
                     </ul>
@@ -696,8 +892,8 @@
                 <div class="footer-links">
                     <h4>Company</h4>
                     <ul>
-                        <li><a href="#">About LLP</a></li>
-                        <li><a href="#">Mission Path</a></li>
+                        <li><a href="about.html">About LLP</a></li>
+                        <li><a href="about.html#mission">Mission Path</a></li>
                         <li><a href="#">Team</a></li>
                         <li><a href="#">Careers</a></li>
                     </ul>
