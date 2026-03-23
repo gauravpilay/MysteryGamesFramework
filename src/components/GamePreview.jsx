@@ -644,6 +644,30 @@ const GamePreview = ({ nodes, edges, onClose, gameMetadata, onGameEnd, onNodeCha
     const [scoreDeltaKey, setScoreDeltaKey] = useState(0);
     const [flyingPointsKey, setFlyingPointsKey] = useState(0);
 
+    const progressPercentage = useMemo(() => {
+        if (!gameMetadata?.totalSteps || gameMetadata.totalSteps === 0) return 0;
+        
+        const INTERACTIVE_NODE_TYPES = [
+            'story', 'cutscene', 'suspect', 'evidence', 'terminal', 'interrogation',
+            'message', 'email', 'media', 'action', 'notification', 'question',
+            'identify', 'lockpick', 'decryption', 'keypad', 'fact', 'crazywall',
+            'threed', 'deepweb'
+        ];
+
+        const visitedInteractiveNodesSet = new Set(history.filter(id => {
+            const node = nodes.find(n => n.id === id);
+            return node && INTERACTIVE_NODE_TYPES.includes(node.type);
+        }));
+        const visitedCount = visitedInteractiveNodesSet.size;
+
+        const pct = (visitedCount / gameMetadata.totalSteps) * 100;
+        // Cap at 100% and use 5% intervals (e.g., 0, 5, 10...)
+        const cappedPct = Math.min(100, Math.max(0, pct));
+        const intervalPct = Math.floor(cappedPct / 5) * 5;
+        
+        return intervalPct;
+    }, [history, nodes, gameMetadata?.totalSteps]);
+
     // Helper wrappers so every caller just calls these instead of the raw setters
     const triggerScoreDelta = (val) => {
         animCounterRef.current += 1;
@@ -1869,6 +1893,15 @@ const GamePreview = ({ nodes, edges, onClose, gameMetadata, onGameEnd, onNodeCha
                     <div className="bg-red-600 px-1.5 md:px-2 py-1 rounded text-[8px] md:text-xs font-bold text-white uppercase tracking-widest animate-pulse shrink-0">
                         Active
                     </div>
+                    {/* Progress percentage for mobile/tablet */}
+                    {gameMetadata?.enableProgress !== false && (
+                        <div className="lg:hidden flex items-center gap-2 bg-indigo-500/10 border border-indigo-500/20 px-2 py-1 rounded-lg">
+                            <div className="w-2.5 h-2.5 rounded-full border-2 border-indigo-500/30 flex items-center justify-center">
+                                <div className="w-1 h-1 bg-indigo-500 rounded-full animate-pulse" />
+                            </div>
+                            <span className="text-[10px] font-black text-white/90 font-mono tracking-tighter">{progressPercentage}%</span>
+                        </div>
+                    )}
                     {/* Score Display - Enhanced UI */}
                     <div className="relative">
                         <AnimatePresence>
@@ -1937,6 +1970,23 @@ const GamePreview = ({ nodes, edges, onClose, gameMetadata, onGameEnd, onNodeCha
                             </div>
                         </div>
                     </div>
+
+                    {gameMetadata?.enableProgress !== false && (
+                        <div className="hidden lg:flex flex-col items-center gap-1.5 px-6 min-w-[160px]">
+                            <div className="flex items-center justify-between w-full px-1">
+                                <span className="text-[9px] font-black text-indigo-400 uppercase tracking-[0.2em]">Mission Progress</span>
+                                <span className="text-[10px] font-mono font-bold text-white">{progressPercentage}%</span>
+                            </div>
+                            <div className="w-full h-1.5 bg-zinc-900 rounded-full overflow-hidden border border-white/5 relative">
+                                <motion.div
+                                    initial={{ width: 0 }}
+                                    animate={{ width: `${progressPercentage}%` }}
+                                    transition={{ duration: 1, ease: "easeOut" }}
+                                    className="absolute top-0 left-0 h-full bg-gradient-to-r from-indigo-600 to-indigo-400 shadow-[0_0_10px_rgba(79,70,229,0.5)]"
+                                />
+                            </div>
+                        </div>
+                    )}
 
                     {gameMetadata?.enableTimeLimit !== false && (
                         <div className={`${isSimultaneous ? 'relative mx-auto mt-2' : 'fixed top-2 left-1/2 -translate-x-1/2'} px-4 py-1.5 md:px-8 md:py-3 rounded-xl border-2 shadow-[0_0_20px_rgba(0,0,0,0.5)] z-[601] flex items-center gap-2 md:gap-3 backdrop-blur-xl transition-all duration-300 ${timeLeft < 60 || !missionStarted ? 'bg-red-950/90 border-red-500 text-red-500' : 'bg-black/90 border-indigo-500 text-indigo-400'}`}>

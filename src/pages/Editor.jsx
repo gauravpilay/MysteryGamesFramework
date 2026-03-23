@@ -249,6 +249,17 @@ const Editor = () => {
     const [isPaletteCollapsed, setIsPaletteCollapsed] = useState(window.innerWidth < 768);
     const [isSimultaneousMode, setIsSimultaneousMode] = useState(false);
     const [activeExecutingNodeId, setActiveExecutingNodeId] = useState(null);
+    const [enableProgress, setEnableProgress] = useState(true); // Default to true
+
+    const totalSteps = useMemo(() => {
+        const INTERACTIVE_NODE_TYPES = [
+            'story', 'cutscene', 'suspect', 'evidence', 'terminal', 'interrogation',
+            'message', 'email', 'media', 'action', 'notification', 'question',
+            'identify', 'lockpick', 'decryption', 'keypad', 'fact', 'crazywall',
+            'threed', 'deepweb'
+        ];
+        return nodes.filter(n => INTERACTIVE_NODE_TYPES.includes(n.type)).length;
+    }, [nodes]);
 
     // Sync active state to nodes for highlighting
     useEffect(() => {
@@ -755,6 +766,7 @@ const Editor = () => {
                         if (data.meta.learningObjectives) setLearningObjectives(data.meta.learningObjectives);
                         if (data.meta.enableThreeD !== undefined) setEnableThreeD(data.meta.enableThreeD);
                         if (data.meta.enableTTS !== undefined) setEnableTTS(data.meta.enableTTS);
+                        if (data.meta.enableProgress !== undefined) setEnableProgress(data.meta.enableProgress);
                     }
                     if (data.isLocked !== undefined) setIsLocked(data.isLocked);
                     if (data.title) setCaseTitle(data.title);
@@ -977,7 +989,27 @@ const Editor = () => {
         const cleanEdges = edges.map(e => cleanForFirestore(e));
 
         try {
-            const flow = { nodes: cleanNodes, edges: cleanEdges, meta: { timeLimit, enableTimeLimit, learningObjectives, enableThreeD, enableTTS } };
+            const INTERACTIVE_NODE_TYPES = [
+                'story', 'cutscene', 'suspect', 'evidence', 'terminal', 'interrogation',
+                'message', 'email', 'media', 'action', 'notification', 'question',
+                'identify', 'lockpick', 'decryption', 'keypad', 'fact', 'crazywall',
+                'threed', 'deepweb'
+            ];
+            const totalSteps = nodes.filter(n => INTERACTIVE_NODE_TYPES.includes(n.type)).length;
+
+            const flow = { 
+                nodes: cleanNodes, 
+                edges: cleanEdges, 
+                meta: { 
+                    timeLimit, 
+                    enableTimeLimit, 
+                    learningObjectives, 
+                    enableThreeD, 
+                    enableTTS,
+                    enableProgress,
+                    totalSteps
+                } 
+            };
 
             // Pre-flight size check — Firestore document limit is ~1MB
             const payloadStr = JSON.stringify(flow);
@@ -1167,8 +1199,27 @@ const Editor = () => {
         const zip = new JSZip();
 
         // Clean nodes data of functions
-        const cleanNodes = nodes.map(n => ({ ...n, data: { ...n.data, onChange: undefined, onDuplicate: undefined } }));
-        const gameData = { nodes: cleanNodes, edges, meta: { generatedAt: new Date(), timeLimit, enableTimeLimit, learningObjectives, enableTTS } };
+        const INTERACTIVE_NODE_TYPES = [
+            'story', 'cutscene', 'suspect', 'evidence', 'terminal', 'interrogation',
+            'message', 'email', 'media', 'action', 'notification', 'question',
+            'identify', 'lockpick', 'decryption', 'keypad', 'fact', 'crazywall',
+            'threed', 'deepweb'
+        ];
+        const totalSteps = nodes.filter(n => INTERACTIVE_NODE_TYPES.includes(n.type)).length;
+
+        const gameData = { 
+            nodes: cleanNodes, 
+            edges, 
+            meta: { 
+                generatedAt: new Date(), 
+                timeLimit, 
+                enableTimeLimit, 
+                learningObjectives, 
+                enableTTS,
+                enableProgress,
+                totalSteps
+            } 
+        };
 
         const folder = zip.folder("mystery-game-build");
         folder.file("game-data.json", JSON.stringify(gameData, null, 2));
@@ -3601,7 +3652,7 @@ Rules: cinematic noir/thriller tone; explain the mystery setup, main suspects, k
                                         nodes={nodes}
                                         edges={edges}
                                         onClose={() => setShowPreview(false)}
-                                        gameMetadata={{ timeLimit, enableTimeLimit, learningObjectives, enableTTS }}
+                                        gameMetadata={{ timeLimit, enableTimeLimit, learningObjectives, enableTTS, enableProgress, totalSteps }}
                                         onGameEnd={handlePreviewGameEnd}
                                         onNodeChange={onGameNodeChange}
                                         isSimultaneous={true}
@@ -3666,7 +3717,7 @@ Rules: cinematic noir/thriller tone; explain the mystery setup, main suspects, k
                         <TutorialOverlay steps={tutorialSteps} onClose={() => setShowTutorial(false)} />
                     )}
                     {showPreview && !isSimultaneousMode && (
-                        <GamePreview nodes={nodes} edges={edges} onClose={() => setShowPreview(false)} gameMetadata={{ timeLimit, enableTimeLimit, learningObjectives, enableTTS }} onGameEnd={handlePreviewGameEnd} onNodeChange={onGameNodeChange} />
+                        <GamePreview nodes={nodes} edges={edges} onClose={() => setShowPreview(false)} gameMetadata={{ timeLimit, enableTimeLimit, learningObjectives, enableTTS, enableProgress, totalSteps }} onGameEnd={handlePreviewGameEnd} onNodeChange={onGameNodeChange} />
                     )}
 
                     {/* Learning Objectives Editor */}
@@ -3736,6 +3787,21 @@ Rules: cinematic noir/thriller tone; explain the mystery setup, main suspects, k
                                                     />
                                                     <span className="text-zinc-500 text-[10px] font-black uppercase">Minutes</span>
                                                 </div>
+                                            </div>
+                                        </div>
+
+                                        <div className="p-4 md:p-6 bg-zinc-900/30 border border-zinc-800 rounded-2xl flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4">
+                                            <div className="space-y-1">
+                                                <p className="text-sm font-bold text-white uppercase tracking-tight">Progress Tracking</p>
+                                                <p className="text-[10px] text-zinc-500 font-medium uppercase tracking-widest">Show a progress bar or percentage to the player</p>
+                                            </div>
+                                            <div className="flex items-center gap-4">
+                                                <button
+                                                    onClick={() => setEnableProgress(!enableProgress)}
+                                                    className={`flex items-center gap-2 px-4 py-2 rounded-xl border transition-all ${enableProgress ? 'bg-emerald-500/20 border-emerald-500/50 text-emerald-400' : 'bg-red-500/20 border-red-500/50 text-red-400'}`}
+                                                >
+                                                    <span className="text-[10px] font-black uppercase tracking-widest">{enableProgress ? 'Enabled' : 'Disabled'}</span>
+                                                </button>
                                             </div>
                                         </div>
 
