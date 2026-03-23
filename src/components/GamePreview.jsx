@@ -1161,7 +1161,10 @@ const GamePreview = ({ nodes, edges, onClose, gameMetadata, onGameEnd, onNodeCha
             }
 
             // Award Scores for discoveries (even silent ones)
-            if (n.data?.score && !scoredNodes.has(n.id)) {
+            // ACTION_NODES handle their own scoring upon successful completion/submission.
+            const ACTION_NODES = ['terminal', 'question', 'identify', 'lockpick', 'keypad', 'decryption', 'interrogation', 'crazywall'];
+            
+            if (n.data?.score && !scoredNodes.has(n.id) && !ACTION_NODES.includes(n.type)) {
                 const awards = Number(n.data.score) || 0;
                 setScore(s => s + awards);
                 triggerScoreDelta(awards);
@@ -3119,6 +3122,17 @@ const GamePreview = ({ nodes, edges, onClose, gameMetadata, onGameEnd, onNodeCha
                                 <LockpickMinigame
                                     node={activeModalNode}
                                     onSuccess={() => {
+                                        // Award points
+                                        if (activeModalNode.data.score && !scoredNodes.has(activeModalNode.id)) {
+                                            const awards = Number(activeModalNode.data.score) || 0;
+                                            setScore(s => s + awards);
+                                            triggerScoreDelta(awards);
+                                            triggerFlyingPoints(awards);
+                                            rewardObjectivePoints(activeModalNode, awards);
+                                            setScoredNodes(prev => new Set([...prev, activeModalNode.id]));
+                                            addLog(`LOCKPICK SUCCESS: +${awards} Points`);
+                                        }
+
                                         // Set Success Variable
                                         if (activeModalNode.data.variableId) {
                                             setInventory(prev => new Set([...prev, activeModalNode.data.variableId]));
@@ -3143,6 +3157,17 @@ const GamePreview = ({ nodes, edges, onClose, gameMetadata, onGameEnd, onNodeCha
                                 <KeypadMinigame
                                     node={activeModalNode}
                                     onSuccess={() => {
+                                        // Award points
+                                        if (activeModalNode.data.score && !scoredNodes.has(activeModalNode.id)) {
+                                            const awards = Number(activeModalNode.data.score) || 0;
+                                            setScore(s => s + awards);
+                                            triggerScoreDelta(awards);
+                                            triggerFlyingPoints(awards);
+                                            rewardObjectivePoints(activeModalNode, awards);
+                                            setScoredNodes(prev => new Set([...prev, activeModalNode.id]));
+                                            addLog(`KEYPAD DECODED: +${awards} Points`);
+                                        }
+
                                         if (activeModalNode.data.variableId) {
                                             setInventory(prev => new Set([...prev, activeModalNode.data.variableId]));
                                             setNodeOutputs(prev => ({ ...prev, [activeModalNode.data.variableId]: true }));
@@ -3162,6 +3187,17 @@ const GamePreview = ({ nodes, edges, onClose, gameMetadata, onGameEnd, onNodeCha
                                 <DecryptionMinigame
                                     node={activeModalNode}
                                     onSuccess={() => {
+                                        // Award points
+                                        if (activeModalNode.data.score && !scoredNodes.has(activeModalNode.id)) {
+                                            const awards = Number(activeModalNode.data.score) || 0;
+                                            setScore(s => s + awards);
+                                            triggerScoreDelta(awards);
+                                            triggerFlyingPoints(awards);
+                                            rewardObjectivePoints(activeModalNode, awards);
+                                            setScoredNodes(prev => new Set([...prev, activeModalNode.id]));
+                                            addLog(`DECRYPTION COMPLETE: +${awards} Points`);
+                                        }
+
                                         if (activeModalNode.data.variableId) {
                                             setInventory(prev => new Set([...prev, activeModalNode.data.variableId]));
                                             setNodeOutputs(prev => ({ ...prev, [activeModalNode.data.variableId]: true }));
