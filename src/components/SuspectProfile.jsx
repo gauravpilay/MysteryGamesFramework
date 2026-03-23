@@ -3,7 +3,8 @@ import {
     User, Shield, Activity, MessageSquare, Search, Terminal,
     ChevronRight, Briefcase, ShieldAlert, Fingerprint, Dna,
     AlertTriangle, Eye, Zap, Target, Mail, X, Lightbulb,
-    ArrowDown, Sparkles, FileText, Info, AlertCircle, CheckCircle2
+    ArrowDown, Sparkles, FileText, Info, AlertCircle, CheckCircle2,
+    MousePointerClick
 } from 'lucide-react';
 import { useState, useEffect, useMemo } from 'react';
 
@@ -127,7 +128,37 @@ const ThreatIndicator = ({ suspect }) => {
     );
 };
 
-// -- HINT COMPONENT --
+// -- TUTORIAL COMPONENTS --
+const HandTutorial = () => (
+    <motion.div
+        initial={{ opacity: 0, x: 20, y: 20 }}
+        animate={{ 
+            opacity: [0, 1, 1, 0],
+            x: [40, 0, 40],
+            y: [40, 0, 40],
+            scale: [1, 0.8, 1]
+        }}
+        transition={{ 
+            duration: 2.5, 
+            repeat: Infinity,
+            ease: "easeInOut"
+        }}
+        className="absolute bottom-6 right-6 z-50 pointer-events-none"
+    >
+        <div className="flex flex-col items-center">
+             <motion.div
+                animate={{ scale: [1, 1.5, 1], opacity: [0.3, 0.6, 0.3] }}
+                transition={{ duration: 2, repeat: Infinity }}
+                className="absolute -inset-4 bg-amber-500/20 rounded-full blur-xl"
+            />
+            <MousePointerClick className="w-12 h-12 text-amber-400 drop-shadow-[0_0_20px_rgba(251,191,36,0.6)]" />
+            <span className="mt-3 text-[10px] font-black text-amber-400 uppercase tracking-[0.2em] whitespace-nowrap bg-black/80 px-4 py-2 rounded-xl border border-amber-500/30 backdrop-blur-md shadow-2xl">
+                Present Evidence
+            </span>
+        </div>
+    </motion.div>
+);
+
 const ConfrontationHint = ({ count, onDismiss }) => (
     <motion.div
         initial={{ opacity: 0, y: 20 }}
@@ -173,6 +204,7 @@ export default function SuspectProfile({
     const [activeTab, setActiveTab] = useState(initialTab);
     const [suspectDismissal, setSuspectDismissal] = useState(null);
     const [showHint, setShowHint] = useState(false);
+    const [showHandTutorial, setShowHandTutorial] = useState(false);
     // Local mirror of confrontedIds (extended as user confronts more within this session)
     const [confrontedEvidenceIds, setConfrontedEvidenceIds] = useState(new Set(confrontedIds));
 
@@ -252,6 +284,17 @@ export default function SuspectProfile({
         setShowHint(false);
         localStorage.setItem('confrontation_hint_shown', 'true');
     };
+
+    // Show hand tutorial if we are on evidence tab, have never confronted anyone (in this session or global)
+    // and there is at least one evidence available.
+    useEffect(() => {
+        if (activeTab === 'evidence' && confrontedEvidenceIds.size === 0 && relevantEvidence.length > 0) {
+            const timer = setTimeout(() => setShowHandTutorial(true), 1000);
+            return () => clearTimeout(timer);
+        } else {
+            setShowHandTutorial(false);
+        }
+    }, [activeTab, confrontedEvidenceIds.size, relevantEvidence.length]);
 
     const handleConfront = (eNode) => {
         const match = edges.find(e =>
@@ -613,6 +656,7 @@ export default function SuspectProfile({
                                                             )}
                                                         </p>
                                                     </div>
+                                                    {idx === 0 && showHandTutorial && <HandTutorial />}
                                                 </motion.button>
                                             );
                                         })}
