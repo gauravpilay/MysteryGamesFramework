@@ -93,12 +93,11 @@ echo "✅ Project ID:  $PROJECT_ID"
 echo "✅ Region:      $REGION"
 echo "--------------------------------------------------"
 
-# Define Image Tag for Artifact Registry (using version tag)
-IMAGE_TAG="$REGION-docker.pkg.dev/$PROJECT_ID/$REPO_NAME/$SERVICE_NAME:$VITE_APP_VERSION"
+# Define Image Tag for Artifact Registry (using latest)
+IMAGE_TAG="$REGION-docker.pkg.dev/$PROJECT_ID/$REPO_NAME/$SERVICE_NAME:latest"
 
-# Prepare a clean revision suffix (letters, numbers, hyphens only)
+# Prepare a clean tag (letters, numbers, hyphens only)
 CLEAN_VERSION=$(echo "$VITE_APP_VERSION" | sed 's/[^a-zA-Z0-9]/-/g' | tr '[:upper:]' '[:lower:]')
-REVISION_SUFFIX="v${CLEAN_VERSION}-$(date +%M%S)"
 
 echo "🔨 Building and Pushing Image to Artifact Registry..."
 echo "This might take a few minutes..."
@@ -127,7 +126,7 @@ gcloud run deploy $SERVICE_NAME \
   --region $REGION \
   --allow-unauthenticated \
   --port 8080 \
-  --revision-suffix "$REVISION_SUFFIX"
+  --tag "$CLEAN_VERSION"
 
 echo "=================================================="
 echo "✅ Deployment Successful!"
