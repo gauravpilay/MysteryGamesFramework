@@ -93,8 +93,12 @@ echo "✅ Project ID:  $PROJECT_ID"
 echo "✅ Region:      $REGION"
 echo "--------------------------------------------------"
 
-# Define Image Tag for Artifact Registry
-IMAGE_TAG="$REGION-docker.pkg.dev/$PROJECT_ID/$REPO_NAME/$SERVICE_NAME:latest"
+# Define Image Tag for Artifact Registry (using version tag)
+IMAGE_TAG="$REGION-docker.pkg.dev/$PROJECT_ID/$REPO_NAME/$SERVICE_NAME:$VITE_APP_VERSION"
+
+# Prepare a clean revision suffix (letters, numbers, hyphens only)
+CLEAN_VERSION=$(echo "$VITE_APP_VERSION" | sed 's/[^a-zA-Z0-9]/-/g' | tr '[:upper:]' '[:lower:]')
+REVISION_SUFFIX="v${CLEAN_VERSION}-$(date +%M%S)"
 
 echo "🔨 Building and Pushing Image to Artifact Registry..."
 echo "This might take a few minutes..."
@@ -111,7 +115,7 @@ fi
 # Build using Cloud Build
 gcloud builds submit \
   --config=cloudbuild.yaml \
-  --substitutions=_IMAGE_TAG="$IMAGE_TAG",_VITE_FIREBASE_API_KEY="$VITE_FIREBASE_API_KEY",_VITE_FIREBASE_AUTH_DOMAIN="$VITE_FIREBASE_AUTH_DOMAIN",_VITE_FIREBASE_PROJECT_ID="$VITE_FIREBASE_PROJECT_ID",_VITE_FIREBASE_STORAGE_BUCKET="$VITE_FIREBASE_STORAGE_BUCKET",_VITE_FIREBASE_MESSAGING_SENDER_ID="$VITE_FIREBASE_MESSAGING_SENDER_ID",_VITE_FIREBASE_APP_ID="$VITE_FIREBASE_APP_ID",_VITE_AI_API_KEY="$VITE_AI_API_KEY",_VITE_MAX_AI_REQUESTS="$VITE_MAX_AI_REQUESTS",_VITE_FIREBASE_DATABASE_ID="$VITE_FIREBASE_DATABASE_ID"
+  --substitutions=_IMAGE_TAG="$IMAGE_TAG",_VITE_FIREBASE_API_KEY="$VITE_FIREBASE_API_KEY",_VITE_FIREBASE_AUTH_DOMAIN="$VITE_FIREBASE_AUTH_DOMAIN",_VITE_FIREBASE_PROJECT_ID="$VITE_FIREBASE_PROJECT_ID",_VITE_FIREBASE_STORAGE_BUCKET="$VITE_FIREBASE_STORAGE_BUCKET",_VITE_FIREBASE_MESSAGING_SENDER_ID="$VITE_FIREBASE_MESSAGING_SENDER_ID",_VITE_FIREBASE_APP_ID="$VITE_FIREBASE_APP_ID",_VITE_AI_API_KEY="$VITE_AI_API_KEY",_VITE_MAX_AI_REQUESTS="$VITE_MAX_AI_REQUESTS",_VITE_FIREBASE_DATABASE_ID="$VITE_FIREBASE_DATABASE_ID",_VITE_APP_VERSION="$VITE_APP_VERSION"
 
 echo "--------------------------------------------------"
 echo "🚀 Deploying to Cloud Run..."
@@ -122,7 +126,8 @@ gcloud run deploy $SERVICE_NAME \
   --platform managed \
   --region $REGION \
   --allow-unauthenticated \
-  --port 8080
+  --port 8080 \
+  --revision-suffix "$REVISION_SUFFIX"
 
 echo "=================================================="
 echo "✅ Deployment Successful!"
