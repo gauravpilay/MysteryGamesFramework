@@ -1,6 +1,6 @@
 import React, { useState, useEffect, useMemo, useRef } from 'react';
 import { Button, Card } from './ui/shared';
-import { X, User, Search, Terminal, MessageSquare, FileText, ArrowRight, ArrowLeft, ShieldAlert, CheckCircle, AlertTriangle, Volume2, VolumeX, Image as ImageIcon, Briefcase, Star, MousePointerClick, Bell, HelpCircle, Clock, ZoomIn, LayoutGrid, ChevronRight, Fingerprint, Cpu, Activity, Shield, Hash, Box as BoxIcon, Radio, Lightbulb, Mail, Paperclip, Unlock, XCircle, Play, Pause, Square, Info, Save, BookmarkCheck, LogOut } from 'lucide-react';
+import { X, Menu, User, Search, Terminal, MessageSquare, FileText, ArrowRight, ArrowLeft, ShieldAlert, CheckCircle, AlertTriangle, Volume2, VolumeX, Image as ImageIcon, Briefcase, Star, MousePointerClick, Bell, HelpCircle, Clock, ZoomIn, LayoutGrid, ChevronRight, Fingerprint, Cpu, Activity, Shield, Hash, Box as BoxIcon, Radio, Lightbulb, Mail, Paperclip, Unlock, XCircle, Play, Pause, Square, Info, Save, BookmarkCheck, LogOut } from 'lucide-react';
 import { motion, AnimatePresence } from 'framer-motion';
 import EvidenceBoard from './EvidenceBoard';
 import AdvancedTerminal from './AdvancedTerminal';
@@ -599,6 +599,8 @@ const GamePreview = ({ nodes, edges, onClose, gameMetadata, onGameEnd, onNodeCha
     // Save Progress State
     const [isSaving, setIsSaving] = useState(false);
     const [showSaveConfirm, setShowSaveConfirm] = useState(false); // post-save popup (Continue or Quit)
+    const [showVolumeSlider, setShowVolumeSlider] = useState(false);
+    const [showMobileMenu, setShowMobileMenu] = useState(false);
 
     // Timer State
     const initialTime = (gameMetadata?.timeLimit || 15) * 60; // Convert minutes to seconds
@@ -1880,7 +1882,8 @@ const GamePreview = ({ nodes, edges, onClose, gameMetadata, onGameEnd, onNodeCha
 
             {/* Header */}
             <div className="h-16 border-b border-zinc-800/50 bg-zinc-950/80 backdrop-blur-xl flex items-center justify-between px-3 md:px-6 shrink-0 relative z-[600]">
-                <div className="flex items-center gap-2 md:gap-3">
+                {/* 1. Left Section */}
+                <div className="flex items-center gap-2 md:gap-3 flex-1 min-w-0">
                     {history.length > 0 && !showFeedback && (
                         <button
                             onClick={handleGoBack}
@@ -1890,10 +1893,11 @@ const GamePreview = ({ nodes, edges, onClose, gameMetadata, onGameEnd, onNodeCha
                             <div className="w-7 h-7 md:w-8 md:h-8 rounded-full bg-black/40 flex items-center justify-center border border-white/5 group-hover:border-white/20 transition-all">
                                 <ArrowLeft className="w-4 h-4 group-hover:-translate-x-1 transition-transform" />
                             </div>
-                            <span className="text-[10px] md:text-xs font-black uppercase tracking-[0.2em]">Previous Scene</span>
+                            <span className="text-[10px] md:text-xs font-black uppercase tracking-[0.2em] hidden sm:inline">Previous Scene</span>
+                            <span className="text-[10px] font-black uppercase tracking-[0.2em] sm:hidden">Back</span>
                         </button>
                     )}
-                    <div className="bg-red-600 px-1.5 md:px-2 py-1 rounded text-[8px] md:text-xs font-bold text-white uppercase tracking-widest animate-pulse shrink-0">
+                    <div className="hidden sm:block bg-red-600 px-1.5 md:px-2 py-1 rounded text-[8px] md:text-xs font-bold text-white uppercase tracking-widest animate-pulse shrink-0">
                         Active
                     </div>
                     {/* Progress percentage for mobile/tablet */}
@@ -1974,235 +1978,389 @@ const GamePreview = ({ nodes, edges, onClose, gameMetadata, onGameEnd, onNodeCha
                         </div>
                     </div>
 
-                    {gameMetadata?.enableProgress !== false && (
-                        <div className="hidden lg:flex flex-col items-center gap-1.5 px-6 min-w-[160px]">
-                            <div className="flex items-center justify-between w-full px-1">
-                                <span className="text-[9px] font-black text-indigo-400 uppercase tracking-[0.2em]">Mission Progress</span>
-                                <span className="text-[10px] font-mono font-bold text-white">{progressPercentage}%</span>
-                            </div>
-                            <div className="w-full h-1.5 bg-zinc-900 rounded-full overflow-hidden border border-white/5 relative">
-                                <motion.div
-                                    initial={{ width: 0 }}
-                                    animate={{ width: `${progressPercentage}%` }}
-                                    transition={{ duration: 1, ease: "easeOut" }}
-                                    className="absolute top-0 left-0 h-full bg-gradient-to-r from-indigo-600 to-indigo-400 shadow-[0_0_10px_rgba(79,70,229,0.5)]"
-                                />
-                            </div>
-                        </div>
-                    )}
+                </div>
 
+                {/* 2. Middle Section: Timer (Centered) */}
+                <div className="flex-1 flex justify-center px-2">
                     {gameMetadata?.enableTimeLimit !== false && (
-                        <div className={`${isSimultaneous ? 'relative mx-auto mt-2' : 'fixed top-2 left-1/2 -translate-x-1/2'} px-4 py-1.5 md:px-8 md:py-3 rounded-xl border-2 shadow-[0_0_20px_rgba(0,0,0,0.5)] z-[601] flex items-center gap-2 md:gap-3 backdrop-blur-xl transition-all duration-300 ${timeLeft < 60 || !missionStarted ? 'bg-red-950/90 border-red-500 text-red-500' : 'bg-black/90 border-indigo-500 text-indigo-400'}`}>
-                            <Clock className={`w-4 h-4 md:w-6 md:h-6 ${timeLeft < 60 ? 'animate-pulse' : ''}`} />
+                        <div className={`px-3 py-1 md:px-6 md:py-2 rounded-xl border transition-all duration-300 flex items-center gap-2 md:gap-3 backdrop-blur-xl shadow-lg relative
+                            ${timeLeft < 60 || !missionStarted ? 'bg-red-950/40 border-red-500/50 text-red-500' : 'bg-black/40 border-indigo-500/30 text-indigo-400'}`}
+                        >
+                            <Clock className={`w-3.5 h-3.5 md:w-5 md:h-5 ${timeLeft < 60 ? 'animate-pulse' : ''}`} />
                             <div className="flex flex-col items-center leading-none">
-                                <span className="text-[7px] md:text-xs font-black uppercase tracking-[0.1em] md:tracking-[0.2em] opacity-80 mb-0.5 md:mb-1">
-                                    {missionStarted ? "Time" : "Timer"}
+                                <span className="text-[6px] md:text-[8px] font-black uppercase tracking-[0.1em] md:tracking-[0.2em] opacity-80 mb-0.5">
+                                    {missionStarted ? "Remaining" : "Status"}
                                 </span>
-                                <span className="font-mono text-xl md:text-3xl font-black tracking-widest drop-shadow-lg">
+                                <span className="font-mono text-sm md:text-2xl font-black tracking-widest">
                                     {formatTime(timeLeft)}
                                 </span>
                             </div>
                         </div>
                     )}
                 </div>
-                <div className="flex items-center gap-1.5 md:gap-3">
-                    {/* ── TTS Narrator Control (story nodes only, requires enable_audio_support license) ── */}
-                    {isStoryNode && ttsText && audioEnabled && (
-                        <motion.div
-                            key={currentNodeId + '-tts'}
-                            initial={{ opacity: 0, scale: 0.85, width: 0 }}
-                            animate={{ opacity: 1, scale: 1, width: 'auto' }}
-                            exit={{ opacity: 0, scale: 0.85, width: 0 }}
-                            transition={{ type: 'spring', stiffness: 320, damping: 24 }}
-                            className="flex items-center gap-1.5 bg-zinc-900/60 border border-blue-500/20 rounded-full px-2 py-1 overflow-hidden mr-1"
-                        >
-                            {/* Mini waveform */}
-                            <div className="flex items-center gap-[2px] h-4">
-                                {[0.4, 0.8, 0.5, 1.0, 0.6, 0.9, 0.4].map((h, i) => (
-                                    <motion.div
-                                        key={i}
-                                        className="w-[2px] rounded-full bg-blue-400"
-                                        animate={ttsPlaying ? {
-                                            scaleY: [h * 0.3, h, h * 0.5, h * 0.9, h * 0.3],
-                                        } : { scaleY: 0.2 }}
-                                        transition={{
-                                            duration: 0.7,
-                                            delay: i * 0.07,
-                                            repeat: Infinity,
-                                            ease: 'easeInOut',
-                                        }}
-                                        style={{ height: 14, transformOrigin: 'center' }}
-                                    />
-                                ))}
-                            </div>
 
-                            {/* Voice label + Chirp badge — shown only on md+ screens */}
-                            <span className="hidden md:flex items-center gap-1 text-[8px] font-black text-blue-400/70 uppercase tracking-widest whitespace-nowrap max-w-[110px] truncate">
-                                {isChirpMode && (
-                                    <span className="text-[7px] px-1 py-0.5 rounded bg-blue-500/20 text-blue-300 border border-blue-500/30 font-black tracking-normal shrink-0">Chirp</span>
-                                )}
-                                {ttsVoiceName ? ttsVoiceName.split('-').pop() || ttsVoiceName.split(' ')[0] : 'Narrator'}
-                            </span>
-
-                            {/* Play / Pause button */}
-                            <motion.button
-                                whileHover={{ scale: 1.12 }}
-                                whileTap={{ scale: 0.9 }}
-                                onClick={(e) => { e.stopPropagation(); ttsPlaying ? ttsPause() : ttsPlay(); }}
-                                disabled={!ttsVoicesReady && !ttsPlaying}
-                                title={ttsPlaying ? 'Pause narration' : ttsPaused ? 'Resume narration' : 'Play narration'}
-                                className={`w-7 h-7 rounded-full flex items-center justify-center transition-all shrink-0 border ${ttsPlaying
-                                    ? 'bg-blue-600 border-blue-500 text-white shadow-[0_0_10px_rgba(59,130,246,0.5)]'
-                                    : ttsPaused
-                                        ? 'bg-amber-600/90 border-amber-500 text-white'
-                                        : 'bg-zinc-800 border-zinc-700 text-blue-400 hover:bg-blue-900/40 hover:border-blue-600'
-                                    } disabled:opacity-40`}
-                            >
-                                {ttsPlaying
-                                    ? <Pause className="w-3 h-3 fill-current" />
-                                    : <Play className="w-3 h-3 fill-current translate-x-px" />}
-                            </motion.button>
-
-                            {/* Stop — only if active */}
-                            {(ttsPlaying || ttsPaused) && (
-                                <motion.button
-                                    initial={{ opacity: 0, width: 0 }}
-                                    animate={{ opacity: 1, width: 28 }}
-                                    exit={{ opacity: 0, width: 0 }}
-                                    whileTap={{ scale: 0.9 }}
-                                    onClick={(e) => { e.stopPropagation(); ttsStop(); }}
-                                    title="Stop narration"
-                                    className="w-7 h-7 rounded-full flex items-center justify-center bg-zinc-800 border border-zinc-700 text-zinc-400 hover:text-red-400 hover:border-red-800 transition-all shrink-0"
-                                >
-                                    <Square className="w-3 h-3 fill-current" />
-                                </motion.button>
-                            )}
-                        </motion.div>
-                    )}
-
-                    {/* Audio Controls */}
-                    {audioSource && (
-                        <motion.div
-                            className="flex items-center gap-0 md:gap-1 bg-zinc-900/40 border border-white/5 rounded-full px-1 overflow-hidden"
-                            initial="initial"
-                            whileHover="hover"
-                        >
-                            <Button
-                                variant="ghost"
-                                size="icon"
-                                onClick={() => setIsMuted(!isMuted)}
-                                className={`w-8 h-8 md:w-10 md:h-10 transition-colors shrink-0 ${isMuted ? "text-red-500 hover:bg-red-500/10" : "text-green-500 hover:bg-green-500/10"}`}
-                            >
-                                {isMuted ? <VolumeX className="w-4 h-4 md:w-5 md:h-5" /> : <Volume2 className="w-4 h-4 md:w-5 md:h-5" />}
-                            </Button>
-
+                {/* 3. Right Section: Action Controls */}
+                <div className="flex items-center gap-1.5 md:gap-3 flex-1 justify-end min-w-0">
+                    
+                    {/* Desktop Controls (Hidden on Mobile) */}
+                    <div className="hidden lg:flex items-center gap-1.5 md:gap-3">
+                        {/* ── TTS Narrator Control (story nodes only, requires enable_audio_support license) ── */}
+                        {isStoryNode && ttsText && audioEnabled && (
                             <motion.div
-                                variants={{
-                                    initial: { width: 0, opacity: 0, marginLeft: 0 },
-                                    hover: { width: "auto", opacity: 1, marginLeft: 8, marginRight: 12 }
-                                }}
-                                transition={{ type: "spring", stiffness: 300, damping: 30 }}
-                                className="flex items-center shrink-0"
+                                key={currentNodeId + '-tts'}
+                                initial={{ opacity: 0, scale: 0.85, width: 0 }}
+                                animate={{ opacity: 1, scale: 1, width: 'auto' }}
+                                exit={{ opacity: 0, scale: 0.85, width: 0 }}
+                                transition={{ type: 'spring', stiffness: 320, damping: 24 }}
+                                className="flex items-center gap-1.5 bg-zinc-900/60 border border-blue-500/20 rounded-full px-2 py-1 overflow-hidden mr-1"
                             >
-                                <input
-                                    type="range"
-                                    min="0"
-                                    max="1"
-                                    step="0.01"
-                                    value={audioVolume}
-                                    onChange={(e) => {
-                                        setAudioVolume(parseFloat(e.target.value));
-                                        if (isMuted && parseFloat(e.target.value) > 0) setIsMuted(false);
-                                    }}
-                                    className="w-16 md:w-24 h-1 bg-zinc-800 rounded-lg appearance-none cursor-pointer accent-indigo-500"
-                                />
-                            </motion.div>
-                        </motion.div>
-                    )}
+                                {/* Mini waveform */}
+                                <div className="flex items-center gap-[2px] h-4">
+                                    {[0.4, 0.8, 0.5, 1.0, 0.6, 0.9, 0.4].map((h, i) => (
+                                        <motion.div
+                                            key={i}
+                                            className="w-[2px] rounded-full bg-blue-400"
+                                            animate={ttsPlaying ? {
+                                                scaleY: [h * 0.3, h, h * 0.5, h * 0.9, h * 0.3],
+                                            } : { scaleY: 0.2 }}
+                                            transition={{
+                                                duration: 0.7,
+                                                delay: i * 0.07,
+                                                repeat: Infinity,
+                                                ease: 'easeInOut',
+                                            }}
+                                            style={{ height: 14, transformOrigin: 'center' }}
+                                        />
+                                    ))}
+                                </div>
 
-
-                    {/* Investigation Hub Button - Upgraded Visibility */}
-                    {missionStarted && (
-                        <div className="flex items-center">
-                            <Button
-                                variant="secondary"
-                                onClick={() => {
-                                    const hubNode = nodes.find(n =>
-                                        n.type === 'story' &&
-                                        (n.data?.label?.toLowerCase().includes('hub') || n.data?.label?.toLowerCase().includes('investigation'))
-                                    );
-                                    if (hubNode) {
-                                        handleOptionClick(hubNode.id);
-                                        setShowEvidenceBoard(false);
-                                        setActiveModalNode(null);
-                                    } else {
-                                        const suspectedHub = nodes.find(n =>
-                                            edges.filter(e => e.source === n.id)
-                                                .some(e => nodes.find(tn => tn.id === e.target)?.type === 'suspect')
-                                        );
-                                        if (suspectedHub) handleOptionClick(suspectedHub.id);
-                                    }
-                                }}
-                                className="relative group bg-indigo-600 hover:bg-indigo-500 text-white px-4 md:px-6 h-10 md:h-11 rounded-2xl border border-indigo-400/50 shadow-[0_0_20px_rgba(79,70,229,0.3)] hover:shadow-[0_0_35px_rgba(79,70,229,0.5)] overflow-hidden transition-all duration-300 active:scale-95 flex items-center gap-2"
-                            >
-                                {/* Animated Shimmer Effect */}
-                                <div className="absolute inset-0 bg-gradient-to-r from-transparent via-white/20 to-transparent -translate-x-full group-hover:animate-shimmer pointer-events-none" />
-
-                                <LayoutGrid className="w-4 h-4 md:w-5 md:h-5 text-shadow-glow" />
-                                <span className="uppercase font-black text-[9px] md:text-[11px] tracking-[0.1em] md:tracking-[0.2em] relative z-10">
-                                    Investigation Hub
+                                {/* Voice label + Chirp badge — shown only on md+ screens */}
+                                <span className="hidden md:flex items-center gap-1 text-[8px] font-black text-blue-400/70 uppercase tracking-widest whitespace-nowrap max-w-[110px] truncate">
+                                    {isChirpMode && (
+                                        <span className="text-[7px] px-1 py-0.5 rounded bg-blue-500/20 text-blue-300 border border-blue-500/30 font-black tracking-normal shrink-0">Chirp</span>
+                                    )}
+                                    {ttsVoiceName ? ttsVoiceName.split('-').pop() || ttsVoiceName.split(' ')[0] : 'Narrator'}
                                 </span>
 
-                                {/* Bottom Indicator Line */}
-                                <div className="absolute bottom-0 left-0 w-full h-[2px] bg-cyan-400 shadow-[0_0_10px_#22d3ee] scale-x-0 group-hover:scale-x-100 transition-transform duration-500 origin-center" />
-                            </Button>
-                        </div>
-                    )}
+                                {/* Play / Pause button */}
+                                <motion.button
+                                    whileHover={{ scale: 1.12 }}
+                                    whileTap={{ scale: 0.9 }}
+                                    onClick={(e) => { e.stopPropagation(); ttsPlaying ? ttsPause() : ttsPlay(); }}
+                                    disabled={!ttsVoicesReady && !ttsPlaying}
+                                    title={ttsPlaying ? 'Pause narration' : ttsPaused ? 'Resume narration' : 'Play narration'}
+                                    className={`w-7 h-7 rounded-full flex items-center justify-center transition-all shrink-0 border ${ttsPlaying
+                                        ? 'bg-blue-600 border-blue-500 text-white shadow-[0_0_10px_rgba(59,130,246,0.5)]'
+                                        : ttsPaused
+                                            ? 'bg-amber-600/90 border-amber-500 text-white'
+                                            : 'bg-zinc-800 border-zinc-700 text-blue-400 hover:bg-blue-900/40 hover:border-blue-600'
+                                        } disabled:opacity-40`}
+                                >
+                                    {ttsPlaying
+                                        ? <Pause className="w-3 h-3 fill-current" />
+                                        : <Play className="w-3 h-3 fill-current translate-x-px" />}
+                                </motion.button>
 
-                    {/* Save Progress Button */}
-                    {missionStarted && onSaveProgress && (
-                        <motion.button
-                            whileHover={{ scale: 1.04 }}
-                            whileTap={{ scale: 0.93 }}
-                            onClick={handleSaveProgress}
-                            disabled={isSaving}
-                            title="Save your progress"
-                            className="relative group flex items-center gap-2 px-3 md:px-4 h-10 md:h-11 rounded-2xl border transition-all duration-300 active:scale-95 overflow-hidden
-                                bg-emerald-600/20 hover:bg-emerald-600 border-emerald-500/40 hover:border-emerald-400
-                                text-emerald-400 hover:text-white shadow-[0_0_14px_rgba(16,185,129,0.2)] hover:shadow-[0_0_28px_rgba(16,185,129,0.45)]
-                                disabled:opacity-50 disabled:cursor-not-allowed"
+                                {/* Stop — only if active */}
+                                {(ttsPlaying || ttsPaused) && (
+                                    <motion.button
+                                        initial={{ opacity: 0, width: 0 }}
+                                        animate={{ opacity: 1, width: 28 }}
+                                        exit={{ opacity: 0, width: 0 }}
+                                        whileTap={{ scale: 0.9 }}
+                                        onClick={(e) => { e.stopPropagation(); ttsStop(); }}
+                                        title="Stop narration"
+                                        className="w-7 h-7 rounded-full flex items-center justify-center bg-zinc-800 border border-zinc-700 text-zinc-400 hover:text-red-400 hover:border-red-800 transition-all shrink-0"
+                                    >
+                                        <Square className="w-3 h-3 fill-current" />
+                                    </motion.button>
+                                )}
+                            </motion.div>
+                        )}
+
+                        {/* Audio Controls */}
+                        {audioSource && (
+                            <motion.div
+                                className="flex items-center gap-0 md:gap-1 bg-zinc-900/40 border border-white/5 rounded-full px-1 overflow-visible relative"
+                            >
+                                <Button
+                                    variant="ghost"
+                                    size="icon"
+                                    onClick={(e) => {
+                                        e.stopPropagation();
+                                        setShowVolumeSlider(!showVolumeSlider);
+                                    }}
+                                    className={`w-8 h-8 md:w-10 md:h-10 transition-colors shrink-0 ${isMuted ? "text-red-500 hover:bg-red-500/10" : "text-green-500 hover:bg-green-500/10"}`}
+                                >
+                                    {isMuted ? <VolumeX className="w-4 h-4 md:w-5 md:h-5" /> : <Volume2 className="w-4 h-4 md:w-5 md:h-5" />}
+                                </Button>
+
+                                <AnimatePresence>
+                                    {(showVolumeSlider) && (
+                                        <motion.div
+                                            initial={{ width: 0, opacity: 0, marginLeft: 0 }}
+                                            animate={{ width: "auto", opacity: 1, marginLeft: 8, marginRight: 12 }}
+                                            exit={{ width: 0, opacity: 0, marginLeft: 0, marginRight: 0 }}
+                                            transition={{ type: "spring", stiffness: 300, damping: 30 }}
+                                            className="flex items-center shrink-0"
+                                        >
+                                            <input
+                                                type="range"
+                                                min="0"
+                                                max="1"
+                                                step="0.01"
+                                                value={audioVolume}
+                                                onChange={(e) => {
+                                                    setAudioVolume(parseFloat(e.target.value));
+                                                    if (isMuted && parseFloat(e.target.value) > 0) setIsMuted(false);
+                                                }}
+                                                className="w-16 md:w-24 h-1 bg-zinc-800 rounded-lg appearance-none cursor-pointer accent-indigo-500"
+                                            />
+                                        </motion.div>
+                                    )}
+                                </AnimatePresence>
+                                
+                                {showVolumeSlider && (
+                                    <button 
+                                        className="text-[8px] font-black uppercase tracking-tighter text-zinc-500 hover:text-white px-1"
+                                        onClick={() => setIsMuted(!isMuted)}
+                                    >
+                                        {isMuted ? 'Unmute' : 'Mute'}
+                                    </button>
+                                )}
+                            </motion.div>
+                        )}
+
+                        {/* Investigation Hub Button */}
+                        {missionStarted && (
+                            <div className="flex items-center">
+                                <Button
+                                    variant="secondary"
+                                    onClick={() => {
+                                        const hubNode = nodes.find(n =>
+                                            n.type === 'story' &&
+                                            (n.data?.label?.toLowerCase().includes('hub') || n.data?.label?.toLowerCase().includes('investigation'))
+                                        );
+                                        if (hubNode) {
+                                            handleOptionClick(hubNode.id);
+                                            setShowEvidenceBoard(false);
+                                            setActiveModalNode(null);
+                                        } else {
+                                            const suspectedHub = nodes.find(n =>
+                                                edges.filter(e => e.source === n.id)
+                                                    .some(e => nodes.find(tn => tn.id === e.target)?.type === 'suspect')
+                                            );
+                                            if (suspectedHub) handleOptionClick(suspectedHub.id);
+                                        }
+                                    }}
+                                    className="relative group bg-indigo-600 hover:bg-indigo-500 text-white px-4 md:px-6 h-10 md:h-11 rounded-2xl border border-indigo-400/50 shadow-[0_0_20px_rgba(79,70,229,0.3)] hover:shadow-[0_0_35px_rgba(79,70,229,0.5)] overflow-hidden transition-all duration-300 active:scale-95 flex items-center gap-2"
+                                >
+                                    <div className="absolute inset-0 bg-gradient-to-r from-transparent via-white/20 to-transparent -translate-x-full group-hover:animate-shimmer pointer-events-none" />
+                                    <LayoutGrid className="w-4 h-4 md:w-5 md:h-5 text-shadow-glow" />
+                                    <span className="uppercase font-black text-[9px] md:text-[11px] tracking-[0.1em] md:tracking-[0.2em] relative z-10 hidden sm:block">
+                                        Investigation Hub
+                                    </span>
+                                </Button>
+                            </div>
+                        )}
+
+                        {/* Save Progress Button */}
+                        {onSaveProgress && (
+                            <motion.button
+                                whileHover={{ scale: 1.04 }}
+                                whileTap={{ scale: 0.93 }}
+                                onClick={handleSaveProgress}
+                                disabled={isSaving}
+                                title="Save your progress"
+                                className="relative group flex items-center gap-2 px-3 md:px-4 h-10 md:h-11 rounded-2xl border transition-all duration-300 active:scale-95 overflow-hidden
+                                    bg-emerald-600/20 hover:bg-emerald-600 border-emerald-500/40 hover:border-emerald-400
+                                    text-emerald-400 hover:text-white shadow-[0_0_14px_rgba(16,185,129,0.2)] hover:shadow-[0_0_28px_rgba(16,185,129,0.45)]"
+                            >
+                                <div className="absolute inset-0 bg-gradient-to-r from-transparent via-white/10 to-transparent -translate-x-full group-hover:translate-x-full transition-transform duration-700 pointer-events-none" />
+                                {isSaving ? (
+                                    <motion.div animate={{ rotate: 360 }} transition={{ duration: 1, repeat: Infinity, ease: 'linear' }} className="w-4 h-4 border-2 border-emerald-400 border-t-transparent rounded-full" />
+                                ) : (
+                                    <Save className="w-4 h-4 shrink-0" />
+                                )}
+                                <span className="uppercase font-black text-[9px] md:text-[10px] tracking-[0.15em] relative z-10 hidden lg:block">
+                                    {isSaving ? 'Saving...' : 'Save Progress'}
+                                </span>
+                            </motion.button>
+                        )}
+                    </div>
+
+                    {/* Mobile Hamburger Button */}
+                    <div className="lg:hidden">
+                        <Button
+                            variant="ghost"
+                            size="icon"
+                            onClick={() => setShowMobileMenu(true)}
+                            className="w-10 h-10 text-zinc-400 hover:text-white bg-zinc-900/50 border border-white/5 rounded-xl transition-all active:scale-90"
                         >
-                            <div className="absolute inset-0 bg-gradient-to-r from-transparent via-white/10 to-transparent -translate-x-full group-hover:translate-x-full transition-transform duration-700 pointer-events-none" />
-                            {isSaving ? (
-                                <motion.div
-                                    animate={{ rotate: 360 }}
-                                    transition={{ duration: 1, repeat: Infinity, ease: 'linear' }}
-                                    className="w-4 h-4 border-2 border-emerald-400 border-t-transparent rounded-full"
-                                />
-                            ) : (
-                                <Save className="w-4 h-4 shrink-0" />
-                            )}
-                            <span className="uppercase font-black text-[9px] md:text-[10px] tracking-[0.15em] relative z-10 hidden sm:block">
-                                {isSaving ? 'Saving...' : 'Save Progress'}
-                            </span>
-                        </motion.button>
-                    )}
+                            <Menu className="w-5 h-5" />
+                        </Button>
+                    </div>
 
-                    <Button variant="ghost" size="icon" className="w-8 h-8 md:w-10 md:h-10" onClick={() => {
+                    <Button variant="ghost" size="icon" className="w-8 h-8 md:w-10 md:h-10 bg-zinc-900/40 border border-white/5 rounded-xl hover:bg-zinc-800 transition-all ml-1" onClick={() => {
                         if (activeModalNode) handleCloseModal();
                         else if (showSuspectWall) setShowSuspectWall(false);
                         else if (showEvidenceBoard) setShowEvidenceBoard(false);
                         else if (showAccuseModal) setShowAccuseModal(false);
                         else if (zoomedImage) setZoomedImage(null);
-                        else {
-                            setShowQuitConfirm(true);
-                        }
+                        else { setShowQuitConfirm(true); }
                     }}>
                         <X className="w-4 h-4 md:w-5 md:h-5" />
                     </Button>
                 </div>
             </div>
 
+            {/* Mobile Menu Overlay */}
+            <AnimatePresence>
+                {showMobileMenu && (
+                    <motion.div
+                        initial={{ opacity: 0 }}
+                        animate={{ opacity: 1 }}
+                        exit={{ opacity: 0 }}
+                        className="fixed inset-0 z-[1000] bg-black/90 backdrop-blur-2xl flex flex-col p-6 overflow-y-auto"
+                    >
+                        <div className="flex items-center justify-between mb-10 pb-6 border-b border-white/10">
+                            <div>
+                                <h3 className="text-xl font-black text-white uppercase tracking-tighter">Mission Controls</h3>
+                                <p className="text-[10px] text-zinc-500 font-bold uppercase tracking-widest mt-1">Investigation Options</p>
+                            </div>
+                            <Button
+                                variant="ghost"
+                                size="icon"
+                                onClick={() => setShowMobileMenu(false)}
+                                className="w-12 h-12 bg-white/5 border border-white/10 rounded-2xl"
+                            >
+                                <X className="w-6 h-6 text-white" />
+                            </Button>
+                        </div>
+
+                        <div className="flex flex-col gap-6">
+                            
+                            {/* TTS Controls (Mobile) */}
+                            {isStoryNode && ttsText && audioEnabled && (
+                                <div className="bg-zinc-900/60 border border-blue-500/20 rounded-3xl p-6">
+                                    <div className="flex items-center justify-between mb-4">
+                                        <div className="flex items-center gap-3">
+                                            <div className="p-2 bg-blue-500/10 rounded-xl border border-blue-500/20">
+                                                <Radio className="w-5 h-5 text-blue-400" />
+                                            </div>
+                                            <span className="font-black text-blue-400 uppercase tracking-widest text-xs">Narration</span>
+                                        </div>
+                                        <div className="flex items-center gap-2">
+                                            <Button
+                                                onClick={() => ttsPlaying ? ttsPause() : ttsPlay()}
+                                                disabled={!ttsVoicesReady && !ttsPlaying}
+                                                className={`h-12 w-12 rounded-2xl flex items-center justify-center ${ttsPlaying ? 'bg-blue-600 text-white' : 'bg-zinc-800 text-blue-400'}`}
+                                            >
+                                                {ttsPlaying ? <Pause className="w-5 h-5 fill-current" /> : <Play className="w-5 h-5 fill-current translate-x-px" />}
+                                            </Button>
+                                            {(ttsPlaying || ttsPaused) && (
+                                                <Button
+                                                    onClick={ttsStop}
+                                                    className="h-12 w-12 rounded-2xl bg-zinc-800 text-zinc-400 hover:text-red-400"
+                                                >
+                                                    <Square className="w-4 h-4 fill-current" />
+                                                </Button>
+                                            )}
+                                        </div>
+                                    </div>
+                                    <div className="h-4 flex items-center gap-1">
+                                        {[0.4, 0.8, 0.5, 1.0, 0.6, 0.9, 0.4, 0.7, 0.5, 0.9, 0.6].map((h, i) => (
+                                            <motion.div
+                                                key={i}
+                                                className="flex-1 rounded-full bg-blue-400/40"
+                                                animate={ttsPlaying ? { scaleY: [h * 0.3, h, h * 0.5, h * 0.9, h * 0.3] } : { scaleY: 0.2 }}
+                                                transition={{ duration: 0.7, delay: i * 0.05, repeat: Infinity }}
+                                                style={{ height: 16 }}
+                                            />
+                                        ))}
+                                    </div>
+                                </div>
+                            )}
+
+                            {/* Audio Controls (Mobile) */}
+                            {audioSource && (
+                                <div className="bg-zinc-900/60 border border-green-500/20 rounded-3xl p-6">
+                                    <div className="flex items-center gap-3 mb-6">
+                                        <div className="p-2 bg-green-500/10 rounded-xl border border-green-500/20">
+                                            {isMuted ? <VolumeX className="w-5 h-5 text-red-400" /> : <Volume2 className="w-5 h-5 text-green-400" />}
+                                        </div>
+                                        <div className="flex flex-col">
+                                            <span className="font-black text-zinc-300 uppercase tracking-widest text-xs">Game Volume</span>
+                                            <span className="text-[10px] text-zinc-600 font-bold uppercase">{isMuted ? 'Muted' : `${Math.round(audioVolume * 100)}%`}</span>
+                                        </div>
+                                        <Button
+                                            variant="ghost"
+                                            onClick={() => setIsMuted(!isMuted)}
+                                            className={`ml-auto h-10 px-4 rounded-xl border ${isMuted ? 'bg-red-500/10 border-red-500/20 text-red-400' : 'bg-green-500/10 border-green-500/20 text-green-400'}`}
+                                        >
+                                            {isMuted ? 'UNMUTE' : 'MUTE'}
+                                        </Button>
+                                    </div>
+                                    <input
+                                        type="range" min="0" max="1" step="0.01" value={audioVolume}
+                                        onChange={(e) => {
+                                            setAudioVolume(parseFloat(e.target.value));
+                                            if (isMuted && parseFloat(e.target.value) > 0) setIsMuted(false);
+                                        }}
+                                        className="w-full h-2 bg-zinc-800 rounded-lg appearance-none cursor-pointer accent-green-500"
+                                    />
+                                </div>
+                            )}
+
+                            {/* Investigation Hub (Mobile) */}
+                            {missionStarted && (
+                                <button
+                                    onClick={() => {
+                                        setShowMobileMenu(false);
+                                        const hubNode = nodes.find(n => n.type === 'story' && (n.data?.label?.toLowerCase().includes('hub') || n.data?.label?.toLowerCase().includes('investigation')));
+                                        if (hubNode) handleOptionClick(hubNode.id);
+                                    }}
+                                    className="flex items-center gap-5 p-6 bg-indigo-600/20 border border-indigo-500/30 rounded-3xl group active:scale-95 transition-all text-left"
+                                >
+                                    <div className="p-4 bg-indigo-600 rounded-2xl shadow-lg shadow-indigo-600/20">
+                                        <LayoutGrid className="w-6 h-6 text-white" />
+                                    </div>
+                                    <div>
+                                        <h4 className="font-black text-white uppercase tracking-tight text-lg leading-none mb-1">Investigation Hub</h4>
+                                        <p className="text-indigo-300/60 font-bold text-[10px] uppercase tracking-widest">Access Evidence & Suspects</p>
+                                    </div>
+                                    <ChevronRight className="ml-auto w-6 h-6 text-indigo-500/40" />
+                                </button>
+                            )}
+
+                            {/* Save Progress (Mobile) */}
+                            {onSaveProgress && (
+                                <button
+                                    onClick={() => {
+                                        setShowMobileMenu(false);
+                                        handleSaveProgress();
+                                    }}
+                                    disabled={isSaving}
+                                    className="flex items-center gap-5 p-6 bg-emerald-600/20 border border-emerald-500/30 rounded-3xl active:scale-95 transition-all text-left"
+                                >
+                                    <div className="p-4 bg-emerald-600 rounded-2xl shadow-lg shadow-emerald-600/20">
+                                        {isSaving ? <motion.div animate={{ rotate: 360 }} transition={{ duration: 1, repeat: Infinity, ease: 'linear' }} className="w-6 h-6 border-4 border-white border-t-transparent rounded-full" /> : <Save className="w-6 h-6 text-white" />}
+                                    </div>
+                                    <div>
+                                        <h4 className="font-black text-white uppercase tracking-tight text-lg leading-none mb-1">{isSaving ? 'Encrypting...' : 'Save Progress'}</h4>
+                                        <p className="text-emerald-300/60 font-bold text-[10px] uppercase tracking-widest">Secure Your Investigation</p>
+                                    </div>
+                                    <ChevronRight className="ml-auto w-6 h-6 text-emerald-500/40" />
+                                </button>
+                            )}
+                        </div>
+
+                        <div className="mt-auto pt-10 pb-6 text-center">
+                            <span className="text-[9px] font-black text-zinc-700 uppercase tracking-[0.4em]">Mystery Games Framework v2.4</span>
+                        </div>
+                    </motion.div>
+                )}
+            </AnimatePresence>
             {/* Content Area - Scrolls vertically */}
             <div className="flex-1 overflow-y-auto p-6 md:p-12 relative">
                 <AnimatePresence mode="wait">
