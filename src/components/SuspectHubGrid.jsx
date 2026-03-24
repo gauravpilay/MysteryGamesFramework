@@ -2,7 +2,7 @@ import React, { useState, useEffect, useRef, useMemo } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { User, Activity, Move, ZoomIn, ZoomOut, Target, Database, Search, Shield, ExternalLink, ChevronRight, FileText } from 'lucide-react';
 
-const SuspectHubGrid = ({ options, nodes, edges, onSuspectClick, getAvatarColor }) => {
+const SuspectHubGrid = ({ navigationOptions, nodes, edges, onSuspectClick, getAvatarColor }) => {
     const containerRef = useRef(null);
     const [cardPositions, setCardPositions] = useState({});
     const [isLoaded, setIsLoaded] = useState(false);
@@ -16,12 +16,12 @@ const SuspectHubGrid = ({ options, nodes, edges, onSuspectClick, getAvatarColor 
 
     // Filter to only suspect options
     const suspectOptions = useMemo(() => {
-        return options.map(edge => {
+        return navigationOptions.map(edge => {
             const targetNode = nodes.find(n => n.id === edge.target);
             if (!targetNode || targetNode.type !== 'suspect') return null;
             return { edge, node: targetNode };
         }).filter(Boolean);
-    }, [options, nodes]);
+    }, [navigationOptions, nodes]);
 
     // Compute layout positions based on count
     const computePositions = (opts) => {

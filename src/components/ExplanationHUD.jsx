@@ -36,7 +36,7 @@ const ExplanationHUD = ({ type, title, text, onClose, isSimultaneous }) => {
     const Icon = config.icon;
 
     return (
-        <div className={`${isSimultaneous ? 'absolute' : 'fixed'} inset-0 z-[200] flex items-center justify-center p-4 overflow-hidden`}>
+        <div className={`${isSimultaneous ? 'absolute' : 'fixed'} inset-0 z-[1500] flex items-center justify-center p-4 overflow-hidden`}>
             {/* Backdrop — no backdrop-blur here to avoid per-frame repaint */}
             <motion.div
                 initial={{ opacity: 0 }}

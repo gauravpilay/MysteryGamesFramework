@@ -958,7 +958,7 @@ const GamePreview = ({ nodes, edges, onClose, gameMetadata, onGameEnd, onNodeCha
 
     // Navigation Options (Outgoing Edges) with Logic Look-ahead
     // We compute this whenever state changes to "see through" logic nodes
-    const options = useMemo(() => {
+    const navigationOptions = useMemo(() => {
         if (!currentNodeId) return [];
 
         const rawEdges = edges.filter(e => e.source === currentNodeId);
@@ -1009,7 +1009,7 @@ const GamePreview = ({ nodes, edges, onClose, gameMetadata, onGameEnd, onNodeCha
                 const isVisible = evaluateLogic(currentNode);
                 const isSilent = currentNode.data?.silent;
                 if (!isVisible || isSilent) {
-                    const outEdges = options;
+                    const outEdges = navigationOptions;
                     if (outEdges.length > 0) {
                         console.log(`[GamePreview] Skipping ${!isVisible ? 'hidden' : 'silent'} intel node:`, currentNode.id);
                         addLog(`Advancing past intel...`);
@@ -1037,8 +1037,8 @@ const GamePreview = ({ nodes, edges, onClose, gameMetadata, onGameEnd, onNodeCha
             const isTrue = evaluateLogic(currentNode);
 
             // Find edges
-            const trueEdge = options.find(e => e.sourceHandle === 'true' || e.label === 'True' || e.label === 'true');
-            const falseEdge = options.find(e => e.sourceHandle === 'false' || e.label === 'False' || e.label === 'false');
+            const trueEdge = navigationOptions.find(e => e.sourceHandle === 'true' || e.label === 'True' || e.label === 'true');
+            const falseEdge = navigationOptions.find(e => e.sourceHandle === 'false' || e.label === 'False' || e.label === 'false');
 
             // WHILE (Wait) Handling
             if (currentNode.data.logicType === 'while' && !isTrue) {
@@ -1048,10 +1048,10 @@ const GamePreview = ({ nodes, edges, onClose, gameMetadata, onGameEnd, onNodeCha
             let nextEdge = isTrue ? trueEdge : falseEdge;
 
             // Fallback for unlabeled edges
-            if (!nextEdge && options.length > 0) {
+            if (!nextEdge && navigationOptions.length > 0) {
                 // If logic handled recursively in option click, this usually won't run, 
                 // but for initial load or special cases:
-                nextEdge = isTrue ? options[0] : (options.length > 1 ? options[1] : null);
+                nextEdge = isTrue ? navigationOptions[0] : (navigationOptions.length > 1 ? navigationOptions[1] : null);
             }
 
             if (nextEdge) {
@@ -1093,7 +1093,7 @@ const GamePreview = ({ nodes, edges, onClose, gameMetadata, onGameEnd, onNodeCha
             }
 
             // Move Next
-            const outEdges = options;
+            const outEdges = navigationOptions;
             if (outEdges.length > 0 && outEdges[0].target !== currentNodeId) {
                 setCurrentNodeId(outEdges[0].target);
             }
@@ -1108,7 +1108,7 @@ const GamePreview = ({ nodes, edges, onClose, gameMetadata, onGameEnd, onNodeCha
             }
             lastNodeId.current = currentNode.id;
         }
-    }, [currentNode?.id, inventory, options, nodeOutputs]);
+    }, [currentNode?.id, inventory, navigationOptions, nodeOutputs]);
 
     // ...
 
@@ -1266,7 +1266,7 @@ const GamePreview = ({ nodes, edges, onClose, gameMetadata, onGameEnd, onNodeCha
         if (forceSuccess || isLegacyMatch || input.includes('grep')) {
             addLog(`COMMAND SUCCESS: ${input}`);
 
-            const next = options[0];
+            const next = navigationOptions[0];
             if (next) {
                 // Add to inventory that we beat this terminal
                 // Add to inventory that we beat this terminal
@@ -1362,8 +1362,8 @@ const GamePreview = ({ nodes, edges, onClose, gameMetadata, onGameEnd, onNodeCha
     const handleQuestionSubmit = () => {
         if (!activeModalNode || activeModalNode.type !== 'question') return;
 
-        const options = activeModalNode.data.options || [];
-        const correctIds = new Set(options.filter(o => o.isCorrect).map(o => o.id));
+        const qOptions = activeModalNode.data.options || [];
+        const correctIds = new Set(qOptions.filter(o => o.isCorrect).map(o => o.id));
         const selectedIds = userAnswers;
 
         // Check if sets are equal
@@ -1385,6 +1385,7 @@ const GamePreview = ({ nodes, edges, onClose, gameMetadata, onGameEnd, onNodeCha
                 rewardObjectivePoints(activeModalNode, rawScore);
 
                 setScoredNodes(prev => new Set([...prev, activeModalNode.id]));
+                setInventory(prev => new Set([...prev, activeModalNode.id, activeModalNode.data.variableId].filter(Boolean)));
                 addLog(`QUIZ REWARD: +${rawScore} Points`);
             } else if (rawScore > 0) {
                 // Still show visual feedback for correctness even if points were already awarded
@@ -1395,7 +1396,7 @@ const GamePreview = ({ nodes, edges, onClose, gameMetadata, onGameEnd, onNodeCha
             }
 
             // Collect explanations from correct options (use generic fallback if none provided)
-            const explanations = options
+            const explanations = qOptions
                 .filter(o => o.isCorrect && o.explanation && o.explanation.trim())
                 .map(o => o.explanation);
 
@@ -1414,12 +1415,10 @@ const GamePreview = ({ nodes, edges, onClose, gameMetadata, onGameEnd, onNodeCha
                     text: explanationText,
                     onClose: () => {
                         setActiveExplanation(null);
-                        // Advance to next node
-                        const nodeOptions = edges.filter(e => e.source === sourceNodeId);
+                        // Advance to next node using navigation options (with raw edge fallback)
+                        const next = navigationOptions[0] || edges.find(e => e.source === sourceNodeId);
                         setActiveModalNode(null);
-                        if (nodeOptions.length > 0) {
-                            handleOptionClick(nodeOptions[0].target);
-                        }
+                        if (next) handleOptionClick(next.target);
                     }
                 });
             }, 1500);
@@ -1427,7 +1426,7 @@ const GamePreview = ({ nodes, edges, onClose, gameMetadata, onGameEnd, onNodeCha
             addLog(`QUESTION FAILED: Incorrect Answer.`);
 
             // Collect explanations from selected incorrect options (use generic fallback if none provided)
-            const explanations = options
+            const explanations = qOptions
                 .filter(o => selectedIds.has(o.id) && o.explanation && o.explanation.trim())
                 .map(o => o.explanation);
 
@@ -1603,6 +1602,14 @@ const GamePreview = ({ nodes, edges, onClose, gameMetadata, onGameEnd, onNodeCha
     const handleCloseModal = React.useCallback(() => {
         if (!activeModalNode) return;
 
+        // SPECIAL CASE: Evidence popups advance gameplay instead of backtracking
+        if (activeModalNode.type === 'evidence') {
+            const next = navigationOptions[0] || edges.find(e => e.source === activeModalNode.id);
+            setActiveModalNode(null);
+            if (next) handleOptionClick(next.target);
+            return;
+        }
+
         const MODAL_TYPES = ['suspect', 'evidence', 'terminal', 'message', 'media', 'notification', 'question', 'lockpick', 'decryption', 'keypad', 'identify', 'interrogation', 'threed', 'email'];
         const SKIP_TYPES = ['logic', 'setter', 'music', ...MODAL_TYPES];
 
@@ -1652,7 +1659,7 @@ const GamePreview = ({ nodes, edges, onClose, gameMetadata, onGameEnd, onNodeCha
 
         setActiveModalNode(null);
         setIsConfronting(false);
-    }, [activeModalNode, currentNodeId, history, nodes, setCurrentNodeId, setHistory]);
+    }, [activeModalNode, currentNodeId, history, nodes, setCurrentNodeId, setHistory, navigationOptions, handleOptionClick]);
 
     const handleGoBack = React.useCallback(() => {
         ttsStop();
@@ -1893,7 +1900,7 @@ const GamePreview = ({ nodes, edges, onClose, gameMetadata, onGameEnd, onNodeCha
             }
 
             // Auto advance
-            const edgesOut = options.filter(e => e.source === currentNode.id);
+            const edgesOut = navigationOptions.filter(e => e.source === currentNode.id);
             if (edgesOut.length > 0) {
                 setTimeout(() => handleOptionClick(edgesOut[0].target), 500);
             }
@@ -2399,7 +2406,7 @@ const GamePreview = ({ nodes, edges, onClose, gameMetadata, onGameEnd, onNodeCha
                         initial={{ opacity: 0, y: 10 }}
                         animate={{ opacity: 1, y: 0 }}
                         exit={{ opacity: 0, y: -10 }}
-                        className={`${options.some(e => nodes.find(n => n.id === e.target)?.type === 'suspect') ? 'max-w-none w-full px-2 md:px-8' : 'max-w-4xl mx-auto w-full'} pb-20`}
+                        className={`${navigationOptions.some(e => nodes.find(n => n.id === e.target)?.type === 'suspect') ? 'max-w-none w-full px-2 md:px-8' : 'max-w-4xl mx-auto w-full'} pb-20`}
                     >
                         {renderContent()}
 
@@ -2426,7 +2433,7 @@ const GamePreview = ({ nodes, edges, onClose, gameMetadata, onGameEnd, onNodeCha
                                     {/* ── Confrontation story node: replace normal buttons ── */}
                                     {pendingConfrontation?.storyNodeId === currentNodeId ? (() => {
                                         // Find where "Continue" would normally go
-                                        const continueTarget = options[0]?.target ?? null;
+                                        const continueTarget = navigationOptions[0]?.target ?? null;
                                         return (
                                             <div className="flex flex-col gap-3">
                                                 {/* Present More Evidence — only if remainingCount > 0 */}
@@ -2513,10 +2520,10 @@ const GamePreview = ({ nodes, edges, onClose, gameMetadata, onGameEnd, onNodeCha
                                                 </motion.button>
                                             </div>
                                         );
-                                    })() : options.some(e => nodes.find(n => n.id === e.target)?.type === 'suspect') ? (
+                                    })() : navigationOptions.some(e => nodes.find(n => n.id === e.target)?.type === 'suspect') ? (
                                         // Linked Grid Layout for Suspects in Hub
                                         <SuspectHubGrid
-                                            options={options}
+                                            navigationOptions={navigationOptions}
                                             nodes={nodes}
                                             edges={edges}
                                             onSuspectClick={(targetNode) => openSuspectProfile(targetNode, { nodes, edges })}
@@ -2531,24 +2538,24 @@ const GamePreview = ({ nodes, edges, onClose, gameMetadata, onGameEnd, onNodeCha
 
                                                 // 1. Explicit Actions
                                                 const actionItems = actions.map((action, actionIdx) => {
-                                                    let edge = options.find(e => e.sourceHandle === action.id);
+                                                    let edge = navigationOptions.find(e => e.sourceHandle === action.id);
 
                                                     // Intelligent Fallback:
                                                     // 1. Map to default edge if not explicitly wired.
                                                     if (!edge) {
-                                                        const defaultEdge = options.find(e =>
+                                                        const defaultEdge = navigationOptions.find(e =>
                                                             (!e.sourceHandle || e.sourceHandle === 'null') &&
                                                             !usedEdges.has(e.id)
                                                         );
 
                                                         if (defaultEdge) {
                                                             edge = defaultEdge;
-                                                        } else if (actions.length === 1 && options.length === 1 && !usedEdges.has(options[0].id)) {
+                                                        } else if (actions.length === 1 && navigationOptions.length === 1 && !usedEdges.has(navigationOptions[0].id)) {
                                                             // Desperation Fallback: 1 Action, 1 Edge -> Just Link Them
-                                                            edge = options[0];
-                                                        } else if (options[actionIdx] && !usedEdges.has(options[actionIdx].id)) {
+                                                            edge = navigationOptions[0];
+                                                        } else if (navigationOptions[actionIdx] && !usedEdges.has(navigationOptions[actionIdx].id)) {
                                                             // Index Fallback: If AI just listed edges in order, map them by index
-                                                            edge = options[actionIdx];
+                                                            edge = navigationOptions[actionIdx];
                                                         }
                                                     }
 
@@ -2567,7 +2574,7 @@ const GamePreview = ({ nodes, edges, onClose, gameMetadata, onGameEnd, onNodeCha
                                                 // STRICT MODE: If custom actions exist, hide generic buttons.
                                                 const standardItems = (actions.length > 0)
                                                     ? []
-                                                    : options
+                                                    : navigationOptions
                                                         .filter(e => !usedEdges.has(e.id))
                                                         .map(edge => ({
                                                             isAction: false,
@@ -2841,15 +2848,16 @@ const GamePreview = ({ nodes, edges, onClose, gameMetadata, onGameEnd, onNodeCha
                                 max-h-[95vh] flex flex-col
                                 ${(activeModalNode.type === 'threed' || activeModalNode.type === 'suspect' || activeModalNode.type === 'interrogation' || activeModalNode.type === 'question' || activeModalNode.type === 'email' || activeModalNode.type === 'fact') ? 'max-w-6xl w-full h-[95vh] md:h-[85vh]' : 'max-w-3xl w-full'}`}
                         >
-                            {/* Modal Close Button - Elevated to top priority */}
-                             {/* Modal Close Button - Prominent & Visible */}
-                            <button
-                                onClick={handleCloseModal}
-                                className="absolute -top-3 -right-3 md:top-4 md:right-4 z-[320] w-10 h-10 md:w-11 md:h-11 bg-red-600 text-white hover:bg-red-500 rounded-2xl md:rounded-full shadow-[0_4px_20px_rgba(220,38,38,0.4)] flex items-center justify-center transition-all active:scale-95 group border-2 border-white/20"
-                                title="Close Dashboard"
-                            >
-                                <X className="w-5 h-5 md:w-6 md:h-6 group-hover:rotate-90 transition-transform duration-500" />
-                            </button>
+                            {/* Modal Close Button - Prominent & Visible (Evidence Only) */}
+                            {activeModalNode.type === 'evidence' && (
+                                <button
+                                    onClick={handleCloseModal}
+                                    className="absolute -top-3 -right-3 md:top-4 md:right-4 z-[320] w-10 h-10 md:w-11 md:h-11 bg-red-600 text-white hover:bg-red-500 rounded-2xl md:rounded-full shadow-[0_4px_20px_rgba(220,38,38,0.4)] flex items-center justify-center transition-all active:scale-95 group border-2 border-white/20"
+                                    title="Close Intel"
+                                >
+                                    <X className="w-5 h-5 md:w-6 md:h-6 group-hover:rotate-90 transition-transform duration-500" />
+                                </button>
+                            )}
                             {activeModalNode.type === 'email' && (
                                 <div className="p-0 bg-[#f3f4f6] flex flex-col w-full h-full min-h-0 text-zinc-900 font-sans">
                                     <div className="bg-[#2563eb] p-4 text-white flex items-center justify-between shrink-0">
@@ -2921,7 +2929,7 @@ const GamePreview = ({ nodes, edges, onClose, gameMetadata, onGameEnd, onNodeCha
                                                     setScoredNodes(prev => new Set([...prev, activeModalNode.id]));
                                                     addLog(`EMAIL INTEL REWARD: +${activeModalNode.data.score} Points`);
                                                 }
-                                                const next = options[0] || edges.find(e => e.source === activeModalNode.id);
+                                                const next = navigationOptions[0] || edges.find(e => e.source === activeModalNode.id);
                                                 setActiveModalNode(null);
                                                 if (next) handleOptionClick(next.target);
                                             }}
@@ -2977,7 +2985,7 @@ const GamePreview = ({ nodes, edges, onClose, gameMetadata, onGameEnd, onNodeCha
                                         <Button
                                             className="bg-yellow-600 hover:bg-yellow-500 text-black font-black uppercase tracking-[0.15em] text-[11px] h-11 px-8 shadow-[0_8px_20px_rgba(234,179,8,0.2)] hover:shadow-[0_12px_30px_rgba(234,179,8,0.3)] transition-all border-t border-white/20 rounded-xl"
                                             onClick={() => {
-                                                const next = options[0];
+                                                const next = navigationOptions[0];
                                                 setActiveModalNode(null);
                                                 if (next) handleOptionClick(next.target);
                                             }}
@@ -3019,7 +3027,7 @@ const GamePreview = ({ nodes, edges, onClose, gameMetadata, onGameEnd, onNodeCha
                                             addLog(`INTERROGATION REWARD: +${awardedS} Points`);
                                         }
 
-                                        const next = options[0];
+                                        const next = navigationOptions[0];
                                         if (next) {
                                             setActiveModalNode(null);
                                             handleOptionClick(next.target);
@@ -3787,8 +3795,8 @@ const GamePreview = ({ nodes, edges, onClose, gameMetadata, onGameEnd, onNodeCha
                         onComplete={() => {
                             setShowDeepWeb(false);
                             // Advance to next node if simple path
-                            if (options.length > 0) {
-                                handleOptionClick(options[0].target);
+                            if (navigationOptions.length > 0) {
+                                handleOptionClick(navigationOptions[0].target);
                             }
                         }}
                         isSimultaneous={isSimultaneous}
@@ -3855,7 +3863,7 @@ const GamePreview = ({ nodes, edges, onClose, gameMetadata, onGameEnd, onNodeCha
                             setIsContentReady(true);
 
                             // Auto-advance to next node after cutscene
-                            const outEdges = options.filter(e => e.source === currentNode.id);
+                            const outEdges = navigationOptions.filter(e => e.source === currentNode.id);
                             if (outEdges.length > 0) {
                                 setTimeout(() => handleOptionClick(outEdges[0].target), 500);
                             }
