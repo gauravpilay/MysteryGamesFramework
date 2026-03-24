@@ -151,36 +151,63 @@ const HelpButton = ({ onClick, hasHelp }) => {
 
 const parseRichText = (input) => {
     if (!input) return "";
-    // Bold: **text**
-    let parsed = input.replace(/\*\*(.*?)\*\*/g, '<b class="text-white font-black drop-shadow-sm">$1</b>');
 
-    // Colors: [red]text[/red], [blue]text[/blue], etc.
+    // Helper for colors
     const colors = ['red', 'blue', 'green', 'yellow', 'indigo', 'orange', 'emerald', 'amber', 'rose', 'cyan'];
-    colors.forEach(color => {
-        const regex = new RegExp(`\\[${color}\\](.*?)\\[\\/${color}\\]`, 'g');
-        // Mapping colors to Tailwind classes
-        const colorMap = {
-            red: 'text-red-500',
-            blue: 'text-blue-400',
-            green: 'text-emerald-400',
-            yellow: 'text-amber-300',
-            indigo: 'text-indigo-400',
-            orange: 'text-orange-400',
-            emerald: 'text-emerald-400',
-            amber: 'text-amber-400',
-            rose: 'text-rose-500',
-            cyan: 'text-cyan-400'
-        };
-        parsed = parsed.replace(regex, `<span class="${colorMap[color]} font-bold">$1</span>`);
+    const colorMap = {
+        red: 'text-red-500',
+        blue: 'text-blue-400',
+        green: 'text-emerald-400',
+        yellow: 'text-amber-300',
+        indigo: 'text-indigo-400',
+        orange: 'text-orange-400',
+        emerald: 'text-emerald-400',
+        amber: 'text-amber-400',
+        rose: 'text-rose-500',
+        cyan: 'text-cyan-400'
+    };
+
+    const processLine = (line) => {
+        let parsed = line;
+        
+        // Bold: **text**
+        parsed = parsed.replace(/\*\*(.*?)\*\*/g, '<b class="text-white font-black drop-shadow-sm">$1</b>');
+        
+        // Colors: [red]text[/red]
+        colors.forEach(color => {
+            const regex = new RegExp(`\\[${color}\\](.*?)\\[\\/${color}\\]`, 'g');
+            parsed = parsed.replace(regex, `<span class="${colorMap[color]} font-bold">$1</span>`);
+        });
+
+        return parsed;
+    };
+
+    const lines = input.split('\n');
+    let inList = false;
+    const processedLines = lines.map(line => {
+        const trimmed = line.trim();
+        
+        // Handle Bullets
+        if (trimmed.startsWith('- ') || trimmed.startsWith('* ')) {
+            const content = trimmed.substring(2);
+            return `<div class="flex items-start gap-2.5 mb-2 last:mb-0 group/bullet">
+                <div class="mt-2 w-1.5 h-1.5 rounded-full bg-indigo-500 shrink-0 shadow-[0_0_8px_rgba(99,102,241,0.6)] group-hover/bullet:scale-125 transition-transform" />
+                <div class="flex-1 text-zinc-300 leading-relaxed">${processLine(content)}</div>
+            </div>`;
+        }
+
+        // Handle empty lines as spacing
+        if (line.trim() === '') {
+            return '<div class="h-3"></div>';
+        }
+
+        // Regular line
+        return `<p class="mb-2 last:mb-0">${processLine(line)}</p>`;
     });
 
-    // Handle unclosed bold tags for a smoother typing experience
-    if (parsed.includes('**') && !parsed.includes('</b>')) {
-        parsed = parsed.replace(/\*\*(.*)$/, '<b class="text-white font-black">$1</b>');
-    }
-
-    return parsed;
+    return processedLines.join('');
 };
+
 
 const TypewriterText = ({ text, onComplete }) => {
     const [displayedText, setDisplayedText] = useState('');
@@ -4186,7 +4213,7 @@ const GamePreview = ({ nodes, edges, onClose, gameMetadata, onGameEnd, onNodeCha
                                             <div className="absolute -top-3 -left-3 px-3 py-1 bg-indigo-500 text-white text-[9px] font-black uppercase tracking-widest rounded-lg shadow-lg">Primary Feed</div>
                                             <p
                                                 className="text-indigo-100/90 leading-relaxed font-serif italic text-lg text-center"
-                                                dangerouslySetInnerHTML={{ __html: `"${parseRichText(activeModalNode.data.helpContent)}"` }}
+                                                dangerouslySetInnerHTML={{ __html: parseRichText(activeModalNode.data.helpContent) }}
                                             />
                                         </div>
                                     )}
