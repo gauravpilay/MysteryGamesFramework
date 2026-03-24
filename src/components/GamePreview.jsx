@@ -2778,7 +2778,7 @@ const GamePreview = ({ nodes, edges, onClose, gameMetadata, onGameEnd, onNodeCha
                         animate={{ opacity: 1, y: 0 }}
                         exit={{ opacity: 0, y: 60 }}
                         transition={{ type: 'spring', stiffness: 260, damping: 24 }}
-                        className={`${isSimultaneous ? 'absolute' : 'fixed'} bottom-6 left-1/2 -translate-x-1/2 z-[140] w-full max-w-xl px-4`}
+                        className={`${isSimultaneous ? 'absolute' : 'fixed'} bottom-6 left-1/2 -translate-x-1/2 z-[1100] w-full max-w-xl px-4`}
                     >
                         <div className="bg-zinc-950/95 backdrop-blur-xl border border-amber-500/40 rounded-3xl p-5 shadow-2xl shadow-amber-900/20 flex items-center gap-5">
                             {/* Icon */}
@@ -2829,7 +2829,7 @@ const GamePreview = ({ nodes, edges, onClose, gameMetadata, onGameEnd, onNodeCha
             {/* Generic Interaction Modal (Replaces Suspect Modal) */}
             <AnimatePresence>
                 {activeModalNode && (
-                    <div className={`${isSimultaneous ? 'absolute' : 'fixed'} inset-0 z-[150] flex items-center justify-center p-4 bg-black/40 backdrop-blur-md`}>
+                    <div className={`${isSimultaneous ? 'absolute' : 'fixed'} inset-0 z-[1200] flex items-center justify-center p-4 bg-black/40 backdrop-blur-md`}>
                         <motion.div
                             initial={{ scale: 0.9, opacity: 0 }}
                             animate={{ scale: 1, opacity: 1 }}
@@ -2842,11 +2842,13 @@ const GamePreview = ({ nodes, edges, onClose, gameMetadata, onGameEnd, onNodeCha
                                 ${(activeModalNode.type === 'threed' || activeModalNode.type === 'suspect' || activeModalNode.type === 'interrogation' || activeModalNode.type === 'question' || activeModalNode.type === 'email' || activeModalNode.type === 'fact') ? 'max-w-6xl w-full h-[95vh] md:h-[85vh]' : 'max-w-3xl w-full'}`}
                         >
                             {/* Modal Close Button - Elevated to top priority */}
+                             {/* Modal Close Button - Prominent & Visible */}
                             <button
                                 onClick={handleCloseModal}
-                                className="absolute top-4 right-4 z-[250] p-2 bg-black/40 hover:bg-black/60 text-zinc-400 hover:text-white rounded-full backdrop-blur-md transition-all border border-white/5 hover:border-white/20"
+                                className="absolute -top-3 -right-3 md:top-4 md:right-4 z-[320] w-10 h-10 md:w-11 md:h-11 bg-red-600 text-white hover:bg-red-500 rounded-2xl md:rounded-full shadow-[0_4px_20px_rgba(220,38,38,0.4)] flex items-center justify-center transition-all active:scale-95 group border-2 border-white/20"
+                                title="Close Dashboard"
                             >
-                                <X className="w-5 h-5" />
+                                <X className="w-5 h-5 md:w-6 md:h-6 group-hover:rotate-90 transition-transform duration-500" />
                             </button>
                             {activeModalNode.type === 'email' && (
                                 <div className="p-0 bg-[#f3f4f6] flex flex-col w-full h-full min-h-0 text-zinc-900 font-sans">
@@ -3534,7 +3536,7 @@ const GamePreview = ({ nodes, edges, onClose, gameMetadata, onGameEnd, onNodeCha
             < AnimatePresence >
                 {zoomedImage && (
                     <div
-                        className={`${isSimultaneous ? 'absolute' : 'fixed'} inset-0 z-[300] bg-black/95 backdrop-blur-sm flex items-center justify-center`}
+                        className={`${isSimultaneous ? 'absolute' : 'fixed'} inset-0 z-[1100] bg-black/95 backdrop-blur-sm flex items-center justify-center`}
                         onClick={() => setZoomedImage(null)}
                     >
                         <motion.div
@@ -3544,13 +3546,13 @@ const GamePreview = ({ nodes, edges, onClose, gameMetadata, onGameEnd, onNodeCha
                             className="relative max-w-[95vw] max-h-[95vh]"
                             onClick={(e) => e.stopPropagation()}
                         >
-                            {/* Close button — anchored to image corner, always visible */}
+                            {/* Prominent High-Contrast Close button */}
                             <button
                                 onClick={() => setZoomedImage(null)}
-                                className="absolute -top-4 -right-4 z-[310] w-10 h-10 bg-white text-black rounded-full flex items-center justify-center shadow-2xl hover:bg-zinc-200 transition-colors border-2 border-zinc-300"
+                                className="fixed top-6 right-6 z-[1200] w-14 h-14 bg-red-600 text-white rounded-3xl flex items-center justify-center shadow-[0_8px_40px_rgba(220,38,38,0.5)] hover:bg-red-500 hover:scale-110 transition-all border-2 border-white/30 active:scale-90 group"
                                 title="Close"
                             >
-                                <X className="w-5 h-5" />
+                                <X className="w-8 h-8 group-hover:rotate-90 transition-transform duration-500" />
                             </button>
                             <img
                                 src={zoomedImage}
