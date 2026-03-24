@@ -806,7 +806,7 @@ const ProgressReportModal = ({ onClose }) => {
 
                 autoTable(doc, {
                     startY: baselineY + 5,
-                    head: [['Objective', 'Baseline Date', 'Origin Score', 'Current', 'Net Growth']],
+                    head: [['Objective', 'Baseline Date', 'Original Score', 'Current', 'Net Growth']],
                     body: baselineRows,
                     headStyles: { fillColor: [245, 158, 11] },
                     alternateRowStyles: { fillColor: [255, 252, 243] }
