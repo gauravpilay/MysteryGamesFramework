@@ -849,6 +849,36 @@ const GamePreview = ({ nodes, edges, onClose, gameMetadata, onGameEnd, onNodeCha
             setMissionStarted(true);
             isInitialized.current = true;
             addLog('Neural sync restored. Resuming investigation...');
+
+            // ── Background Music Restoration ──
+            const restoredHistory = sp.history || [];
+            let musicNodeToRestore = null;
+
+            // 1. Look back in history for the last music node
+            for (let i = restoredHistory.length - 1; i >= 0; i--) {
+                const hNode = nodes.find(n => n.id === restoredHistory[i]);
+                if (hNode?.type === 'music' && hNode.data?.url) {
+                    musicNodeToRestore = hNode;
+                    break;
+                }
+            }
+
+            // 2. Fallback: If no music in history, check if the prime start node is a music node
+            if (!musicNodeToRestore) {
+                const startNode = nodes.find(n => n.id.toLowerCase().includes('start')) || 
+                                 nodes.find(n => (n.data?.label || '').toLowerCase().includes('briefing'));
+                if (startNode?.type === 'music' && startNode.data?.url) {
+                    musicNodeToRestore = startNode;
+                }
+            }
+
+            if (musicNodeToRestore) {
+                setAudioSource(musicNodeToRestore.data.url);
+                setAudioVolume(musicNodeToRestore.data.volume ?? 0.5);
+                addLog('AUDIO: Restoring ambient frequency.');
+            }
+            // ─────────────────────────────────
+            
             return;
         }
         // ─────────────────────────────────────────────────────────────────────
