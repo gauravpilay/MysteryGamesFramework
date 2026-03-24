@@ -3594,11 +3594,18 @@ const GamePreview = ({ nodes, edges, onClose, gameMetadata, onGameEnd, onNodeCha
                                     className="group relative flex flex-col gap-4 p-6 md:p-8 bg-zinc-900/40 rounded-2xl border border-white/5 hover:border-indigo-500/50 transition-all text-left overflow-hidden shadow-xl"
                                 >
                                     <div className="absolute inset-0 bg-indigo-500/0 group-hover:bg-indigo-500/5 transition-colors duration-500" />
-                                    <div className="w-12 h-12 rounded-xl bg-indigo-500/10 border border-indigo-500/20 flex items-center justify-center group-hover:scale-110 group-hover:bg-indigo-500/20 transition-all duration-500">
-                                        <MessageSquare className="w-6 h-6 text-indigo-400" />
+                                    <div className="flex items-center gap-3">
+                                        <div className="w-12 h-12 rounded-xl bg-indigo-500/10 border border-indigo-500/20 flex items-center justify-center group-hover:scale-110 group-hover:bg-indigo-500/20 transition-all duration-500">
+                                            <MessageSquare className="w-6 h-6 text-indigo-400" />
+                                        </div>
+                                        <div className="px-2 py-0.5 bg-zinc-800 border border-white/10 rounded text-[7px] font-black text-zinc-500 uppercase tracking-widest">
+                                            Informational Only
+                                        </div>
                                     </div>
                                     <div>
-                                        <h3 className="text-xl font-black text-white uppercase tracking-widest leading-none mb-2">Talk to Suspect</h3>
+                                        <div className="flex items-center gap-2 mb-2">
+                                            <h3 className="text-xl font-black text-white uppercase tracking-widest leading-none">Talk to Suspect</h3>
+                                        </div>
                                         <p className="text-zinc-500 text-xs font-medium leading-relaxed uppercase tracking-wider">
                                             Access the subject's dossier, review biometric data, and engage in standard dialogue.
                                         </p>
@@ -3614,16 +3621,21 @@ const GamePreview = ({ nodes, edges, onClose, gameMetadata, onGameEnd, onNodeCha
                                         setActiveModalNode({ ...suspectChoiceNode, _initialTab: 'evidence' });
                                         setSuspectChoiceNode(null);
                                     }}
-                                    className="group relative flex flex-col gap-4 p-6 md:p-8 bg-zinc-900/40 rounded-2xl border border-white/5 hover:border-amber-500/50 transition-all text-left overflow-hidden shadow-xl"
+                                    className="group relative flex flex-col gap-4 p-6 md:p-8 bg-zinc-900/40 rounded-2xl border-2 border-amber-500/50 transition-all text-left overflow-hidden shadow-[0_0_30px_rgba(245,158,11,0.15)] hover:shadow-[0_0_40px_rgba(245,158,11,0.25)] hover:border-amber-400"
                                 >
                                     <div className="absolute inset-0 bg-amber-500/0 group-hover:bg-amber-500/5 transition-colors duration-500" />
-                                    <div className="w-12 h-12 rounded-xl bg-amber-500/10 border border-amber-500/20 flex items-center justify-center group-hover:scale-110 group-hover:bg-amber-500/20 transition-all duration-500">
-                                        <Briefcase className="w-6 h-6 text-amber-400" />
+                                    <div className="flex items-center gap-3">
+                                        <div className="w-12 h-12 rounded-xl bg-amber-500/10 border border-amber-500/20 flex items-center justify-center group-hover:scale-110 group-hover:bg-amber-500/20 transition-all duration-500">
+                                            <Briefcase className="w-6 h-6 text-amber-400" />
+                                        </div>
+                                        <div className="px-2 py-0.5 bg-amber-500 rounded text-[7px] font-black text-black uppercase tracking-widest animate-pulse shadow-[0_0_10px_rgba(245,158,11,0.3)]">
+                                            Mandatory Progress
+                                        </div>
                                     </div>
                                     <div>
                                         <h3 className="text-xl font-black text-white uppercase tracking-widest leading-none mb-2">Confront Evidence</h3>
                                         <p className="text-zinc-500 text-xs font-medium leading-relaxed uppercase tracking-wider">
-                                            Present gathered files and clues directly. Challenge discrepancies in their story.
+                                            Present gathered files and clues directly. <span className="text-amber-400 font-bold">Required to break the case and advance the investigation.</span>
                                         </p>
                                     </div>
                                     <div className="flex items-center gap-2 mt-auto text-amber-400 font-black text-[10px] uppercase tracking-[0.2em] opacity-0 group-hover:opacity-100 transition-all translate-x-[-10px] group-hover:translate-x-0">

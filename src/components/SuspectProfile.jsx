@@ -23,7 +23,7 @@ const getAvatarColor = (name) => {
 
 // -- UI COMPONENTS --
 
-const TabButton = ({ active, onClick, icon: Icon, label, badge, color = 'indigo' }) => {
+const TabButton = ({ active, onClick, icon: Icon, label, badge, color = 'indigo', isMandatory = false }) => {
     const colorClasses = {
         indigo: {
             active: 'bg-indigo-600 shadow-[inset_0_0_20px_rgba(255,255,255,0.2)]',
@@ -51,8 +51,14 @@ const TabButton = ({ active, onClick, icon: Icon, label, badge, color = 'indigo'
             className={`flex-1 flex flex-col items-center justify-center gap-2 py-6 transition-all relative group overflow-hidden border-r border-white/5 last:border-r-0 ${active
                 ? `text-white ${colorClasses.active} ${colorClasses.glow}`
                 : 'text-zinc-500 hover:text-zinc-300 bg-black/20 hover:bg-white/5'
-                }`}
+                } ${isMandatory && !active ? 'ring-inset ring-1 ring-amber-500/20' : ''}`}
         >
+            {isMandatory && !active && (
+                <div className="absolute top-2 left-1/2 -translate-x-1/2 px-2 py-0.5 bg-amber-500 rounded text-[7px] font-black text-black uppercase tracking-widest animate-pulse shadow-[0_0_10px_rgba(245,158,11,0.3)]">
+                    Required
+                </div>
+            )}
+            
             {/* Hover Glow Effect */}
             {!active && (
                 <div className={`absolute inset-0 opacity-0 group-hover:opacity-100 bg-gradient-to-tr from-${color === 'indigo' ? 'indigo' : color === 'amber' ? 'amber' : 'rose'}-500/10 to-transparent transition-opacity duration-500`} />
@@ -64,7 +70,7 @@ const TabButton = ({ active, onClick, icon: Icon, label, badge, color = 'indigo'
             </div>
             {badge > 0 && (
                 <div className={`absolute top-4 right-6 px-1.5 py-0.5 rounded-md text-[9px] font-black ${active ? 'bg-white text-black' : 'bg-zinc-800 text-zinc-400 border border-white/10'
-                    }`}>
+                    } ${isMandatory && !active ? 'bg-amber-500 text-black animate-bounce' : ''}`}>
                     {badge}
                 </div>
             )}
@@ -478,6 +484,7 @@ export default function SuspectProfile({
                     <TabButton
                         active={activeTab === 'evidence'}
                         onClick={() => setActiveTab('evidence')}
+                        isMandatory={confrontedEvidenceIds.size === 0}
                         icon={Briefcase}
                         label="Confrontation"
                         badge={relevantEvidence.length}
@@ -575,8 +582,13 @@ export default function SuspectProfile({
                             >
                                 <div className="flex items-center justify-between mb-8">
                                     <div>
-                                        <h2 className="text-2xl font-black text-white uppercase tracking-tight">Challenge Testimony</h2>
-                                        <p className="text-xs text-zinc-500 uppercase tracking-[0.2em] mt-1">Select gathered evidence to present to the suspect</p>
+                                        <div className="flex items-center gap-3 mb-1">
+                                            <h2 className="text-2xl font-black text-white uppercase tracking-tight">Challenge Testimony</h2>
+                                            <div className="px-2 py-0.5 bg-amber-500/20 border border-amber-500/40 rounded text-[9px] font-black text-amber-500 uppercase tracking-widest animate-pulse">
+                                                Priority Protocol
+                                            </div>
+                                        </div>
+                                        <p className="text-xs text-zinc-500 uppercase tracking-[0.2em]">Mandatory: Confront the suspect with gathered evidence to progress the story</p>
                                     </div>
                                     <div className="flex items-center gap-2 px-4 py-2 bg-amber-500/10 border border-amber-500/20 rounded-xl">
                                         <Search className="w-4 h-4 text-amber-500" />
@@ -674,7 +686,21 @@ export default function SuspectProfile({
                                 className="space-y-8"
                             >
                                 <div className="flex flex-col gap-6">
-                                    {navigationOptions.map(option => {
+                                    {confrontedEvidenceIds.size === 0 && (
+                                        <div className="p-6 bg-amber-950/20 border border-amber-500/30 rounded-3xl mb-4 flex items-center gap-6">
+                                            <div className="w-12 h-12 bg-amber-500 rounded-2xl flex items-center justify-center shrink-0 shadow-[0_0_20px_rgba(245,158,11,0.4)]">
+                                                <AlertTriangle className="w-6 h-6 text-black" />
+                                            </div>
+                                            <div>
+                                                <h4 className="text-amber-500 font-black uppercase text-sm tracking-widest mb-1">Confrontation Required</h4>
+                                                <p className="text-zinc-400 text-[10px] uppercase tracking-wider leading-relaxed">
+                                                    Standard interrogation protocols are insufficient. You must successfully present incriminating evidence to proceed with more direct actions.
+                                                </p>
+                                            </div>
+                                        </div>
+                                    )}
+                                    <div className={`space-y-6 transition-all ${confrontedEvidenceIds.size === 0 ? 'opacity-50 grayscale pointer-events-none' : ''}`}>
+                                        {navigationOptions.map(option => {
                                         // Look up the target node to use its configured label/title
                                         const targetNode = nodes.find(n => n.id === option.target);
                                         const nodeTitle = targetNode?.data?.label || option.label || option.target;
@@ -708,7 +734,8 @@ export default function SuspectProfile({
                                                 <ChevronRight className="w-8 h-8 text-zinc-700 group-hover:text-white group-hover:translate-x-2 transition-all" />
                                             </button>
                                         );
-                                    })}
+                                        })}
+                                    </div>
                                 </div>
                             </motion.div>
                         )}
