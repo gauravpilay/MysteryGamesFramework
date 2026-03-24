@@ -103,7 +103,7 @@ const HelpAccordionItem = ({ title, content, isOpen, onClick, parseRichText }) =
                 >
                     <div className="p-5 pb-6 text-zinc-300 leading-relaxed text-[15px] font-medium border-x border-b border-indigo-500/10 rounded-b-2xl bg-indigo-500/[0.02] ml-4 mr-4 shadow-inner">
                         <div
-                            className="bg-black/20 p-4 rounded-xl border border-white/5 font-serif italic"
+                            className="bg-black/20 p-4 rounded-xl border border-white/5 font-serif"
                             dangerouslySetInnerHTML={{ __html: parseRichText(content) }}
                         />
                     </div>
