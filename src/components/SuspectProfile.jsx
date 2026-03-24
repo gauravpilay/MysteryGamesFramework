@@ -455,15 +455,13 @@ export default function SuspectProfile({
 
                     {/* Close Action */}
                     <div className="flex flex-col gap-3 shrink-0">
-                        {/* <button
+                        <button
                             onClick={onClose}
-                            className="flex items-center gap-3 px-6 py-3 bg-red-500/10 hover:bg-red-500/20 border border-red-500/30 rounded-xl transition-all group shadow-lg shadow-red-500/5 active:scale-95"
-                        > */}
-                        {/* <span className="text-[10px] font-black text-red-500 uppercase tracking-[0.2em]">Conclude</span> */}
-                        {/* <div className="w-8 h-8 rounded-lg bg-red-500 flex items-center justify-center group-hover:rotate-90 transition-transform duration-300">
-                                <X className="w-5 h-5 text-white" />
-                            </div> */}
-                        {/* </button> */}
+                            className="flex items-center justify-center w-12 h-12 bg-red-600/10 hover:bg-red-600/20 border border-red-500/30 rounded-2xl transition-all group shadow-lg active:scale-95"
+                            title="Close File"
+                        >
+                            <X className="w-6 h-6 text-red-500 group-hover:rotate-90 transition-transform duration-300" />
+                        </button>
                         <div className="flex items-center justify-end gap-2 px-2">
                             <div className="w-1.5 h-1.5 rounded-full bg-emerald-500 animate-pulse" />
                             <span className="text-[9px] font-black text-zinc-500 uppercase tracking-widest">Target Locked</span>
@@ -699,7 +697,7 @@ export default function SuspectProfile({
                                             </div>
                                         </div>
                                     )}
-                                    <div className={`space-y-6 transition-all ${confrontedEvidenceIds.size === 0 ? 'opacity-50 grayscale pointer-events-none' : ''}`}>
+                                    <div className="space-y-6 transition-all">
                                         {navigationOptions.map(option => {
                                         // Look up the target node to use its configured label/title
                                         const targetNode = nodes.find(n => n.id === option.target);

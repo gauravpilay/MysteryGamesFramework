@@ -3047,7 +3047,10 @@ const GamePreview = ({ nodes, edges, onClose, gameMetadata, onGameEnd, onNodeCha
                                     inventory={inventory}
                                     nodes={nodes}
                                     edges={edges}
-                                    onClose={() => setActiveModalNode(null)}
+                                    onClose={() => {
+                                        setSuspectChoiceNode(activeModalNode);
+                                        setActiveModalNode(null);
+                                    }}
                                     onNavigate={handleOptionClick}
                                     onLog={addLog}
                                     isSimultaneous={isSimultaneous}
