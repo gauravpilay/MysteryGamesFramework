@@ -120,27 +120,8 @@ const SuspectHubGrid = ({ navigationOptions, nodes, edges, onSuspectClick, getAv
                 if (direct) {
                     list.push({ ...direct, type: 'direct' });
                     processedPairs.add(pairKey);
-                } else {
-                    const findHop = (src, dest) => {
-                        const outEdges = sourceMap.get(src) || [];
-                        for (const e1 of outEdges) {
-                            const nextEdges = sourceMap.get(e1.target) || [];
-                            if (nextEdges.some(e2 => e2.target === dest)) return true;
-                        }
-                        return false;
-                    };
-                    if (findHop(s1.id, s2.id) || findHop(s2.id, s1.id)) {
-                        list.push({
-                            id: `hop-${pairKey}`,
-                            source: s1.id,
-                            target: s2.id,
-                            type: 'indirect',
-                            label: 'Connection Found',
-                            data: { note: 'Related through investigation links.' }
-                        });
-                        processedPairs.add(pairKey);
-                    }
                 }
+
             });
         });
         return list;
@@ -190,11 +171,10 @@ const SuspectHubGrid = ({ navigationOptions, nodes, edges, onSuspectClick, getAv
                             const labelCY = midY;
 
                             const isSelected = selectedId === conn.source || selectedId === conn.target;
-                            const isIndirect = conn.type === 'indirect';
                             const label = conn.label || '';
                             const note = conn.data?.note || '';
-                            const accentColor = isIndirect ? '#6366f1' : '#ef4444';
-                            const accentColorBright = isIndirect ? '#818cf8' : '#f87171';
+                            const accentColor = '#ef4444';
+                            const accentColorBright = '#f87171';
                             const isActive = activeConnId === conn.id;
                             const hasDetail = label || note;
 
@@ -228,7 +208,6 @@ const SuspectHubGrid = ({ navigationOptions, nodes, edges, onSuspectClick, getAv
                                         x1={x1} y1={y1} x2={x2} y2={y2}
                                         stroke={isActive || isSelected ? accentColorBright : accentColor}
                                         strokeWidth={isActive ? 5 : (isSelected ? 2.5 : 1.5)}
-                                        strokeDasharray={isIndirect ? '8 6' : undefined}
                                         opacity={selectedId && !isSelected && !isActive ? 0.12 : (isActive ? 1 : 0.55)}
                                         className="transition-all duration-300"
                                     />
