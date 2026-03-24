@@ -1,6 +1,6 @@
 import React, { useState, useEffect, useMemo, useRef } from 'react';
 import { Button, Card } from './ui/shared';
-import { X, Menu, User, Search, Terminal, MessageSquare, FileText, ArrowRight, ArrowLeft, ShieldAlert, CheckCircle, AlertTriangle, Volume2, VolumeX, Image as ImageIcon, Briefcase, Star, MousePointerClick, Bell, HelpCircle, Clock, ZoomIn, LayoutGrid, ChevronRight, Fingerprint, Cpu, Activity, Shield, Hash, Box as BoxIcon, Radio, Lightbulb, Mail, Paperclip, Unlock, XCircle, Play, Pause, Square, Info, Save, BookmarkCheck, LogOut } from 'lucide-react';
+import { X, Menu, User, Search, Terminal, MessageSquare, FileText, ArrowRight, ArrowLeft, ShieldAlert, CheckCircle, AlertTriangle, Volume2, VolumeX, Image as ImageIcon, Briefcase, Star, MousePointerClick, Bell, HelpCircle, Clock, ZoomIn, LayoutGrid, ChevronRight, ChevronDown, ChevronUp, Fingerprint, Cpu, Brain, Sparkles, Activity, Shield, Hash, Box as BoxIcon, Radio, Lightbulb, Mail, Paperclip, Unlock, XCircle, Play, Pause, Square, Info, Save, BookmarkCheck, LogOut } from 'lucide-react';
 import { motion, AnimatePresence } from 'framer-motion';
 import EvidenceBoard from './EvidenceBoard';
 import AdvancedTerminal from './AdvancedTerminal';
@@ -73,6 +73,81 @@ const BackgroundEffect = React.memo(({ isSimultaneous = false }) => (
         <div className="absolute inset-0 opacity-[0.02] bg-[repeating-linear-gradient(0deg,transparent,transparent_1px,rgba(255,255,255,0.1)_1px,rgba(255,255,255,0.1)_2px)] z-[6]"></div>
     </div>
 ));
+
+const HelpAccordionItem = ({ title, content, isOpen, onClick, parseRichText }) => (
+    <div className="mb-4 last:mb-0">
+        <button
+            onClick={onClick}
+            className={`w-full text-left p-4 rounded-2xl border transition-all duration-300 flex items-center justify-between group ${isOpen
+                ? 'bg-indigo-600/20 border-indigo-500/40 shadow-[0_0_20px_rgba(99,102,241,0.1)]'
+                : 'bg-black/40 border-white/5 hover:border-indigo-500/20'
+                }`}
+        >
+            <div className="flex items-center gap-3">
+                <div className={`p-2 rounded-lg transition-colors ${isOpen ? 'bg-indigo-500 text-white shadow-[0_0_15px_rgba(99,102,241,0.4)]' : 'bg-zinc-800 text-zinc-500'}`}>
+                    <Cpu className="w-4 h-4" />
+                </div>
+                <span className={`text-[13px] font-black uppercase tracking-widest ${isOpen ? 'text-indigo-200' : 'text-zinc-500 group-hover:text-zinc-400'}`}>
+                    {title || 'Auxiliary Intelligence Feed'}
+                </span>
+            </div>
+            {isOpen ? <ChevronUp className="w-5 h-5 text-indigo-400" /> : <ChevronDown className="w-5 h-5 text-zinc-600 group-hover:text-zinc-400" />}
+        </button>
+        <AnimatePresence>
+            {isOpen && (
+                <motion.div
+                    initial={{ height: 0, opacity: 0 }}
+                    animate={{ height: 'auto', opacity: 1 }}
+                    exit={{ height: 0, opacity: 0 }}
+                    className="overflow-hidden"
+                >
+                    <div className="p-5 pb-6 text-zinc-300 leading-relaxed text-[15px] font-medium border-x border-b border-indigo-500/10 rounded-b-2xl bg-indigo-500/[0.02] ml-4 mr-4 shadow-inner">
+                        <div
+                            className="bg-black/20 p-4 rounded-xl border border-white/5 font-serif italic"
+                            dangerouslySetInnerHTML={{ __html: parseRichText(content) }}
+                        />
+                    </div>
+                </motion.div>
+            )}
+        </AnimatePresence>
+    </div>
+);
+
+const HelpItemsList = ({ items, parseRichText }) => {
+    const [openId, setOpenId] = useState(null);
+    return (
+        <div className="space-y-4">
+            {items.map((item) => (
+                <HelpAccordionItem
+                    key={item.id}
+                    title={item.title}
+                    content={item.content}
+                    isOpen={openId === item.id}
+                    onClick={() => setOpenId(openId === item.id ? null : item.id)}
+                    parseRichText={parseRichText}
+                />
+            ))}
+        </div>
+    );
+};
+
+const HelpButton = ({ onClick, hasHelp }) => {
+    if (!hasHelp) return null;
+    return (
+        <button
+            onClick={onClick}
+            className="group flex items-center gap-2.5 px-4 py-2 rounded-xl bg-indigo-600/10 border border-indigo-500/30 hover:bg-indigo-600/30 hover:border-indigo-500/50 transition-all shadow-[0_0_20px_rgba(99,102,241,0.1)] hover:shadow-[0_0_30px_rgba(99,102,241,0.2)] ml-4 shrink-0"
+            title="Help"
+        >
+            <div className="relative">
+                <div className="absolute inset-0 bg-indigo-400 blur-sm rounded-full opacity-0 group-hover:opacity-40 transition-opacity"></div>
+                <Info className="relative w-4 h-4 text-indigo-400 group-hover:scale-110 group-hover:text-white transition-all" />
+            </div>
+            <span className="text-[11px] font-black uppercase text-indigo-200 tracking-[0.2em] hidden sm:inline">Help</span>
+        </button>
+    );
+};
+
 
 const parseRichText = (input) => {
     if (!input) return "";
@@ -648,7 +723,7 @@ const GamePreview = ({ nodes, edges, onClose, gameMetadata, onGameEnd, onNodeCha
 
     const progressPercentage = useMemo(() => {
         if (!gameMetadata?.totalSteps || gameMetadata.totalSteps === 0) return 0;
-        
+
         const INTERACTIVE_NODE_TYPES = [
             'story', 'cutscene', 'suspect', 'evidence', 'terminal', 'interrogation',
             'message', 'email', 'media', 'action', 'notification', 'question',
@@ -666,7 +741,7 @@ const GamePreview = ({ nodes, edges, onClose, gameMetadata, onGameEnd, onNodeCha
         // Cap at 100% and use 5% intervals (e.g., 0, 5, 10...)
         const cappedPct = Math.min(100, Math.max(0, pct));
         const intervalPct = Math.floor(cappedPct / 5) * 5;
-        
+
         return intervalPct;
     }, [history, nodes, gameMetadata?.totalSteps]);
 
@@ -865,8 +940,8 @@ const GamePreview = ({ nodes, edges, onClose, gameMetadata, onGameEnd, onNodeCha
 
             // 2. Fallback: If no music in history, check if the prime start node is a music node
             if (!musicNodeToRestore) {
-                const startNode = nodes.find(n => n.id.toLowerCase().includes('start')) || 
-                                 nodes.find(n => (n.data?.label || '').toLowerCase().includes('briefing'));
+                const startNode = nodes.find(n => n.id.toLowerCase().includes('start')) ||
+                    nodes.find(n => (n.data?.label || '').toLowerCase().includes('briefing'));
                 if (startNode?.type === 'music' && startNode.data?.url) {
                     musicNodeToRestore = startNode;
                 }
@@ -878,7 +953,7 @@ const GamePreview = ({ nodes, edges, onClose, gameMetadata, onGameEnd, onNodeCha
                 addLog('AUDIO: Restoring ambient frequency.');
             }
             // ─────────────────────────────────
-            
+
             return;
         }
         // ─────────────────────────────────────────────────────────────────────
@@ -1195,7 +1270,7 @@ const GamePreview = ({ nodes, edges, onClose, gameMetadata, onGameEnd, onNodeCha
             // Award Scores for discoveries (even silent ones)
             // ACTION_NODES handle their own scoring upon successful completion/submission.
             const ACTION_NODES = ['terminal', 'question', 'identify', 'lockpick', 'keypad', 'decryption', 'interrogation', 'crazywall'];
-            
+
             if (n.data?.score && !scoredNodes.has(n.id) && !ACTION_NODES.includes(n.type)) {
                 const awards = Number(n.data.score) || 0;
                 setScore(s => s + awards);
@@ -2038,7 +2113,7 @@ const GamePreview = ({ nodes, edges, onClose, gameMetadata, onGameEnd, onNodeCha
 
                 {/* 3. Right Section: Action Controls */}
                 <div className="flex items-center gap-1.5 md:gap-3 flex-1 justify-end min-w-0">
-                    
+
                     {/* Desktop Controls (Hidden on Mobile) */}
                     <div className="hidden lg:flex items-center gap-1.5 md:gap-3">
                         {/* ── TTS Narrator Control (story nodes only, requires enable_audio_support license) ── */}
@@ -2156,9 +2231,9 @@ const GamePreview = ({ nodes, edges, onClose, gameMetadata, onGameEnd, onNodeCha
                                         </motion.div>
                                     )}
                                 </AnimatePresence>
-                                
+
                                 {showVolumeSlider && (
-                                    <button 
+                                    <button
                                         className="text-[8px] font-black uppercase tracking-tighter text-zinc-500 hover:text-white px-1"
                                         onClick={() => setIsMuted(!isMuted)}
                                     >
@@ -2276,7 +2351,7 @@ const GamePreview = ({ nodes, edges, onClose, gameMetadata, onGameEnd, onNodeCha
                         </div>
 
                         <div className="flex flex-col gap-6">
-                            
+
                             {/* TTS Controls (Mobile) */}
                             {isStoryNode && ttsText && audioEnabled && (
                                 <div className="bg-zinc-900/60 border border-blue-500/20 rounded-3xl p-6">
@@ -3195,14 +3270,17 @@ const GamePreview = ({ nodes, edges, onClose, gameMetadata, onGameEnd, onNodeCha
                                         </div>
 
                                         {/* Protocol intelligence (Help) button */}
-                                        {activeModalNode.data.helpContent && (
+                                        {(activeModalNode.data.helpContent || (activeModalNode.data.helpItems && activeModalNode.data.helpItems.length > 0)) && (
                                             <button
                                                 onClick={() => setShowQuestionHelp(true)}
-                                                className="group flex items-center gap-2 px-3 py-1.5 rounded-lg bg-indigo-500/10 border border-indigo-500/20 hover:bg-indigo-500/30 hover:border-indigo-500/40 transition-all shadow-[0_0_15px_rgba(99,102,241,0.1)] hover:shadow-[0_0_20px_rgba(99,102,241,0.2)]"
+                                                className="group flex items-center gap-2.5 px-4 py-2 rounded-xl bg-indigo-600/10 border border-indigo-500/30 hover:bg-indigo-600/30 hover:border-indigo-500/50 transition-all shadow-[0_0_20px_rgba(99,102,241,0.1)] hover:shadow-[0_0_30px_rgba(99,102,241,0.2)]"
                                                 title="Help"
                                             >
-                                                <Info className="w-4 h-4 text-indigo-400 group-hover:scale-110 transition-transform" />
-                                                <span className="text-[10px] font-black uppercase text-indigo-300 tracking-widest hidden sm:inline">Help</span>
+                                                <div className="relative">
+                                                    <div className="absolute inset-0 bg-indigo-400 blur-sm rounded-full opacity-0 group-hover:opacity-40 transition-opacity"></div>
+                                                    <Info className="relative w-4 h-4 text-indigo-400 group-hover:scale-110 group-hover:text-white transition-all" />
+                                                </div>
+                                                <span className="text-[11px] font-black uppercase text-indigo-200 tracking-[0.2em] hidden sm:inline">Help</span>
                                             </button>
                                         )}
                                     </div>
@@ -4054,51 +4132,100 @@ const GamePreview = ({ nodes, edges, onClose, gameMetadata, onGameEnd, onNodeCha
                 )}
             </AnimatePresence>
 
-            {/* Question Intelligence Protocol (Help) Popup */}
+            {/* Intelligence Protocol (Help) Popup - Multi-Point Accordion Redesign */}
             <AnimatePresence>
-                {showQuestionHelp && activeModalNode?.data.helpContent && (
-                    <div className="fixed inset-0 z-[300] flex items-center justify-center p-4 bg-black/60 backdrop-blur-md" onClick={() => setShowQuestionHelp(false)}>
+                {showQuestionHelp && (activeModalNode?.data.helpContent || (activeModalNode?.data.helpItems && activeModalNode.data.helpItems.length > 0)) && (
+                    <div className="fixed inset-0 z-[2000] flex items-center justify-center p-4 bg-zinc-950/80 backdrop-blur-2xl" onClick={() => setShowQuestionHelp(false)}>
                         <motion.div
-                            initial={{ opacity: 0, scale: 0.9, y: 20 }}
+                            initial={{ opacity: 0, scale: 0.95, y: 30 }}
                             animate={{ opacity: 1, scale: 1, y: 0 }}
-                            exit={{ opacity: 0, scale: 0.9, y: 20 }}
-                            className="bg-zinc-950 border border-indigo-500/30 p-8 rounded-3xl max-w-2xl w-full shadow-[0_0_50px_rgba(99,102,241,0.2)] relative overflow-hidden"
+                            exit={{ opacity: 0, scale: 0.95, y: 30 }}
+                            className="bg-zinc-950 border border-indigo-500/20 rounded-[3rem] max-w-2xl w-full shadow-[0_0_100px_rgba(99,102,241,0.15)] relative overflow-hidden"
                             onClick={(e) => e.stopPropagation()}
                         >
-                            {/* Decorative Background Items */}
-                            <div className="absolute top-0 right-0 w-32 h-32 bg-indigo-600/10 blur-3xl rounded-full -mr-16 -mt-16"></div>
-                            <div className="absolute bottom-0 left-0 w-24 h-24 bg-fuchsia-600/10 blur-3xl rounded-full -ml-12 -mb-12"></div>
+                            {/* Cinematic Background Decoration */}
+                            <div className="absolute top-0 inset-x-0 h-[200px] bg-gradient-to-b from-indigo-600/10 to-transparent pointer-events-none" />
+                            <div className="absolute -top-24 -right-24 w-64 h-64 bg-indigo-500/20 blur-[100px] rounded-full pointer-events-none" />
+                            <div className="absolute -bottom-24 -left-24 w-64 h-64 bg-fuchsia-500/10 blur-[100px] rounded-full pointer-events-none" />
 
-                            <div className="relative z-10">
-                                <div className="flex items-center gap-4 mb-6">
-                                    <div className="p-3 bg-indigo-500/20 rounded-2xl border border-indigo-500/30">
-                                        <Info className="w-6 h-6 text-indigo-400" />
+                            {/* Scanline pattern for the popup */}
+                            <div className="absolute inset-0 opacity-[0.03] pointer-events-none" style={{
+                                backgroundImage: 'repeating-linear-gradient(0deg, transparent, transparent 1px, #6366f1 1px, #6366f1 2px)',
+                                backgroundSize: '100% 4px'
+                            }} />
+
+                            <div className="relative z-10 p-8 md:p-10">
+                                <div className="flex items-center justify-between mb-10">
+                                    <div className="flex items-center gap-5">
+                                        <div className="relative">
+                                            <div className="absolute -inset-2 bg-indigo-500/20 blur-lg rounded-full animate-pulse" />
+                                            <div className="relative p-4 bg-indigo-600 rounded-2xl border border-indigo-400 shadow-[0_0_25px_rgba(99,102,241,0.4)]">
+                                                <Brain className="w-8 h-8 text-white" />
+                                            </div>
+                                        </div>
+                                        <div>
+                                            <div className="flex items-center gap-2 mb-1">
+                                                <Sparkles className="w-3 h-3 text-indigo-400" />
+                                                <span className="text-[10px] font-black text-indigo-400 uppercase tracking-[0.4em]">Classified Feed</span>
+                                            </div>
+                                            <h3 className="text-2xl md:text-3xl font-black text-white uppercase tracking-tighter leading-none">Help</h3>
+                                        </div>
                                     </div>
-                                    <div>
-                                        <h3 className="text-xl font-black text-white uppercase tracking-tight leading-none mb-1">Additional Information</h3>
-                                    </div>
+                                    <button
+                                        onClick={() => setShowQuestionHelp(false)}
+                                        className="p-3 bg-white/5 hover:bg-white/10 rounded-full transition-colors group"
+                                    >
+                                        <X className="w-6 h-6 text-zinc-500 group-hover:text-white transition-colors" />
+                                    </button>
                                 </div>
 
-                                <div className="bg-black/40 border border-white/5 p-6 rounded-2xl mb-8 max-h-[50vh] overflow-y-auto custom-scrollbar pr-4">
-                                    <p 
-                                        className="text-zinc-300 leading-relaxed whitespace-pre-wrap italic font-serif text-lg"
-                                        dangerouslySetInnerHTML={{ __html: `"${parseRichText(activeModalNode.data.helpContent)}"` }}
-                                    />
+                                <div className="max-h-[55vh] overflow-y-auto custom-scrollbar pr-4 -mr-4 space-y-4">
+                                    {/* Legacy/Single Content Block if exists */}
+                                    {activeModalNode.data.helpContent && (
+                                        <div className="bg-indigo-600/10 border border-indigo-500/30 p-6 rounded-3xl mb-6 shadow-inner relative group">
+                                            <div className="absolute -top-3 -left-3 px-3 py-1 bg-indigo-500 text-white text-[9px] font-black uppercase tracking-widest rounded-lg shadow-lg">Primary Feed</div>
+                                            <p
+                                                className="text-indigo-100/90 leading-relaxed font-serif italic text-lg text-center"
+                                                dangerouslySetInnerHTML={{ __html: `"${parseRichText(activeModalNode.data.helpContent)}"` }}
+                                            />
+                                        </div>
+                                    )}
+
+                                    {/* Multi-point Intelligent Fragments */}
+                                    {activeModalNode.data.helpItems && activeModalNode.data.helpItems.length > 0 && (
+                                        <div className="space-y-4">
+                                            <div className="flex items-center gap-3 px-2 mb-6">
+                                                <div className="h-px flex-1 bg-gradient-to-r from-transparent to-indigo-500/30" />
+                                                <span className="text-[9px] font-black text-indigo-400/60 uppercase tracking-[0.3em]">Decrypted Fragments</span>
+                                                <div className="h-px flex-1 bg-gradient-to-l from-transparent to-indigo-500/30" />
+                                            </div>
+
+                                            <HelpItemsList
+                                                items={activeModalNode.data.helpItems}
+                                                parseRichText={parseRichText}
+                                            />
+                                        </div>
+                                    )}
                                 </div>
 
-                                <Button
-                                    onClick={() => setShowQuestionHelp(false)}
-                                    className="w-full bg-indigo-600 hover:bg-indigo-500 text-white font-black uppercase tracking-[0.2em] h-12 rounded-xl border-t border-white/20 shadow-xl"
-                                >
-                                    Okay
-                                </Button>
+                                <div className="mt-10 flex flex-col items-center">
+                                    <Button
+                                        onClick={() => setShowQuestionHelp(false)}
+                                        className="w-full bg-gradient-to-r from-indigo-700 to-indigo-600 hover:from-indigo-600 hover:to-indigo-500 text-white font-black uppercase tracking-[0.3em] h-14 rounded-2xl border-t border-white/20 shadow-[0_15px_40px_rgba(99,102,241,0.3)] group transition-all active:scale-95"
+                                    >
+                                        <span className="flex items-center gap-3">
+                                            Return <ArrowRight className="w-5 h-5 group-hover:translate-x-1 transition-transform" />
+                                        </span>
+                                    </Button>
+                                    <p className="mt-4 text-[9px] text-zinc-600 font-bold uppercase tracking-widest"></p>
+                                </div>
                             </div>
 
-                            {/* Technical Corners */}
-                            <div className="absolute top-0 left-0 w-8 h-8 border-t-2 border-l-2 border-indigo-500/20 rounded-tl-3xl"></div>
-                            <div className="absolute top-0 right-0 w-8 h-8 border-t-2 border-r-2 border-indigo-500/20 rounded-tr-3xl"></div>
-                            <div className="absolute bottom-0 left-0 w-8 h-8 border-b-2 border-l-2 border-indigo-500/20 rounded-bl-3xl"></div>
-                            <div className="absolute bottom-0 right-0 w-8 h-8 border-b-2 border-r-2 border-indigo-500/20 rounded-br-3xl"></div>
+                            {/* Corner Technical Decorative Elements */}
+                            <div className="absolute top-0 right-0 p-8 pointer-events-none opacity-20">
+                                <div className="w-16 h-1 border-t border-indigo-500" />
+                                <div className="w-1 h-16 border-r border-indigo-500 absolute top-8 right-8" />
+                            </div>
                         </motion.div>
                     </div>
                 )}

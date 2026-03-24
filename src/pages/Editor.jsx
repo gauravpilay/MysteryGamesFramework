@@ -997,18 +997,18 @@ const Editor = () => {
             ];
             const totalSteps = nodes.filter(n => INTERACTIVE_NODE_TYPES.includes(n.type)).length;
 
-            const flow = { 
-                nodes: cleanNodes, 
-                edges: cleanEdges, 
-                meta: { 
-                    timeLimit, 
-                    enableTimeLimit, 
-                    learningObjectives, 
-                    enableThreeD, 
+            const flow = {
+                nodes: cleanNodes,
+                edges: cleanEdges,
+                meta: {
+                    timeLimit,
+                    enableTimeLimit,
+                    learningObjectives,
+                    enableThreeD,
                     enableTTS,
                     enableProgress,
                     totalSteps
-                } 
+                }
             };
 
             // Pre-flight size check — Firestore document limit is ~1MB
@@ -1207,18 +1207,18 @@ const Editor = () => {
         ];
         const totalSteps = nodes.filter(n => INTERACTIVE_NODE_TYPES.includes(n.type)).length;
 
-        const gameData = { 
-            nodes: cleanNodes, 
-            edges, 
-            meta: { 
-                generatedAt: new Date(), 
-                timeLimit, 
-                enableTimeLimit, 
-                learningObjectives, 
+        const gameData = {
+            nodes: cleanNodes,
+            edges,
+            meta: {
+                generatedAt: new Date(),
+                timeLimit,
+                enableTimeLimit,
+                learningObjectives,
                 enableTTS,
                 enableProgress,
                 totalSteps
-            } 
+            }
         };
 
         const folder = zip.folder("mystery-game-build");
@@ -3932,7 +3932,7 @@ Rules: cinematic noir/thriller tone; explain the mystery setup, main suspects, k
                                             <h2 className="text-2xl font-black text-white tracking-tight uppercase">
                                                 {helpModalData.title}
                                             </h2>
-                                            <p className="text-[10px] font-bold text-indigo-400 uppercase tracking-widest mt-1">Intelligence Protocol</p>
+                                            <p className="text-[10px] font-bold text-indigo-400 uppercase tracking-widest mt-1">Helpl</p>
                                         </div>
                                     </div>
 

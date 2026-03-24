@@ -383,7 +383,7 @@ const NodeWrapper = ({ children, title, icon: Icon, colorClass = "border-zinc-70
                         <button
                             className="p-1.5 hover:bg-white/10 rounded-md text-zinc-500 hover:text-indigo-400 transition-all"
                             onClick={(e) => { e.stopPropagation(); data.onShowHelp(); }}
-                            title="Intelligence Protocol"
+                            title="Help"
                         >
                             <Info className="w-3.5 h-3.5" />
                         </button>
@@ -500,15 +500,163 @@ export const InputField = ({ value, onChange, placeholder, className = "", ...pr
     />
 );
 
-const TextArea = ({ value, onChange, placeholder, rows = 3 }) => (
+const TextArea = ({ value, onChange, placeholder, rows = 3, className = "" }) => (
     <textarea
-        className="w-full bg-zinc-900/50 border border-zinc-800 rounded px-2 py-1 text-xs text-zinc-200 placeholder:text-zinc-600 resize-none focus:outline-none focus:border-indigo-500/50 nodrag"
+        className={`w-full bg-zinc-900/50 border border-zinc-800 rounded px-2 py-1 text-xs text-zinc-200 placeholder:text-zinc-600 resize-none focus:outline-none focus:border-indigo-500/50 nodrag ${className}`}
         placeholder={placeholder}
         rows={rows}
         value={value || ''}
         onChange={onChange}
     />
 );
+
+const HelpConfig = ({ id, data, handleChange }) => {
+    const [isExpanded, setIsExpanded] = useState(false);
+    const helpItems = data.helpItems || [];
+
+    const addHelpItem = () => {
+        const newItem = { id: crypto.randomUUID(), title: '', content: '' };
+        handleChange('helpItems', [...helpItems, newItem]);
+        setIsExpanded(true);
+    };
+
+    const updateHelpItem = (itemId, updates) => {
+        handleChange('helpItems', helpItems.map(item => item.id === itemId ? { ...item, ...updates } : item));
+    };
+
+    const deleteHelpItem = (itemId) => {
+        handleChange('helpItems', helpItems.filter(item => item.id !== itemId));
+    };
+
+    const hasHelp = helpItems.length > 0 || (data.helpContent && data.helpContent.trim().length > 0);
+
+    return (
+        <div className={`mt-3 pt-3 border-t border-indigo-500/10 transition-all ${isExpanded ? 'bg-indigo-500/[0.03] -mx-4 px-4' : ''}`}>
+            <div className="flex items-center justify-between group/cfg cursor-pointer" onClick={() => setIsExpanded(!isExpanded)}>
+                <div className="flex items-center gap-2 ml-1">
+                    <div className={`p-1.5 rounded-lg transition-all duration-300 ${hasHelp ? 'bg-indigo-500/20 text-indigo-400 shadow-[0_0_10px_rgba(99,102,241,0.2)]' : 'bg-zinc-800/50 text-zinc-500'}`}>
+                        <Info className="w-3 h-3" />
+                    </div>
+                    <div>
+                        <span className={`text-[10px] font-black uppercase tracking-[0.15em] transition-colors ${hasHelp ? 'text-indigo-400' : 'text-zinc-500'}`}>
+                            Help
+                        </span>
+                        {helpItems.length > 0 && (
+                            <span className="ml-2 text-[9px] bg-indigo-500/20 text-indigo-300 px-2 py-0.5 rounded-full font-black border border-indigo-500/20">
+                                {helpItems.length}
+                            </span>
+                        )}
+                    </div>
+                </div>
+                <div className="flex items-center gap-1.5">
+                    <button
+                        onClick={(e) => { e.stopPropagation(); addHelpItem(); }}
+                        className="p-1.5 hover:bg-indigo-500/20 rounded-md text-indigo-400 transition-all opacity-0 group-hover/cfg:opacity-100"
+                        title="Add Help Item"
+                    >
+                        <Plus className="w-4 h-4" />
+                    </button>
+                    <div className="p-1 text-zinc-600 group-hover/cfg:text-zinc-400 transition-colors">
+                        {isExpanded ? <ChevronUp className="w-4 h-4" /> : <ChevronDown className="w-4 h-4" />}
+                    </div>
+                </div>
+            </div>
+
+            <AnimatePresence>
+                {isExpanded && (
+                    <motion.div
+                        initial={{ height: 0, opacity: 0 }}
+                        animate={{ height: 'auto', opacity: 1 }}
+                        exit={{ height: 0, opacity: 0 }}
+                        className="overflow-hidden mt-4 space-y-4 pb-2"
+                    >
+                        {/* Legacy Migration */}
+                        {data.helpContent && data.helpContent.trim().length > 0 && (
+                            <div className="p-3 bg-amber-500/10 border border-amber-500/20 rounded-xl flex items-center justify-between gap-4 shadow-xl">
+                                <div className="flex-1 min-w-0">
+                                    <div className="flex items-center gap-1.5 mb-1">
+                                        <AlertCircle className="w-3 h-3 text-amber-500" />
+                                        <p className="text-[9px] font-black text-amber-500 uppercase tracking-wider">Legacy Help Data Found</p>
+                                    </div>
+                                    <p className="text-[11px] text-zinc-400 italic line-clamp-1 truncate">{data.helpContent}</p>
+                                </div>
+                                <button
+                                    onClick={() => {
+                                        handleChange('helpItems', [...helpItems, { id: crypto.randomUUID(), title: 'Additional Help', content: data.helpContent }]);
+                                        handleChange('helpContent', '');
+                                    }}
+                                    className="shrink-0 text-[9px] bg-amber-500 hover:bg-amber-400 text-black px-3 py-1.5 rounded-lg font-black uppercase tracking-tighter transition-all shadow-lg active:scale-95"
+                                >
+                                    Migrate
+                                </button>
+                            </div>
+                        )}
+
+                        <div className="space-y-4">
+                            {helpItems.map((item, idx) => (
+                                <div key={item.id} className="group/help relative">
+                                    <div className="p-4 bg-black/50 border border-white/5 group-hover/help:border-indigo-500/30 rounded-2xl transition-all">
+                                        <div className="flex items-center gap-3 mb-3">
+                                            <div className="flex-1">
+                                                <InputField
+                                                    placeholder="Title"
+                                                    value={item.title}
+                                                    onChange={(e) => updateHelpItem(item.id, { title: e.target.value })}
+                                                    className="!bg-indigo-950/20 !border-indigo-500/20 !text-indigo-200 !text-xs !font-black !uppercase !tracking-widest !py-1.5"
+                                                />
+                                            </div>
+                                            <button
+                                                onClick={() => deleteHelpItem(item.id)}
+                                                className="p-2 text-zinc-700 hover:text-rose-500 hover:bg-rose-500/10 rounded-xl transition-all opacity-0 group-hover/help:opacity-100"
+                                            >
+                                                <Trash2 className="w-4 h-4" />
+                                            </button>
+                                        </div>
+                                        <TextArea
+                                            placeholder="Help Text"
+                                            rows={3}
+                                            value={item.content}
+                                            onChange={(e) => updateHelpItem(item.id, { content: e.target.value })}
+                                            className="!text-[12px] !font-medium !bg-black/60 !border-white/5 focus:!border-indigo-500/30 !leading-relaxed"
+                                        />
+                                    </div>
+                                    {idx < helpItems.length - 1 && (
+                                        <div className="flex justify-center mt-4">
+                                            <div className="w-1 h-1 bg-indigo-500/10 rounded-full" />
+                                        </div>
+                                    )}
+                                </div>
+                            ))}
+
+                            {helpItems.length === 0 && (!data.helpContent || data.helpContent.trim().length === 0) && (
+                                <div className="py-10 flex flex-col items-center justify-center border-2 border-dashed border-zinc-900 rounded-3xl bg-black/20 hover:bg-black/40 transition-colors">
+                                    <div className="w-12 h-12 bg-zinc-900 rounded-2xl flex items-center justify-center mb-4">
+                                        <Brain className="w-6 h-6 text-zinc-700" />
+                                    </div>
+                                    <p className="text-xs font-black text-zinc-600 uppercase tracking-widest mb-3">Auxiliary Data Banks Empty</p>
+                                    <button
+                                        onClick={addHelpItem}
+                                        className="px-4 py-2 bg-indigo-600 hover:bg-indigo-500 text-white text-[10px] font-black uppercase tracking-[0.2em] rounded-xl transition-all shadow-lg active:scale-95 flex items-center gap-2"
+                                    >
+                                        <Plus className="w-3.5 h-3.5" /> Initialize Feed
+                                    </button>
+                                </div>
+                            )}
+                        </div>
+
+                        <div className="flex items-center gap-2 px-2 pt-2">
+                            <Sparkles className="w-3 h-3 text-indigo-400/50" />
+                            <p className="text-[9px] text-zinc-500 font-bold uppercase tracking-widest leading-tight">
+                                Synchronized with Intelligence HUD
+                            </p>
+                        </div>
+                    </motion.div>
+                )}
+            </AnimatePresence>
+        </div>
+    );
+};
+
 
 export const StoryNode = memo(({ id, data, selected }) => {
     const handleChange = (key, val) => {
@@ -2751,6 +2899,7 @@ export const MediaNode = memo(({ id, data, selected }) => {
                             </div>
                         )}
                     </div>
+                    <HelpConfig id={id} data={data} handleChange={handleChange} />
                 </div>
             </NodeWrapper>
             {(!data.actions || data.actions.length === 0) && (
@@ -2962,21 +3111,7 @@ export const QuestionNode = memo(({ id, data, selected }) => {
                         onChange={(e) => handleChange('question', e.target.value)}
                     />
 
-                    {/* Additional Help/Info Configuration */}
-                    <div className="pt-1 mt-1 border-t border-fuchsia-900/10">
-                        <div className="flex items-center gap-1.5 mb-1 ml-1 text-fuchsia-400/80">
-                            <Info className="w-3 h-3" />
-                            <span className="text-[9px] font-black uppercase tracking-wider">Additional Help</span>
-                        </div>
-                        <TextArea
-                            placeholder="Enter additional background info or help text for the player..."
-                            rows={3}
-                            value={data.helpContent}
-                            onChange={(e) => handleChange('helpContent', e.target.value)}
-                            className="text-[11px] !bg-fuchsia-950/5 border-fuchsia-900/10 focus:border-fuchsia-500/30"
-                        />
-                        <p className="text-[8px] text-zinc-500 mt-1 italic ml-1 leading-tight">Displayed to players via the 'Intelligence Protocol' (i) icon during the challenge.</p>
-                    </div>
+                    <HelpConfig id={id} data={data} handleChange={handleChange} />
 
                     {/* Question Image */}
                     <div className="space-y-2">
