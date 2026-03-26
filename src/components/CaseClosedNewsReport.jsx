@@ -411,9 +411,9 @@ const CaseClosedNewsReport = ({
 
                             <div className="flex items-center gap-3">
                                 <MessageSquare className="w-5 h-5 text-white" />
-                                <span className="text-sm font-black uppercase tracking-[0.2em] text-white">Provide Feedback</span>
+                                <span className="text-sm font-black uppercase tracking-[0.2em] text-white">End Mission</span>
                             </div>
-                            <span className="text-[10px] font-bold text-indigo-200/60 uppercase tracking-widest">Mission Debriefing</span>
+                            <span className="text-[10px] font-bold text-indigo-200/60 uppercase tracking-widest">Provide Feedback</span>
 
                             {/* Inner Glow */}
                             <div className="absolute inset-x-0 top-0 h-px bg-gradient-to-r from-transparent via-white/30 to-transparent" />
