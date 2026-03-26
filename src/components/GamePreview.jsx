@@ -170,10 +170,10 @@ const parseRichText = (input) => {
 
     const processLine = (line) => {
         let parsed = line;
-        
+
         // Bold: **text**
         parsed = parsed.replace(/\*\*(.*?)\*\*/g, '<b class="text-white font-black drop-shadow-sm">$1</b>');
-        
+
         // Colors: [red]text[/red]
         colors.forEach(color => {
             const regex = new RegExp(`\\[${color}\\](.*?)\\[\\/${color}\\]`, 'g');
@@ -187,7 +187,7 @@ const parseRichText = (input) => {
     let inList = false;
     const processedLines = lines.map(line => {
         const trimmed = line.trim();
-        
+
         // Handle Bullets
         if (trimmed.startsWith('- ') || trimmed.startsWith('* ')) {
             const content = trimmed.substring(2);
@@ -2085,15 +2085,6 @@ const GamePreview = ({ nodes, edges, onClose, gameMetadata, onGameEnd, onNodeCha
                     <div className="hidden sm:block bg-red-600 px-1.5 md:px-2 py-1 rounded text-[8px] md:text-xs font-bold text-white uppercase tracking-widest animate-pulse shrink-0">
                         Active
                     </div>
-                    {/* Progress percentage for mobile/tablet */}
-                    {gameMetadata?.enableProgress !== false && (
-                        <div className="lg:hidden flex items-center gap-2 bg-indigo-500/10 border border-indigo-500/20 px-2 py-1 rounded-lg">
-                            <div className="w-2.5 h-2.5 rounded-full border-2 border-indigo-500/30 flex items-center justify-center">
-                                <div className="w-1 h-1 bg-indigo-500 rounded-full animate-pulse" />
-                            </div>
-                            <span className="text-[10px] font-black text-white/90 font-mono tracking-tighter">{progressPercentage}%</span>
-                        </div>
-                    )}
                     {/* Score Display - Enhanced UI */}
                     <div className="relative">
                         <AnimatePresence>
@@ -2398,6 +2389,83 @@ const GamePreview = ({ nodes, edges, onClose, gameMetadata, onGameEnd, onNodeCha
                     </Button>
                 </div>
             </div>
+
+            {/* ── Prominent Mission Progress HUD ── */}
+            {gameMetadata?.enableProgress !== false && (
+                <div className="w-full bg-indigo-900/10 border-b border-indigo-500/20 h-10 md:h-12 relative group overflow-hidden shrink-0 z-[550] shadow-xl flex items-center transition-all duration-300">
+                    {/* Background track with scanline and hex-inspired pattern */}
+                    <div className="absolute inset-0 opacity-[0.05] pointer-events-none" style={{
+                        backgroundImage: 'radial-gradient(circle, #4f46e5 1px, transparent 1px)',
+                        backgroundSize: '24px 24px'
+                    }} />
+
+                    {/* Progress Fill Container */}
+                    <div className="absolute inset-y-2 left-4 right-4 bg-black/40 rounded-full overflow-hidden border border-white/5 shadow-[inset_0_2px_10px_rgba(0,0,0,0.5)]">
+                        {/* Dynamic Progress Indicator */}
+                        <motion.div
+                            initial={{ width: 0 }}
+                            animate={{ width: `${progressPercentage}%` }}
+                            transition={{ type: 'spring', stiffness: 35, damping: 12, mass: 1 }}
+                            className="absolute top-0 bottom-0 left-0 z-10 h-full rounded-full"
+                        >
+                            {/* Multi-layered high-fidelity gradient */}
+                            <div className="absolute inset-0 bg-gradient-to-r from-indigo-800 via-indigo-500 via-violet-500 to-cyan-400 shadow-[0_0_20px_rgba(34,211,238,0.4)]" />
+
+                            {/* Scanning beam animation */}
+                            <motion.div
+                                animate={{ x: ['-200%', '300%'] }}
+                                transition={{ duration: 4, repeat: Infinity, ease: "linear" }}
+                                className="absolute inset-0 bg-gradient-to-r from-transparent via-white/40 to-transparent skew-x-[45deg]"
+                            />
+
+                            {/* Leading Edge Photon Pulse */}
+                            <div className="absolute top-0 right-0 bottom-0 w-[3px] bg-white shadow-[0_0_20px_#fff,0_0_40px_#22d3ee] z-20">
+                                <motion.div
+                                    animate={{ scale: [1, 2, 1], opacity: [0.2, 0.6, 0.2] }}
+                                    transition={{ duration: 1.5, repeat: Infinity }}
+                                    className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-12 h-12 bg-cyan-400/30 rounded-full blur-2xl"
+                                />
+                            </div>
+                        </motion.div>
+
+                        {/* Percent Milestone Grid */}
+                        <div className="absolute inset-0 flex justify-between px-3 pointer-events-none z-0">
+                            {[10, 20, 30, 40, 50, 60, 70, 80, 90].map(m => (
+                                <div key={m} className={`w-[1px] h-full ${progressPercentage > m ? 'bg-white/10' : 'bg-white/5'}`} />
+                            ))}
+                        </div>
+                    </div>
+
+                    {/* Prominent Overlay HUD Labels */}
+                    <div className="absolute inset-0 flex items-center justify-between px-6 md:px-12 pointer-events-none z-30">
+                        <div className="flex items-center gap-3">
+                            <div className="p-1.5 bg-indigo-500/20 rounded-lg border border-indigo-500/30 shadow-[0_0_15px_rgba(99,102,241,0.2)]">
+                                <Activity className="w-4 h-4 text-indigo-400 animate-pulse" />
+                            </div>
+                            <div className="flex flex-col leading-none">
+                                <span className="text-[9px] md:text-[10px] font-black text-indigo-400 uppercase tracking-[0.2em] mb-0.5 drop-shadow-[0_0_5px_rgba(99,102,241,0.5)]">Mission Status</span>
+                                <span className="text-[8px] md:text-[9px] text-white/40 font-bold uppercase tracking-widest italic">{missionStarted ? 'In Progress' : 'Sync Pending'}</span>
+                            </div>
+                        </div>
+
+                        <div className="flex items-center gap-4">
+                            {/* Visual Signal Level Indicator */}
+                            <div className="hidden md:flex gap-1.5 items-end h-3.5 px-3 border-x border-white/5">
+                                {[1, 2, 3, 4, 5].map(i => (
+                                    <div key={i} className={`w-1 rounded-full ${i <= 3 ? 'bg-indigo-500/80 shadow-[0_0_8px_rgba(99,102,241,0.5)]' : 'bg-white/10'}`} style={{ height: `${i * 20 + 20}%` }} />
+                                ))}
+                            </div>
+
+                            <div className="flex items-center gap-3 bg-indigo-600/20 px-4 py-1.5 rounded-xl border border-indigo-400/30 backdrop-blur-xl shadow-lg ring-1 ring-white/5">
+                                <span className="text-sm md:text-base font-black text-white font-mono tracking-tighter tabular-nums drop-shadow-[0_0_10px_rgba(255,255,255,0.4)]">
+                                    {Math.round(progressPercentage)}%
+                                </span>
+                                <span className="text-[9px] font-black text-indigo-200/60 uppercase tracking-[0.2em]">COMPLETE</span>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            )}
 
             {/* Mobile Menu Overlay */}
             <AnimatePresence>
