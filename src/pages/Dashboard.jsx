@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useMemo, useCallback } from 'react';
 import { useAuth } from '../lib/auth';
 import { db, storage } from '../lib/firebase';
 import { collection, addDoc, deleteDoc, updateDoc, setDoc, doc, onSnapshot, query, orderBy, where } from 'firebase/firestore';
@@ -151,8 +151,8 @@ const Dashboard = () => {
     }
 
 
-    // Derived State
-    const accessibleProjects = projects.filter(p => {
+    // Derived State — memoized to avoid recomputing on every modal open/close
+    const accessibleProjects = useMemo(() => projects.filter(p => {
         const title = (p.title || 'Untitled Case').toLowerCase();
         const description = (p.description || '').toLowerCase();
         const query = (searchQuery || '').toLowerCase().trim();
@@ -173,13 +173,10 @@ const Dashboard = () => {
         // If 'assignedCaseIds' is missing (not set), it defaults to "All Cases" 
         // to match the UserManagement UI behavior.
         return true;
-    });
+    }), [projects, searchQuery, isAdmin, user?.assignedCaseIds, user?.uid]);
 
-
-
-
-    const draftProjects = accessibleProjects.filter(p => p.status !== 'published');
-    const publishedProjects = accessibleProjects.filter(p => p.status === 'published');
+    const draftProjects = useMemo(() => accessibleProjects.filter(p => p.status !== 'published'), [accessibleProjects]);
+    const publishedProjects = useMemo(() => accessibleProjects.filter(p => p.status === 'published'), [accessibleProjects]);
 
     if (!licenseData || licenseData._expired) {
         const isExpired = licenseData?._expired;

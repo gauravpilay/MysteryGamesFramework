@@ -43,10 +43,20 @@ export const AuthProvider = ({ children }) => {
                         if (docSnap.exists()) {
                             const data = docSnap.data();
 
-                            // Check for depth equality before setting state to avoid flickering
+                            // Lightweight equality: only compare fields that matter for rendering.
+                            // Avoids the expensive JSON.stringify of the full Firebase user object
+                            // which previously ran on every Firestore snapshot (e.g. every minute
+                            // when totalTimeLogged increments).
                             setUser(prev => {
                                 const next = { ...u, ...data };
-                                if (JSON.stringify(prev) === JSON.stringify(next)) return prev;
+                                if (
+                                    prev &&
+                                    prev.uid === next.uid &&
+                                    prev.role === next.role &&
+                                    prev.status === next.status &&
+                                    prev.displayName === next.displayName &&
+                                    prev.assignedCaseIds === next.assignedCaseIds
+                                ) return prev;
                                 return next;
                             });
 

@@ -656,20 +656,27 @@ const Editor = () => {
     }, [projectId]);
 
     useEffect(() => {
-        if (nodes.length > 0) {
-            setNodes((nds) => nds.map(node => {
-                // If data already matches, no need to update the reference
+        if (nodes.length === 0) return;
+
+        setNodes((nds) => {
+            let anyChanged = false;
+            const mapped = nds.map(node => {
+                // Only update nodes whose handler references or settings have actually changed.
+                // This prevents touching ALL nodes when e.g. only activeExecutingNodeId changes.
+                const expectedExecuting = node.id === activeExecutingNodeId;
                 if (
                     node.data.enableTTS === enableTTS &&
                     node.data.enableThreeD === enableThreeD &&
-                    node.data.isExecuting === (node.id === activeExecutingNodeId) &&
+                    node.data.isExecuting === expectedExecuting &&
                     node.data.onChange === onNodeUpdate &&
+                    node.data.onDuplicate === onDuplicateNode &&
+                    node.data.onUngroup === onUngroup &&
                     node.data.allNodes === nds &&
                     node.data.learningObjectives === learningObjectives
                 ) {
-                    return node;
+                    return node; // No change needed
                 }
-
+                anyChanged = true;
                 return {
                     ...node,
                     data: {
@@ -680,15 +687,18 @@ const Editor = () => {
                         learningObjectives,
                         enableThreeD,
                         enableTTS,
-                        isExecuting: node.id === activeExecutingNodeId,
+                        isExecuting: expectedExecuting,
                         onShowHelp: () => setHelpModalData(NODE_HELP[node.type]),
                         // Provide all canvas nodes so CrazyWallNode pickers work
                         allNodes: nds
                     }
                 };
-            }));
-        }
+            });
+            // Avoid creating a new array reference if nothing actually changed
+            return anyChanged ? mapped : nds;
+        });
     }, [nodes.length, onNodeUpdate, onDuplicateNode, onUngroup, setNodes, learningObjectives, enableThreeD, enableTTS, activeExecutingNodeId]);
+
 
     const onDrop = useCallback((event) => {
         event.preventDefault();

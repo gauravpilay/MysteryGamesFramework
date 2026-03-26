@@ -1,19 +1,20 @@
-import React, { useState, useEffect, useMemo, useRef } from 'react';
+import React, { useState, useEffect, useMemo, useRef, Suspense } from 'react';
 import { Button, Card } from './ui/shared';
 import { X, Menu, User, Search, Terminal, MessageSquare, FileText, ArrowRight, ArrowLeft, ShieldAlert, CheckCircle, AlertTriangle, Volume2, VolumeX, Image as ImageIcon, Briefcase, Star, MousePointerClick, Bell, HelpCircle, Clock, ZoomIn, LayoutGrid, ChevronRight, ChevronDown, ChevronUp, Fingerprint, Cpu, Brain, Sparkles, Activity, Shield, Hash, Box as BoxIcon, Radio, Lightbulb, Mail, Paperclip, Unlock, XCircle, Play, Pause, Square, Info, Save, BookmarkCheck, LogOut } from 'lucide-react';
 import { motion, AnimatePresence } from 'framer-motion';
 import EvidenceBoard from './EvidenceBoard';
 import AdvancedTerminal from './AdvancedTerminal';
 import AIInterrogation from './AIInterrogation';
-import ThreeDWorld from './ThreeDWorld';
+// Lazy-load heavy/optional features to avoid pulling Three.js into the base bundle
+const ThreeDWorld = React.lazy(() => import('./ThreeDWorld'));
 import SuspectProfile from './SuspectProfile';
 import CinematicCutscene from './CinematicCutscene';
 import CaseClosedNewsReport from './CaseClosedNewsReport';
-import DeepWebOS from './DeepWebOS';
+const DeepWebOS = React.lazy(() => import('./DeepWebOS'));
 import SuspectWall from './InteractiveSuspectWall';
 import FeedbackModal from './FeedbackModal';
 import FactDisplay from './FactDisplay';
-import { CrazyWallGame } from './CrazyWallGame';
+const CrazyWallGame = React.lazy(() => import('./CrazyWallGame').then(m => ({ default: m.CrazyWallGame })));
 import ExplanationHUD from './ExplanationHUD';
 import SuspectHubGrid from './SuspectHubGrid';
 import { useChirpTTS, DEFAULT_CHIRP_VOICE } from '../lib/useChirpTTS';
@@ -210,11 +211,21 @@ const parseRichText = (input) => {
 
 
 const TypewriterText = ({ text, onComplete }) => {
-    const [displayedText, setDisplayedText] = useState('');
+    // Pre-render the full rich text ONCE so we don't run regex passes every 12ms.
+    // We track how many raw (plain-text) characters to reveal and simply use
+    // CSS clip / opacity to reveal characters — but for maximum compatibility
+    // we store the displayedLength and let dangerouslySetInnerHTML show a slice.
+    //
+    // Strategy: parse the full text once → store as fullHtml ref.
+    // Animate by tracking charIndex on plain text; map back to html char position
+    // by stripping tags. This avoids calling parseRichText on partial strings.
+    const [charCount, setCharCount] = useState(0);
     const index = useRef(0);
+    const fullHtmlRef = useRef('');
+    const plainTextRef = useRef('');
 
     useEffect(() => {
-        setDisplayedText('');
+        setCharCount(0);
         index.current = 0;
 
         if (!text) {
@@ -222,26 +233,52 @@ const TypewriterText = ({ text, onComplete }) => {
             return;
         }
 
+        // Parse once up-front
+        fullHtmlRef.current = parseRichText(text);
+        // Strip tags to get plain-text length for character counting
+        plainTextRef.current = text;
+
         const timer = setInterval(() => {
             if (index.current < text.length) {
-                setDisplayedText(text.slice(0, index.current + 1));
                 index.current++;
+                setCharCount(index.current);
             } else {
                 clearInterval(timer);
                 if (onComplete) onComplete();
             }
-        }, 12); // Slightly faster for longer texts
+        }, 12);
 
         return () => clearInterval(timer);
     }, [text]);
 
+    // Derive the visible HTML slice: find the displayable portion by walking
+    // through the pre-rendered HTML, counting only non-tag characters.
+    const visibleHtml = (() => {
+        if (charCount >= (plainTextRef.current?.length || 0)) return fullHtmlRef.current;
+        const html = fullHtmlRef.current;
+        let visible = 0;
+        let i = 0;
+        while (i < html.length && visible < charCount) {
+            if (html[i] === '<') {
+                // Skip entire HTML tag
+                while (i < html.length && html[i] !== '>') i++;
+                i++; // skip '>'
+            } else {
+                visible++;
+                i++;
+            }
+        }
+        return html.slice(0, i);
+    })();
+
     return (
         <span className="relative">
-            <span dangerouslySetInnerHTML={{ __html: parseRichText(displayedText) }} />
+            <span dangerouslySetInnerHTML={{ __html: visibleHtml }} />
             <span className="animate-pulse text-indigo-500 ml-1">_</span>
         </span>
     );
 };
+
 
 /**
  * WordHighlightText — renders the full text with the currently-spoken word
@@ -748,20 +785,28 @@ const GamePreview = ({ nodes, edges, onClose, gameMetadata, onGameEnd, onNodeCha
     const [scoreDeltaKey, setScoreDeltaKey] = useState(0);
     const [flyingPointsKey, setFlyingPointsKey] = useState(0);
 
+    // Pre-build a fast id→type lookup map. Only recomputes when nodes array changes,
+    // not on every history/inventory update.
+    const nodeTypeMap = useMemo(() => {
+        const map = new Map();
+        nodes.forEach(n => map.set(n.id, n.type));
+        return map;
+    }, [nodes]);
+
     const progressPercentage = useMemo(() => {
         if (!gameMetadata?.totalSteps || gameMetadata.totalSteps === 0) return 0;
 
-        const INTERACTIVE_NODE_TYPES = [
+        const INTERACTIVE_NODE_TYPES = new Set([
             'story', 'cutscene', 'suspect', 'evidence', 'terminal', 'interrogation',
             'message', 'email', 'media', 'action', 'notification', 'question',
             'identify', 'lockpick', 'decryption', 'keypad', 'fact', 'crazywall',
             'threed', 'deepweb'
-        ];
+        ]);
 
-        const visitedInteractiveNodesSet = new Set(history.filter(id => {
-            const node = nodes.find(n => n.id === id);
-            return node && INTERACTIVE_NODE_TYPES.includes(node.type);
-        }));
+        // Use the pre-built map for O(1) lookups instead of nodes.find() per item
+        const visitedInteractiveNodesSet = new Set(
+            history.filter(id => INTERACTIVE_NODE_TYPES.has(nodeTypeMap.get(id)))
+        );
         const visitedCount = visitedInteractiveNodesSet.size;
 
         const pct = (visitedCount / gameMetadata.totalSteps) * 100;
@@ -770,7 +815,8 @@ const GamePreview = ({ nodes, edges, onClose, gameMetadata, onGameEnd, onNodeCha
         const intervalPct = Math.floor(cappedPct / 5) * 5;
 
         return intervalPct;
-    }, [history, nodes, gameMetadata?.totalSteps]);
+    }, [history, nodeTypeMap, gameMetadata?.totalSteps]);
+
 
     // Helper wrappers so every caller just calls these instead of the raw setters
     const triggerScoreDelta = (val) => {
@@ -3544,10 +3590,12 @@ const GamePreview = ({ nodes, edges, onClose, gameMetadata, onGameEnd, onNodeCha
                             {/* 3D Holodeck Experience */}
                             {activeModalNode.type === 'threed' && (
                                 <div className="flex-1 w-full min-h-[60vh] relative overflow-hidden rounded-b-2xl">
-                                    <ThreeDWorld
-                                        layout={activeModalNode.data.layout}
-                                        onClose={() => handleCloseModal()}
-                                    />
+                                    <Suspense fallback={<div className="flex h-full items-center justify-center text-indigo-400 text-xs font-mono tracking-widest animate-pulse">Loading 3D Environment...</div>}>
+                                        <ThreeDWorld
+                                            layout={activeModalNode.data.layout}
+                                            onClose={() => handleCloseModal()}
+                                        />
+                                    </Suspense>
                                 </div>
                             )}
 
@@ -3910,62 +3958,66 @@ const GamePreview = ({ nodes, edges, onClose, gameMetadata, onGameEnd, onNodeCha
             {/* Deep Web Investigation OS */}
             <AnimatePresence>
                 {showDeepWeb && currentNode && currentNode.type === 'deepweb' && (
-                    <DeepWebOS
-                        data={currentNode.data}
-                        onComplete={() => {
-                            setShowDeepWeb(false);
-                            // Advance to next node if simple path
-                            if (navigationOptions.length > 0) {
-                                handleOptionClick(navigationOptions[0].target);
-                            }
-                        }}
-                        isSimultaneous={isSimultaneous}
-                    />
+                    <Suspense fallback={<div className="fixed inset-0 z-50 flex items-center justify-center bg-black text-green-400 text-xs font-mono tracking-widest animate-pulse">Initialising Deep Web OS...</div>}>
+                        <DeepWebOS
+                            data={currentNode.data}
+                            onComplete={() => {
+                                setShowDeepWeb(false);
+                                // Advance to next node if simple path
+                                if (navigationOptions.length > 0) {
+                                    handleOptionClick(navigationOptions[0].target);
+                                }
+                            }}
+                            isSimultaneous={isSimultaneous}
+                        />
+                    </Suspense>
                 )}
             </AnimatePresence>
 
             {/* ── Plot Reveal Crazy Wall ─────────────────────────────────────── */}
             <AnimatePresence>
                 {showCrazyWall && activeCrazyWallNode && (
-                    <CrazyWallGame
-                        node={activeCrazyWallNode}
-                        nodes={nodes}
-                        onComplete={(awardedScore) => {
-                            const completedId = activeCrazyWallNode?.id;
-                            setShowCrazyWall(false);
+                    <Suspense fallback={<div className="fixed inset-0 z-50 flex items-center justify-center bg-zinc-950 text-amber-400 text-xs font-mono tracking-widest animate-pulse">Loading Plot Wall...</div>}>
+                        <CrazyWallGame
+                            node={activeCrazyWallNode}
+                            nodes={nodes}
+                            onComplete={(awardedScore) => {
+                                const completedId = activeCrazyWallNode?.id;
+                                setShowCrazyWall(false);
 
-                            // Award points
-                            const awards = Number(awardedScore) || 0;
-                            if (awards > 0 && !scoredNodes.has(activeCrazyWallNode.id)) {
-                                setScore(s => s + awards);
-                                triggerScoreDelta(awards);
-                                triggerFlyingPoints(awards);
-                                rewardObjectivePoints(activeCrazyWallNode, awards);
-                                setScoredNodes(prev => new Set([...prev, activeCrazyWallNode.id]));
-                                addLog(`PLOT REVEALED: +${awards} Points`);
-                            }
+                                // Award points
+                                const awards = Number(awardedScore) || 0;
+                                if (awards > 0 && !scoredNodes.has(activeCrazyWallNode.id)) {
+                                    setScore(s => s + awards);
+                                    triggerScoreDelta(awards);
+                                    triggerFlyingPoints(awards);
+                                    rewardObjectivePoints(activeCrazyWallNode, awards);
+                                    setScoredNodes(prev => new Set([...prev, activeCrazyWallNode.id]));
+                                    addLog(`PLOT REVEALED: +${awards} Points`);
+                                }
 
-                            // Set culprit name for the news report
-                            const culpritName = activeCrazyWallNode?.data?.culpritName || '';
-                            setAccusedName(culpritName);
-                            setAccusationResult('success');
+                                // Set culprit name for the news report
+                                const culpritName = activeCrazyWallNode?.data?.culpritName || '';
+                                setAccusedName(culpritName);
+                                setAccusationResult('success');
 
-                            setActiveCrazyWallNode(null);
+                                setActiveCrazyWallNode(null);
 
-                            // Show the news report; navigation happens on report close
-                            setShowNewsReport(true);
+                                // Show the news report; navigation happens on report close
+                                setShowNewsReport(true);
 
-                            // Store next edge so we can navigate after report closes
-                            const nextEdges = edges.filter(e => e.source === completedId);
-                            if (nextEdges.length > 0) {
-                                // Override handleFinish to navigate to the correct next node
-                                // We schedule via a small ref so the close handler can pick it up
-                                window.__crazyWallNextTarget = nextEdges[0].target;
-                                crazyWallNextTargetRef.current = nextEdges[0].target;
-                            }
-                        }}
-                        addLog={addLog}
-                    />
+                                // Store next edge so we can navigate after report closes
+                                const nextEdges = edges.filter(e => e.source === completedId);
+                                if (nextEdges.length > 0) {
+                                    // Override handleFinish to navigate to the correct next node
+                                    // We schedule via a small ref so the close handler can pick it up
+                                    window.__crazyWallNextTarget = nextEdges[0].target;
+                                    crazyWallNextTargetRef.current = nextEdges[0].target;
+                                }
+                            }}
+                            addLog={addLog}
+                        />
+                    </Suspense>
                 )}
             </AnimatePresence>
 

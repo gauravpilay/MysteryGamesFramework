@@ -17,5 +17,35 @@ export default defineConfig({
         }
       }
     }
+  },
+  build: {
+    // Increase the warning threshold since we have several large features
+    chunkSizeWarningLimit: 1000,
+    rollupOptions: {
+      output: {
+        manualChunks: {
+          // Core React runtime — loaded first, heavily cached
+          'vendor-react': ['react', 'react-dom', 'react-router-dom'],
+
+          // Firebase — large SDK, rarely changes
+          'vendor-firebase': ['firebase/app', 'firebase/auth', 'firebase/firestore', 'firebase/storage'],
+
+          // Three.js + React Three Fiber — only needed for 3D nodes
+          'vendor-three': ['three', '@react-three/fiber', '@react-three/drei', '@react-three/postprocessing', 'postprocessing'],
+
+          // ReactFlow — only needed in Editor
+          'vendor-reactflow': ['reactflow', 'dagre'],
+
+          // Framer Motion — used everywhere but can be split from core
+          'vendor-motion': ['framer-motion'],
+
+          // Export utilities — only needed on demand
+          'vendor-export': ['jszip', 'jspdf', 'jspdf-autotable', 'docx'],
+
+          // Lucide icons — large icon set
+          'vendor-icons': ['lucide-react'],
+        }
+      }
+    }
   }
 })

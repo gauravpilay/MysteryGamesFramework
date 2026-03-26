@@ -1,16 +1,28 @@
-import React from 'react';
+import React, { Suspense } from 'react';
 import { BrowserRouter, Routes, Route, Navigate } from 'react-router-dom';
+// Login is kept eager — it's the first page most users see
 import Login from './pages/Login';
-import Dashboard from './pages/Dashboard';
-import Editor from './pages/Editor';
-import Player from './pages/Player';
-import UserManagement from './pages/UserManagement';
-import Leaderboard from './pages/Leaderboard';
-import FeedbackReports from './pages/FeedbackReports';
+// All other pages are lazy-loaded so their code only downloads when needed
+const Dashboard = React.lazy(() => import('./pages/Dashboard'));
+const Editor = React.lazy(() => import('./pages/Editor'));
+const Player = React.lazy(() => import('./pages/Player'));
+const UserManagement = React.lazy(() => import('./pages/UserManagement'));
+const Leaderboard = React.lazy(() => import('./pages/Leaderboard'));
+const FeedbackReports = React.lazy(() => import('./pages/FeedbackReports'));
 import { AuthProvider, useAuth } from './lib/auth';
 import { ConfigProvider, useConfig } from './lib/config';
 import { LicenseProvider, useLicense } from './lib/licensing';
 import { ShieldAlert, LogOut } from 'lucide-react';
+
+// Shared fallback spinner for Suspense boundaries
+const PageLoader = () => (
+    <div className="flex h-screen w-screen items-center justify-center bg-black text-indigo-500 font-mono">
+        <div className="flex flex-col items-center gap-4">
+            <div className="w-12 h-12 border-4 border-indigo-500/20 border-t-indigo-500 rounded-full animate-spin"></div>
+            <p className="text-xs uppercase tracking-[0.3em] animate-pulse">Loading...</p>
+        </div>
+    </div>
+);
 
 const PrivateRoute = ({ children }) => {
   const { user, logout, loading: authLoading } = useAuth();
@@ -88,57 +100,59 @@ function App() {
       <ConfigProvider>
         <LicenseProvider>
           <BrowserRouter>
-            <Routes>
-              <Route path="/login" element={<Login />} />
-              <Route
-                path="/"
-                element={
-                  <PrivateRoute>
-                    <Dashboard />
-                  </PrivateRoute>
-                }
-              />
-              <Route
-                path="/leaderboard"
-                element={
-                  <PrivateRoute>
-                    <Leaderboard />
-                  </PrivateRoute>
-                }
-              />
-              <Route
-                path="/editor/:projectId"
-                element={
-                  <PrivateRoute>
-                    <Editor />
-                  </PrivateRoute>
-                }
-              />
-              <Route
-                path="/play/:projectId"
-                element={
-                  <PrivateRoute>
-                    <Player />
-                  </PrivateRoute>
-                }
-              />
-              <Route
-                path="/admin/users"
-                element={
-                  <PrivateRoute>
-                    <UserManagement />
-                  </PrivateRoute>
-                }
-              />
-              <Route
-                path="/admin/feedback"
-                element={
-                  <PrivateRoute>
-                    <FeedbackReports />
-                  </PrivateRoute>
-                }
-              />
-            </Routes>
+            <Suspense fallback={<PageLoader />}>
+              <Routes>
+                <Route path="/login" element={<Login />} />
+                <Route
+                  path="/"
+                  element={
+                    <PrivateRoute>
+                      <Dashboard />
+                    </PrivateRoute>
+                  }
+                />
+                <Route
+                  path="/leaderboard"
+                  element={
+                    <PrivateRoute>
+                      <Leaderboard />
+                    </PrivateRoute>
+                  }
+                />
+                <Route
+                  path="/editor/:projectId"
+                  element={
+                    <PrivateRoute>
+                      <Editor />
+                    </PrivateRoute>
+                  }
+                />
+                <Route
+                  path="/play/:projectId"
+                  element={
+                    <PrivateRoute>
+                      <Player />
+                    </PrivateRoute>
+                  }
+                />
+                <Route
+                  path="/admin/users"
+                  element={
+                    <PrivateRoute>
+                      <UserManagement />
+                    </PrivateRoute>
+                  }
+                />
+                <Route
+                  path="/admin/feedback"
+                  element={
+                    <PrivateRoute>
+                      <FeedbackReports />
+                    </PrivateRoute>
+                  }
+                />
+              </Routes>
+            </Suspense>
           </BrowserRouter>
         </LicenseProvider>
       </ConfigProvider>
@@ -147,3 +161,4 @@ function App() {
 }
 
 export default App;
+

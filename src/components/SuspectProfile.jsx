@@ -335,8 +335,7 @@ export default function SuspectProfile({
                     storyNodeId: match.target  // so GamePreview knows which node to intercept
                 });
             }
-            // Immediately close this modal and let the story node render
-            onClose();
+            // Navigate to the next node (handleOptionClick will unmount this modal automatically)
             onNavigate(match.target);
         } else {
             onLog(`💬 DISMISSAL: ${suspect.data.name} claims to know nothing about ${evidenceName}.`);
@@ -713,7 +712,6 @@ export default function SuspectProfile({
                                             <button
                                                 key={option.id}
                                                 onClick={() => {
-                                                    onClose();
                                                     onNavigate(option.target);
                                                 }}
                                                 className="group flex items-center justify-between p-8 bg-zinc-900 hover:bg-indigo-600 border border-white/10 hover:border-indigo-400 rounded-[2rem] transition-all shadow-2xl hover:-translate-y-1"
