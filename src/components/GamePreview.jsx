@@ -2286,10 +2286,11 @@ const GamePreview = ({ nodes, edges, onClose, gameMetadata, onGameEnd, onNodeCha
                                                 max="1"
                                                 step="0.01"
                                                 value={audioVolume}
-                                                onChange={(e) => {
+                                                onInput={(e) => {
                                                     setAudioVolume(parseFloat(e.target.value));
                                                     if (isMuted && parseFloat(e.target.value) > 0) setIsMuted(false);
                                                 }}
+                                                onTouchStart={(e) => e.stopPropagation()}
                                                 className="w-16 md:w-24 h-1 bg-zinc-800 rounded-lg appearance-none cursor-pointer accent-indigo-500"
                                             />
                                         </motion.div>
@@ -2539,9 +2540,13 @@ const GamePreview = ({ nodes, edges, onClose, gameMetadata, onGameEnd, onNodeCha
                             {audioSource && (
                                 <div className="bg-zinc-900/60 border border-green-500/20 rounded-3xl p-6">
                                     <div className="flex items-center gap-3 mb-6">
-                                        <div className="p-2 bg-green-500/10 rounded-xl border border-green-500/20">
+                                        <button 
+                                            onClick={() => setIsMuted(!isMuted)}
+                                            className="p-2 bg-green-500/10 rounded-xl border border-green-500/20 active:scale-95 transition-all"
+                                            title={isMuted ? "Unmute" : "Mute"}
+                                        >
                                             {isMuted ? <VolumeX className="w-5 h-5 text-red-400" /> : <Volume2 className="w-5 h-5 text-green-400" />}
-                                        </div>
+                                        </button>
                                         <div className="flex flex-col">
                                             <span className="font-black text-zinc-300 uppercase tracking-widest text-xs">Game Volume</span>
                                             <span className="text-[10px] text-zinc-600 font-bold uppercase">{isMuted ? 'Muted' : `${Math.round(audioVolume * 100)}%`}</span>
@@ -2556,10 +2561,11 @@ const GamePreview = ({ nodes, edges, onClose, gameMetadata, onGameEnd, onNodeCha
                                     </div>
                                     <input
                                         type="range" min="0" max="1" step="0.01" value={audioVolume}
-                                        onChange={(e) => {
+                                        onInput={(e) => {
                                             setAudioVolume(parseFloat(e.target.value));
                                             if (isMuted && parseFloat(e.target.value) > 0) setIsMuted(false);
                                         }}
+                                        onTouchStart={(e) => e.stopPropagation()}
                                         className="w-full h-2 bg-zinc-800 rounded-lg appearance-none cursor-pointer accent-green-500"
                                     />
                                 </div>
