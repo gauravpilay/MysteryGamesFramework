@@ -2933,7 +2933,8 @@ const GamePreview = ({ nodes, edges, onClose, gameMetadata, onGameEnd, onNodeCha
                         animate={{ opacity: 1, y: 0 }}
                         exit={{ opacity: 0, y: 60 }}
                         transition={{ type: 'spring', stiffness: 260, damping: 24 }}
-                        className={`${isSimultaneous ? 'absolute' : 'fixed'} bottom-6 left-1/2 -translate-x-1/2 z-[1100] w-full max-w-xl px-4`}
+                        className={`${isSimultaneous ? 'absolute' : 'fixed'} bottom-6 left-1/2 -translate-x-1/2 w-full max-w-xl px-4`}
+                        style={{ zIndex: 1100 }}
                     >
                         <div className="bg-zinc-950/95 backdrop-blur-xl border border-amber-500/40 rounded-3xl p-5 shadow-2xl shadow-amber-900/20 flex items-center gap-5">
                             {/* Icon */}
@@ -3606,7 +3607,7 @@ const GamePreview = ({ nodes, edges, onClose, gameMetadata, onGameEnd, onNodeCha
 
                 {/* Suspect Strategy Choice Modal */}
                 {suspectChoiceNode && (
-                    <div className="fixed inset-0 z-[1000] flex items-center justify-center p-4 md:p-8 bg-black/60 backdrop-blur-sm">
+                    <div className="fixed inset-0 flex items-center justify-center p-4 md:p-8 bg-black/60 backdrop-blur-sm" style={{ zIndex: 1000 }}>
                         <motion.div
                             initial={{ opacity: 0, scale: 0.9, y: 20 }}
                             animate={{ opacity: 1, scale: 1, y: 0 }}
@@ -3712,7 +3713,8 @@ const GamePreview = ({ nodes, edges, onClose, gameMetadata, onGameEnd, onNodeCha
             < AnimatePresence >
                 {zoomedImage && (
                     <div
-                        className={`${isSimultaneous ? 'absolute' : 'fixed'} inset-0 z-[1100] bg-black/95 backdrop-blur-sm flex items-center justify-center`}
+                        className={`${isSimultaneous ? 'absolute' : 'fixed'} inset-0 bg-black/95 backdrop-blur-sm flex items-center justify-center`}
+                        style={{ zIndex: 9999 }}
                         onClick={() => setZoomedImage(null)}
                     >
                         <motion.div
@@ -3725,7 +3727,8 @@ const GamePreview = ({ nodes, edges, onClose, gameMetadata, onGameEnd, onNodeCha
                             {/* Prominent High-Contrast Close button */}
                             <button
                                 onClick={() => setZoomedImage(null)}
-                                className="fixed top-6 right-6 z-[1200] w-14 h-14 bg-red-600 text-white rounded-3xl flex items-center justify-center shadow-[0_8px_40px_rgba(220,38,38,0.5)] hover:bg-red-500 hover:scale-110 transition-all border-2 border-white/30 active:scale-90 group"
+                                className="fixed top-6 right-6 w-14 h-14 bg-red-600 text-white rounded-3xl flex items-center justify-center shadow-[0_8px_40px_rgba(220,38,38,0.5)] hover:bg-red-500 hover:scale-110 transition-all border-2 border-white/30 active:scale-90 group"
+                                style={{ zIndex: 10000 }}
                                 title="Close"
                             >
                                 <X className="w-8 h-8 group-hover:rotate-90 transition-transform duration-500" />
