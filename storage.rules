@@ -1,0 +1,24 @@
+rules_version = '2';
+service firebase.storage {
+  match /b/{bucket}/o {
+    
+    // Helper function to check if the user has an 'Admin' role in Firestore
+    function isAdmin() {
+      return request.auth != null && (
+        (firestore.exists(/databases/(default)/documents/users/$(request.auth.uid)) && 
+         firestore.get(/databases/(default)/documents/users/$(request.auth.uid)).data.role == 'Admin')
+        ||
+        (firestore.exists(/databases/finistry-db/documents/users/$(request.auth.uid)) && 
+         firestore.get(/databases/finistry-db/documents/users/$(request.auth.uid)).data.role == 'Admin')
+      );
+    }
+
+    match /{allPaths=**} {
+      // Allow public read access so the game can load images for everyone
+      allow read: if true;
+      
+      // Restrict all write access to Authenticated Admins only
+      allow write: if isAdmin();
+    }
+  }
+}

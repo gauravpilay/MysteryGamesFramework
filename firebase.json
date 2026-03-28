@@ -20,5 +20,9 @@
     ],
     "cleanUrls": true,
     "trailingSlash": false
+  },
+  "storage": {
+    "bucket": "finistry-assets-store",
+    "rules": "storage.rules"
   }
 }
