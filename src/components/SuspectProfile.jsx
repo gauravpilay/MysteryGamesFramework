@@ -58,7 +58,7 @@ const TabButton = ({ active, onClick, icon: Icon, label, badge, color = 'indigo'
                     Required
                 </div>
             )}
-            
+
             {/* Hover Glow Effect */}
             {!active && (
                 <div className={`absolute inset-0 opacity-0 group-hover:opacity-100 bg-gradient-to-tr from-${color === 'indigo' ? 'indigo' : color === 'amber' ? 'amber' : 'rose'}-500/10 to-transparent transition-opacity duration-500`} />
@@ -138,21 +138,21 @@ const ThreatIndicator = ({ suspect }) => {
 const HandTutorial = () => (
     <motion.div
         initial={{ opacity: 0, x: 20, y: 20 }}
-        animate={{ 
+        animate={{
             opacity: [0, 1, 1, 0],
             x: [40, 0, 40],
             y: [40, 0, 40],
             scale: [1, 0.8, 1]
         }}
-        transition={{ 
-            duration: 2.5, 
+        transition={{
+            duration: 2.5,
             repeat: Infinity,
             ease: "easeInOut"
         }}
         className="absolute bottom-6 right-6 z-50 pointer-events-none"
     >
         <div className="flex flex-col items-center">
-             <motion.div
+            <motion.div
                 animate={{ scale: [1, 1.5, 1], opacity: [0.3, 0.6, 0.3] }}
                 transition={{ duration: 2, repeat: Infinity }}
                 className="absolute -inset-4 bg-amber-500/20 rounded-full blur-xl"
@@ -698,38 +698,38 @@ export default function SuspectProfile({
                                     )}
                                     <div className="space-y-6 transition-all">
                                         {navigationOptions.map(option => {
-                                        // Look up the target node to use its configured label/title
-                                        const targetNode = nodes.find(n => n.id === option.target);
-                                        const nodeTitle = targetNode?.data?.label || option.label || option.target;
-                                        const nodeType = targetNode?.type;
-                                        const subtitle = option.label && option.label !== nodeTitle
-                                            ? option.label
-                                            : nodeType
-                                                ? nodeType.charAt(0).toUpperCase() + nodeType.slice(1)
-                                                : 'Action';
+                                            // Look up the target node to use its configured label/title
+                                            const targetNode = nodes.find(n => n.id === option.target);
+                                            const nodeTitle = targetNode?.data?.label || option.label || option.target;
+                                            const nodeType = targetNode?.type;
+                                            const subtitle = option.label && option.label !== nodeTitle
+                                                ? option.label
+                                                : nodeType
+                                                    ? nodeType.charAt(0).toUpperCase() + nodeType.slice(1)
+                                                    : 'Action';
 
-                                        return (
-                                            <button
-                                                key={option.id}
-                                                onClick={() => {
-                                                    onNavigate(option.target);
-                                                }}
-                                                className="group flex items-center justify-between p-8 bg-zinc-900 hover:bg-indigo-600 border border-white/10 hover:border-indigo-400 rounded-[2rem] transition-all shadow-2xl hover:-translate-y-1"
-                                            >
-                                                <div className="flex items-center gap-8">
-                                                    <div className="w-16 h-16 bg-indigo-500/10 group-hover:bg-white/20 rounded-2xl flex items-center justify-center transition-colors">
-                                                        <Zap className="w-8 h-8 text-indigo-400 group-hover:text-white" />
+                                            return (
+                                                <button
+                                                    key={option.id}
+                                                    onClick={() => {
+                                                        onNavigate(option.target);
+                                                    }}
+                                                    className="group flex items-center justify-between p-8 bg-zinc-900 hover:bg-indigo-600 border border-white/10 hover:border-indigo-400 rounded-[2rem] transition-all shadow-2xl hover:-translate-y-1"
+                                                >
+                                                    <div className="flex items-center gap-8">
+                                                        <div className="w-16 h-16 bg-indigo-500/10 group-hover:bg-white/20 rounded-2xl flex items-center justify-center transition-colors">
+                                                            <Zap className="w-8 h-8 text-indigo-400 group-hover:text-white" />
+                                                        </div>
+                                                        <div className="text-left">
+                                                            <span className="text-[10px] font-black text-indigo-400 group-hover:text-indigo-200 uppercase tracking-[0.3em] block mb-1">
+                                                                {subtitle}
+                                                            </span>
+                                                            <h4 className="text-xl font-black text-white uppercase tracking-tight">{nodeTitle}</h4>
+                                                        </div>
                                                     </div>
-                                                    <div className="text-left">
-                                                        <span className="text-[10px] font-black text-indigo-400 group-hover:text-indigo-200 uppercase tracking-[0.3em] block mb-1">
-                                                            {subtitle}
-                                                        </span>
-                                                        <h4 className="text-xl font-black text-white uppercase tracking-tight">{nodeTitle}</h4>
-                                                    </div>
-                                                </div>
-                                                <ChevronRight className="w-8 h-8 text-zinc-700 group-hover:text-white group-hover:translate-x-2 transition-all" />
-                                            </button>
-                                        );
+                                                    <ChevronRight className="w-8 h-8 text-zinc-700 group-hover:text-white group-hover:translate-x-2 transition-all" />
+                                                </button>
+                                            );
                                         })}
                                     </div>
                                 </div>
@@ -793,10 +793,10 @@ export default function SuspectProfile({
 
             {/* Footer with Scan Status */}
             <div className="p-4 border-t border-white/5 bg-zinc-900/30 flex items-center justify-between px-8 text-[9px] font-mono text-zinc-500 uppercase tracking-widest">
-                <div className="flex items-center gap-3">
+                {/* <div className="flex items-center gap-3">
                     <div className="w-1.5 h-1.5 bg-indigo-500 rounded-full animate-pulse shadow-[0_0_5px_rgba(99,102,241,0.5)]" />
                     <span>Neural Link Active</span>
-                </div>
+                </div> */}
                 <div className="flex items-center gap-4">
                     <span>Latency: 12ms</span>
                     <span className="text-zinc-700">|</span>

@@ -596,14 +596,14 @@ export const ThreeDWorld = ({ layout, onClose }) => {
                     </div>
 
                     <div className="mt-4 md:mt-6 pt-3 md:pt-4 border-t border-white/5 flex gap-4 md:gap-6">
-                        <div className="space-y-1">
+                        {/* <div className="space-y-1">
                             <p className="text-[7px] md:text-[8px] font-black text-zinc-500 uppercase tracking-widest">Neural Link</p>
                             <p className="text-[9px] md:text-[10px] font-bold text-emerald-400 uppercase tracking-tight">STABLE_OAK_82</p>
-                        </div>
-                        <div className="space-y-1 text-right ml-auto hidden md:block">
+                        </div> */}
+                        {/* <div className="space-y-1 text-right ml-auto hidden md:block">
                             <p className="text-[8px] font-black text-zinc-500 uppercase tracking-widest">Refresh Rate</p>
                             <p className="text-[10px] font-bold text-cyan-400 uppercase tracking-tight">144.02 MHz</p>
-                        </div>
+                        </div> */}
                     </div>
                 </motion.div>
             </div>

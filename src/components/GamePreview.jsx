@@ -2540,7 +2540,7 @@ const GamePreview = ({ nodes, edges, onClose, gameMetadata, onGameEnd, onNodeCha
                             {audioSource && (
                                 <div className="bg-zinc-900/60 border border-green-500/20 rounded-3xl p-6">
                                     <div className="flex items-center gap-3 mb-6">
-                                        <button 
+                                        <button
                                             onClick={() => setIsMuted(!isMuted)}
                                             className="p-2 bg-green-500/10 rounded-xl border border-green-500/20 active:scale-95 transition-all"
                                             title={isMuted ? "Unmute" : "Mute"}
@@ -3771,13 +3771,13 @@ const GamePreview = ({ nodes, edges, onClose, gameMetadata, onGameEnd, onNodeCha
                             </div>
 
                             {/* Footer Status */}
-                            <div className="px-8 py-4 bg-black/40 border-t border-white/5 flex items-center justify-between">
+                            {/* <div className="px-8 py-4 bg-black/40 border-t border-white/5 flex items-center justify-between">
                                 <div className="flex items-center gap-2">
                                     <div className="w-1.5 h-1.5 rounded-full bg-indigo-500 animate-pulse" />
                                     <span className="text-[9px] font-black text-zinc-600 uppercase tracking-[0.3em]">Neural Link Established</span>
                                 </div>
                                 <span className="text-[9px] font-black text-zinc-700 font-mono tracking-widest">ENCRYPTED // SESSION ID {Math.floor(Math.random() * 900000) + 100000}</span>
-                            </div>
+                            </div> */}
                         </motion.div>
                     </div>
                 )}
