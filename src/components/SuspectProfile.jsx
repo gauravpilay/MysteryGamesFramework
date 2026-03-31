@@ -140,25 +140,25 @@ const HandTutorial = () => (
         initial={{ opacity: 0, x: 20, y: 20 }}
         animate={{
             opacity: [0, 1, 1, 0],
-            x: [40, 0, 40],
-            y: [40, 0, 40],
-            scale: [1, 0.8, 1]
+            x: [20, 0, 20],
+            y: [20, 0, 20],
+            scale: [1, 0.9, 1]
         }}
         transition={{
             duration: 2.5,
             repeat: Infinity,
             ease: "easeInOut"
         }}
-        className="absolute bottom-6 right-6 z-50 pointer-events-none"
+        className="absolute inset-0 flex items-center justify-center z-50 pointer-events-none"
     >
-        <div className="flex flex-col items-center">
+        <div className="flex flex-col items-center p-8 bg-black/40 backdrop-blur-sm rounded-[3rem] border border-amber-500/50 shadow-[0_0_50px_rgba(245,158,11,0.4)] relative">
             <motion.div
                 animate={{ scale: [1, 1.5, 1], opacity: [0.3, 0.6, 0.3] }}
                 transition={{ duration: 2, repeat: Infinity }}
-                className="absolute -inset-4 bg-amber-500/20 rounded-full blur-xl"
+                className="absolute inset-0 bg-amber-500/20 rounded-full blur-2xl z-0"
             />
-            <MousePointerClick className="w-12 h-12 text-amber-400 drop-shadow-[0_0_20px_rgba(251,191,36,0.6)]" />
-            <span className="mt-3 text-[10px] font-black text-amber-400 uppercase tracking-[0.2em] whitespace-nowrap bg-black/80 px-4 py-2 rounded-xl border border-amber-500/30 backdrop-blur-md shadow-2xl">
+            <MousePointerClick className="w-20 h-20 text-yellow-400 drop-shadow-[0_0_30px_rgba(250,204,21,0.8)] relative z-10 mb-4" />
+            <span className="text-[13px] font-black text-yellow-400 uppercase tracking-[0.3em] whitespace-nowrap bg-black/90 px-6 py-3 rounded-2xl border-2 border-yellow-500/60 shadow-[0_10px_30px_rgba(250,204,21,0.3)] relative z-10">
                 Present Evidence
             </span>
         </div>
