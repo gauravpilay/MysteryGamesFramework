@@ -500,7 +500,7 @@ export default function SuspectProfile({
             </div>
 
             {/* CONTENT AREA */}
-            <div className="flex-1 overflow-y-auto custom-scrollbar relative">
+            <div className="flex-1 overflow-y-auto suspect-scrollbar relative pr-2">
                 <div className="max-w-7xl mx-auto p-8">
                     <AnimatePresence mode="wait">
                         {activeTab === 'dossier' && (

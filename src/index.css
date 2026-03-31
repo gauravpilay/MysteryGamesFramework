@@ -262,6 +262,28 @@
   background: rgba(255, 255, 255, 0.2);
 }
 
+.suspect-scrollbar::-webkit-scrollbar {
+  width: 16px;
+}
+
+.suspect-scrollbar::-webkit-scrollbar-track {
+  background: rgba(0, 0, 0, 0.4);
+  border-left: 1px solid rgba(255, 255, 255, 0.1);
+}
+
+.suspect-scrollbar::-webkit-scrollbar-thumb {
+  background: rgba(245, 158, 11, 0.7);
+  border-radius: 8px;
+  border: 3px solid transparent;
+  background-clip: padding-box;
+}
+
+.suspect-scrollbar::-webkit-scrollbar-thumb:hover {
+  background: rgba(245, 158, 11, 1);
+  border: 3px solid transparent;
+  background-clip: padding-box;
+}
+
 .animate-shake {
   animation: shake 0.4s cubic-bezier(.36, .07, .19, .97) both;
 }
