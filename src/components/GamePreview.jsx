@@ -1298,10 +1298,7 @@ const GamePreview = ({ nodes, edges, onClose, gameMetadata, onGameEnd, onNodeCha
         // ── If the player is advancing from the "opening" story node, intercept ────
         // Show the suspect choice popup instead of proceeding to whatever comes next.
         if (pendingSuspectChoiceNode && pendingOpeningStoryNodeId && currentNodeId === pendingOpeningStoryNodeId) {
-            const suspectForPopup = pendingSuspectChoiceNode;
-            setPendingSuspectChoiceNode(null);
-            setPendingOpeningStoryNodeId(null);
-            setSuspectChoiceNode(suspectForPopup);
+            setSuspectChoiceNode(pendingSuspectChoiceNode);
             return; // Don't navigate further — let the player choose confront / talk
         }
 
