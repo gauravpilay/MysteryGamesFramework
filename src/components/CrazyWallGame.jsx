@@ -424,7 +424,7 @@ export const CrazyWallGame = ({ node, nodes: allNodes, onComplete, addLog }) => 
                     </div>
                 </div>
 
-                <div className="flex-1 overflow-y-auto p-6 space-y-12 custom-scrollbar relative">
+                <div className="flex-1 overflow-y-auto p-6 space-y-12 suspect-scrollbar relative">
                     <section>
                         <h3 className="text-[10px] text-zinc-500 uppercase font-black tracking-[0.4em] mb-6 flex items-center justify-between group">
                             <span className="flex items-center gap-3 group-hover:text-zinc-300 transition-colors">
@@ -442,7 +442,7 @@ export const CrazyWallGame = ({ node, nodes: allNodes, onComplete, addLog }) => 
                     <section>
                         <h3 className="text-[10px] text-zinc-500 uppercase font-black tracking-[0.4em] mb-6 flex items-center justify-between group">
                             <span className="flex items-center gap-3 group-hover:text-zinc-300 transition-colors">
-                                <Sparkles className="w-4 h-4 text-amber-500" /> Encrypted Dossiers
+                                <Sparkles className="w-4 h-4 text-amber-500" /> How the crime happened
                             </span>
                             <span className="bg-amber-500/10 px-2.5 py-1 rounded-full text-[9px] border border-amber-500/20 text-amber-300 font-bold">{allReasons.length}</span>
                         </h3>
@@ -466,7 +466,7 @@ export const CrazyWallGame = ({ node, nodes: allNodes, onComplete, addLog }) => 
             </div>
 
             {/* Main Plot Area */}
-            <div className="flex-1 relative bg-gradient-to-b from-[#08080a] to-[#050507] overflow-y-auto custom-scrollbar flex flex-col">
+            <div className="flex-1 relative bg-gradient-to-b from-[#08080a] to-[#050507] overflow-y-auto suspect-scrollbar flex flex-col">
                 <div className="absolute inset-0 opacity-[0.05] pointer-events-none"
                     style={{ backgroundImage: 'radial-gradient(circle at 2px 2px, white 1px, transparent 0)', backgroundSize: '48px 48px' }} />
 
@@ -497,14 +497,14 @@ export const CrazyWallGame = ({ node, nodes: allNodes, onComplete, addLog }) => 
                         {/* 1. MASTERMIND TARGET */}
                         <div className="relative z-30 group">
                             <div className="absolute -top-12 left-1/2 -translate-x-1/2 flex flex-col items-center gap-2 whitespace-nowrap">
-                                <span className="text-[11px] font-black text-red-500 uppercase tracking-[0.5em] drop-shadow-[0_0_10px_rgba(220,38,38,0.5)]">The Mastermind</span>
+                                <span className="text-[11px] font-black text-red-500 uppercase tracking-[0.5em] drop-shadow-[0_0_10px_rgba(220,38,38,0.5)]">Drop the Mastermind here</span>
                             </div>
                             <div className="absolute inset-[-40px] border border-red-500/10 rounded-full animate-[spin_10s_linear_infinite] pointer-events-none" />
                             <div className="absolute inset-[-20px] border border-white/5 rounded-full pointer-events-none" />
                             <div className="w-64 h-[22rem] transform transition-all duration-700 group-hover:scale-[1.05] group-hover:rotate-[-2deg] relative">
                                 <DropSlot
                                     id="culprit"
-                                    label="Deduce Mastermind"
+                                    label="Identify Mastermind"
                                     icon={Target}
                                     acceptedType="suspect"
                                     currentItem={placedCulprit}
@@ -537,7 +537,7 @@ export const CrazyWallGame = ({ node, nodes: allNodes, onComplete, addLog }) => 
                                         <div className="absolute top-0 left-0 w-20 h-20 bg-indigo-500/5 blur-3xl rounded-full" />
 
                                         <div className="flex flex-col items-center gap-4">
-                                            <div className="px-4 py-1.5 bg-black/40 border border-white/5 rounded-full text-[9px] font-black text-zinc-500 uppercase tracking-widest group-hover/row:text-zinc-300 transition-colors">Target Subject</div>
+                                            <div className="px-4 py-1.5 bg-black/40 border border-white/5 rounded-full text-[9px] font-black text-zinc-500 uppercase tracking-widest group-hover/row:text-zinc-300 transition-colors">Drop Suspect Here</div>
                                             <div className="w-40 h-56 transform transition-all duration-500 group-hover/row:scale-[1.05] group-hover/row:rotate-[-1deg]">
                                                 <DropSlot
                                                     id={`associate_${idx}`}
@@ -562,7 +562,7 @@ export const CrazyWallGame = ({ node, nodes: allNodes, onComplete, addLog }) => 
                                         </div>
 
                                         <div className="flex flex-col items-center gap-4">
-                                            <div className="px-4 py-1.5 bg-black/40 border border-white/5 rounded-full text-[9px] font-black text-zinc-500 uppercase tracking-widest group-hover/row:text-zinc-300 transition-colors">Intel / Reason</div>
+                                            <div className="px-4 py-1.5 bg-black/40 border border-white/5 rounded-full text-[9px] font-black text-zinc-500 uppercase tracking-widest group-hover/row:text-zinc-300 transition-colors">Drop Reason Explaining how this suspect was exploited</div>
                                             <div className="w-64 h-32 transform transition-all duration-500 group-hover/row:scale-[1.05] group-hover/row:rotate-[1deg]">
                                                 <DropSlot
                                                     id={`reason_${idx}`}
@@ -615,7 +615,7 @@ export const CrazyWallGame = ({ node, nodes: allNodes, onComplete, addLog }) => 
                                         ))}
                                     </div>
                                     <span className="text-[11px] uppercase font-black tracking-[0.4em] italic text-zinc-500 bg-white/[0.03] px-6 py-2 rounded-full border border-white/5">
-                                        Awaiting deduction synthesis...
+                                        Awaiting Analysis....
                                     </span>
                                 </div>
                             )}
