@@ -6,7 +6,7 @@ import { CheckCircle, AlertTriangle, User, FileText, Star, Trophy, Eye, RotateCc
 const shuffle = (arr) => [...arr].sort(() => Math.random() - 0.5);
 
 // ─── Drop Slot Component ──────────────────────────────────────────────────────
-const DropSlot = ({ id, label, icon: Icon, acceptedType, onDrop, currentItem, isCorrect, checked }) => {
+const DropSlot = ({ id, label, icon: Icon, acceptedType, onDrop, currentItem, isCorrect, checked, onClickSlot }) => {
     const [isOver, setIsOver] = useState(false);
 
     const border = checked
@@ -15,7 +15,10 @@ const DropSlot = ({ id, label, icon: Icon, acceptedType, onDrop, currentItem, is
 
     return (
         <div
-            className={`relative w-full h-full border-2 border-dashed rounded-[2rem] transition-all duration-500 flex flex-col items-center justify-center p-3 group backdrop-blur-sm ${border}`}
+            className={`relative w-full h-full border-2 border-dashed rounded-[2rem] transition-all duration-500 flex flex-col items-center justify-center p-3 group backdrop-blur-sm cursor-pointer md:cursor-default ${border}`}
+            onClick={() => {
+                if (!checked) onClickSlot?.(id, acceptedType);
+            }}
             onDragOver={(e) => { e.preventDefault(); setIsOver(true); }}
             onDragLeave={() => setIsOver(false)}
             onDrop={(e) => {
@@ -51,13 +54,13 @@ const DropSlot = ({ id, label, icon: Icon, acceptedType, onDrop, currentItem, is
                             )}
                         </div>
                     ) : (
-                        <div className="flex items-center justify-center h-full px-4 bg-gradient-to-br from-indigo-950/40 to-black/40 rounded-2xl border border-indigo-500/20 shadow-xl">
-                            <p className="text-xs md:text-sm font-bold text-indigo-100 text-center leading-relaxed line-clamp-4 italic">"{currentItem.action || currentItem}"</p>
+                        <div className="flex items-center justify-center h-full w-full px-4 overflow-y-auto suspect-scrollbar bg-gradient-to-br from-indigo-950/40 to-black/40 rounded-2xl border border-indigo-500/20 shadow-xl py-2">
+                            <p className="text-[10px] md:text-sm font-bold text-indigo-100 text-center leading-relaxed italic m-auto">"{currentItem.action || currentItem}"</p>
                         </div>
                     )}
 
                     <button
-                        onClick={() => onDrop(id, null)}
+                        onClick={(e) => { e.stopPropagation(); onDrop(id, null); }}
                         className="absolute -top-4 -right-4 w-9 h-9 bg-zinc-900 border-2 border-white/20 rounded-full flex items-center justify-center text-zinc-400 hover:text-white hover:bg-rose-600 hover:border-white transition-all shadow-2xl z-30 group"
                     >
                         <X className="w-5 h-5 group-hover:scale-110 transition-transform" />
@@ -117,10 +120,10 @@ const DraggableItem = ({ item, type, isUsed }) => (
             </div>
         ) : (
             <div className="w-full bg-indigo-600/10 hover:bg-indigo-600/20 border border-indigo-500/20 hover:border-indigo-400/50 rounded-2xl p-4 shadow-2xl flex items-center gap-4 group transition-all duration-300">
-                <div className="bg-indigo-500/20 p-2.5 rounded-xl border border-indigo-500/20 group-hover:rotate-12 transition-transform shadow-lg">
+                <div className="bg-indigo-500/20 p-2.5 rounded-xl border border-indigo-500/20 group-hover:rotate-12 transition-transform shadow-lg shrink-0">
                     <Zap className="w-4 h-4 text-indigo-400 group-hover:text-indigo-200" />
                 </div>
-                <p className="text-[11px] font-bold text-indigo-100/80 leading-snug line-clamp-2 uppercase tracking-wide group-hover:text-white transition-colors italic">"{item.action}"</p>
+                <p className="text-[11px] font-bold text-indigo-100/80 leading-relaxed uppercase tracking-wide group-hover:text-white transition-colors italic">"{item.action}"</p>
             </div>
         )}
     </motion.div>
@@ -249,6 +252,7 @@ export const CrazyWallGame = ({ node, nodes: allNodes, onComplete, addLog }) => 
     const [checked, setChecked] = useState(false);
     const [results, setResults] = useState({ culpritOk: false, rows: [] });
     const [showReveal, setShowReveal] = useState(false);
+    const [selectionModal, setSelectionModal] = useState(null); // { id, type }
 
     // Wrong culprit feedback
     const [wrongCulprit, setWrongCulprit] = useState(null); // suspect object when wrong
@@ -274,6 +278,13 @@ export const CrazyWallGame = ({ node, nodes: allNodes, onComplete, addLog }) => 
         const idx = parseInt(index.split('_')[1]);
         const next = [...placedReasons]; next[idx] = reason;
         setPlacedReasons(next); setChecked(false);
+    };
+
+    const handleSlotClick = (id, type) => {
+        // Only open on mobile
+        if (window.innerWidth < 768) {
+            setSelectionModal({ id, type });
+        }
     };
 
     const handleCheck = () => {
@@ -410,7 +421,7 @@ export const CrazyWallGame = ({ node, nodes: allNodes, onComplete, addLog }) => 
             </AnimatePresence>
 
             {/* Left Sidebar - Evidence Locker */}
-            <div className="w-full md:w-96 bg-zinc-950/80 backdrop-blur-3xl border-r border-white/5 flex flex-col h-full z-40 shadow-[20px_0_50px_rgba(0,0,0,0.5)] relative">
+            <div className="hidden md:flex w-full md:w-96 bg-zinc-950/80 backdrop-blur-3xl border-r border-white/5 flex-col h-[40vh] md:h-full shrink-0 z-40 shadow-[20px_0_50px_rgba(0,0,0,0.5)] relative">
                 <div className="p-8 border-b border-white/10 bg-gradient-to-br from-zinc-900/60 to-transparent relative overflow-hidden">
                     <div className="absolute top-0 right-[-20px] w-40 h-40 bg-indigo-600/10 blur-3xl rounded-full" />
                     <div className="flex items-center gap-4 mb-4 relative z-10">
@@ -465,15 +476,63 @@ export const CrazyWallGame = ({ node, nodes: allNodes, onComplete, addLog }) => 
                 </div>
             </div>
 
+            {/* Mobile Selection Modal */}
+            <AnimatePresence>
+                {selectionModal && (
+                    <motion.div
+                        initial={{ opacity: 0 }}
+                        animate={{ opacity: 1 }}
+                        exit={{ opacity: 0 }}
+                        className="fixed inset-0 z-[600] bg-black/90 backdrop-blur-md flex flex-col p-6 overflow-y-auto"
+                        onClick={() => setSelectionModal(null)}
+                    >
+                        <div className="relative bg-zinc-950 border border-white/10 rounded-[2rem] w-full max-w-lg mx-auto mt-12 mb-auto p-6 shadow-2xl flex flex-col gap-6" onClick={(e) => e.stopPropagation()}>
+                            <div className="flex items-center justify-between pb-4 border-b border-white/10">
+                                <h3 className="text-lg font-black text-white uppercase tracking-widest">
+                                    Select {selectionModal.type === 'suspect' ? 'Subject' : 'Evidence'}
+                                </h3>
+                                <button className="p-2 bg-white/5 rounded-full hover:bg-white/10" onClick={() => setSelectionModal(null)}>
+                                    <X className="w-5 h-5"/>
+                                </button>
+                            </div>
+                            <div className={`grid gap-4 ${selectionModal.type === 'suspect' ? 'grid-cols-2' : 'grid-cols-1'}`}>
+                                {(selectionModal.type === 'suspect' ? suspects : allReasons).map(item => {
+                                    const isUsed = (selectionModal.type === 'suspect' ? usedSuspectIds : usedReasonIds).includes(item.id);
+                                    if (isUsed) return null; // Hide used items from mobile selector
+                                    
+                                    return (
+                                        <div 
+                                            key={item.id}
+                                            onClick={() => {
+                                                if (selectionModal.type === 'suspect') {
+                                                    if (selectionModal.id === 'culprit') handleDropCulprit(selectionModal.id, item);
+                                                    else handleDropAssociate(selectionModal.id, item);
+                                                } else {
+                                                    handleDropReason(selectionModal.id, item);
+                                                }
+                                                setSelectionModal(null);
+                                            }}
+                                            className="cursor-pointer"
+                                        >
+                                            <DraggableItem item={item} type={selectionModal.type} isUsed={false} />
+                                        </div>
+                                    );
+                                })}
+                            </div>
+                        </div>
+                    </motion.div>
+                )}
+            </AnimatePresence>
+
             {/* Main Plot Area */}
             <div className="flex-1 relative bg-gradient-to-b from-[#08080a] to-[#050507] overflow-y-auto suspect-scrollbar flex flex-col">
                 <div className="absolute inset-0 opacity-[0.05] pointer-events-none"
                     style={{ backgroundImage: 'radial-gradient(circle at 2px 2px, white 1px, transparent 0)', backgroundSize: '48px 48px' }} />
 
-                <div className="relative z-10 px-12 py-24 flex flex-col items-center flex-1 max-w-7xl mx-auto w-full">
+                <div className="relative z-10 px-4 md:px-12 py-12 md:py-24 flex flex-col items-center flex-1 max-w-7xl mx-auto w-full">
 
                     {/* Header */}
-                    <div className="text-center mb-28 relative">
+                    <div className="text-center mb-16 md:mb-28 relative">
                         <motion.div initial={{ y: -30, opacity: 0 }} animate={{ y: 0, opacity: 1 }} className="flex flex-col items-center">
                             <div className="px-8 py-2 bg-gradient-to-r from-red-600/20 to-indigo-600/20 border border-white/10 backdrop-blur-3xl rounded-full mb-8 shadow-2xl">
                                 <span className="text-[10px] font-black uppercase tracking-[0.8em] text-white/80">RECONSTRUCTION MODULE</span>
@@ -501,7 +560,7 @@ export const CrazyWallGame = ({ node, nodes: allNodes, onComplete, addLog }) => 
                             </div>
                             <div className="absolute inset-[-40px] border border-red-500/10 rounded-full animate-[spin_10s_linear_infinite] pointer-events-none" />
                             <div className="absolute inset-[-20px] border border-white/5 rounded-full pointer-events-none" />
-                            <div className="w-64 h-[22rem] transform transition-all duration-700 group-hover:scale-[1.05] group-hover:rotate-[-2deg] relative">
+                            <div className="w-56 md:w-64 h-[20rem] md:h-[22rem] transform transition-all duration-700 group-hover:scale-[1.05] group-hover:rotate-[-2deg] relative">
                                 <DropSlot
                                     id="culprit"
                                     label="Identify Mastermind"
@@ -511,13 +570,14 @@ export const CrazyWallGame = ({ node, nodes: allNodes, onComplete, addLog }) => 
                                     onDrop={handleDropCulprit}
                                     isCorrect={results.culpritOk}
                                     checked={checked}
+                                    onClickSlot={handleSlotClick}
                                 />
                             </div>
                             <div className={`absolute inset-0 blur-[100px] -z-10 rounded-full transition-colors duration-1000 ${checked ? (results.culpritOk ? 'bg-emerald-600/20' : 'bg-red-600/30') : 'bg-red-600/10'}`} />
                         </div>
 
                         {/* 2. CONNECTOR THREADS */}
-                        <div className="w-full max-w-5xl relative h-[150px]">
+                        <div className="w-full max-w-5xl relative h-[80px] md:h-[150px]">
                             <div className={`absolute top-0 left-1/2 -translate-x-1/2 w-1 h-full transition-all duration-700
                                 ${checked ? (results.culpritOk ? 'bg-emerald-500' : 'bg-rose-600') : 'bg-gradient-to-b from-red-600/40 to-indigo-600/40'}`} />
                             {placedAssociates.length > 1 && (
@@ -527,18 +587,18 @@ export const CrazyWallGame = ({ node, nodes: allNodes, onComplete, addLog }) => 
                         </div>
 
                         {/* 3. ASSOCIATE MATRIX */}
-                        <div className="flex flex-wrap justify-center gap-x-20 gap-y-24 w-full max-w-6xl relative">
+                        <div className="flex flex-wrap justify-center gap-x-10 gap-y-16 md:gap-x-20 md:gap-y-24 w-full max-w-6xl relative">
                             {placedAssociates.map((_, idx) => (
                                 <div key={idx} className="flex flex-col items-center gap-10 relative group/row">
                                     <div className={`absolute -top-24 left-1/2 -translate-x-1/2 w-1 h-24 transition-all duration-700
                                         ${checked ? (results.rows[idx]?.suspectOk ? 'bg-emerald-500' : 'bg-rose-600') : 'bg-indigo-600/20'}`} />
 
-                                    <div className="flex flex-col md:flex-row items-center gap-8 md:gap-12 bg-white/[0.02] p-8 rounded-[3rem] border border-white/5 shadow-2xl relative overflow-hidden group-hover/row:bg-white/[0.04] transition-all">
+                                    <div className="flex flex-col md:flex-row items-center gap-6 md:gap-12 bg-white/[0.02] p-6 md:p-8 rounded-[2rem] md:rounded-[3rem] border border-white/5 shadow-2xl relative overflow-hidden group-hover/row:bg-white/[0.04] transition-all">
                                         <div className="absolute top-0 left-0 w-20 h-20 bg-indigo-500/5 blur-3xl rounded-full" />
 
                                         <div className="flex flex-col items-center gap-4">
                                             <div className="px-4 py-1.5 bg-black/40 border border-white/5 rounded-full text-[9px] font-black text-zinc-500 uppercase tracking-widest group-hover/row:text-zinc-300 transition-colors">Drop Suspect Here</div>
-                                            <div className="w-40 h-56 transform transition-all duration-500 group-hover/row:scale-[1.05] group-hover/row:rotate-[-1deg]">
+                                            <div className="w-36 md:w-40 h-48 md:h-56 transform transition-all duration-500 group-hover/row:scale-[1.05] group-hover/row:rotate-[-1deg]">
                                                 <DropSlot
                                                     id={`associate_${idx}`}
                                                     label="Subject Data"
@@ -548,6 +608,7 @@ export const CrazyWallGame = ({ node, nodes: allNodes, onComplete, addLog }) => 
                                                     onDrop={handleDropAssociate}
                                                     isCorrect={results.rows[idx]?.suspectOk}
                                                     checked={checked}
+                                                    onClickSlot={handleSlotClick}
                                                 />
                                             </div>
                                         </div>
@@ -563,7 +624,7 @@ export const CrazyWallGame = ({ node, nodes: allNodes, onComplete, addLog }) => 
 
                                         <div className="flex flex-col items-center gap-4">
                                             <div className="px-4 py-1.5 bg-black/40 border border-white/5 rounded-full text-[9px] font-black text-zinc-500 uppercase tracking-widest group-hover/row:text-zinc-300 transition-colors">Drop Reason Explaining how this suspect was exploited</div>
-                                            <div className="w-64 h-32 transform transition-all duration-500 group-hover/row:scale-[1.05] group-hover/row:rotate-[1deg]">
+                                            <div className="w-60 md:w-64 h-32 transform transition-all duration-500 group-hover/row:scale-[1.05] group-hover/row:rotate-[1deg]">
                                                 <DropSlot
                                                     id={`reason_${idx}`}
                                                     label="Motive Tile"
@@ -573,6 +634,7 @@ export const CrazyWallGame = ({ node, nodes: allNodes, onComplete, addLog }) => 
                                                     onDrop={handleDropReason}
                                                     isCorrect={results.rows[idx]?.reasonOk}
                                                     checked={checked}
+                                                    onClickSlot={handleSlotClick}
                                                 />
                                             </div>
                                         </div>
