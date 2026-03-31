@@ -4102,6 +4102,16 @@ const GamePreview = ({ nodes, edges, onClose, gameMetadata, onGameEnd, onNodeCha
                                     crazyWallNextTargetRef.current = nextEdges[0].target;
                                 }
                             }}
+                            onPenalty={(penaltyPoints) => {
+                                const penalty = Number(penaltyPoints) || 0;
+                                if (penalty > 0) {
+                                    setScore(s => s - penalty);
+                                    triggerScoreDelta(-penalty);
+                                    triggerFlyingPoints(-penalty);
+                                    addLog(`ANALYSIS FAILED: -${penalty} Points Deduction`);
+                                    rewardObjectivePoints(activeCrazyWallNode, -penalty);
+                                }
+                            }}
                             addLog={addLog}
                         />
                     </Suspense>

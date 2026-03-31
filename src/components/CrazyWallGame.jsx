@@ -224,7 +224,7 @@ const WrongCulpritOverlay = ({ suspect, penaltyPoints, onDismiss }) => (
 );
 
 // ─── Main Game Component ──────────────────────────────────────────────────────
-export const CrazyWallGame = ({ node, nodes: allNodes, onComplete, addLog }) => {
+export const CrazyWallGame = ({ node, nodes: allNodes, onComplete, onPenalty, addLog }) => {
     const data = node?.data || {};
     const designerConnections = data.connections || [];
     const winPoints = Number(data.score) || 1000;
@@ -306,7 +306,7 @@ export const CrazyWallGame = ({ node, nodes: allNodes, onComplete, addLog }) => 
             addLog('ANALYSIS COMPLETE: Conspiracy confirmed.');
             // Show floating win points, then reveal screen
             if (winPoints > 0) {
-                setShowFloatingPoints({ value: winPoints, isPositive: true });
+                setShowFloatingPoints({ value: winPoints, isPositive: true, type: 'win' });
             } else {
                 setTimeout(() => setShowReveal(true), 1200);
             }
@@ -314,12 +314,17 @@ export const CrazyWallGame = ({ node, nodes: allNodes, onComplete, addLog }) => 
             addLog('ANALYSIS FAILED: Wrong mastermind identified.');
             // Show penalty, then wrong-culprit overlay
             if (penaltyPts > 0) {
-                setShowFloatingPoints({ value: penaltyPts, isPositive: false });
+                setShowFloatingPoints({ value: penaltyPts, isPositive: false, type: 'wrong_mastermind' });
+                if (onPenalty) onPenalty(penaltyPts);
             } else {
                 setWrongCulprit(placedCulprit);
             }
         } else {
             addLog('ANALYSIS PARTIAL: Culprit correct but connections mismatch.');
+            if (penaltyPts > 0) {
+                setShowFloatingPoints({ value: penaltyPts, isPositive: false, type: 'wrong_connections' });
+                if (onPenalty) onPenalty(penaltyPts);
+            }
         }
     };
 
@@ -350,14 +355,16 @@ export const CrazyWallGame = ({ node, nodes: allNodes, onComplete, addLog }) => 
     // ─── Floating points done handler ─────────────────────────────────────────
     const handleFloatingDone = useCallback(() => {
         const wasPositive = showFloatingPoints?.isPositive;
+        const resultType = showFloatingPoints?.type;
         setShowFloatingPoints(null);
         if (wasPositive) {
             // Win — go to reveal
             setTimeout(() => setShowReveal(true), 400);
-        } else {
-            // Loss — show wrong overlay
+        } else if (resultType === 'wrong_mastermind') {
+            // Loss — show wrong overlay only if mastermind was wrong
             setWrongCulprit(placedCulprit);
         }
+        // If it was 'wrong_connections', just clear the floating points and leave them to see the red lines
     }, [showFloatingPoints, placedCulprit]);
 
     // ─── Render: Reveal Screen ─────────────────────────────────────────────────
