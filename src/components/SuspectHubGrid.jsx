@@ -31,6 +31,9 @@ const SuspectHubGrid = ({ navigationOptions, nodes, edges, onSuspectClick, getAv
 
         if (count === 0) return newPositions;
 
+        // Reverse the array so the latest suspect is at index 0 (top/start)
+        const displayOpts = [...opts].reverse();
+
         if (!isMobile && count <= 8) {
             // ── Radial / Circular Layout ──────────────────────────────────────────
             // Significantly increased radius to allow expanded cards (320px+) to breathe
@@ -38,7 +41,7 @@ const SuspectHubGrid = ({ navigationOptions, nodes, edges, onSuspectClick, getAv
             const centerX = radius + CARD_WIDTH / 2 + 150;
             const centerY = radius + CARD_HEIGHT / 2 + 150;
 
-            opts.forEach(({ node }, i) => {
+            displayOpts.forEach(({ node }, i) => {
                 const angle = (2 * Math.PI * i) / count - Math.PI / 2;
                 newPositions[node.id] = {
                     x: centerX + radius * Math.cos(angle) - CARD_WIDTH / 2,
@@ -52,7 +55,7 @@ const SuspectHubGrid = ({ navigationOptions, nodes, edges, onSuspectClick, getAv
             const spacingX = isMobile ? 320 : 650;
             const spacingY = isMobile ? 400 : 450;
 
-            opts.forEach(({ node }, i) => {
+            displayOpts.forEach(({ node }, i) => {
                 const row = Math.floor(i / cols);
                 const col = i % cols;
                 const isOddRow = row % 2 === 1;
