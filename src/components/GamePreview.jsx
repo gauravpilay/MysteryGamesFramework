@@ -2739,68 +2739,77 @@ const GamePreview = ({ nodes, edges, onClose, gameMetadata, onGameEnd, onNodeCha
                                                 </motion.button>
                                             </div>
                                         );
-                                    })() : navigationOptions.some(e => nodes.find(n => n.id === e.target)?.type === 'suspect') ? (
-                                        // Linked Grid Layout for Suspects in Hub
-                                        <SuspectHubGrid
-                                            navigationOptions={navigationOptions}
-                                            nodes={nodes}
-                                            edges={edges}
-                                            onSuspectClick={(targetNode) => openSuspectProfile(targetNode, { nodes, edges })}
-                                            getAvatarColor={getAvatarColor}
-                                        />
-                                    ) : (
-                                        <div className="grid grid-cols-1 gap-3">
-                                            {(() => {
-                                                // Prepare combined list of interactables (Actions defined in data + Generic Edges)
-                                                const actions = currentNode.data?.actions || [];
-                                                const usedEdges = new Set();
+                                    })() : (
+                                        <div className="flex flex-col gap-6 w-full">
+                                            {navigationOptions.some(e => nodes.find(n => n.id === e.target)?.type === 'suspect') && (
+                                                <SuspectHubGrid
+                                                    navigationOptions={navigationOptions}
+                                                    nodes={nodes}
+                                                    edges={edges}
+                                                    onSuspectClick={(targetNode) => openSuspectProfile(targetNode, { nodes, edges })}
+                                                    getAvatarColor={getAvatarColor}
+                                                />
+                                            )}
+                                            <div className="grid grid-cols-1 gap-3">
+                                                {(() => {
+                                                    // Prepare combined list of interactables (Actions defined in data + Generic Edges)
+                                                    const actions = currentNode.data?.actions || [];
+                                                    const usedEdges = new Set();
+                                                    const isHub = navigationOptions.some(e => nodes.find(n => n.id === e.target)?.type === 'suspect');
 
-                                                // 1. Explicit Actions
-                                                const actionItems = actions.map((action, actionIdx) => {
-                                                    let edge = navigationOptions.find(e => e.sourceHandle === action.id);
+                                                    // 1. Explicit Actions
+                                                    const actionItems = actions.map((action, actionIdx) => {
+                                                        let edge = navigationOptions.find(e => e.sourceHandle === action.id);
 
-                                                    // Intelligent Fallback:
-                                                    // 1. Map to default edge if not explicitly wired.
-                                                    if (!edge) {
-                                                        const defaultEdge = navigationOptions.find(e =>
-                                                            (!e.sourceHandle || e.sourceHandle === 'null') &&
-                                                            !usedEdges.has(e.id)
-                                                        );
+                                                        // Intelligent Fallback:
+                                                        // 1. Map to default edge if not explicitly wired.
+                                                        if (!edge) {
+                                                            const defaultEdge = navigationOptions.find(e =>
+                                                                (!e.sourceHandle || e.sourceHandle === 'null') &&
+                                                                !usedEdges.has(e.id)
+                                                            );
 
-                                                        if (defaultEdge) {
-                                                            edge = defaultEdge;
-                                                        } else if (actions.length === 1 && navigationOptions.length === 1 && !usedEdges.has(navigationOptions[0].id)) {
-                                                            // Desperation Fallback: 1 Action, 1 Edge -> Just Link Them
-                                                            edge = navigationOptions[0];
-                                                        } else if (navigationOptions[actionIdx] && !usedEdges.has(navigationOptions[actionIdx].id)) {
-                                                            // Index Fallback: If AI just listed edges in order, map them by index
-                                                            edge = navigationOptions[actionIdx];
+                                                            if (defaultEdge) {
+                                                                edge = defaultEdge;
+                                                            } else if (actions.length === 1 && navigationOptions.length === 1 && !usedEdges.has(navigationOptions[0].id)) {
+                                                                // Desperation Fallback: 1 Action, 1 Edge -> Just Link Them
+                                                                edge = navigationOptions[0];
+                                                            } else if (navigationOptions[actionIdx] && !usedEdges.has(navigationOptions[actionIdx].id)) {
+                                                                // Index Fallback: If AI just listed edges in order, map them by index
+                                                                edge = navigationOptions[actionIdx];
+                                                            }
                                                         }
-                                                    }
 
-                                                    if (edge) usedEdges.add(edge.id);
-                                                    return {
-                                                        isAction: true,
-                                                        id: action.id,
-                                                        label: action.label,
-                                                        variant: action.variant,
-                                                        target: edge ? edge.target : null,
-                                                        edgeId: edge ? edge.id : null
-                                                    };
-                                                });
+                                                        if (edge) usedEdges.add(edge.id);
+                                                        return {
+                                                            isAction: true,
+                                                            id: action.id,
+                                                            label: action.label,
+                                                            variant: action.variant,
+                                                            target: edge ? edge.target : null,
+                                                            edgeId: edge ? edge.id : null
+                                                        };
+                                                    });
 
-                                                // 2. Remaining Edges (Default/Standard Exits)
-                                                // STRICT MODE: If custom actions exist, hide generic buttons.
-                                                const standardItems = (actions.length > 0)
-                                                    ? []
-                                                    : navigationOptions
-                                                        .filter(e => !usedEdges.has(e.id))
-                                                        .map(edge => ({
-                                                            isAction: false,
-                                                            id: edge.id,
-                                                            target: edge.target,
-                                                            edgeId: edge.id
-                                                        }));
+                                                    // 2. Remaining Edges (Default/Standard Exits)
+                                                    // STRICT MODE: If custom actions exist, hide generic buttons.
+                                                    const standardItems = (actions.length > 0)
+                                                        ? []
+                                                        : navigationOptions
+                                                            .filter(e => !usedEdges.has(e.id))
+                                                            .filter(e => {
+                                                                if (isHub) {
+                                                                    const targetType = nodes.find(n => n.id === e.target)?.type;
+                                                                    return targetType !== 'suspect';
+                                                                }
+                                                                return true;
+                                                            })
+                                                            .map(edge => ({
+                                                                isAction: false,
+                                                                id: edge.id,
+                                                                target: edge.target,
+                                                                edgeId: edge.id
+                                                            }));
 
                                                 const allItems = [...actionItems, ...standardItems];
 
@@ -2983,17 +2992,17 @@ const GamePreview = ({ nodes, edges, onClose, gameMetadata, onGameEnd, onNodeCha
                                                                 </div>
                                                             )}
                                                         </motion.button>
-
                                                     );
                                                 });
                                             })()}
                                         </div>
-                                    )}
-                                </div>
-                            )
-                        )}
-                    </motion.div>
-                </AnimatePresence>
+                                    </div>
+                                )}
+                            </div>
+                        )
+                    )}
+                </motion.div>
+            </AnimatePresence>
             </div>
 
             {/* Floating "Present More Evidence" offer — shown after confrontation story plays */}
@@ -3713,6 +3722,8 @@ const GamePreview = ({ nodes, edges, onClose, gameMetadata, onGameEnd, onNodeCha
                                     onClick={() => {
                                         setActiveModalNode({ ...suspectChoiceNode, _initialTab: 'action' });
                                         setSuspectChoiceNode(null);
+                                        setPendingSuspectChoiceNode(null);
+                                        setPendingOpeningStoryNodeId(null);
                                     }}
                                     className="group relative flex flex-col gap-4 p-6 md:p-8 bg-zinc-900/40 rounded-2xl border border-white/5 hover:border-indigo-500/50 transition-all text-left overflow-hidden shadow-xl"
                                 >
@@ -3743,6 +3754,8 @@ const GamePreview = ({ nodes, edges, onClose, gameMetadata, onGameEnd, onNodeCha
                                     onClick={() => {
                                         setActiveModalNode({ ...suspectChoiceNode, _initialTab: 'evidence' });
                                         setSuspectChoiceNode(null);
+                                        setPendingSuspectChoiceNode(null);
+                                        setPendingOpeningStoryNodeId(null);
                                     }}
                                     className="group relative flex flex-col gap-4 p-6 md:p-8 bg-zinc-900/40 rounded-2xl border-2 border-amber-500/50 transition-all text-left overflow-hidden shadow-[0_0_30px_rgba(245,158,11,0.15)] hover:shadow-[0_0_40px_rgba(245,158,11,0.25)] hover:border-amber-400"
                                 >
