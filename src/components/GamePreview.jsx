@@ -700,6 +700,7 @@ const GamePreview = ({ nodes, edges, onClose, gameMetadata, onGameEnd, onNodeCha
     // Accusation State
     const [showAccuseModal, setShowAccuseModal] = useState(false);
     const [accusationResult, setAccusationResult] = useState(null); // 'success' | 'failure' | null | 'timeout'
+    const [isCaseClosed, setIsCaseClosed] = useState(false); // Track if game has been successfully solved
     const [activeAccusationNode, setActiveAccusationNode] = useState(null);
     // Suspect Choice State (Show strategy popup before entering profile)
     const [suspectChoiceNode, setSuspectChoiceNode] = useState(null);
@@ -794,6 +795,10 @@ const GamePreview = ({ nodes, edges, onClose, gameMetadata, onGameEnd, onNodeCha
     }, [nodes]);
 
     const progressPercentage = useMemo(() => {
+        if (accusationResult === 'success' || isCaseClosed) {
+            return 100;
+        }
+
         if (!gameMetadata?.totalSteps || gameMetadata.totalSteps === 0) return 0;
 
         const INTERACTIVE_NODE_TYPES = new Set([
@@ -815,7 +820,7 @@ const GamePreview = ({ nodes, edges, onClose, gameMetadata, onGameEnd, onNodeCha
         const intervalPct = Math.floor(cappedPct / 5) * 5;
 
         return intervalPct;
-    }, [history, nodeTypeMap, gameMetadata?.totalSteps]);
+    }, [history, nodeTypeMap, gameMetadata?.totalSteps, accusationResult, isCaseClosed]);
 
 
     // Helper wrappers so every caller just calls these instead of the raw setters
@@ -1490,6 +1495,7 @@ const GamePreview = ({ nodes, edges, onClose, gameMetadata, onGameEnd, onNodeCha
                 setScoredNodes(prev => new Set([...prev, activeAccusationNode.id]));
             }
             setAccusationResult('success');
+            setIsCaseClosed(true);
         } else {
             if (activeAccusationNode && activeAccusationNode.data.penalty) {
                 const penalty = Number(activeAccusationNode.data.penalty) || 0;
@@ -4087,6 +4093,7 @@ const GamePreview = ({ nodes, edges, onClose, gameMetadata, onGameEnd, onNodeCha
                                 const culpritName = activeCrazyWallNode?.data?.culpritName || '';
                                 setAccusedName(culpritName);
                                 setAccusationResult('success');
+                                setIsCaseClosed(true);
 
                                 setActiveCrazyWallNode(null);
 
