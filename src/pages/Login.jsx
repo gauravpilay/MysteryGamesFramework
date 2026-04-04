@@ -290,9 +290,9 @@ const Login = () => {
                     )}
                 </p>
 
-                <div className="mt-10 text-center">
+                {/* <div className="mt-10 text-center">
                     <p className="text-[10px] text-gray-600 uppercase tracking-[0.2em] font-bold">Developed By Gaurav Pilay</p>
-                </div>
+                </div> */}
             </motion.div>
         </div>
     );
