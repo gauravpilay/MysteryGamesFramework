@@ -687,8 +687,8 @@ const ProgressReportModal = ({ onClose }) => {
                     const y = chartY + (i * spacing);
 
                     // Name and Improvement Calculation
-                    const firstScore = sortedRuns[0]?.score || 0;
-                    const lastScore = sortedRuns[sortedRuns.length - 1]?.score || 0;
+                    const firstScore = Math.min(100, Math.round(sortedRuns[0]?.score || 0));
+                    const lastScore = Math.min(100, Math.round(sortedRuns[sortedRuns.length - 1]?.score || 0));
                     const diff = lastScore - firstScore;
 
                     doc.setFontSize(8);
@@ -729,7 +729,8 @@ const ProgressReportModal = ({ onClose }) => {
 
                     // Attempt Markers
                     sortedRuns.forEach((run, idx) => {
-                        const runX = trackX + (Math.max(0, run.score) / 100 * trackWidth);
+                        const cappedScore = Math.min(100, Math.round(run.score || 0));
+                        const runX = trackX + (Math.max(0, cappedScore) / 100 * trackWidth);
                         const isFirst = idx === 0;
                         const isLast = idx === sortedRuns.length - 1;
 
@@ -793,8 +794,8 @@ const ProgressReportModal = ({ onClose }) => {
                     const sortedRuns = [...(data.runs || [])].sort((a, b) => new Date(a.date) - new Date(b.date));
                     const firstRun = sortedRuns[0];
                     const currentRun = sortedRuns[sortedRuns.length - 1];
-                    const firstScore = firstRun?.score || 0;
-                    const currentScore = currentRun?.score || 0;
+                    const firstScore = Math.min(100, Math.round(firstRun?.score || 0));
+                    const currentScore = Math.min(100, Math.round(currentRun?.score || 0));
                     return [
                         name,
                         firstRun ? new Date(firstRun.date).toLocaleDateString() : 'N/A',

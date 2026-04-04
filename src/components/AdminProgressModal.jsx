@@ -3,7 +3,7 @@ import { db } from '../lib/firebase';
 import { collection, query, where, getDocs, orderBy, documentId, deleteDoc, doc, writeBatch } from 'firebase/firestore';
 import { useAuth } from '../lib/auth';
 import { useConfig } from '../lib/config';
-import { Users, FileText, CheckCircle, AlertTriangle, Clock, X, BarChart2, Filter, Download, Trash2, Shield, Target, Award, Brain, TrendingUp, Zap, Search } from 'lucide-react';
+import { Users, FileText, CheckCircle, AlertTriangle, Clock, X, BarChart2, Filter, Download, Trash2, Shield, Target, Award, Brain, TrendingUp, Zap, Search, FolderOpen } from 'lucide-react';
 import { motion } from 'framer-motion';
 import { jsPDF } from 'jspdf';
 import autoTable from 'jspdf-autotable';
@@ -27,6 +27,9 @@ const AdminProgressModal = ({ onClose }) => {
     const [isWiping, setIsWiping] = useState(false);
     const [statusModal, setStatusModal] = useState(null); // { type, title, message }
     const [searchTerm, setSearchTerm] = useState('');
+    const [casesList, setCasesList] = useState([]);
+    const [selectedCaseIds, setSelectedCaseIds] = useState(new Set());
+    const [caseSearchTerm, setCaseSearchTerm] = useState('');
 
 
     // Fetch Users
@@ -69,6 +72,18 @@ const AdminProgressModal = ({ onClose }) => {
             }
         };
         fetchUsers();
+    }, []);
+
+    useEffect(() => {
+        const fetchCases = async () => {
+            try {
+                const casesSnap = await getDocs(collection(db, "cases"));
+                setCasesList(casesSnap.docs.map(doc => ({ id: doc.id, ...doc.data() })));
+            } catch (err) {
+                console.error("Failed to fetch cases:", err);
+            }
+        };
+        fetchCases();
     }, []);
 
     const handleWipeHistory = async () => {
@@ -175,6 +190,17 @@ const AdminProgressModal = ({ onClose }) => {
                 );
                 const snap = await getDocs(q);
                 snap.docs.forEach(d => allResults.push({ id: d.id, ...d.data() }));
+            }
+
+            // FILTER BY SELECTED CASES
+            if (selectedCaseIds.size > 0) {
+                allResults = allResults.filter(r => selectedCaseIds.has(r.caseId));
+            }
+
+            if (allResults.length === 0) {
+                alert("No game results found for the selected users and cases.");
+                setLoading(false);
+                return;
             }
 
             // Sort Client Side
@@ -387,8 +413,8 @@ const AdminProgressModal = ({ onClose }) => {
                         const spacing = 13;
                         const y = chartY + (i * spacing);
 
-                        const firstScore = sortedRuns[0]?.score || 0;
-                        const lastScore = sortedRuns[sortedRuns.length - 1]?.score || 0;
+                        const firstScore = Math.min(100, Math.round(sortedRuns[0]?.score || 0));
+                        const lastScore = Math.min(100, Math.round(sortedRuns[sortedRuns.length - 1]?.score || 0));
                         const diff = lastScore - firstScore;
 
                         doc.setFontSize(8);
@@ -425,7 +451,8 @@ const AdminProgressModal = ({ onClose }) => {
                         }
 
                         sortedRuns.forEach((run, idx) => {
-                            const runX = trackX + (Math.max(0, run.score) / 100 * trackWidth);
+                            const cappedScore = Math.min(100, Math.round(run.score || 0));
+                            const runX = trackX + (Math.max(0, cappedScore) / 100 * trackWidth);
                             const isFirst = idx === 0;
                             const isLast = idx === sortedRuns.length - 1;
 
@@ -458,7 +485,7 @@ const AdminProgressModal = ({ onClose }) => {
                     const tableStartY = chartY + (objectiveData.length * 13) + 12;
                     const objectiveRows = objectiveData.map(([name, stat]) => [
                         name,
-                        `${Math.round(stat.total / stat.count)}%`,
+                        `${Math.min(100, Math.round(stat.total / stat.count))}%`,
                         stat.count
                     ]);
 
@@ -484,12 +511,14 @@ const AdminProgressModal = ({ onClose }) => {
                         const sortedRuns = [...(stat.runs || [])].sort((a, b) => new Date(a.date) - new Date(b.date));
                         const firstRun = sortedRuns[0];
                         const currentRun = sortedRuns[sortedRuns.length - 1];
+                        const cFirstScore = firstRun ? Math.min(100, Math.round(firstRun.score)) : 0;
+                        const cCurrentScore = currentRun ? Math.min(100, Math.round(currentRun.score)) : 0;
                         return [
                             name,
                             firstRun ? new Date(firstRun.date).toLocaleDateString() : 'N/A',
-                            firstRun ? `${firstRun.score}%` : '0%',
-                            currentRun ? `${currentRun.score}%` : '0%',
-                            firstRun && currentRun ? `${currentRun.score - firstRun.score}%` : '0%'
+                            firstRun ? `${cFirstScore}%` : '0%',
+                            currentRun ? `${cCurrentScore}%` : '0%',
+                            firstRun && currentRun ? `${cCurrentScore - cFirstScore}%` : '0%'
                         ];
                     });
 
@@ -636,7 +665,18 @@ const AdminProgressModal = ({ onClose }) => {
         return name.includes(term) || email.includes(term);
     });
 
+    const filteredCases = casesList.filter(c => {
+        const term = caseSearchTerm.toLowerCase().trim();
+        const title = (c.title || '').toLowerCase();
+        return title.includes(term);
+    });
 
+    const toggleCase = (id) => {
+        const newSet = new Set(selectedCaseIds);
+        if (newSet.has(id)) newSet.delete(id);
+        else newSet.add(id);
+        setSelectedCaseIds(newSet);
+    };
     return (
         <div className="fixed inset-0 z-[100] flex items-center justify-center p-4 bg-black/90 backdrop-blur-md">
             <motion.div
@@ -735,9 +775,71 @@ const AdminProgressModal = ({ onClose }) => {
                                             <p className="text-zinc-500 font-medium">No personnel found matching "{searchTerm}"</p>
                                         </div>
                                     )}
-
                                 </div>
                             )}
+
+                            {/* Case Selection Section */}
+                            <div className="mt-12 mb-6 space-y-4">
+                                <div className="flex justify-between items-center">
+                                    <h3 className="text-lg font-bold text-white uppercase tracking-tight">Select Cases ({filteredCases.length}) <span className="text-sm font-normal text-zinc-500">(Optional: Leave empty for all)</span></h3>
+                                    <div className="flex gap-2">
+                                        <Button variant="outline" size="sm" className="text-xs border-zinc-800" onClick={() => {
+                                            const newSet = new Set(selectedCaseIds);
+                                            filteredCases.forEach(c => newSet.add(c.id));
+                                            setSelectedCaseIds(newSet);
+                                        }}>Select All</Button>
+                                        <Button variant="outline" size="sm" className="text-xs border-zinc-800" onClick={() => setSelectedCaseIds(new Set())}>Clear</Button>
+                                    </div>
+                                </div>
+                                <div className="relative group">
+                                    <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-zinc-500 group-focus-within:text-purple-400 transition-colors" />
+                                    <input
+                                        type="text"
+                                        placeholder="Search by case title..."
+                                        className="w-full bg-zinc-900/50 border border-zinc-800 rounded-xl py-2.5 pl-10 pr-4 text-sm text-white focus:outline-none focus:border-purple-500/50 focus:ring-1 focus:ring-purple-500/50 transition-all"
+                                        value={caseSearchTerm}
+                                        onChange={(e) => setCaseSearchTerm(e.target.value)}
+                                    />
+                                    {caseSearchTerm && (
+                                        <button
+                                            onClick={() => setCaseSearchTerm('')}
+                                            className="absolute right-3 top-1/2 -translate-y-1/2 text-zinc-500 hover:text-white"
+                                        >
+                                            <X className="w-4 h-4" />
+                                        </button>
+                                    )}
+                                </div>
+                            </div>
+
+                            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+                                {filteredCases.map(c => (
+                                    <div
+                                        key={c.id}
+                                        onClick={() => toggleCase(c.id)}
+                                        className={`p-4 rounded-xl border cursor-pointer transition-all flex items-center gap-4 ${selectedCaseIds.has(c.id)
+                                            ? 'bg-purple-500/20 border-purple-500 text-white'
+                                            : 'bg-zinc-900 border-zinc-800 text-zinc-400 hover:bg-zinc-800'
+                                            }`}
+                                    >
+                                        <div className={`w-10 h-10 rounded-xl flex items-center justify-center font-bold ${selectedCaseIds.has(c.id) ? 'bg-purple-500 text-white' : 'bg-zinc-800 text-zinc-500'}`}>
+                                            <FolderOpen className="w-5 h-5" />
+                                        </div>
+                                        <div className="overflow-hidden">
+                                            <div className="font-bold truncate">{c.title || 'Untitled Case'}</div>
+                                            <div className="text-xs opacity-70 truncate">{c.status || 'draft'}</div>
+                                        </div>
+                                        {selectedCaseIds.has(c.id) && <CheckCircle className="w-5 h-5 ml-auto text-purple-400" />}
+                                    </div>
+                                ))}
+                                {filteredCases.length === 0 && (
+                                    <div className="col-span-full py-12 text-center">
+                                        <div className="inline-flex p-4 rounded-full bg-zinc-900 border border-zinc-800 mb-4">
+                                            <Search className="w-8 h-8 text-zinc-700" />
+                                        </div>
+                                        <p className="text-zinc-500 font-medium">No cases found matching "{caseSearchTerm}"</p>
+                                    </div>
+                                )}
+                            </div>
 
                             <div className="mt-8 flex justify-end gap-3">
                                 <Button
