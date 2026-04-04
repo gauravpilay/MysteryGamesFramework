@@ -666,9 +666,10 @@ const AdminProgressModal = ({ onClose }) => {
     });
 
     const filteredCases = casesList.filter(c => {
+        const title = (c.title || '').trim();
+        if (!title || title.toLowerCase() === 'untitled case') return false;
         const term = caseSearchTerm.toLowerCase().trim();
-        const title = (c.title || '').toLowerCase();
-        return title.includes(term);
+        return title.toLowerCase().includes(term);
     });
 
     const toggleCase = (id) => {
