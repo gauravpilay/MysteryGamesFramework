@@ -1635,12 +1635,46 @@ const GamePreview = ({ nodes, edges, onClose, gameMetadata, onGameEnd, onNodeCha
         return colors[Math.abs(hash) % colors.length];
     };
 
+    const getFinalObjectiveScores = () => {
+        const maxScores = {};
+        const objectives = gameMetadata?.learningObjectives || gameMetadata?.meta?.learningObjectives || [];
+        nodes.forEach(n => {
+            if (!n.data?.score) return;
+            const s = Number(n.data.score) || 0;
+            if (s <= 0) return;
+            const objIds = n.data.learningObjectiveIds || (n.data.learningObjectiveId ? [n.data.learningObjectiveId] : []);
+            objIds.forEach(id => {
+                let displayName = id;
+                if (objectives && objectives.length > 0) {
+                    if (id.includes(':')) {
+                        const [catId, idxStr] = id.split(':');
+                        const cat = objectives.find(c => c.id === catId);
+                        if (cat && cat.objectives && cat.objectives[parseInt(idxStr)]) {
+                            const objEntry = cat.objectives[parseInt(idxStr)];
+                            displayName = typeof objEntry === 'string' ? objEntry : (objEntry.learningObjective || id);
+                        }
+                    }
+                }
+                maxScores[displayName] = (maxScores[displayName] || 0) + s;
+            });
+        });
+
+        const percentages = {};
+        Object.keys(playerObjectiveScores).forEach(key => {
+            const earned = playerObjectiveScores[key];
+            const max = maxScores[key] || 100;
+            percentages[key] = Math.max(0, Math.min(100, Math.round((earned / max) * 100)));
+        });
+        return percentages;
+    };
+
     // Finalize Game and Report
     const handleFinish = () => {
         const timeSpent = timeElapsed;
         const resultData = {
             score,
-            objectiveScores: playerObjectiveScores,
+            objectiveScores: getFinalObjectiveScores(),
+            rawObjectiveScores: playerObjectiveScores,
             outcome: accusationResult || 'aborted',
             timeSpentSeconds: timeSpent
         };
@@ -1677,7 +1711,8 @@ const GamePreview = ({ nodes, edges, onClose, gameMetadata, onGameEnd, onNodeCha
         const timeSpent = timeElapsed;
         const resultData = {
             score,
-            objectiveScores: playerObjectiveScores,
+            objectiveScores: getFinalObjectiveScores(),
+            rawObjectiveScores: playerObjectiveScores,
             outcome: accusationResult || 'aborted',
             timeSpentSeconds: timeSpent
         };
@@ -1693,7 +1728,8 @@ const GamePreview = ({ nodes, edges, onClose, gameMetadata, onGameEnd, onNodeCha
         const timeSpent = timeElapsed;
         setPendingResultData({
             score,
-            objectiveScores: playerObjectiveScores,
+            objectiveScores: getFinalObjectiveScores(),
+            rawObjectiveScores: playerObjectiveScores,
             outcome: 'aborted',
             timeSpentSeconds: timeSpent
         });
@@ -1715,6 +1751,7 @@ const GamePreview = ({ nodes, edges, onClose, gameMetadata, onGameEnd, onNodeCha
                 history,
                 score,
                 playerObjectiveScores,
+                objectiveScores: getFinalObjectiveScores(),
                 scoredNodes: [...scoredNodes],
                 penalizedNodes: [...penalizedNodes],
                 nodeOutputs,
@@ -1739,7 +1776,8 @@ const GamePreview = ({ nodes, edges, onClose, gameMetadata, onGameEnd, onNodeCha
         if (onGameEnd) {
             onGameEnd({
                 score,
-                objectiveScores: playerObjectiveScores,
+                objectiveScores: getFinalObjectiveScores(),
+                rawObjectiveScores: playerObjectiveScores,
                 outcome: 'saved_quit',
                 timeSpentSeconds: timeElapsed,
                 savedAndQuit: true
