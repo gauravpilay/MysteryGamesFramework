@@ -2855,198 +2855,198 @@ const GamePreview = ({ nodes, edges, onClose, gameMetadata, onGameEnd, onNodeCha
                                                                 edgeId: edge.id
                                                             }));
 
-                                                const allItems = [...actionItems, ...standardItems];
+                                                    const allItems = [...actionItems, ...standardItems];
 
-                                                if (allItems.length === 0) return null;
+                                                    if (allItems.length === 0) return null;
 
-                                                return allItems.map((item, idx) => {
-                                                    // Default Styles
-                                                    let icon = ArrowRight;
-                                                    let color = "text-indigo-400";
-                                                    let bg = "bg-indigo-500/10";
-                                                    let actionLabel = "PROCEED";
-                                                    let title = "";
+                                                    return allItems.map((item, idx) => {
+                                                        // Default Styles
+                                                        let icon = ArrowRight;
+                                                        let color = "text-indigo-400";
+                                                        let bg = "bg-indigo-500/10";
+                                                        let actionLabel = "PROCEED";
+                                                        let title = "";
 
-                                                    // Resolve Target Node info if it exists
-                                                    let targetNode = item.target ? nodes.find(n => n.id === item.target) : null;
+                                                        // Resolve Target Node info if it exists
+                                                        let targetNode = item.target ? nodes.find(n => n.id === item.target) : null;
 
-                                                    // Handle Music Node skipping
-                                                    let displayNode = targetNode;
-                                                    while (displayNode && displayNode.type === 'music') {
-                                                        const outEdges = edges.filter(e => e.source === displayNode.id);
-                                                        if (outEdges.length > 0) {
-                                                            const next = nodes.find(n => n.id === outEdges[outEdges.length - 1].target); // simplistic next
-                                                            if (next) displayNode = next;
-                                                            else break;
-                                                        } else break;
-                                                    }
+                                                        // Handle Music Node skipping
+                                                        let displayNode = targetNode;
+                                                        while (displayNode && displayNode.type === 'music') {
+                                                            const outEdges = edges.filter(e => e.source === displayNode.id);
+                                                            if (outEdges.length > 0) {
+                                                                const next = nodes.find(n => n.id === outEdges[outEdges.length - 1].target); // simplistic next
+                                                                if (next) displayNode = next;
+                                                                else break;
+                                                            } else break;
+                                                        }
 
-                                                    if (displayNode) {
-                                                        title = displayNode.data.label || displayNode.data.name || "Continue";
+                                                        if (displayNode) {
+                                                            title = displayNode.data.label || displayNode.data.name || "Continue";
 
-                                                        // Type-based icons / colors
-                                                        if (displayNode.type === 'story') {
-                                                            icon = FileText;
-                                                            color = "text-blue-400";
-                                                            bg = "bg-blue-500/10";
-                                                            actionLabel = "NARRATIVE";
-                                                        } else if (displayNode.type === 'suspect') {
-                                                            icon = User;
-                                                            color = "text-red-400";
-                                                            bg = "bg-red-500/10";
-                                                            actionLabel = "INVESTIGATE";
-                                                            title = displayNode.data.name || title;
-                                                        } else if (displayNode.type === 'evidence') {
-                                                            icon = Search;
-                                                            color = "text-yellow-400";
-                                                            bg = "bg-yellow-500/10";
-                                                            actionLabel = "EXAMINE";
-                                                        } else if (displayNode.type === 'media') {
-                                                            icon = ImageIcon;
-                                                            color = "text-orange-400";
-                                                            bg = "bg-orange-500/10";
-                                                            actionLabel = "VIEW ASSET";
-                                                        } else if (displayNode.type === 'terminal') {
-                                                            icon = Terminal;
-                                                            color = "text-green-400";
-                                                            bg = "bg-green-500/10";
-                                                            actionLabel = "HACK TERMINAL";
-                                                        } else if (displayNode.type === 'message') {
-                                                            icon = MessageSquare;
-                                                            color = "text-violet-400";
-                                                            bg = "bg-violet-500/10";
-                                                            actionLabel = "INCOMING";
-                                                            actionLabel = "INCOMING";
-                                                        } else if (displayNode.type === 'question') {
-                                                            icon = HelpCircle;
-                                                            color = "text-fuchsia-400";
-                                                            bg = "bg-fuchsia-500/10";
-                                                            actionLabel = "QUIZ";
-                                                        } else if (displayNode.type === 'action') {
+                                                            // Type-based icons / colors
+                                                            if (displayNode.type === 'story') {
+                                                                icon = FileText;
+                                                                color = "text-blue-400";
+                                                                bg = "bg-blue-500/10";
+                                                                actionLabel = "NARRATIVE";
+                                                            } else if (displayNode.type === 'suspect') {
+                                                                icon = User;
+                                                                color = "text-red-400";
+                                                                bg = "bg-red-500/10";
+                                                                actionLabel = "INVESTIGATE";
+                                                                title = displayNode.data.name || title;
+                                                            } else if (displayNode.type === 'evidence') {
+                                                                icon = Search;
+                                                                color = "text-yellow-400";
+                                                                bg = "bg-yellow-500/10";
+                                                                actionLabel = "EXAMINE";
+                                                            } else if (displayNode.type === 'media') {
+                                                                icon = ImageIcon;
+                                                                color = "text-orange-400";
+                                                                bg = "bg-orange-500/10";
+                                                                actionLabel = "VIEW ASSET";
+                                                            } else if (displayNode.type === 'terminal') {
+                                                                icon = Terminal;
+                                                                color = "text-green-400";
+                                                                bg = "bg-green-500/10";
+                                                                actionLabel = "HACK TERMINAL";
+                                                            } else if (displayNode.type === 'message') {
+                                                                icon = MessageSquare;
+                                                                color = "text-violet-400";
+                                                                bg = "bg-violet-500/10";
+                                                                actionLabel = "INCOMING";
+                                                                actionLabel = "INCOMING";
+                                                            } else if (displayNode.type === 'question') {
+                                                                icon = HelpCircle;
+                                                                color = "text-fuchsia-400";
+                                                                bg = "bg-fuchsia-500/10";
+                                                                actionLabel = "QUIZ";
+                                                            } else if (displayNode.type === 'action') {
+                                                                icon = MousePointerClick;
+                                                                color = "text-indigo-400";
+                                                                bg = "bg-indigo-500/10";
+                                                                actionLabel = "INTERACTION";
+                                                            } else if (displayNode.type === 'email') {
+                                                                icon = Mail;
+                                                                color = "text-blue-200";
+                                                                bg = "bg-blue-600/20";
+                                                                actionLabel = "ENCRYPTED INTEL";
+                                                                title = displayNode.data.subject || title;
+                                                            } else if (displayNode.type === 'fact') {
+                                                                icon = Lightbulb;
+                                                                color = "text-amber-400";
+                                                                bg = "bg-amber-500/10";
+                                                                actionLabel = "INFORMATION";
+                                                            }
+                                                        }
+
+                                                        // Override if it is an Explicit Action
+                                                        if (item.isAction) {
                                                             icon = MousePointerClick;
-                                                            color = "text-indigo-400";
-                                                            bg = "bg-indigo-500/10";
-                                                            actionLabel = "INTERACTION";
-                                                        } else if (displayNode.type === 'email') {
-                                                            icon = Mail;
-                                                            color = "text-blue-200";
-                                                            bg = "bg-blue-600/20";
-                                                            actionLabel = "ENCRYPTED INTEL";
-                                                            title = displayNode.data.subject || title;
-                                                        } else if (displayNode.type === 'fact') {
-                                                            icon = Lightbulb;
-                                                            color = "text-amber-400";
-                                                            bg = "bg-amber-500/10";
-                                                            actionLabel = "INFORMATION";
+                                                            title = item.label;
+                                                            actionLabel = "";
+                                                            // Base style: Sleeker, refined border, sophisticated hover
+                                                            const baseShadow = "transition-all duration-500 hover:tracking-widest border border-white/10 backdrop-blur-md shadow-2xl";
+
+                                                            switch (item.variant) {
+                                                                case 'danger':
+                                                                    color = "text-red-100";
+                                                                    bg = `bg-gradient-to-r from-red-600/40 via-red-500/10 to-transparent border-red-500/30 hover:border-red-400 hover:from-red-600/60 hover:shadow-[0_0_25px_rgba(239,68,68,0.2)] ${baseShadow}`;
+                                                                    break;
+                                                                case 'primary':
+                                                                    color = "text-indigo-100";
+                                                                    bg = `bg-gradient-to-r from-indigo-600/40 via-indigo-500/10 to-transparent border-indigo-500/30 hover:border-indigo-400 hover:from-indigo-600/60 hover:shadow-[0_0_25px_rgba(99,102,241,0.2)] ${baseShadow}`;
+                                                                    break;
+                                                                case 'success':
+                                                                    color = "text-emerald-100";
+                                                                    bg = `bg-gradient-to-r from-emerald-500/40 via-emerald-400/10 to-transparent border-emerald-500/30 hover:border-emerald-400 hover:from-emerald-500/60 hover:shadow-[0_0_25px_rgba(16,185,129,0.2)] ${baseShadow}`;
+                                                                    break;
+                                                                case 'warning':
+                                                                    color = "text-amber-100";
+                                                                    bg = `bg-gradient-to-r from-amber-400/40 via-amber-300/10 to-transparent border-amber-300/30 hover:border-amber-200 hover:from-amber-400/60 hover:shadow-[0_0_25px_rgba(245,158,11,0.2)] ${baseShadow}`;
+                                                                    break;
+                                                                case 'mystic':
+                                                                    color = "text-purple-100";
+                                                                    bg = `bg-gradient-to-r from-purple-600/40 via-purple-500/10 to-transparent border-purple-500/30 hover:border-purple-400 hover:from-purple-600/60 hover:shadow-[0_0_25px_rgba(168,85,247,0.2)] ${baseShadow}`;
+                                                                    break;
+                                                                case 'tech':
+                                                                    color = "text-cyan-100";
+                                                                    bg = `bg-gradient-to-r from-cyan-400/40 via-cyan-300/10 to-transparent border-cyan-500/30 hover:border-cyan-400 hover:from-cyan-400/60 hover:shadow-[0_0_25px_rgba(34,211,238,0.2)] ${baseShadow}`;
+                                                                    break;
+                                                                default:
+                                                                    color = "text-zinc-100";
+                                                                    bg = `bg-gradient-to-r from-zinc-700/40 via-zinc-600/10 to-transparent border-zinc-700/30 hover:border-zinc-500 hover:from-zinc-700/60 hover:shadow-[0_0_20px_rgba(255,255,255,0.05)] ${baseShadow}`;
+                                                                    break;
+                                                            }
                                                         }
-                                                    }
 
-                                                    // Override if it is an Explicit Action
-                                                    if (item.isAction) {
-                                                        icon = MousePointerClick;
-                                                        title = item.label;
-                                                        actionLabel = "";
-                                                        // Base style: Sleeker, refined border, sophisticated hover
-                                                        const baseShadow = "transition-all duration-500 hover:tracking-widest border border-white/10 backdrop-blur-md shadow-2xl";
-
-                                                        switch (item.variant) {
-                                                            case 'danger':
-                                                                color = "text-red-100";
-                                                                bg = `bg-gradient-to-r from-red-600/40 via-red-500/10 to-transparent border-red-500/30 hover:border-red-400 hover:from-red-600/60 hover:shadow-[0_0_25px_rgba(239,68,68,0.2)] ${baseShadow}`;
-                                                                break;
-                                                            case 'primary':
-                                                                color = "text-indigo-100";
-                                                                bg = `bg-gradient-to-r from-indigo-600/40 via-indigo-500/10 to-transparent border-indigo-500/30 hover:border-indigo-400 hover:from-indigo-600/60 hover:shadow-[0_0_25px_rgba(99,102,241,0.2)] ${baseShadow}`;
-                                                                break;
-                                                            case 'success':
-                                                                color = "text-emerald-100";
-                                                                bg = `bg-gradient-to-r from-emerald-500/40 via-emerald-400/10 to-transparent border-emerald-500/30 hover:border-emerald-400 hover:from-emerald-500/60 hover:shadow-[0_0_25px_rgba(16,185,129,0.2)] ${baseShadow}`;
-                                                                break;
-                                                            case 'warning':
-                                                                color = "text-amber-100";
-                                                                bg = `bg-gradient-to-r from-amber-400/40 via-amber-300/10 to-transparent border-amber-300/30 hover:border-amber-200 hover:from-amber-400/60 hover:shadow-[0_0_25px_rgba(245,158,11,0.2)] ${baseShadow}`;
-                                                                break;
-                                                            case 'mystic':
-                                                                color = "text-purple-100";
-                                                                bg = `bg-gradient-to-r from-purple-600/40 via-purple-500/10 to-transparent border-purple-500/30 hover:border-purple-400 hover:from-purple-600/60 hover:shadow-[0_0_25px_rgba(168,85,247,0.2)] ${baseShadow}`;
-                                                                break;
-                                                            case 'tech':
-                                                                color = "text-cyan-100";
-                                                                bg = `bg-gradient-to-r from-cyan-400/40 via-cyan-300/10 to-transparent border-cyan-500/30 hover:border-cyan-400 hover:from-cyan-400/60 hover:shadow-[0_0_25px_rgba(34,211,238,0.2)] ${baseShadow}`;
-                                                                break;
-                                                            default:
-                                                                color = "text-zinc-100";
-                                                                bg = `bg-gradient-to-r from-zinc-700/40 via-zinc-600/10 to-transparent border-zinc-700/30 hover:border-zinc-500 hover:from-zinc-700/60 hover:shadow-[0_0_20px_rgba(255,255,255,0.05)] ${baseShadow}`;
-                                                                break;
+                                                        // "Disabled" state look
+                                                        if (!item.target) {
+                                                            color = "text-zinc-600";
+                                                            bg = "bg-zinc-800/20";
+                                                            title = item.label || "Locked Path";
+                                                            actionLabel = "UNAVAILABLE";
                                                         }
-                                                    }
 
-                                                    // "Disabled" state look
-                                                    if (!item.target) {
-                                                        color = "text-zinc-600";
-                                                        bg = "bg-zinc-800/20";
-                                                        title = item.label || "Locked Path";
-                                                        actionLabel = "UNAVAILABLE";
-                                                    }
+                                                        const Icon = icon;
 
-                                                    const Icon = icon;
-
-                                                    return (
-                                                        <motion.button
-                                                            key={`${item.id}-${idx}`}
-                                                            data-testid={`option-${item.target}`}
-                                                            layout
-                                                            initial={{ opacity: 0, y: 10 }}
-                                                            animate={{ opacity: 1, y: 0 }}
-                                                            transition={{ delay: idx * 0.08, ease: "easeOut" }}
-                                                            whileHover={item.target ? { x: 8 } : {}}
-                                                            whileTap={item.target ? { scale: 0.99 } : {}}
-                                                            onClick={() => item.target && handleOptionClick(item.target)}
-                                                            disabled={!item.target}
-                                                            className={`w-full text-left rounded-2xl transition-all duration-500 group relative overflow-hidden flex items-center gap-3 md:gap-4
+                                                        return (
+                                                            <motion.button
+                                                                key={`${item.id}-${idx}`}
+                                                                data-testid={`option-${item.target}`}
+                                                                layout
+                                                                initial={{ opacity: 0, y: 10 }}
+                                                                animate={{ opacity: 1, y: 0 }}
+                                                                transition={{ delay: idx * 0.08, ease: "easeOut" }}
+                                                                whileHover={item.target ? { x: 8 } : {}}
+                                                                whileTap={item.target ? { scale: 0.99 } : {}}
+                                                                onClick={() => item.target && handleOptionClick(item.target)}
+                                                                disabled={!item.target}
+                                                                className={`w-full text-left rounded-2xl transition-all duration-500 group relative overflow-hidden flex items-center gap-3 md:gap-4
                                                             ${!item.target ? 'cursor-not-allowed border border-white/5 opacity-40 p-3' : 'cursor-pointer'}
                                                             ${item.isAction && item.target
-                                                                    ? `${bg} p-3 md:p-4 border-t border-white/10 shadow-xl`
-                                                                    : "bg-zinc-950/40 border border-white/5 hover:border-indigo-500/30 hover:bg-zinc-900/60 p-3"
-                                                                }`}
-                                                        >
-                                                            {/* Delicate light flare effect on hover */}
-                                                            {item.target && (
-                                                                <div className="absolute inset-0 bg-gradient-to-r from-white/0 via-white/5 to-white/0 -translate-x-full group-hover:translate-x-full transition-transform duration-1000" />
-                                                            )}
+                                                                        ? `${bg} p-3 md:p-4 border-t border-white/10 shadow-xl`
+                                                                        : "bg-zinc-950/40 border border-white/5 hover:border-indigo-500/30 hover:bg-zinc-900/60 p-3"
+                                                                    }`}
+                                                            >
+                                                                {/* Delicate light flare effect on hover */}
+                                                                {item.target && (
+                                                                    <div className="absolute inset-0 bg-gradient-to-r from-white/0 via-white/5 to-white/0 -translate-x-full group-hover:translate-x-full transition-transform duration-1000" />
+                                                                )}
 
-                                                            <div className={`rounded-xl ${item.isAction ? 'bg-black/40' : bg} ${item.isAction ? 'p-2.5' : 'p-3'} border border-white/10 ${item.target && 'group-hover:rotate-6'} transition-transform shrink-0`}>
-                                                                <Icon className={`${item.isAction ? 'w-5 h-5' : 'w-4 h-4'} ${color} transition-colors duration-500`} />
-                                                            </div>
+                                                                <div className={`rounded-xl ${item.isAction ? 'bg-black/40' : bg} ${item.isAction ? 'p-2.5' : 'p-3'} border border-white/10 ${item.target && 'group-hover:rotate-6'} transition-transform shrink-0`}>
+                                                                    <Icon className={`${item.isAction ? 'w-5 h-5' : 'w-4 h-4'} ${color} transition-colors duration-500`} />
+                                                                </div>
 
-                                                            <div className="flex-1 min-w-0 flex flex-col items-center justify-center">
-                                                                {actionLabel && (
-                                                                    <div className={`text-[8px] font-black tracking-[0.2em] uppercase mb-1 ${color} opacity-40 group-hover:opacity-100 transition-opacity`}>
-                                                                        {actionLabel}
+                                                                <div className="flex-1 min-w-0 flex flex-col items-center justify-center">
+                                                                    {actionLabel && (
+                                                                        <div className={`text-[8px] font-black tracking-[0.2em] uppercase mb-1 ${color} opacity-40 group-hover:opacity-100 transition-opacity`}>
+                                                                            {actionLabel}
+                                                                        </div>
+                                                                    )}
+                                                                    <div className={`truncate transition-all duration-500 ${item.isAction ? `${color} drop-shadow-md text-base md:text-lg font-bold uppercase tracking-[0.15em] md:tracking-[0.2em]` : 'text-zinc-400 group-hover:text-white text-sm md:text-base font-bold tracking-tight'}`}>
+                                                                        {title}
+                                                                    </div>
+                                                                </div>
+
+                                                                {item.target && (
+                                                                    <div className="w-8 h-8 rounded-full bg-white/5 flex items-center justify-center border border-white/5 group-hover:border-white/20 transition-all shrink-0">
+                                                                        <ArrowRight className={`w-3 h-3 ${item.isAction ? color : 'text-zinc-600 group-hover:text-white'} transition-all`} />
                                                                     </div>
                                                                 )}
-                                                                <div className={`truncate transition-all duration-500 ${item.isAction ? `${color} drop-shadow-md text-base md:text-lg font-bold uppercase tracking-[0.15em] md:tracking-[0.2em]` : 'text-zinc-400 group-hover:text-white text-sm md:text-base font-bold tracking-tight'}`}>
-                                                                    {title}
-                                                                </div>
-                                                            </div>
-
-                                                            {item.target && (
-                                                                <div className="w-8 h-8 rounded-full bg-white/5 flex items-center justify-center border border-white/5 group-hover:border-white/20 transition-all shrink-0">
-                                                                    <ArrowRight className={`w-3 h-3 ${item.isAction ? color : 'text-zinc-600 group-hover:text-white'} transition-all`} />
-                                                                </div>
-                                                            )}
-                                                        </motion.button>
-                                                    );
-                                                });
-                                            })()}
+                                                            </motion.button>
+                                                        );
+                                                    });
+                                                })()}
+                                            </div>
                                         </div>
-                                    </div>
-                                )}
-                            </div>
-                        )
-                    )}
-                </motion.div>
-            </AnimatePresence>
+                                    )}
+                                </div>
+                            )
+                        )}
+                    </motion.div>
+                </AnimatePresence>
             </div>
 
             {/* Floating "Present More Evidence" offer — shown after confrontation story plays */}
@@ -3519,7 +3519,7 @@ const GamePreview = ({ nodes, edges, onClose, gameMetadata, onGameEnd, onNodeCha
                                                             : 'bg-black border-zinc-800 text-zinc-400 hover:border-zinc-600 hover:bg-zinc-900'
                                                             }`}
                                                     >
-                                                        <div className={`w-6 h-6 rounded-full border-2 flex items-center justify-center ${isSelected ? 'border-fuchsia-500 bg-fuchsia-500' : 'border-zinc-600'}`}>
+                                                        <div className={`shrink-0 w-6 h-6 rounded-full border-2 flex items-center justify-center ${isSelected ? 'border-fuchsia-500 bg-fuchsia-500' : 'border-zinc-600'}`}>
                                                             {isSelected && <div className="w-2 h-2 rounded-full bg-white" />}
                                                         </div>
                                                         {opt.text}
@@ -4034,7 +4034,7 @@ const GamePreview = ({ nodes, edges, onClose, gameMetadata, onGameEnd, onNodeCha
                                                 className="border-zinc-700 hover:bg-zinc-800 h-14"
                                                 onClick={() => setAccusationResult(null)}
                                             >
-                                                Review Evidence
+                                                Try Again
                                             </Button>
                                             <Button
                                                 variant="destructive"
