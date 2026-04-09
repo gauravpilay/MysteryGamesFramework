@@ -1419,7 +1419,6 @@ const GamePreview = ({ nodes, edges, onClose, gameMetadata, onGameEnd, onNodeCha
             const next = navigationOptions[0];
             if (next) {
                 // Add to inventory that we beat this terminal
-                // Add to inventory that we beat this terminal
                 const successIds = [activeModalNode.id];
                 if (activeModalNode.data.variableId) successIds.push(activeModalNode.data.variableId);
                 setInventory(prev => new Set([...prev, ...successIds]));
@@ -1427,7 +1426,11 @@ const GamePreview = ({ nodes, edges, onClose, gameMetadata, onGameEnd, onNodeCha
 
                 // Award Score for Terminal Hack
                 if (activeModalNode.data.score && !scoredNodes.has(activeModalNode.id)) {
-                    const awardedS = Number(activeModalNode.data.score) || 0;
+                    let awardedS = Number(activeModalNode.data.score) || 0;
+                    if (penalizedNodes.has(activeModalNode.id)) {
+                        awardedS = Math.ceil(awardedS / 2);
+                    }
+                    
                     setScore(s => s + awardedS);
                     triggerScoreDelta(awardedS);
                     triggerFlyingPoints(awardedS);
@@ -1445,6 +1448,7 @@ const GamePreview = ({ nodes, edges, onClose, gameMetadata, onGameEnd, onNodeCha
             }
         } else {
             addLog(`COMMAND FAILED: Access Denied.`);
+            setPenalizedNodes(prev => new Set([...prev, activeModalNode?.id].filter(Boolean)));
             // Penalty
             const penalty = Number(activeModalNode.data.penalty) || 0;
             if (penalty > 0) {
@@ -1485,7 +1489,11 @@ const GamePreview = ({ nodes, edges, onClose, gameMetadata, onGameEnd, onNodeCha
 
         if (isCorrect) {
             if (activeAccusationNode && activeAccusationNode.data.score && !scoredNodes.has(activeAccusationNode.id)) {
-                const awardedS = Number(activeAccusationNode.data.score) || 0;
+                let awardedS = Number(activeAccusationNode.data.score) || 0;
+                if (penalizedNodes.has(activeAccusationNode.id)) {
+                    awardedS = Math.ceil(awardedS / 2);
+                }
+                
                 setScore(s => s + awardedS);
                 triggerScoreDelta(awardedS);
                 triggerFlyingPoints(awardedS);
@@ -1497,6 +1505,7 @@ const GamePreview = ({ nodes, edges, onClose, gameMetadata, onGameEnd, onNodeCha
             setAccusationResult('success');
             setIsCaseClosed(true);
         } else {
+            setPenalizedNodes(prev => new Set([...prev, activeAccusationNode?.id].filter(Boolean)));
             if (activeAccusationNode && activeAccusationNode.data.penalty) {
                 const penalty = Number(activeAccusationNode.data.penalty) || 0;
                 setScore(s => s - penalty);
@@ -1528,16 +1537,21 @@ const GamePreview = ({ nodes, edges, onClose, gameMetadata, onGameEnd, onNodeCha
 
             // Award actual points only once
             if (rawScore > 0 && !scoredNodes.has(activeModalNode.id)) {
-                setScore(s => s + rawScore);
-                triggerScoreDelta(rawScore);
-                triggerFlyingPoints(rawScore);
+                let actualScore = rawScore;
+                if (penalizedNodes.has(activeModalNode.id)) {
+                    actualScore = Math.ceil(rawScore / 2);
+                }
+                
+                setScore(s => s + actualScore);
+                triggerScoreDelta(actualScore);
+                triggerFlyingPoints(actualScore);
 
                 // Objective Scoring (Reward)
-                rewardObjectivePoints(activeModalNode, rawScore);
+                rewardObjectivePoints(activeModalNode, actualScore);
 
                 setScoredNodes(prev => new Set([...prev, activeModalNode.id]));
                 setInventory(prev => new Set([...prev, activeModalNode.id, activeModalNode.data.variableId].filter(Boolean)));
-                addLog(`QUIZ REWARD: +${rawScore} Points`);
+                addLog(`QUIZ REWARD: +${actualScore} Points`);
             } else if (rawScore > 0) {
                 // Still show visual feedback for correctness even if points were already awarded
                 triggerFlyingPoints(rawScore);
@@ -1575,6 +1589,7 @@ const GamePreview = ({ nodes, edges, onClose, gameMetadata, onGameEnd, onNodeCha
             }, 1500);
         } else {
             addLog(`QUESTION FAILED: Incorrect Answer.`);
+            setPenalizedNodes(prev => new Set([...prev, activeModalNode?.id].filter(Boolean)));
 
             // Collect explanations from selected incorrect options (use generic fallback if none provided)
             const explanations = qOptions
@@ -4117,8 +4132,11 @@ const GamePreview = ({ nodes, edges, onClose, gameMetadata, onGameEnd, onNodeCha
                                 setShowCrazyWall(false);
 
                                 // Award points
-                                const awards = Number(awardedScore) || 0;
+                                let awards = Number(awardedScore) || 0;
                                 if (awards > 0 && !scoredNodes.has(activeCrazyWallNode.id)) {
+                                    if (penalizedNodes.has(activeCrazyWallNode.id)) {
+                                        awards = Math.ceil(awards / 2);
+                                    }
                                     setScore(s => s + awards);
                                     triggerScoreDelta(awards);
                                     triggerFlyingPoints(awards);
@@ -4148,6 +4166,7 @@ const GamePreview = ({ nodes, edges, onClose, gameMetadata, onGameEnd, onNodeCha
                                 }
                             }}
                             onPenalty={(penaltyPoints) => {
+                                setPenalizedNodes(prev => new Set([...prev, activeCrazyWallNode?.id].filter(Boolean)));
                                 const penalty = Number(penaltyPoints) || 0;
                                 if (penalty > 0) {
                                     setScore(s => s - penalty);
