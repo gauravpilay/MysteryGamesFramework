@@ -32,6 +32,16 @@ const Leaderboard = () => {
     const [activeTab, setActiveTab] = useState('global'); // 'global' or 'mission'
     const [selectedCaseId, setSelectedCaseId] = useState('all');
     const [searchQuery, setSearchQuery] = useState('');
+    const [expandedRows, setExpandedRows] = useState(new Set());
+
+    const toggleRow = (id) => {
+        setExpandedRows(prev => {
+            const next = new Set(prev);
+            if (next.has(id)) next.delete(id);
+            else next.add(id);
+            return next;
+        });
+    };
 
     useEffect(() => {
         const fetchData = async () => {
@@ -117,7 +127,8 @@ const Leaderboard = () => {
                         missionsCompleted: 0,
                         totalTime: 0,
                         bestScore: 0,
-                        photoURL: userObj?.photoURL
+                        photoURL: userObj?.photoURL,
+                        attempts: []
                     };
                 }
                 userStats[res.userId].totalScore += (res.score || 0);
@@ -126,9 +137,14 @@ const Leaderboard = () => {
                 if ((res.score || 0) > userStats[res.userId].bestScore) {
                     userStats[res.userId].bestScore = res.score;
                 }
+                userStats[res.userId].attempts.push(res);
             });
 
             return Object.values(userStats)
+                .map(u => ({
+                    ...u,
+                    attempts: u.attempts.sort((a, b) => new Date(b.playedAt) - new Date(a.playedAt))
+                }))
                 .sort((a, b) => b.totalScore - a.totalScore)
                 .filter(u => {
                     const query = searchQuery.toLowerCase().trim();
@@ -321,95 +337,135 @@ const Leaderboard = () => {
                                     <tbody className="divide-y divide-zinc-800/50">
                                         <AnimatePresence mode="popLayout">
                                             {leaderboard.map((item, index) => (
-                                                <motion.tr
-                                                    key={item.id || item.userId}
-                                                    layout
-                                                    initial={{ opacity: 0, x: -10 }}
-                                                    animate={{ opacity: 1, x: 0 }}
-                                                    transition={{ delay: index * 0.05 }}
-                                                    className={`group hover:bg-white/[0.02] transition-colors ${item.userId === user?.email ? 'bg-purple-900/10' : ''}`}
-                                                >
-                                                    <td className="px-8 py-6">
-                                                        <div className="flex items-center gap-3">
-                                                            <span className={`text-lg font-black font-mono transition-colors ${index < 3 ? 'text-white' : 'text-zinc-600 group-hover:text-zinc-400'}`}>
-                                                                {(index + 1).toString().padStart(2, '0')}
-                                                            </span>
-                                                            {index < 3 && (
-                                                                <div className={`p-1 rounded bg-gradient-to-br ${index === 0 ? 'from-yellow-400 to-amber-600' : index === 1 ? 'from-zinc-400 to-zinc-600' : 'from-orange-400 to-red-600'} opacity-50`}>
-                                                                    <Star className="w-3 h-3 text-white fill-white" />
-                                                                </div>
-                                                            )}
-                                                        </div>
-                                                    </td>
-                                                    <td className="px-8 py-6">
-                                                        <div className="flex items-center gap-4">
-                                                            <div className="relative">
-                                                                <div className="w-10 h-10 rounded-full bg-zinc-800 overflow-hidden border border-zinc-700">
-                                                                    {item.photoURL ? (
-                                                                        <img src={item.photoURL} alt="" className="w-full h-full object-cover" />
-                                                                    ) : (
-                                                                        <div className="w-full h-full bg-gradient-to-br from-indigo-600 to-purple-600 flex items-center justify-center text-white font-bold">
-                                                                            {item.displayName?.charAt(0)}
-                                                                        </div>
-                                                                    )}
-                                                                </div>
-                                                                {item.userId === user?.email && (
-                                                                    <div className="absolute -bottom-1 -right-1 w-4 h-4 bg-emerald-500 border-2 border-zinc-950 rounded-full shadow-lg" title="You"></div>
+                                                <React.Fragment key={item.id || item.userId}>
+                                                    <motion.tr
+                                                        layout
+                                                        initial={{ opacity: 0, x: -10 }}
+                                                        animate={{ opacity: 1, x: 0 }}
+                                                        transition={{ delay: index * 0.05 }}
+                                                        onClick={() => activeTab === 'global' ? toggleRow(item.userId) : null}
+                                                        className={`group hover:bg-white/[0.02] transition-colors ${item.userId === user?.email ? 'bg-purple-900/10' : ''} ${activeTab === 'global' ? 'cursor-pointer' : ''}`}
+                                                    >
+                                                        <td className="px-8 py-6">
+                                                            <div className="flex items-center gap-3">
+                                                                {activeTab === 'global' && (
+                                                                    <div className={`transition-transform duration-300 ${expandedRows.has(item.userId) ? 'rotate-90' : ''}`}>
+                                                                        <ChevronRight className="w-4 h-4 text-zinc-500 hover:text-white" />
+                                                                    </div>
+                                                                )}
+                                                                <span className={`text-lg font-black font-mono transition-colors ${index < 3 ? 'text-white' : 'text-zinc-600 group-hover:text-zinc-400'}`}>
+                                                                    {(index + 1).toString().padStart(2, '0')}
+                                                                </span>
+                                                                {index < 3 && (
+                                                                    <div className={`p-1 rounded bg-gradient-to-br ${index === 0 ? 'from-yellow-400 to-amber-600' : index === 1 ? 'from-zinc-400 to-zinc-600' : 'from-orange-400 to-red-600'} opacity-50`}>
+                                                                        <Star className="w-3 h-3 text-white fill-white" />
+                                                                    </div>
                                                                 )}
                                                             </div>
-                                                            <div>
-                                                                <div className="font-bold text-white group-hover:text-purple-400 transition-colors uppercase tracking-tight">
-                                                                    {item.displayName}
-                                                                </div>
-                                                                <div className="text-[10px] text-zinc-500 font-mono truncate max-w-[150px]">
-                                                                    {item.userId}
-                                                                </div>
-                                                            </div>
-                                                        </div>
-                                                    </td>
-                                                    {activeTab === 'mission' && (
+                                                        </td>
                                                         <td className="px-8 py-6">
-                                                            <div className="flex flex-col">
-                                                                <div className="text-sm font-medium text-zinc-300 line-clamp-1">{item.caseTitle}</div>
-                                                                <div className="text-[10px] text-zinc-500 font-mono">
-                                                                    {new Date(item.playedAt).toLocaleDateString()}
+                                                            <div className="flex items-center gap-4">
+                                                                <div className="relative">
+                                                                    <div className="w-10 h-10 rounded-full bg-zinc-800 overflow-hidden border border-zinc-700">
+                                                                        {item.photoURL ? (
+                                                                            <img src={item.photoURL} alt="" className="w-full h-full object-cover" />
+                                                                        ) : (
+                                                                            <div className="w-full h-full bg-gradient-to-br from-indigo-600 to-purple-600 flex items-center justify-center text-white font-bold">
+                                                                                {item.displayName?.charAt(0)}
+                                                                            </div>
+                                                                        )}
+                                                                    </div>
+                                                                    {item.userId === user?.email && (
+                                                                        <div className="absolute -bottom-1 -right-1 w-4 h-4 bg-emerald-500 border-2 border-zinc-950 rounded-full shadow-lg" title="You"></div>
+                                                                    )}
+                                                                </div>
+                                                                <div>
+                                                                    <div className="font-bold text-white group-hover:text-purple-400 transition-colors uppercase tracking-tight">
+                                                                        {item.displayName}
+                                                                    </div>
+                                                                    <div className="text-[10px] text-zinc-500 font-mono truncate max-w-[150px]">
+                                                                        {item.userId}
+                                                                    </div>
                                                                 </div>
                                                             </div>
                                                         </td>
-                                                    )}
-                                                    <td className="px-8 py-6">
-                                                        <div className="flex items-center gap-2">
-                                                            <div className="w-8 h-8 rounded-lg bg-purple-500/10 flex items-center justify-center">
-                                                                <Zap className="w-4 h-4 text-purple-400" />
+                                                        {activeTab === 'mission' && (
+                                                            <td className="px-8 py-6">
+                                                                <div className="flex flex-col">
+                                                                    <div className="text-sm font-medium text-zinc-300 line-clamp-1">{item.caseTitle}</div>
+                                                                    <div className="text-[10px] text-zinc-500 font-mono">
+                                                                        {new Date(item.playedAt).toLocaleDateString()}
+                                                                    </div>
+                                                                </div>
+                                                            </td>
+                                                        )}
+                                                        <td className="px-8 py-6">
+                                                            <div className="flex items-center gap-2">
+                                                                <div className="w-8 h-8 rounded-lg bg-purple-500/10 flex items-center justify-center">
+                                                                    <Zap className="w-4 h-4 text-purple-400" />
+                                                                </div>
+                                                                <span className="text-lg font-black text-white lining-nums">
+                                                                    {(activeTab === 'global' ? item.totalScore : item.score)?.toLocaleString()}
+                                                                </span>
                                                             </div>
-                                                            <span className="text-lg font-black text-white lining-nums">
-                                                                {(activeTab === 'global' ? item.totalScore : item.score)?.toLocaleString()}
-                                                            </span>
-                                                        </div>
-                                                    </td>
-                                                    <td className="px-8 py-6">
-                                                        {activeTab === 'global' ? (
-                                                            <div className="flex items-center gap-4">
-                                                                <div>
-                                                                    <div className="text-xs font-bold text-zinc-300">{item.missionsCompleted} Missions</div>
-                                                                    <div className="text-[9px] text-zinc-500 uppercase tracking-widest mt-0.5">Tactical Deployment</div>
+                                                        </td>
+                                                        <td className="px-8 py-6">
+                                                            {activeTab === 'global' ? (
+                                                                <div className="flex items-center gap-4">
+                                                                    <div>
+                                                                        <div className="text-xs font-bold text-zinc-300">{item.missionsCompleted} Missions</div>
+                                                                        <div className="text-[9px] text-zinc-500 uppercase tracking-widest mt-0.5">Tactical Deployment</div>
+                                                                    </div>
+                                                                </div>
+                                                            ) : (
+                                                                <div className={`inline-flex items-center gap-2 px-3 py-1 rounded-full text-[10px] font-black uppercase tracking-widest border ${item.outcome === 'success' ? 'bg-emerald-500/10 border-emerald-500/20 text-emerald-400' : 'bg-red-500/10 border-red-500/20 text-red-400'}`}>
+                                                                    {item.outcome === 'success' ? 'Success' : 'Failed'}
+                                                                </div>
+                                                            )}
+                                                        </td>
+                                                        <td className="px-8 py-6 text-right">
+                                                            <div className="flex flex-col items-end">
+                                                                <div className="flex items-center gap-2 text-zinc-300 font-mono text-sm font-bold">
+                                                                    <Clock className="w-3.5 h-3.5 text-zinc-600" />
+                                                                    {formatTime(activeTab === 'global' ? item.totalTime : item.timeSpentSeconds)}
                                                                 </div>
                                                             </div>
-                                                        ) : (
-                                                            <div className={`inline-flex items-center gap-2 px-3 py-1 rounded-full text-[10px] font-black uppercase tracking-widest border ${item.outcome === 'success' ? 'bg-emerald-500/10 border-emerald-500/20 text-emerald-400' : 'bg-red-500/10 border-red-500/20 text-red-400'}`}>
-                                                                {item.outcome === 'success' ? 'Success' : 'Failed'}
-                                                            </div>
-                                                        )}
-                                                    </td>
-                                                    <td className="px-8 py-6 text-right">
-                                                        <div className="flex flex-col items-end">
-                                                            <div className="flex items-center gap-2 text-zinc-300 font-mono text-sm font-bold">
-                                                                <Clock className="w-3.5 h-3.5 text-zinc-600" />
-                                                                {formatTime(activeTab === 'global' ? item.totalTime : item.timeSpentSeconds)}
-                                                            </div>
-                                                        </div>
-                                                    </td>
-                                                </motion.tr>
+                                                        </td>
+                                                    </motion.tr>
+                                                    {activeTab === 'global' && expandedRows.has(item.userId) && (
+                                                        <motion.tr
+                                                            initial={{ opacity: 0, height: 0 }}
+                                                            animate={{ opacity: 1, height: 'auto' }}
+                                                            exit={{ opacity: 0, height: 0 }}
+                                                            className="bg-black/40 border-b border-zinc-800/50 overflow-hidden"
+                                                        >
+                                                            <td colSpan="6" className="p-0">
+                                                                <div className="px-16 py-6 border-l-2 border-purple-500 ml-8 my-2">
+                                                                    <h4 className="text-[10px] font-black uppercase tracking-widest text-zinc-500 mb-4">Mission Logs History ({item.attempts.length})</h4>
+                                                                    <div className="space-y-2">
+                                                                        {item.attempts.map((attempt, i) => (
+                                                                            <div key={i} className="flex items-center justify-between bg-zinc-900/50 border border-zinc-800/50 p-3 rounded-lg hover:border-zinc-700 transition-colors">
+                                                                                <div className="flex flex-col">
+                                                                                    <span className="text-sm font-bold text-zinc-300">{attempt.caseTitle || attempt.caseId}</span>
+                                                                                    <span className="text-[10px] font-mono text-zinc-500">{new Date(attempt.playedAt).toLocaleString()}</span>
+                                                                                </div>
+                                                                                <div className="flex items-center gap-6">
+                                                                                    <div className="text-right">
+                                                                                        <div className="text-[10px] text-zinc-500 font-black uppercase tracking-widest">Score</div>
+                                                                                        <div className="text-sm font-bold text-white">{attempt.score?.toLocaleString() || 0} pts</div>
+                                                                                    </div>
+                                                                                    <div className={`w-24 text-center px-2 py-1 rounded text-[10px] font-black uppercase border ${attempt.outcome === 'success' ? 'bg-emerald-500/10 border-emerald-500/20 text-emerald-400' : 'bg-red-500/10 border-red-500/20 text-red-400'}`}>
+                                                                                        {attempt.outcome === 'success' ? 'Completed' : 'Failed'}
+                                                                                    </div>
+                                                                                </div>
+                                                                            </div>
+                                                                        ))}
+                                                                    </div>
+                                                                </div>
+                                                            </td>
+                                                        </motion.tr>
+                                                    )}
+                                                </React.Fragment>
                                             ))}
                                         </AnimatePresence>
                                     </tbody>
