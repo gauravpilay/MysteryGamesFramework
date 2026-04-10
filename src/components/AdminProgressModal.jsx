@@ -40,6 +40,9 @@ const AdminProgressModal = ({ onClose }) => {
     const [casesList, setCasesList] = useState([]);
     const [selectedCaseIds, setSelectedCaseIds] = useState(new Set());
     const [caseSearchTerm, setCaseSearchTerm] = useState('');
+    const [rawAllResults, setRawAllResults] = useState([]);
+    const [exportEmails, setExportEmails] = useState([]);
+    const [showExportPopup, setShowExportPopup] = useState(false);
 
 
     // Fetch Users
@@ -216,6 +219,9 @@ const AdminProgressModal = ({ onClose }) => {
             // Sort Client Side
             allResults.sort((a, b) => new Date(b.playedAt) - new Date(a.playedAt));
 
+            setRawAllResults(allResults);
+            setExportEmails(userEmails);
+
             // Build Objective Map
             const map = {};
             let localObjQuestionCount = {};
@@ -356,11 +362,92 @@ const AdminProgressModal = ({ onClose }) => {
         }
     };
 
-    const handleExportAdminPDF = () => {
+    const handleExportAdminPDF = (filterType = 'all') => {
         try {
-            if (!reportData) return;
+            if (!rawAllResults || rawAllResults.length === 0) return;
             if (!user || !user.email) {
                 alert("Session invalid.");
+                return;
+            }
+
+            // 1. Filter ALL results based on attempt (first, latest, all)
+            let finalResults = [...rawAllResults];
+            
+            if (filterType === 'first' || filterType === 'latest') {
+                const grouped = {};
+                finalResults.forEach(r => {
+                    const key = `${r.userId}_${r.caseId}`;
+                    if (!grouped[key]) grouped[key] = [];
+                    grouped[key].push(r);
+                });
+
+                finalResults = [];
+                Object.values(grouped).forEach(runs => {
+                    runs.sort((a, b) => new Date(a.playedAt) - new Date(b.playedAt));
+                    if (filterType === 'first') {
+                        finalResults.push(runs[0]);
+                    } else {
+                        finalResults.push(runs[runs.length - 1]);
+                    }
+                });
+            }
+
+            finalResults.sort((a, b) => new Date(b.playedAt) - new Date(a.playedAt));
+
+            // 2. Compute processData for the PDF
+            const pdfReportData = {};
+            exportEmails.forEach(email => {
+                const userGames = finalResults.filter(r => r.userId === email);
+                if (userGames.length === 0) return;
+
+                const userObj = users.find(u => u.email === email);
+                const userName = userObj ? (userObj.displayName || userObj.email) : email;
+
+                const totalPlayed = userGames.length;
+                const totalWins = userGames.filter(g => g.outcome === 'success').length;
+                const totalTime = userGames.reduce((acc, curr) => acc + (curr.timeSpentSeconds || 0), 0);
+
+                const byMission = {};
+                userGames.forEach(game => {
+                    if (!byMission[game.caseId]) {
+                        byMission[game.caseId] = { title: game.caseTitle, games: [] };
+                    }
+                    byMission[game.caseId].games.push(game);
+                });
+
+                const objectiveStats = {};
+                userGames.forEach(game => {
+                    const scores = game.objectiveScores || {};
+                    Object.entries(scores).forEach(([key, score]) => {
+                        let name = objMap[key] || key;
+                        if (!objMap[key]) {
+                            if (key.includes(':')) {
+                                const [prefix, suffix] = key.split(':');
+                                if (objMap[prefix]) name = `${objMap[prefix]}: Objective ${parseInt(suffix) + 1}`;
+                                else name = prefix.split('_').map(s => s.charAt(0).toUpperCase() + s.slice(1)).join(' ');
+                            } else if (key.length > 20 && !key.includes(' ')) name = "Unknown Objective";
+                        }
+                        if (!objectiveStats[name]) objectiveStats[name] = { total: 0, count: 0, runs: [] };
+                        objectiveStats[name].total += score;
+                        objectiveStats[name].count += 1;
+                        objectiveStats[name].runs.push({ date: game.playedAt, score });
+                    });
+                });
+
+                const baseUserRecord = {
+                    name: userName,
+                    displayName: userObj?.displayName || userName,
+                    email,
+                    stats: { totalPlayed, totalWins, totalTime, winRate: (totalWins / totalPlayed) * 100 },
+                    byMission,
+                    objectiveStats
+                };
+                baseUserRecord.assessment = generateAssessment(baseUserRecord, objMap);
+                pdfReportData[email] = baseUserRecord;
+            });
+
+            if (Object.keys(pdfReportData).length === 0) {
+                alert("No data available for the selected export settings.");
                 return;
             }
 
@@ -387,7 +474,7 @@ const AdminProgressModal = ({ onClose }) => {
             doc.text("CLASSIFIED // INTELLIGENCE DIVISION ASSESSMENT", 14, 125);
 
             // Add a page for each user
-            Object.values(reportData).forEach((userData, index) => {
+            Object.values(pdfReportData).forEach((userData, index) => {
                 doc.addPage();
 
                 // Header
@@ -729,7 +816,7 @@ const AdminProgressModal = ({ onClose }) => {
                     </div>
                     <div className="flex items-center gap-2">
                         {step === 2 && reportData && (
-                            <Button variant="outline" className="text-zinc-400 hover:text-purple-400 border-zinc-800" onClick={handleExportAdminPDF}>
+                            <Button variant="outline" className="text-zinc-400 hover:text-purple-400 border-zinc-800" onClick={() => setShowExportPopup(true)}>
                                 <Download className="w-5 h-5 mr-2" />
                                 Export PDF Report
                             </Button>
@@ -1121,6 +1208,31 @@ const AdminProgressModal = ({ onClose }) => {
                     </div>
                 )}
             </motion.div>
+
+            {showExportPopup && (
+                <div className="fixed inset-0 z-[200] flex items-center justify-center p-4 bg-black/80 backdrop-blur-sm">
+                    <div className="bg-zinc-900 border border-zinc-700 rounded-xl p-6 max-w-sm w-full text-center">
+                        <Shield className="w-12 h-12 text-purple-500 mx-auto mb-4" />
+                        <h3 className="text-xl font-bold text-white mb-2">Export Parameters</h3>
+                        <p className="text-zinc-400 text-sm mb-6">Select which mission attempts to include in the intelligence report.</p>
+                        
+                        <div className="space-y-3">
+                            <Button variant="outline" className="w-full justify-center border-zinc-700 text-zinc-300 hover:text-white" onClick={() => { setShowExportPopup(false); handleExportAdminPDF('first'); }}>
+                                First Attempts Only
+                            </Button>
+                            <Button variant="outline" className="w-full justify-center border-zinc-700 text-zinc-300 hover:text-white" onClick={() => { setShowExportPopup(false); handleExportAdminPDF('latest'); }}>
+                                Latest Attempts Only
+                            </Button>
+                            <Button className="w-full justify-center bg-purple-600 hover:bg-purple-500 text-white" onClick={() => { setShowExportPopup(false); handleExportAdminPDF('all'); }}>
+                                All Historical Attempts
+                            </Button>
+                        </div>
+                        <Button variant="ghost" className="w-full mt-4 text-zinc-500 hover:text-zinc-300" onClick={() => setShowExportPopup(false)}>
+                            Cancel
+                        </Button>
+                    </div>
+                </div>
+            )}
         </div>
     );
 };
