@@ -11,6 +11,15 @@ import { Button } from './ui/shared';
 import { generateAssessment, getAgencyBenchmarks } from '../utils/AssessmentEngine';
 import RadarChart from './reports/RadarChart';
 
+const formatDuration = (totalSeconds) => {
+    if (!totalSeconds) return '0m 0s';
+    const h = Math.floor(totalSeconds / 3600);
+    const m = Math.floor((totalSeconds % 3600) / 60);
+    const s = Math.floor(totalSeconds % 60);
+
+    if (h > 0) return `${h}h ${m}m ${s}s`;
+    return `${m}m ${s}s`;
+};
 
 const AdminProgressModal = ({ onClose }) => {
     const { user } = useAuth();
@@ -398,7 +407,7 @@ const AdminProgressModal = ({ onClose }) => {
                 doc.setFontSize(10);
                 doc.text(`Archetype: ${userData.assessment?.archetype || 'N/A'}`, 20, 44);
                 doc.text(`Success Rate: ${Math.round(userData.stats.winRate)}%`, 70, 44);
-                doc.text(`Efficiency: ${Math.round(userData.assessment?.efficiencyScore)}/100`, 120, 44);
+                doc.text(`Avg Time: ${formatDuration(userData.assessment?.metrics?.avgTimePerMission || 0)}`, 120, 44);
 
                 // Summary Block
                 const summaryText = `" ${userData.assessment?.summary} "`;
@@ -917,8 +926,8 @@ const AdminProgressModal = ({ onClose }) => {
                                                         </p>
                                                         <div className="flex gap-4 mt-3">
                                                             <div className="flex flex-col">
-                                                                <span className="text-[10px] text-zinc-500 uppercase font-black tracking-widest">Efficiency</span>
-                                                                <span className="text-lg font-mono font-bold text-white">{Math.round(userData.assessment?.efficiencyScore || 0)}%</span>
+                                                                <span className="text-[10px] text-zinc-500 uppercase font-black tracking-widest">Avg Time</span>
+                                                                <span className="text-lg font-mono font-bold text-white">{formatDuration(userData.assessment?.metrics?.avgTimePerMission || 0)}</span>
                                                             </div>
                                                             <div className="w-px h-8 bg-zinc-800"></div>
                                                             <div className="flex flex-col">
@@ -1002,10 +1011,10 @@ const AdminProgressModal = ({ onClose }) => {
                                                                     unit="%"
                                                                 />
                                                                 <ComparisonBar
-                                                                    label="Mission Efficiency"
-                                                                    userVal={userData.assessment?.efficiencyScore}
-                                                                    avgVal={80}
-                                                                    unit="/100"
+                                                                    label="Avg Time/Mission"
+                                                                    userVal={userData.assessment?.metrics?.avgTimePerMission ? userData.assessment.metrics.avgTimePerMission / 60 : 0}
+                                                                    avgVal={benchmarks.avgTimeMinutes}
+                                                                    unit="min"
                                                                 />
                                                                 <ComparisonBar
                                                                     label="Avg Score"
