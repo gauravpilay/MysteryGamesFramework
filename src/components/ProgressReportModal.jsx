@@ -769,12 +769,12 @@ const ProgressReportModal = ({ onClose }) => {
                 const objectiveRows = objectiveData.map(([name, data]) => [
                     name,
                     `${Math.min(100, Math.round(data.total / data.count))}%`,
-                    data.count
+                    objQuestionCount[name] ?? data.count
                 ]);
 
                 autoTable(doc, {
                     startY: tableStartY,
-                    head: [['Objective', 'Avg Score', 'Data Points']],
+                    head: [['Objective', 'Avg Score', 'Mapped Questions']],
                     body: objectiveRows,
                     headStyles: { fillColor: [63, 81, 181] },
                     alternateRowStyles: { fillColor: [245, 247, 251] }

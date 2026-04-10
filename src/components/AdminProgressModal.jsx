@@ -23,6 +23,7 @@ const AdminProgressModal = ({ onClose }) => {
     const [reportData, setReportData] = useState(null);
     const [benchmarks, setBenchmarks] = useState(null);
     const [objMap, setObjMap] = useState({});
+    const [objQuestionCount, setObjQuestionCount] = useState({});
     const [confirmWipe, setConfirmWipe] = useState(false);
     const [isWiping, setIsWiping] = useState(false);
     const [statusModal, setStatusModal] = useState(null); // { type, title, message }
@@ -208,6 +209,7 @@ const AdminProgressModal = ({ onClose }) => {
 
             // Build Objective Map
             const map = {};
+            let localObjQuestionCount = {};
             const caseIds = [...new Set(allResults.map(d => d.caseId))];
 
             if (caseIds.length > 0) {
@@ -240,6 +242,25 @@ const AdminProgressModal = ({ onClose }) => {
                             }
                         });
                     }
+
+                    // Count question nodes tied to each learning objective
+                    const nodes = c.nodes || [];
+                    nodes.forEach(node => {
+                        if (!node.data) return;
+                        const objIds = node.data.learningObjectiveIds ||
+                            (node.data.learningObjectiveId ? [node.data.learningObjectiveId] : []);
+                        objIds.forEach(id => {
+                            let name = map[id] || id;
+                            if (!map[id] && id.includes(':')) {
+                                const [prefix] = id.split(':');
+                                if (map[prefix]) {
+                                    const idx = parseInt(id.split(':')[1]);
+                                    name = map[`${prefix}:${idx}`] || `${map[prefix]}: Objective ${idx + 1}`;
+                                }
+                            }
+                            localObjQuestionCount[name] = (localObjQuestionCount[name] || 0) + 1;
+                        });
+                    });
                 });
             }
 
@@ -316,6 +337,7 @@ const AdminProgressModal = ({ onClose }) => {
 
             setReportData(processed);
             setObjMap(map);
+            setObjQuestionCount(localObjQuestionCount);
             setStep(2);
         } catch (e) {
             console.error(e);
@@ -486,12 +508,12 @@ const AdminProgressModal = ({ onClose }) => {
                     const objectiveRows = objectiveData.map(([name, stat]) => [
                         name,
                         `${Math.min(100, Math.round(stat.total / stat.count))}%`,
-                        stat.count
+                        objQuestionCount[name] ?? stat.count
                     ]);
 
                     autoTable(doc, {
                         startY: tableStartY,
-                        head: [['Skill / Objective', 'Avg Performance', 'Data Points']],
+                        head: [['Skill / Objective', 'Avg Performance', 'Mapped Questions']],
                         body: objectiveRows,
                         theme: 'striped',
                         headStyles: { fillColor: [147, 51, 234] }
