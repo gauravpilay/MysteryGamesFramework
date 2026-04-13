@@ -267,6 +267,39 @@ const LandingPage = () => {
                 </div>
             </section>
 
+            {/* Testimony Section */}
+            <section className="py-24 bg-[#05050a] relative overflow-hidden">
+                <div className="max-w-4xl mx-auto px-6 relative z-10">
+                    <div className="text-center mb-12">
+                        <h2 className="text-3xl md:text-5xl font-bold mb-4">Client Success</h2>
+                        <p className="text-zinc-400 italic">See how top agencies are using our framework.</p>
+                    </div>
+                    <div className="glass-card p-10 md:p-14 rounded-[32px] border-indigo-500/20 relative group">
+                        <div className="absolute top-8 left-8 text-indigo-500/10 group-hover:scale-110 transition-transform duration-500">
+                            <MessageSquare className="w-16 h-16" />
+                        </div>
+                        <div className="relative z-10">
+                            <div className="text-lg md:text-xl text-zinc-300 leading-relaxed mb-8 italic space-y-4">
+                                <p>Dear Kodesaga Team,</p>
+                                <p>A big thank you for creating such a smart and engaging gaming concept for our internship hiring at Finistry. It was innovative, fun, and बेहद effective in helping us identify the right talent.</p>
+                                <p>We're thrilled to share that Finistry successfully hired 13 interns through this process. The game truly helped us assess candidates' proficiency, efficiency, and how well they navigated and completed the challenge.</p>
+                                <p>We really appreciate your creativity and support, and we're excited to explore more such impactful collaborations ahead.</p>
+                            </div>
+                            <div className="flex items-center gap-6 border-t border-white/10 pt-8 mt-8">
+                                {/* Placeholder for client logo */}
+                                <div className="w-16 h-16 bg-white/5 rounded-2xl flex items-center justify-center border border-white/10 shrink-0 overflow-hidden">
+                                    <span className="text-zinc-500 text-[10px] font-mono uppercase tracking-widest text-center px-1 leading-tight">Client<br/>Logo</span>
+                                </div>
+                                <div>
+                                    <div className="font-bold text-white text-xl">Team Finistry</div>
+                                    <div className="text-zinc-500 text-sm mt-1">Finistry</div>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </section>
+
             {/* CTA Section */}
             <section className="py-32 relative overflow-hidden">
                 <div className="absolute inset-0 z-0">
