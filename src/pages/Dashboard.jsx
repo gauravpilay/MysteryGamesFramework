@@ -11,6 +11,7 @@ import { motion, AnimatePresence } from 'framer-motion';
 import ProgressReportModal from '../components/ProgressReportModal';
 import AdminProgressModal from '../components/AdminProgressModal';
 import SystemSettingsModal from '../components/SystemSettingsModal';
+import StoryTestingModal from '../components/StoryTestingModal';
 // import MarketplaceModal from '../components/marketplace/MarketplaceModal';
 import { Settings, ShieldAlert } from 'lucide-react';
 import { useConfig } from '../lib/config';
@@ -41,6 +42,7 @@ const Dashboard = () => {
     const [requestFeedback, setRequestFeedback] = useState(null); // 'accepted' | 'declined' | null
     const [incomingRequest, setIncomingRequest] = useState(null); // { project, request }
     const [imageUploadProject, setImageUploadProject] = useState(null);
+    const [testingProject, setTestingProject] = useState(null);
     const [uploadingImage, setUploadingImage] = useState(false);
     const { licenseData, getFeatureValue, loading: licenseLoading } = useLicense();
     const [isLicenseModalOpen, setIsLicenseModalOpen] = useState(false);
@@ -405,7 +407,7 @@ const Dashboard = () => {
             delete exportData.editingBy;
             delete exportData.accessRequest;
 
-            // Show a "Processing" state if possible, but for now just call the utility
+            // Optional JSON direct download? Wait, exportCaseToZip does zip. We leave it as is.
             const zipBlob = await exportCaseToZip(exportData);
             const fileName = `${project.title.replace(/[^a-zA-Z0-9]/g, '_')}_full_export.zip`;
 
@@ -780,6 +782,7 @@ const Dashboard = () => {
                                 onToggleStatus={() => handleToggleStatus(project)}
                                 onUploadImage={() => setImageUploadProject(project)}
                                 onDownload={() => handleDownloadProject(project)}
+                                onTestAnalyzer={() => setTestingProject(project)}
                             />
                         )) : (
                             <p className="col-span-full text-zinc-500 italic">No active missions available.</p>
@@ -1002,6 +1005,14 @@ const Dashboard = () => {
                     />
                 )} */}
 
+                {testingProject && (
+                    <StoryTestingModal 
+                        isOpen={!!testingProject} 
+                        onClose={() => setTestingProject(null)} 
+                        projectData={testingProject} 
+                    />
+                )}
+
                 {/* Incoming Access Request Modal */}
                 {incomingRequest && (
                     <div key="modal-incoming-request" className="fixed inset-0 z-[300] flex items-end justify-center p-6 md:items-center pointer-events-none">
@@ -1188,7 +1199,7 @@ const LimitExhaustedModal = ({ isOpen, onClose, limit }) => (
     </div>
 );
 
-const CaseCard = ({ project, isAdmin, onPlay, onEdit, onDelete, onDuplicate, onToggleStatus, onUploadImage, onDownload }) => {
+const CaseCard = ({ project, isAdmin, onPlay, onEdit, onDelete, onDuplicate, onToggleStatus, onUploadImage, onDownload, onTestAnalyzer }) => {
     // Deterministic gradient based on project ID
     const getGradient = (id) => {
         const variants = [
@@ -1300,10 +1311,19 @@ const CaseCard = ({ project, isAdmin, onPlay, onEdit, onDelete, onDuplicate, onT
                                 variant="secondary"
                                 size="icon"
                                 onClick={onDownload}
-                                title="Download JSON Export"
+                                title="Download Extracted Archive"
                                 className="hover:text-amber-400"
                             >
                                 <Download className="w-4 h-4" />
+                            </Button>
+                            <Button
+                                variant="secondary"
+                                size="icon"
+                                onClick={onTestAnalyzer}
+                                title="Run Analytics Test"
+                                className="hover:text-emerald-400"
+                            >
+                                <Activity className="w-4 h-4" />
                             </Button>
                             <div className="relative group/tooltip">
                                 <Button
