@@ -173,6 +173,11 @@ const simulateResponse = (prompt, message) => {
         });
     }
 
+    // Support for Story Analyzer Interactive Chat
+    if (prompt.includes("You are the Game Analyst who just reviewed")) {
+        return "That's a great question! To improve that segment, I'd suggest connecting the redundant hints into a single logic node that requires the player to combine two pieces of evidence. This dramatically increases player satisfaction without needing a bunch of extra narrative text.";
+    }
+
     // Support for Story Analyzer Simulation
     if (prompt.includes("Game Analyst and Story Evaluator")) {
         return JSON.stringify({
@@ -189,6 +194,7 @@ const simulateResponse = (prompt, message) => {
             pacingAnalysis: "The pacing generally builds up well but hits a plateau in the middle section.",
             playerAgency: "The player has significant freedom in choosing which suspect to interrogate first, offering a highly non-linear experience.",
             accessibilityScore: "Flesch-Kincaid Grade 6. Vocabulary is very accessible to a younger audience. No offensive language detected.",
+            accessibilityExplanation: "Readability ensures the sentence structure fits your audience (e.g. Grade 6 level). Accessibility checks for cultural sensitivity, overwhelming walls of text, and idioms non-native speakers might struggle with.",
             difficultyCurve: [
                 { node: "Initial Scene", difficulty: 2, reward: 6 },
                 { node: "First Clue", difficulty: 4, reward: 5 },

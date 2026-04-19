@@ -1,6 +1,6 @@
 import React, { useState } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
-import { X, Activity, Download, FileText, Loader2, Target, Globe, FileJson, CheckCircle, Info, Star } from 'lucide-react';
+import { X, Activity, Download, FileText, Loader2, Target, Globe, FileJson, CheckCircle, Info, Star, MessageSquare, Send } from 'lucide-react';
 import { Button, Input, Label } from './ui/shared';
 import { LineChart, Line, XAxis, YAxis, CartesianGrid, Tooltip as RechartsTooltip, Legend, ResponsiveContainer } from 'recharts';
 import { callAI } from '../lib/ai';
@@ -17,6 +17,11 @@ const StoryTestingModal = ({ isOpen, onClose, projectData }) => {
     const [isAnalyzing, setIsAnalyzing] = useState(false);
     const [report, setReport] = useState(null);
     const [error, setError] = useState(null);
+
+    // Chat State
+    const [chatHistory, setChatHistory] = useState([]);
+    const [chatInput, setChatInput] = useState('');
+    const [isChatting, setIsChatting] = useState(false);
 
     const handleDownloadJSON = () => {
         const exportData = { ...projectData };
@@ -63,6 +68,7 @@ Return ONLY a valid JSON object matching this structure:
   "pacingAnalysis": "string",
   "playerAgency": "string",
   "accessibilityScore": "string",
+  "accessibilityExplanation": "string",
   "difficultyCurve": [
     { "node": "string", "difficulty": number, "reward": number }
   ],
@@ -109,6 +115,7 @@ ${JSON.stringify({ title: exportData.title, description: exportData.description,
                 pacingAnalysis: data.pacingAnalysis || "Pacing is standard.",
                 playerAgency: data.playerAgency || "Standard player agency.",
                 accessibilityScore: data.accessibilityScore || "Flesch-Kincaid Grade 6. Vocabulary is very accessible to a younger audience.",
+                accessibilityExplanation: data.accessibilityExplanation || "Readability measures structural complexity (like Flesch-Kincaid index) to ensure text isn't a frustrating wall-of-text for your audience. Accessibility checks for cultural sensitivity, overwhelming idioms, and ensures a globally welcoming game without alienating players.",
                 difficultyCurve: data.difficultyCurve || [
                     { node: "Initial Scene", difficulty: 2, reward: 6 },
                     { node: "First Clue", difficulty: 4, reward: 5 },
@@ -135,6 +142,33 @@ ${JSON.stringify({ title: exportData.title, description: exportData.description,
             setError(err.message || 'Analysis failed. Make sure the API Key is set in Settings.');
         } finally {
             setIsAnalyzing(false);
+        }
+    };
+
+    const handleSendMessage = async () => {
+        if (!chatInput.trim()) return;
+        
+        const userMsg = chatInput.trim();
+        setChatInput('');
+        setChatHistory(prev => [...prev, { role: 'user', content: userMsg }]);
+        setIsChatting(true);
+
+        const apiKey = settings.aiApiKey || 'SIMULATION_MODE';
+        
+        const systemPrompt = `You are the Game Analyst who just reviewed the user's Mystery Game.
+Answer the user's follow-up questions clearly, practically, and concisely to help them improve the game.
+Keep your response to 1 short paragraph.`;
+
+        const messageContext = chatHistory.map(m => `${m.role.toUpperCase()}: ${m.content}`).join("\n") + `\nUSER: ${userMsg}\nANALYST:`;
+
+        try {
+            const responseText = await callAI('gemini', systemPrompt, messageContext, apiKey, null, 'text');
+            setChatHistory(prev => [...prev, { role: 'analyst', content: responseText.trim() }]);
+        } catch (err) {
+            console.error(err);
+            setChatHistory(prev => [...prev, { role: 'analyst', content: "Error: Could not reach the server." }]);
+        } finally {
+            setIsChatting(false);
         }
     };
 
@@ -255,7 +289,19 @@ ${JSON.stringify({ title: exportData.title, description: exportData.description,
             doc.setFont("helvetica", "normal");
             const splitAccess = doc.splitTextToSize(report.accessibilityScore, 180);
             doc.text(splitAccess, 14, yOffset);
-            yOffset += (splitAccess.length * 6) + 10;
+            yOffset += (splitAccess.length * 6) + 5;
+            
+            if (report.accessibilityExplanation) {
+                doc.setTextColor(100, 100, 100);
+                doc.setFontSize(10);
+                doc.setFont("helvetica", "italic");
+                const splitAccessExp = doc.splitTextToSize(`Understanding Accessibility: ${report.accessibilityExplanation}`, 180);
+                doc.text(splitAccessExp, 14, yOffset);
+                yOffset += (splitAccessExp.length * 6) + 10;
+                doc.setTextColor(0, 0, 0);
+            } else {
+                yOffset += 5;
+            }
         }
 
         if (yOffset > 250) { doc.addPage(); yOffset = 20; }
@@ -548,7 +594,13 @@ ${JSON.stringify({ title: exportData.title, description: exportData.description,
                                         {report.accessibilityScore && (
                                             <div className="p-5 bg-cyan-500/5 border border-cyan-500/20 rounded-2xl">
                                                 <h3 className="text-xs font-black text-cyan-400 uppercase tracking-widest mb-3">Readability & Accessibility</h3>
-                                                <p className="text-sm text-zinc-300 leading-relaxed">{report.accessibilityScore}</p>
+                                                <p className="text-sm text-zinc-300 leading-relaxed mb-4">{report.accessibilityScore}</p>
+                                                {report.accessibilityExplanation && (
+                                                    <div className="p-4 bg-cyan-500/10 border border-cyan-500/30 rounded-xl">
+                                                        <h4 className="text-[11px] font-bold text-cyan-300 uppercase tracking-wider mb-2 flex items-center gap-1.5"><Info className="w-3.5 h-3.5"/> What this is & Why change it</h4>
+                                                        <p className="text-xs text-cyan-200/80 leading-relaxed">{report.accessibilityExplanation}</p>
+                                                    </div>
+                                                )}
                                             </div>
                                         )}
                                     </div>
@@ -619,6 +671,48 @@ ${JSON.stringify({ title: exportData.title, description: exportData.description,
                                         </div>
                                     </div>
                                 )}
+
+                                {/* Chat Interface */}
+                                <div className="mt-8 p-6 bg-black/40 border border-white/5 rounded-3xl">
+                                    <h3 className="text-xs font-black text-indigo-400 uppercase tracking-widest mb-4 flex items-center gap-2">
+                                        <MessageSquare className="w-4 h-4" /> Discuss with Reviewer
+                                    </h3>
+                                    
+                                    <div className="space-y-4 mb-4 max-h-60 overflow-y-auto pr-2 custom-scrollbar">
+                                        {chatHistory.length === 0 && (
+                                            <div className="text-xs text-zinc-500 italic text-center py-4">
+                                                Ask the reviewer how to improve specific nodes, make characters more engaging, or balance the difficulty!
+                                            </div>
+                                        )}
+                                        {chatHistory.map((msg, idx) => (
+                                            <div key={idx} className={`flex ${msg.role === 'user' ? 'justify-end' : 'justify-start'}`}>
+                                                <div className={`max-w-[85%] rounded-2xl p-3 text-sm ${msg.role === 'user' ? 'bg-indigo-600 text-white rounded-br-none' : 'bg-white/10 text-zinc-300 rounded-bl-none'}`}>
+                                                    {msg.content}
+                                                </div>
+                                            </div>
+                                        ))}
+                                        {isChatting && (
+                                            <div className="flex justify-start">
+                                                <div className="max-w-[85%] rounded-2xl p-3 text-sm bg-white/10 text-zinc-400 rounded-bl-none flex flex-col gap-1">
+                                                    <Loader2 className="w-4 h-4 animate-spin" />
+                                                </div>
+                                            </div>
+                                        )}
+                                    </div>
+
+                                    <div className="flex gap-2">
+                                        <Input 
+                                            placeholder="Ask a follow-up question..." 
+                                            value={chatInput} 
+                                            onChange={e => setChatInput(e.target.value)}
+                                            onKeyDown={e => e.key === 'Enter' && handleSendMessage()}
+                                            className="bg-black/50 border-white/10 focus:border-indigo-500"
+                                        />
+                                        <Button onClick={handleSendMessage} disabled={isChatting || !chatInput.trim()} className="bg-indigo-600 hover:bg-indigo-500 text-white rounded-xl shadow-lg border-none px-4 flex items-center justify-center">
+                                            <Send className="w-4 h-4" />
+                                        </Button>
+                                    </div>
+                                </div>
 
                                 <div className="flex gap-4 pt-6 border-t border-white/5">
                                     <Button onClick={() => setReport(null)} variant="ghost" className="flex-1 text-zinc-400">
