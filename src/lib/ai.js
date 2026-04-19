@@ -173,8 +173,46 @@ const simulateResponse = (prompt, message) => {
         });
     }
 
+    // Support for Story Analyzer Simulation
+    if (prompt.includes("Game Analyst and Story Evaluator")) {
+        return JSON.stringify({
+            engagementScore: 88,
+            grammaticalErrors: [
+                { nodeId: "Intro Node", issue: "The suspects has left", correction: "The suspects have left" }
+            ],
+            flowAnalysis: "The story transitions well from the introduction to the first clue, but there is a bottleneck in the middle where players might get stuck.",
+            flowExplanation: "Flow & Narrative Analysis evaluates the structural integrity and pacing of your story. A well-structured narrative maintains immersion and keeps the player motivated. You need to apply these changes because a confusing plot or abrupt transitions break the illusion of the game, causing players to lose interest and disengage.",
+            audienceFit: "Excellent fit for standard detective game fans, though it might be slightly too verbose for a younger audience.",
+            suggestions: ["Provide a hint node after the second failed attempt", "Shorten the dialogue of the Bartender suspect"],
+            strengths: ["Strong initial hook", "Subtle clues hidden in realistic environments"],
+            weaknesses: ["Pacing drags slightly in Act 2", "The final reveal relies heavily on an easily missed piece of evidence"],
+            pacingAnalysis: "The pacing generally builds up well but hits a plateau in the middle section.",
+            playerAgency: "The player has significant freedom in choosing which suspect to interrogate first, offering a highly non-linear experience.",
+            accessibilityScore: "Flesch-Kincaid Grade 6. Vocabulary is very accessible to a younger audience. No offensive language detected.",
+            difficultyCurve: [
+                { node: "Initial Scene", difficulty: 2, reward: 6 },
+                { node: "First Clue", difficulty: 4, reward: 5 },
+                { node: "Suspect Interview", difficulty: 6, reward: 5 },
+                { node: "Logic Puzzle", difficulty: 8, reward: 7 },
+                { node: "Finale", difficulty: 9, reward: 10 }
+            ],
+            personaPlaytests: [
+                {
+                    persona: "Impatient 12-Year-Old",
+                    experienceSummary: "Quickly skipped through the dialogue and missed critical clues, finding the game unfair when they couldn't solve it.",
+                    quote: "Too much reading, not enough action. I didn't know what I was supposed to look for."
+                },
+                {
+                    persona: "Hardcore Mystery Fan",
+                    experienceSummary: "Thoroughly enjoyed the depth of the lore and successfully pieced together the non-obvious clues.",
+                    quote: "I loved that the game didn't hold my hand. The payoff of connecting the redherrings was fantastic."
+                }
+            ]
+        });
+    }
+
     // Support for AI Case Generator Simulation
-    if (systemPrompt.includes("KodeSaGa AI")) {
+    if (prompt.includes("KodeSaGa AI")) {
         return JSON.stringify({
             nodes: [
                 {

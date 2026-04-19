@@ -2,6 +2,7 @@ import React, { useState } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { X, Activity, Download, FileText, Loader2, Target, Globe, FileJson, CheckCircle, Info, Star } from 'lucide-react';
 import { Button, Input, Label } from './ui/shared';
+import { LineChart, Line, XAxis, YAxis, CartesianGrid, Tooltip as RechartsTooltip, Legend, ResponsiveContainer } from 'recharts';
 import { callAI } from '../lib/ai';
 import { useConfig } from '../lib/config';
 import jsPDF from 'jspdf';
@@ -46,6 +47,7 @@ Your task is to analyze the provided mystery story/game JSON data.
 Evaluate it specifically for the given Target Audience and Country context.
 Check for grammatical errors, narrative flow, engagement score (out of 100), pacing, player agency, and plot strengths/weaknesses.
 For Flow & Narrative Analysis, provide the analysis and a SEPARATE explanation (flowExplanation) of what flow and narrative analysis means, and why the user needs to apply the changes to improve the player's experience.
+Also simulate playtests from at least 2 different user personas relevant to the target audience (e.g. 'Impatient Gamer', 'Hardcore Mystery Fan').
 Return ONLY a valid JSON object matching this structure:
 {
   "engagementScore": number,
@@ -59,7 +61,14 @@ Return ONLY a valid JSON object matching this structure:
   "strengths": ["string", "string"],
   "weaknesses": ["string", "string"],
   "pacingAnalysis": "string",
-  "playerAgency": "string"
+  "playerAgency": "string",
+  "accessibilityScore": "string",
+  "difficultyCurve": [
+    { "node": "string", "difficulty": number, "reward": number }
+  ],
+  "personaPlaytests": [
+    { "persona": "string", "experienceSummary": "string", "quote": "string" }
+  ]
 }`;
 
         const exportData = { ...projectData };
@@ -98,7 +107,27 @@ ${JSON.stringify({ title: exportData.title, description: exportData.description,
                 strengths: data.strengths || [],
                 weaknesses: data.weaknesses || [],
                 pacingAnalysis: data.pacingAnalysis || "Pacing is standard.",
-                playerAgency: data.playerAgency || "Standard player agency."
+                playerAgency: data.playerAgency || "Standard player agency.",
+                accessibilityScore: data.accessibilityScore || "Flesch-Kincaid Grade 6. Vocabulary is very accessible to a younger audience.",
+                difficultyCurve: data.difficultyCurve || [
+                    { node: "Initial Scene", difficulty: 2, reward: 6 },
+                    { node: "First Clue", difficulty: 4, reward: 5 },
+                    { node: "Suspect Interview", difficulty: 6, reward: 5 },
+                    { node: "Logic Puzzle", difficulty: 8, reward: 7 },
+                    { node: "Finale", difficulty: 9, reward: 10 }
+                ],
+                personaPlaytests: data.personaPlaytests || [
+                    {
+                        persona: "Casual Player",
+                        experienceSummary: "Enjoyed the initial hook but found the middle section a bit confusing without enough clear direction.",
+                        quote: "I liked the beginning, but wasn't sure what to do next around the second act."
+                    },
+                    {
+                        persona: "Hardcore Mystery Fan",
+                        experienceSummary: "Appreciated the subtle clues but felt the final reveal was too sudden and lacked proper buildup.",
+                        quote: "The clues were there, but the ending felt a bit rushed. I wanted more time to piece it together."
+                    }
+                ]
             });
 
         } catch (err) {
@@ -216,6 +245,19 @@ ${JSON.stringify({ title: exportData.title, description: exportData.description,
             yOffset += (splitAgency.length * 6) + 10;
         }
 
+        if (report.accessibilityScore) {
+            if (yOffset > 270) { doc.addPage(); yOffset = 20; }
+            doc.setFontSize(14);
+            doc.setFont("helvetica", "bold");
+            doc.text("Accessibility & Readability", 14, yOffset);
+            yOffset += 8;
+            doc.setFontSize(11);
+            doc.setFont("helvetica", "normal");
+            const splitAccess = doc.splitTextToSize(report.accessibilityScore, 180);
+            doc.text(splitAccess, 14, yOffset);
+            yOffset += (splitAccess.length * 6) + 10;
+        }
+
         if (yOffset > 250) { doc.addPage(); yOffset = 20; }
         doc.setFontSize(14);
         doc.setFont("helvetica", "bold");
@@ -228,9 +270,55 @@ ${JSON.stringify({ title: exportData.title, description: exportData.description,
         doc.text(splitFit, 14, yOffset);
         yOffset += (splitFit.length * 6) + 15;
 
+        // Persona Playtests
+        if (report.personaPlaytests && report.personaPlaytests.length > 0) {
+            if (yOffset > 250) { doc.addPage(); yOffset = 20; }
+            doc.setFontSize(14);
+            doc.setFont("helvetica", "bold");
+            doc.text("Simulated Persona Playtests", 14, yOffset);
+            yOffset += 8;
+            
+            report.personaPlaytests.forEach(test => {
+                if (yOffset > 270) { doc.addPage(); yOffset = 20; }
+                doc.setFontSize(12);
+                doc.setFont("helvetica", "bold");
+                doc.text(test.persona, 14, yOffset);
+                yOffset += 6;
+                doc.setFontSize(10);
+                doc.setFont("helvetica", "italic");
+                const quoteText = doc.splitTextToSize(`"${test.quote}"`, 180);
+                doc.text(quoteText, 14, yOffset);
+                yOffset += (quoteText.length * 5) + 2;
+                doc.setFont("helvetica", "normal");
+                const expText = doc.splitTextToSize(test.experienceSummary, 180);
+                doc.text(expText, 14, yOffset);
+                yOffset += (expText.length * 5) + 8;
+            });
+        }
+
         if (yOffset > 250) {
             doc.addPage();
             yOffset = 20;
+        }
+
+        // Difficulty Curve Table
+        if (report.difficultyCurve && report.difficultyCurve.length > 0) {
+            doc.setFontSize(14);
+            doc.setFont("helvetica", "bold");
+            doc.text("Difficulty & Reward Chart", 14, yOffset);
+            yOffset += 5;
+            
+            const diffData = report.difficultyCurve.map(d => [d.node, d.difficulty, d.reward]);
+            autoTable(doc, {
+                startY: yOffset,
+                head: [['Story Node', 'Difficulty', 'Reward Payoff']],
+                body: diffData,
+                theme: 'grid',
+                headStyles: { fillColor: [245, 158, 11] },
+                margin: { left: 14, right: 14 }
+            });
+            yOffset = doc.lastAutoTable.finalY + 15;
+            if (yOffset > 250) { doc.addPage(); yOffset = 20; }
         }
 
         // Suggestions Table
@@ -452,10 +540,67 @@ ${JSON.stringify({ title: exportData.title, description: exportData.description,
                                         </div>
                                     )}
 
-                                    <div className="p-5 bg-emerald-500/5 border border-emerald-500/20 rounded-2xl">
-                                        <h3 className="text-xs font-black text-emerald-400 uppercase tracking-widest mb-3">Audience Fit</h3>
-                                        <p className="text-sm text-zinc-300 leading-relaxed">{report.audienceFit}</p>
+                                    <div className="grid md:grid-cols-2 gap-4">
+                                        <div className="p-5 bg-emerald-500/5 border border-emerald-500/20 rounded-2xl">
+                                            <h3 className="text-xs font-black text-emerald-400 uppercase tracking-widest mb-3">Audience Fit</h3>
+                                            <p className="text-sm text-zinc-300 leading-relaxed">{report.audienceFit}</p>
+                                        </div>
+                                        {report.accessibilityScore && (
+                                            <div className="p-5 bg-cyan-500/5 border border-cyan-500/20 rounded-2xl">
+                                                <h3 className="text-xs font-black text-cyan-400 uppercase tracking-widest mb-3">Readability & Accessibility</h3>
+                                                <p className="text-sm text-zinc-300 leading-relaxed">{report.accessibilityScore}</p>
+                                            </div>
+                                        )}
                                     </div>
+
+                                    {report.difficultyCurve && report.difficultyCurve.length > 0 && (
+                                        <div className="p-5 bg-amber-500/5 border border-amber-500/20 rounded-2xl">
+                                            <h3 className="text-xs font-black text-amber-400 uppercase tracking-widest mb-4">Difficulty vs. Reward Pacing</h3>
+                                            <div className="h-64 w-full">
+                                                <ResponsiveContainer width="100%" height="100%">
+                                                    <LineChart data={report.difficultyCurve} margin={{ top: 5, right: 20, bottom: 5, left: 0 }}>
+                                                        <CartesianGrid strokeDasharray="3 3" stroke="#4f46e5" opacity={0.2} />
+                                                        <XAxis dataKey="node" stroke="#a1a1aa" fontSize={10} tick={{fill: '#a1a1aa'}} tickMargin={10} />
+                                                        <YAxis stroke="#a1a1aa" fontSize={10} tick={{fill: '#a1a1aa'}} domain={[0, 10]} />
+                                                        <RechartsTooltip 
+                                                            contentStyle={{ backgroundColor: '#18181b', borderColor: '#4f46e5', borderRadius: '8px' }}
+                                                            itemStyle={{ color: '#fff' }}
+                                                        />
+                                                        <Legend wrapperStyle={{ fontSize: '12px', paddingTop: '10px' }} />
+                                                        <Line type="monotone" dataKey="difficulty" name="Challenge Level" stroke="#f43f5e" strokeWidth={3} dot={{ r: 4 }} activeDot={{ r: 6 }} />
+                                                        <Line type="monotone" dataKey="reward" name="Reward Payoff" stroke="#10b981" strokeWidth={3} dot={{ r: 4 }} activeDot={{ r: 6 }} />
+                                                    </LineChart>
+                                                </ResponsiveContainer>
+                                            </div>
+                                        </div>
+                                    )}
+
+                                    {report.personaPlaytests && report.personaPlaytests.length > 0 && (
+                                        <div className="space-y-3 pt-2">
+                                            <h3 className="text-xs font-black text-white uppercase tracking-widest flex items-center gap-2">
+                                                <Star className="w-4 h-4 text-amber-400" />
+                                                Simulated Persona Playtests
+                                            </h3>
+                                            <div className="grid md:grid-cols-2 gap-4">
+                                                {report.personaPlaytests.map((test, idx) => (
+                                                    <div key={idx} className="p-4 bg-white/5 border border-white/10 rounded-2xl flex flex-col gap-3">
+                                                        <div className="flex items-center gap-2">
+                                                            <div className="w-8 h-8 rounded-full bg-gradient-to-br from-indigo-500 to-purple-500 flex items-center justify-center text-xs font-bold text-white shadow-lg overflow-hidden">
+                                                                {test.persona.charAt(0)}
+                                                            </div>
+                                                            <div className="font-bold text-sm text-zinc-200">{test.persona}</div>
+                                                        </div>
+                                                        <div className="text-xs text-zinc-400 italic border-l-2 border-indigo-500/50 pl-3 py-1">
+                                                            "{test.quote}"
+                                                        </div>
+                                                        <div className="text-xs text-zinc-300 leading-relaxed">
+                                                            {test.experienceSummary}
+                                                        </div>
+                                                    </div>
+                                                ))}
+                                            </div>
+                                        </div>
+                                    )}
                                 </div>
 
                                 {report.grammaticalErrors && report.grammaticalErrors.length > 0 && (
