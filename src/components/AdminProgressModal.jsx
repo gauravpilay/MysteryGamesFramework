@@ -416,6 +416,9 @@ const AdminProgressModal = ({ onClose }) => {
                 });
 
                 const objectiveStats = {};
+                const nodeAnalysis = {};
+                let totalHintsUsed = 0;
+
                 userGames.forEach(game => {
                     const scores = game.objectiveScores || {};
                     Object.entries(scores).forEach(([key, score]) => {
@@ -432,6 +435,23 @@ const AdminProgressModal = ({ onClose }) => {
                         objectiveStats[name].count += 1;
                         objectiveStats[name].runs.push({ date: game.playedAt, score });
                     });
+
+                    // Aggregate detailed attempts and penalties
+                    const dMetrics = game.detailedMetrics || {};
+                    const attemptsMap = dMetrics.nodeAttempts || {};
+                    const penaltiesMap = dMetrics.nodePenalties || {};
+                    const hintsList = dMetrics.revealedHints || [];
+
+                    totalHintsUsed += hintsList.length;
+
+                    Object.entries(attemptsMap).forEach(([nId, failedAttempts]) => {
+                         if(!nodeAnalysis[nId]) nodeAnalysis[nId] = { attempts:0, penalty:0 };
+                         nodeAnalysis[nId].attempts += failedAttempts;
+                    });
+                    Object.entries(penaltiesMap).forEach(([nId, penalty]) => {
+                         if(!nodeAnalysis[nId]) nodeAnalysis[nId] = { attempts:0, penalty:0 };
+                         nodeAnalysis[nId].penalty += penalty;
+                    });
                 });
 
                 const baseUserRecord = {
@@ -440,7 +460,9 @@ const AdminProgressModal = ({ onClose }) => {
                     email,
                     stats: { totalPlayed, totalWins, totalTime, winRate: (totalWins / totalPlayed) * 100 },
                     byMission,
-                    objectiveStats
+                    objectiveStats,
+                    nodeAnalysis,
+                    totalHintsUsed
                 };
                 baseUserRecord.assessment = generateAssessment(baseUserRecord, objMap);
                 pdfReportData[email] = baseUserRecord;
@@ -735,6 +757,45 @@ const AdminProgressModal = ({ onClose }) => {
                     body: missionRows.slice(0, 15), // Limit to top 15 for space
                     headStyles: { fillColor: [45, 45, 45] }
                 });
+
+                // Detailed Granular Metrics (Attempts & Marks Lost)
+                let detailY = doc.lastAutoTable.finalY + 15;
+                if (detailY > 250) {
+                    doc.addPage();
+                    detailY = 20;
+                }
+
+                doc.setFontSize(14);
+                doc.setTextColor(220, 38, 38); // Red-600
+                doc.text("Deficiency Analysis (Failures & Vulnerabilities)", 14, detailY);
+
+                doc.setFontSize(10);
+                doc.setTextColor(100);
+                doc.text(`Total Intelligence Hints Used: ${userData.totalHintsUsed}`, 14, detailY + 6);
+
+                const detailedRows = Object.entries(userData.nodeAnalysis)
+                    .filter(([_, stats]) => stats.attempts > 0 || stats.penalty > 0)
+                    .map(([nId, stats]) => [
+                        nId.split('_')[0].substring(0, 15) + '...', // trunc ID
+                        stats.attempts.toString(),
+                        `-${stats.penalty} PTS`
+                    ]);
+
+                if (detailedRows.length > 0) {
+                    autoTable(doc, {
+                        startY: detailY + 12,
+                        head: [['Node Checkpoint', 'Failed Attempts', 'Marks Lost (Penalties)']],
+                        body: detailedRows,
+                        theme: 'grid',
+                        headStyles: { fillColor: [220, 38, 38] },
+                        styles: { halign: 'center' },
+                        columnStyles: { 0: { halign: 'left' } }
+                    });
+                } else {
+                    doc.setFontSize(10);
+                    doc.setTextColor(16, 185, 129); // Emerald
+                    doc.text("No significant attempts failed or marks lost. Exemplary operation.", 14, detailY + 16);
+                }
             });
 
             // Add page numbers

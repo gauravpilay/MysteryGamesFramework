@@ -757,6 +757,8 @@ const GamePreview = ({ nodes, edges, onClose, gameMetadata, onGameEnd, onNodeCha
     const [aiRequestCount, setAiRequestCount] = useState(0);
     const [userAnswers, setUserAnswers] = useState(new Set()); // Set of selected option IDs for Question Nodes
     const [revealedHints, setRevealedHints] = useState(new Set()); // Set of hint IDs
+    const [nodeAttempts, setNodeAttempts] = useState({}); // { nodeId: count of failures }
+    const [nodePenalties, setNodePenalties] = useState({}); // { nodeId: total penalty points lost }
     const lastNodeId = useRef(null);
 
     // Confrontation state — persisted across suspect modal open/close cycles
@@ -1609,6 +1611,10 @@ const GamePreview = ({ nodes, edges, onClose, gameMetadata, onGameEnd, onNodeCha
 
             // Apply penalty if defined
             const penalty = Number(activeModalNode.data.penalty) || 0;
+            setNodeAttempts(prev => ({
+                ...prev,
+                [activeModalNode.id]: (prev[activeModalNode.id] || 0) + 1
+            }));
             if (penalty > 0) {
                 setScore(s => s - penalty);
                 triggerScoreDelta(-penalty);
@@ -1616,6 +1622,10 @@ const GamePreview = ({ nodes, edges, onClose, gameMetadata, onGameEnd, onNodeCha
                 addLog(`QUIZ PROTECTION: -${penalty} Points`);
 
                 rewardObjectivePoints(activeModalNode, -penalty);
+                setNodePenalties(prev => ({
+                    ...prev,
+                    [activeModalNode.id]: (prev[activeModalNode.id] || 0) + penalty
+                }));
             }
         }
     };
@@ -1630,6 +1640,12 @@ const GamePreview = ({ nodes, edges, onClose, gameMetadata, onGameEnd, onNodeCha
 
         // Track revealed hint
         setRevealedHints(prev => new Set([...prev, hint.id]));
+        if (activeModalNode) {
+            setNodePenalties(prev => ({
+                ...prev,
+                [activeModalNode.id]: (prev[activeModalNode.id] || 0) + penalty
+            }));
+        }
 
         // Log it
         addLog(`HINT USED: -${hint.penalty} Pts deducted.`);
@@ -1691,7 +1707,12 @@ const GamePreview = ({ nodes, edges, onClose, gameMetadata, onGameEnd, onNodeCha
             objectiveScores: getFinalObjectiveScores(),
             rawObjectiveScores: playerObjectiveScores,
             outcome: accusationResult || 'aborted',
-            timeSpentSeconds: timeSpent
+            timeSpentSeconds: timeSpent,
+            detailedMetrics: {
+                nodeAttempts,
+                nodePenalties,
+                revealedHints: [...revealedHints]
+            }
         };
 
         setPendingResultData(resultData);
@@ -1729,7 +1750,12 @@ const GamePreview = ({ nodes, edges, onClose, gameMetadata, onGameEnd, onNodeCha
             objectiveScores: getFinalObjectiveScores(),
             rawObjectiveScores: playerObjectiveScores,
             outcome: accusationResult || 'aborted',
-            timeSpentSeconds: timeSpent
+            timeSpentSeconds: timeSpent,
+            detailedMetrics: {
+                nodeAttempts,
+                nodePenalties,
+                revealedHints: [...revealedHints]
+            }
         };
         ttsStop();
         if (onGameEnd) {
@@ -1746,7 +1772,12 @@ const GamePreview = ({ nodes, edges, onClose, gameMetadata, onGameEnd, onNodeCha
             objectiveScores: getFinalObjectiveScores(),
             rawObjectiveScores: playerObjectiveScores,
             outcome: 'aborted',
-            timeSpentSeconds: timeSpent
+            timeSpentSeconds: timeSpent,
+            detailedMetrics: {
+                nodeAttempts,
+                nodePenalties,
+                revealedHints: [...revealedHints]
+            }
         });
         setIsQuitting(true);
         setShowFeedback(true);
@@ -1795,7 +1826,12 @@ const GamePreview = ({ nodes, edges, onClose, gameMetadata, onGameEnd, onNodeCha
                 rawObjectiveScores: playerObjectiveScores,
                 outcome: 'saved_quit',
                 timeSpentSeconds: timeElapsed,
-                savedAndQuit: true
+                savedAndQuit: true,
+                detailedMetrics: {
+                    nodeAttempts,
+                    nodePenalties,
+                    revealedHints: [...revealedHints]
+                }
             });
         } else {
             onClose();
