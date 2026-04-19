@@ -44,7 +44,8 @@ const StoryTestingModal = ({ isOpen, onClose, projectData }) => {
         const systemPrompt = `You are an expert Game Analyst and Story Evaluator. 
 Your task is to analyze the provided mystery story/game JSON data.
 Evaluate it specifically for the given Target Audience and Country context.
-Check for grammatical errors, narrative flow, engagement score (out of 100).
+Check for grammatical errors, narrative flow, engagement score (out of 100), pacing, player agency, and plot strengths/weaknesses.
+For Flow & Narrative Analysis, provide the analysis and a SEPARATE explanation (flowExplanation) of what flow and narrative analysis means, and why the user needs to apply the changes to improve the player's experience.
 Return ONLY a valid JSON object matching this structure:
 {
   "engagementScore": number,
@@ -52,8 +53,13 @@ Return ONLY a valid JSON object matching this structure:
     { "nodeId": "string", "issue": "string", "correction": "string" }
   ],
   "flowAnalysis": "string",
+  "flowExplanation": "string",
   "audienceFit": "string",
-  "suggestions": ["string", "string"]
+  "suggestions": ["string", "string"],
+  "strengths": ["string", "string"],
+  "weaknesses": ["string", "string"],
+  "pacingAnalysis": "string",
+  "playerAgency": "string"
 }`;
 
         const exportData = { ...projectData };
@@ -86,8 +92,13 @@ ${JSON.stringify({ title: exportData.title, description: exportData.description,
                 engagementScore: data.engagementScore || 85,
                 grammaticalErrors: data.grammaticalErrors || [],
                 flowAnalysis: data.flowAnalysis || "Flow is good.",
+                flowExplanation: data.flowExplanation || "Flow & Narrative Analysis evaluates the structural integrity and pacing of your story. A well-structured narrative maintains immersion and keeps the player motivated. You need to apply these changes because a confusing plot or abrupt transitions break the illusion of the game, causing players to lose interest and disengage.",
                 audienceFit: data.audienceFit || "Good fit.",
-                suggestions: data.suggestions || []
+                suggestions: data.suggestions || [],
+                strengths: data.strengths || [],
+                weaknesses: data.weaknesses || [],
+                pacingAnalysis: data.pacingAnalysis || "Pacing is standard.",
+                playerAgency: data.playerAgency || "Standard player agency."
             });
 
         } catch (err) {
@@ -137,8 +148,75 @@ ${JSON.stringify({ title: exportData.title, description: exportData.description,
         doc.setFont("helvetica", "normal");
         const splitFlow = doc.splitTextToSize(report.flowAnalysis, 180);
         doc.text(splitFlow, 14, yOffset);
-        yOffset += (splitFlow.length * 6) + 10;
+        yOffset += (splitFlow.length * 6) + 5;
 
+        doc.setTextColor(100, 100, 100);
+        doc.setFontSize(10);
+        doc.setFont("helvetica", "italic");
+        const splitFlowExp = doc.splitTextToSize(`Understanding Flow: ${report.flowExplanation}`, 180);
+        doc.text(splitFlowExp, 14, yOffset);
+        yOffset += (splitFlowExp.length * 6) + 10;
+        doc.setTextColor(0, 0, 0);
+        
+        if (report.strengths && report.strengths.length > 0) {
+            if (yOffset > 270) { doc.addPage(); yOffset = 20; }
+            doc.setFontSize(14);
+            doc.setFont("helvetica", "bold");
+            doc.text("Key Strengths", 14, yOffset);
+            yOffset += 8;
+            doc.setFontSize(11);
+            doc.setFont("helvetica", "normal");
+            report.strengths.forEach(str => {
+                const splitStr = doc.splitTextToSize(`• ${str}`, 180);
+                doc.text(splitStr, 14, yOffset);
+                yOffset += (splitStr.length * 6);
+            });
+            yOffset += 5;
+        }
+
+        if (report.weaknesses && report.weaknesses.length > 0) {
+            if (yOffset > 270) { doc.addPage(); yOffset = 20; }
+            doc.setFontSize(14);
+            doc.setFont("helvetica", "bold");
+            doc.text("Areas to Improve", 14, yOffset);
+            yOffset += 8;
+            doc.setFontSize(11);
+            doc.setFont("helvetica", "normal");
+            report.weaknesses.forEach(wk => {
+                const splitWk = doc.splitTextToSize(`• ${wk}`, 180);
+                doc.text(splitWk, 14, yOffset);
+                yOffset += (splitWk.length * 6);
+            });
+            yOffset += 5;
+        }
+
+        if (report.pacingAnalysis) {
+            if (yOffset > 270) { doc.addPage(); yOffset = 20; }
+            doc.setFontSize(14);
+            doc.setFont("helvetica", "bold");
+            doc.text("Pacing Analysis", 14, yOffset);
+            yOffset += 8;
+            doc.setFontSize(11);
+            doc.setFont("helvetica", "normal");
+            const splitPacing = doc.splitTextToSize(report.pacingAnalysis, 180);
+            doc.text(splitPacing, 14, yOffset);
+            yOffset += (splitPacing.length * 6) + 5;
+        }
+
+        if (report.playerAgency) {
+            if (yOffset > 270) { doc.addPage(); yOffset = 20; }
+            doc.setFontSize(14);
+            doc.setFont("helvetica", "bold");
+            doc.text("Player Agency", 14, yOffset);
+            yOffset += 8;
+            doc.setFontSize(11);
+            doc.setFont("helvetica", "normal");
+            const splitAgency = doc.splitTextToSize(report.playerAgency, 180);
+            doc.text(splitAgency, 14, yOffset);
+            yOffset += (splitAgency.length * 6) + 10;
+        }
+
+        if (yOffset > 250) { doc.addPage(); yOffset = 20; }
         doc.setFontSize(14);
         doc.setFont("helvetica", "bold");
         doc.text("Audience & Regional Fit", 14, yOffset);
@@ -330,9 +408,50 @@ ${JSON.stringify({ title: exportData.title, description: exportData.description,
 
                                 <div className="space-y-4">
                                     <div className="p-5 bg-indigo-500/5 border border-indigo-500/20 rounded-2xl">
-                                        <h3 className="text-xs font-black text-indigo-400 uppercase tracking-widest mb-3">Flow & Narrative</h3>
-                                        <p className="text-sm text-zinc-300 leading-relaxed">{report.flowAnalysis}</p>
+                                        <h3 className="text-xs font-black text-indigo-400 uppercase tracking-widest mb-3">Flow & Narrative Analysis</h3>
+                                        <p className="text-sm text-zinc-300 leading-relaxed mb-4">{report.flowAnalysis}</p>
+                                        <div className="p-4 bg-indigo-500/10 border border-indigo-500/30 rounded-xl">
+                                            <h4 className="text-[11px] font-bold text-indigo-300 uppercase tracking-wider mb-2 flex items-center gap-1.5"><Info className="w-3.5 h-3.5"/> What this is & Why change it</h4>
+                                            <p className="text-xs text-indigo-200/80 leading-relaxed">{report.flowExplanation}</p>
+                                        </div>
                                     </div>
+
+                                    <div className="grid md:grid-cols-2 gap-4">
+                                        {(report.strengths && report.strengths.length > 0) && (
+                                            <div className="p-5 bg-teal-500/5 border border-teal-500/20 rounded-2xl">
+                                                <h3 className="text-xs font-black text-teal-400 uppercase tracking-widest mb-3">Key Strengths</h3>
+                                                <ul className="list-disc pl-4 space-y-1.5 text-sm text-zinc-300">
+                                                    {report.strengths.map((str, idx) => <li key={idx}>{str}</li>)}
+                                                </ul>
+                                            </div>
+                                        )}
+                                        {(report.weaknesses && report.weaknesses.length > 0) && (
+                                            <div className="p-5 bg-orange-500/5 border border-orange-500/20 rounded-2xl">
+                                                <h3 className="text-xs font-black text-orange-400 uppercase tracking-widest mb-3">Areas to Improve</h3>
+                                                <ul className="list-disc pl-4 space-y-1.5 text-sm text-zinc-300">
+                                                    {report.weaknesses.map((wk, idx) => <li key={idx}>{wk}</li>)}
+                                                </ul>
+                                            </div>
+                                        )}
+                                    </div>
+
+                                    {(report.pacingAnalysis || report.playerAgency) && (
+                                        <div className="grid md:grid-cols-2 gap-4">
+                                            {report.pacingAnalysis && (
+                                                <div className="p-5 bg-amber-500/5 border border-amber-500/20 rounded-2xl">
+                                                    <h3 className="text-xs font-black text-amber-400 uppercase tracking-widest mb-3">Pacing Analysis</h3>
+                                                    <p className="text-sm text-zinc-300 leading-relaxed">{report.pacingAnalysis}</p>
+                                                </div>
+                                            )}
+                                            {report.playerAgency && (
+                                                <div className="p-5 bg-purple-500/5 border border-purple-500/20 rounded-2xl">
+                                                    <h3 className="text-xs font-black text-purple-400 uppercase tracking-widest mb-3">Player Agency & Choices</h3>
+                                                    <p className="text-sm text-zinc-300 leading-relaxed">{report.playerAgency}</p>
+                                                </div>
+                                            )}
+                                        </div>
+                                    )}
+
                                     <div className="p-5 bg-emerald-500/5 border border-emerald-500/20 rounded-2xl">
                                         <h3 className="text-xs font-black text-emerald-400 uppercase tracking-widest mb-3">Audience Fit</h3>
                                         <p className="text-sm text-zinc-300 leading-relaxed">{report.audienceFit}</p>
