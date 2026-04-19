@@ -57,7 +57,7 @@ Return ONLY a valid JSON object matching this structure:
 {
   "engagementScore": number,
   "grammaticalErrors": [
-    { "nodeId": "string", "issue": "string", "correction": "string" }
+    { "locationDetail": "string", "currentText": "string", "recommendedText": "string" }
   ],
   "flowAnalysis": "string",
   "flowExplanation": "string",
@@ -399,13 +399,13 @@ Keep your response to 1 short paragraph.`;
             yOffset += 5;
             
             const grammarData = report.grammaticalErrors.map(g => [
-                g.nodeId || "N/A", 
-                g.issue || "N/A", 
-                g.correction || "N/A"
+                g.locationDetail || g.nodeId || "N/A", 
+                g.currentText || g.issue || "N/A", 
+                g.recommendedText || g.correction || "N/A"
             ]);
             autoTable(doc, {
                 startY: yOffset,
-                head: [['Location', 'Issue', 'Suggested Correction']],
+                head: [['Detail Location', 'Current Text', 'Recommended Text']],
                 body: grammarData,
                 theme: 'grid',
                 headStyles: { fillColor: [239, 68, 68] },
@@ -662,10 +662,10 @@ Keep your response to 1 short paragraph.`;
                                             {report.grammaticalErrors.map((err, idx) => (
                                                 <div key={idx} className="p-3 bg-white/5 border border-white/10 rounded-xl text-sm flex flex-col gap-1">
                                                     <div className="flex justify-between items-center text-xs text-zinc-500 font-mono">
-                                                        <span>Location: {err.nodeId}</span>
+                                                        <span>Location: {err.locationDetail || err.nodeId}</span>
                                                     </div>
-                                                    <div className="text-rose-300 line-through opacity-80">{err.issue}</div>
-                                                    <div className="text-emerald-400 font-medium">→ {err.correction}</div>
+                                                    <div className="text-rose-300 line-through opacity-80">{err.currentText || err.issue}</div>
+                                                    <div className="text-emerald-400 font-medium">→ {err.recommendedText || err.correction}</div>
                                                 </div>
                                             ))}
                                         </div>
